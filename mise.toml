@@ -1,0 +1,48 @@
+# mise configuration for slsa-builder
+# See docs/decisions/0012-development-tool-runtime-and-bootstrap.md
+
+[tools]
+# Runtimes
+node = { version = "24", postinstall = "corepack enable" }
+go = "1.26"
+
+# Go ecosystem tools
+"aqua:golangci/golangci-lint" = "2"
+
+# Shell tooling
+"aqua:koalaman/shellcheck" = "0.11"
+"aqua:mvdan/sh" = "3"
+
+# Git hook orchestration
+"aqua:evilmartians/lefthook" = { version = "2", postinstall = "lefthook install" }
+
+# GitHub Actions workflow linting
+"aqua:rhysd/actionlint" = "1"
+
+[settings]
+# When running with MISE_LOCKED=1 (recommended in CI), fail if a tool lacks a
+# pre-resolved URL in the lockfile. This prevents API calls to registries in
+# locked CI installs. Locally it is left false so contributors can update the
+# lockfile with `mise lock`.
+locked = false
+
+# Verify provenance (SLSA, cosign, minisign, GitHub artifact attestations) at install time
+locked_verify_provenance = true
+
+# Require a committed lockfile in CI; locally, prompt for updates when tools change.
+lockfile = true
+
+# Align with Windlass dependency-security cooldown policy: wait at least 1 day
+# after a release before allowing a fuzzy version match to resolve to it.
+# Explicitly pinned versions above are not affected.
+minimum_release_age = "1d"
+
+[settings.aqua]
+# Keep aqua registry metadata fresh enough to pick up new tool releases,
+# but do not allow unverified checksum/signature bypass.
+# aqua verifies checksums and signatures by default; this section only
+# configures cache behavior.
+registry_cache_ttl = "1h"
+
+[settings.npm]
+package_manager = "pnpm"

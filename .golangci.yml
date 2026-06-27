@@ -1,0 +1,77 @@
+# Defines the configuration version.
+# The only possible value is "2".
+version: "2"
+
+linters:
+  # Default set of linters.
+  # The value can be:
+  # - `standard`: the "Default" linters https://golangci-lint.run/docs/linters/#all-linters
+  # - `all`: enables all linters by default.
+  # - `none`: disables all linters by default.
+  # - `fast`: enables only linters considered as "fast" (`golangci-lint help linters --json | jq '[ .[] | select(.fast==true) ] | map(.name)'`).
+  # Default: standard
+  default: standard
+
+  settings:
+    errcheck:
+      # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
+      # Such cases aren't reported by default.
+      # Default: false
+      check-type-assertions: true
+      # Report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`.
+      # Such cases aren't reported by default.
+      # Default: false
+      check-blank: true
+      # To disable the errcheck built-in exclude list.
+      # See `-excludeonly` option in https://github.com/kisielk/errcheck#excluding-functions for details.
+      # Default: false
+      disable-default-exclusions: false
+    
+    unused:
+      # Mark all struct fields that have been written to as used.
+      # Default: true
+      field-writes-are-uses: true
+      # Treat IncDec statement (e.g. `i++` or `i--`) as both read and write operation instead of just write.
+      # Default: false
+      post-statements-are-reads: false
+      # Mark all exported fields as used.
+      # default: true
+      exported-fields-are-used: true
+      # Mark all function parameters as used.
+      # default: true
+      parameters-are-used: false
+      # Mark all local variables as used.
+      # default: true
+      local-variables-are-used: false
+      # Mark all identifiers inside generated files as used.
+      # Default: true
+      generated-is-used: false
+  
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - std-error-handling
+
+formatters:
+  # Enable specific formatter.
+  # Default: [] (uses standard Go formatting)
+  enable:
+    - gofmt
+    - goimports
+  
+  settings:
+    gofmt:
+      # Simplify code: gofmt with `-s` option.
+      # Default: true
+      simplify: true
+      # Apply the rewrite rules to the source before reformatting.
+      # https://pkg.go.dev/cmd/gofmt
+      # Default: []
+      rewrite-rules: []
+    
+    goimports:
+      # A list of prefixes, which, if set, checks import paths
+      # with the given prefixes are grouped after 3rd-party packages.
+      # Default: []
+      local-prefixes: []
