@@ -26,7 +26,7 @@ linters:
       # See `-excludeonly` option in https://github.com/kisielk/errcheck#excluding-functions for details.
       # Default: false
       disable-default-exclusions: false
-    
+
     unused:
       # Mark all struct fields that have been written to as used.
       # Default: true
@@ -46,7 +46,7 @@ linters:
       # Mark all identifiers inside generated files as used.
       # Default: true
       generated-is-used: false
-  
+
   exclusions:
     presets:
       - comments
@@ -59,7 +59,7 @@ formatters:
   enable:
     - gofmt
     - goimports
-  
+
   settings:
     gofmt:
       # Simplify code: gofmt with `-s` option.
@@ -69,7 +69,7 @@ formatters:
       # https://pkg.go.dev/cmd/gofmt
       # Default: []
       rewrite-rules: []
-    
+
     goimports:
       # A list of prefixes, which, if set, checks import paths
       # with the given prefixes are grouped after 3rd-party packages.
