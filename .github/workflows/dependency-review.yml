@@ -9,9 +9,6 @@ on:
       - "**.md"
       - "docs/**"
   merge_group:
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
 
 jobs:
   dependency-review:
