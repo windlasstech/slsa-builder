@@ -17,6 +17,7 @@ This project follows SDD methodology. Do not implement before reading the specs.
 ## Commits
 
 - **DCO sign-off required**: Every commit must include a `Signed-off-by:` line. Use `git commit -s` (or `git commit --signoff`) for all commits. Lefthook enforces this in the commit-msg hook.
+- **Commit message body format**: When a commit needs a multi-line body, prefer `git commit -s -F - <<'EOF'` (heredoc) over repeating `-m`. Repeating `-m` inserts blank lines between each argument and hurts readability; use heredoc unless the blank lines are intentional paragraph breaks.
 
 ## Changelog Management
 
