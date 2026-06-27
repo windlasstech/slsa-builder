@@ -1,12 +1,48 @@
-## Spec-Driven Development (SDD)
+# PROJECT KNOWLEDGE BASE
 
-This project follows SDD methodology. Do not implement before reading the specs.
+**Generated:** 12026-06-28
+**Commit:** 7c6fcbe
+**Branch:** setup/initial-tooling
 
-1. **ADRs first** (`docs/decisions/`): understand _why_ architecture was chosen
-2. **Specs second** (`docs/architecture/`): define _exact observable behavior_
-3. **Implementation third**: build against the specifications
+## OVERVIEW
 
-## Repo Conventions
+Reusable, profile-extensible SLSA provenance builder foundation. Currently a docs/tooling scaffold; the Go implementation tree has not been added yet.
+
+## STRUCTURE
+
+```text
+.
+├── AGENTS.md              # this file
+├── README.md / README.ko.md
+├── docs/decisions/        # architecture ADRs (see docs/decisions/AGENTS.md)
+├── .golangci.yml          # Go format/lint policy
+├── lefthook.yml           # git hooks
+├── mise.toml / mise.lock  # pinned runtimes and tools
+├── package.json / pnpm-*  # dev-only Node tooling
+└── .cursor/ .claude/ .gemini/ .kiro/  # editor/AI tool configs
+```
+
+## WHERE TO LOOK
+
+| Task                    | Location                                                   | Notes                                    |
+| ----------------------- | ---------------------------------------------------------- | ---------------------------------------- |
+| Why a decision was made | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0012`. |
+| Bootstrap / dev setup   | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.         |
+| Lint/format policy      | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                     |
+| Git hooks / DCO         | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.       |
+| Dependency security     | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile. |
+
+## CONVENTIONS
+
+### Spec-Driven Development (SDD)
+
+Do not implement before reading the specs.
+
+1. **ADRs first** (`docs/decisions/`): understand _why_ architecture was chosen.
+2. **Specs second** (`docs/architecture/`): define _exact observable behavior_.
+3. **Implementation third**: build against the specifications.
+
+### Repo Conventions
 
 - **ADRs**: Use MADR 4.0.0 format. Store in `docs/decisions/` with sequential numbering (`0001-title.md`).
 - **ADR immutability**: Existing accepted ADRs are immutable. Never edit the body of an accepted ADR after the fact. The only permitted post-acceptance change is updating the `status` field (e.g., to `superseded`, `deprecated`). If a decision changes, write a new ADR rather than rewriting history.
