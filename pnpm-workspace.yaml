@@ -1,0 +1,57 @@
+# pnpm workspace configuration for slsa-builder
+# Aligned with ADR-0010 (pnpm package manager) and Windlass dependency-security policy.
+#
+# Docs: https://pnpm.io/settings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Dependency Resolution
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Install-time dependency cooldown.
+# Windlass dependency-security policy requires a minimum of 1440 minutes (1 day).
+minimumReleaseAge: 1440
+
+# Require registry publish-time metadata for age-gate enforcement.
+# When a package's registry metadata lacks the time field, fail resolution
+# instead of silently skipping the minimumReleaseAge check.
+minimumReleaseAgeIgnoreMissingTime: false
+
+# When no version satisfies the age gate inside the requested range, fail
+# resolution rather than silently falling back to a newer (unvetted) version.
+# This ensures the cooldown is actually enforced.
+minimumReleaseAgeStrict: true
+
+# Trust policy: fail if a package’s trust evidence degrades compared to an
+# earlier-published version (e.g. lost provenance or publisher signature).
+# Helps detect account-takeover or publish-configuration regressions.
+trustPolicy: no-downgrade
+
+# Only direct dependencies may use exotic sources (git repos, tarballs).
+# Transitive deps must resolve from the configured registry or workspace.
+# Default since pnpm v10.26.0 is true; pinned here for explicit policy.
+blockExoticSubdeps: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Store Integrity
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Verify content of files in the store before linking them to node_modules.
+# Catches accidental store corruption.
+verifyStoreIntegrity: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Lockfile
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Always generate and read pnpm-lock.yaml.
+# Windlass policy requires lockfiles to be committed for reproducible builds
+# and security auditing.
+lockfile: true
+
+# When the existing lockfile already satisfies package.json, perform a
+# headless (frozen) install that skips dependency resolution.
+# Combined with CI frozen-lockfile installs, this prevents drift.
+preferFrozenLockfile: true
+
+allowBuilds:
+  lefthook: true

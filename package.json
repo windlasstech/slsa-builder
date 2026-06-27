@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "markdownlint-cli2": "^0.22.1",
+    "prettier": "^3.8.4"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.9.0",
+      "onFail": "download"
+    }
+  }
+}
