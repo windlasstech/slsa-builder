@@ -10,8 +10,9 @@ decision-makers: Yunseo Kim
 
 ## Context and Problem Statement
 
-We want to record architectural decisions made in this project independent whether decisions concern the architecture ("architectural decision record"), the code, or other fields.
-Which format and structure should these records follow?
+We want to record architectural decisions made in this project independent whether decisions concern
+the architecture ("architectural decision record"), the code, or other fields. Which format and
+structure should these records follow?
 
 ## Decision Drivers
 
@@ -24,14 +25,17 @@ Which format and structure should these records follow?
 ## Considered Options
 
 - [MADR](https://adr.github.io/madr/) 4.0.0 – The Markdown Architectural Decision Records
-- [Michael Nygard's template](http://thinkrelevance.com/blog/2011/11/15/documenting-architecture-decisions) – The first incarnation of the term "ADR"
-- [Sustainable Architectural Decisions](https://www.infoq.com/articles/sustainable-architectural-design-decisions) – The Y-Statements
+- [Michael Nygard's template](http://thinkrelevance.com/blog/2011/11/15/documenting-architecture-decisions)
+  – The first incarnation of the term "ADR"
+- [Sustainable Architectural Decisions](https://www.infoq.com/articles/sustainable-architectural-design-decisions)
+  – The Y-Statements
 - Other templates listed at <https://github.com/joelparkerhenderson/architecture_decision_record>
 - Formless – No conventions for file format and structure
 
 ## Decision Outcome
 
-Chosen option: "MADR 4.0.0", because it provides a lean, structured, and maintained Markdown format for capturing decisions across architecture, code, documentation, and operating policy.
+Chosen option: "MADR 4.0.0", because it provides a lean, structured, and maintained Markdown format
+for capturing decisions across architecture, code, documentation, and operating policy.
 
 ### Consequences
 
@@ -42,18 +46,21 @@ Chosen option: "MADR 4.0.0", because it provides a lean, structured, and maintai
 
 ### Confirmation
 
-Compliance with this decision is confirmed when new decision records are added under `docs/decisions/` using the MADR structure recorded in this ADR.
-Decision records should include context, decision drivers, considered options, outcome, consequences, confirmation, option tradeoffs, and more information when relevant.
+Compliance with this decision is confirmed when new decision records are added under
+`docs/decisions/` using the MADR structure recorded in this ADR. Decision records should include
+context, decision drivers, considered options, outcome, consequences, confirmation, option
+tradeoffs, and more information when relevant.
 
 ## Pros and Cons of the Options
 
 ### MADR 4.0.0
 
-The Markdown Architectural Decision Records template provides a structured Markdown format for documenting decisions.
+The Markdown Architectural Decision Records template provides a structured Markdown format for
+documenting decisions.
 
-- Good, because implicit assumptions should be made explicit.
-  Design documentation is important to enable people understanding the decisions later on.
-  See also ["A rational design process: How and why to fake it"](https://doi.org/10.1109/TSE.1986.6312940).
+- Good, because implicit assumptions should be made explicit. Design documentation is important to
+  enable people understanding the decisions later on. See also
+  ["A rational design process: How and why to fake it"](https://doi.org/10.1109/TSE.1986.6312940).
 - Good, because MADR allows for structured capturing of any decision.
 - Good, because the MADR format is lean and fits our development style.
 - Good, because the MADR structure is comprehensible and facilitates usage and maintenance.
@@ -70,11 +77,13 @@ The first incarnation of the term "ADR" and a widely recognized lightweight ADR 
 
 ### Sustainable Architectural Decisions
 
-The Y-Statement style emphasizes concise decision statements and sustainability of architecture documentation.
+The Y-Statement style emphasizes concise decision statements and sustainability of architecture
+documentation.
 
 - Good, because it encourages concise framing.
 - Good, because it focuses on sustainable architecture decision-making.
-- Bad, because it is less directly aligned with the full Markdown document structure we want for this repository.
+- Bad, because it is less directly aligned with the full Markdown document structure we want for
+  this repository.
 
 ### Other ADR templates
 
@@ -115,7 +124,9 @@ nav_order: 100
 
 ## Context and Problem Statement
 
-{Describe the context and problem statement, e.g., in free form using two to three sentences or in the form of an illustrative story. You may want to articulate the problem in form of a question and add links to collaboration boards or issue management systems.}
+{Describe the context and problem statement, e.g., in free form using two to three sentences or in
+the form of an illustrative story. You may want to articulate the problem in form of a question and
+add links to collaboration boards or issue management systems.}
 
 <!-- This is an optional element. Feel free to remove. -->
 
@@ -134,7 +145,8 @@ nav_order: 100
 
 ## Decision Outcome
 
-Chosen option: "{title of option 1}", because {justification. e.g., only option, which meets k.o. criterion decision driver | which resolves force {force} | … | comes out best (see below)}.
+Chosen option: "{title of option 1}", because {justification. e.g., only option, which meets k.o.
+criterion decision driver | which resolves force {force} | … | comes out best (see below)}.
 
 <!-- This is an optional element. Feel free to remove. -->
 
@@ -148,7 +160,10 @@ Chosen option: "{title of option 1}", because {justification. e.g., only option,
 
 ### Confirmation
 
-{Describe how the implementation of/compliance with the ADR can/will be confirmed. Is the chosen design and its implementation in line with the decision? E.g., a design/code review or a test with a library such as ArchUnit can help validate this. Note that although we classify this element as optional, it is included in many ADRs.}
+{Describe how the implementation of/compliance with the ADR can/will be confirmed. Is the chosen
+design and its implementation in line with the decision? E.g., a design/code review or a test with a
+library such as ArchUnit can help validate this. Note that although we classify this element as
+optional, it is included in many ADRs.}
 
 <!-- This is an optional element. Feel free to remove. -->
 
@@ -181,5 +196,8 @@ Chosen option: "{title of option 1}", because {justification. e.g., only option,
 
 ## More Information
 
-{You might want to provide additional evidence/confidence for the decision outcome here and/or document the team agreement on the decision and/or define when/how this decision the decision should be realized and if/when it should be re-visited. Links to other decisions and resources might appear here as well.}
+{You might want to provide additional evidence/confidence for the decision outcome here and/or
+document the team agreement on the decision and/or define when/how this decision the decision should
+be realized and if/when it should be re-visited. Links to other decisions and resources might appear
+here as well.}
 ```

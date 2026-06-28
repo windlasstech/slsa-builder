@@ -2,7 +2,8 @@
 
 ## OVERVIEW
 
-Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a sequential four-digit number and a kebab-case title.
+Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
+sequential four-digit number and a kebab-case title.
 
 ## STRUCTURE
 
@@ -37,7 +38,8 @@ docs/decisions/
 ## CONVENTIONS
 
 - **Format**: MADR 4.0.0. Use `0000-title.md` numbering (the template itself is `0000`).
-- **Status**: accepted / deprecated / superseded / etc. Only the status field may change after acceptance.
+- **Status**: accepted / deprecated / superseded / etc. Only the status field may change after
+  acceptance.
 - **Dates**: Use Holocene Era year format (e.g., `12026-06-23`).
 - **Immutability**: Do not edit the body of an accepted ADR. Write a new ADR instead.
 
