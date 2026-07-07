@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0053`.
+`0054`.
 
 ## STRUCTURE
 
@@ -13,12 +13,13 @@ docs/decisions/
 ├── 0000-use-markdown-architectural-decision-records.md  # MADR template
 ├── 0001-start-slsa-builder-as-clean-repository.md
 ├── 0002-use-extensible-trusted-reusable-workflow-foundation.md
-├── ...                                                  # 0003–0052
-├── 0053-use-three-job-release-manifest-signing-boundary.md
+├── ...                                                  # 0003–0053
+├── 0054-use-slsa-builder-dev-release-manifest-predicate-uri.md
+├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0053`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0054`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -33,7 +34,7 @@ groupings.
 | Dev tooling runtime           | `0009`, `0010`, `0011`, `0012` | Node/pnpm, Lefthook, mise bootstrap.                            |
 | JS/TS npm package profile     | `0013`–`0035`                  | Package manager selection, OIDC publishing, SLSA3 npm workflow. |
 | GitHub release asset profile  | `0036`–`0052`                  | Release asset subject handling, attestation distribution.       |
-| Release manifest signing      | `0053`                         | Three-job signing boundary.                                     |
+| Release manifest metadata     | `0053`, `0054`                 | Signing boundary and predicate URI.                             |
 
 ## CONVENTIONS
 

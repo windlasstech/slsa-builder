@@ -28,7 +28,7 @@ the Go implementation tree has not been added yet.
 
 | Task                    | Location                                                   | Notes                                    |
 | ----------------------- | ---------------------------------------------------------- | ---------------------------------------- |
-| Why a decision was made | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0053`. |
+| Why a decision was made | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0054`. |
 | Bootstrap / dev setup   | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.         |
 | CI / workflow security  | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.       |
 | Lint/format policy      | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                     |
@@ -52,7 +52,11 @@ Do not implement before reading the specs.
 - **ADR immutability**: Existing accepted ADRs are immutable. Never edit the body of an accepted ADR
   after the fact. The only permitted post-acceptance change is updating the `status` field (e.g., to
   `superseded`, `deprecated`). If a decision changes, write a new ADR rather than rewriting history.
-- **Dates in documents**: Use Holocene Era / Human Era year format (e.g., `12026-06-23`).
+- **Dates in human-facing documents**: Use Holocene Era / Human Era year format for prose, changelog
+  headings, ADR dates, and other human-reader dates (e.g., `12026-06-23`). Machine-readable
+  timestamps and protocol/schema fields, such as JSON `generated_at`, SLSA `startedOn`, and
+  `finishedOn`, must preserve the applicable technical standard format, normally ISO 8601 with a
+  standard four-digit Gregorian year (e.g., `2026-06-23T12:00:00Z`).
 - **Bilingual README updates**: When editing any `README.md`, update the corresponding
   `README.ko.md` in the same directory as part of the same change.
 - **CodeGraph MCP**: `opencode.jsonc` configures a local CodeGraph MCP server. Other AI tool configs
