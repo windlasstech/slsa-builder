@@ -1,8 +1,8 @@
 # PROJECT KNOWLEDGE BASE
 
-- **Generated:** 12026-06-28
-- **Commit:** 7c6fcbe
-- **Branch:** setup/initial-tooling
+- **Generated:** 12026-07-07
+- **Commit:** e40a91e
+- **Branch:** docs/adr-npm-and-release-asset-profiles
 
 ## OVERVIEW
 
@@ -16,6 +16,7 @@ the Go implementation tree has not been added yet.
 ├── AGENTS.md              # this file
 ├── README.md / README.ko.md
 ├── docs/decisions/        # architecture ADRs (see docs/decisions/AGENTS.md)
+├── .github/workflows/     # CI/CD workflows (see .github/workflows/AGENTS.md)
 ├── .golangci.yml          # Go format/lint policy
 ├── lefthook.yml           # git hooks
 ├── mise.toml / mise.lock  # pinned runtimes and tools
@@ -27,8 +28,9 @@ the Go implementation tree has not been added yet.
 
 | Task                    | Location                                                   | Notes                                    |
 | ----------------------- | ---------------------------------------------------------- | ---------------------------------------- |
-| Why a decision was made | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0012`. |
+| Why a decision was made | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0053`. |
 | Bootstrap / dev setup   | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.         |
+| CI / workflow security  | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.       |
 | Lint/format policy      | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                     |
 | Git hooks / DCO         | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.       |
 | Dependency security     | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile. |
