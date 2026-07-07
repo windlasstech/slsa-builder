@@ -1,7 +1,7 @@
 ---
 parent: Decisions
 nav_order: 21
-status: accepted
+status: superseded by ADR-0042
 date: 12026-06-29
 decision-makers: Yunseo Kim
 ---
