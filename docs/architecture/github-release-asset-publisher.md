@@ -131,11 +131,12 @@ All required handoff string fields must be non-empty after trimming ASCII whites
 must be 64-character lowercase hexadecimal strings. `release-tag` must be a full Git tag ref in the
 form `refs/tags/<tag-name>` and must identify the target existing GitHub Release. A short tag name
 such as `v1.2.3`, a branch ref, a pull request ref, an empty tag name, or a ref containing path
-traversal or ASCII control characters must be rejected before upload. `source-repository` must be a
-canonical HTTPS repository URL, and `source-revision` must be the full immutable source revision
-expected by the producer policy; for GitHub-hosted Git sources this is a 40-character lowercase Git
-commit SHA. For the initial npm composition, `source-repository` must use the canonical GitHub
-repository URL rules defined by the
+traversal or ASCII control characters must be rejected before upload. `final-asset-name` must
+satisfy the release asset name rules below and must equal `expected-subject-name`.
+`source-repository` must be a canonical HTTPS repository URL, and `source-revision` must be the full
+immutable source revision expected by the producer policy; for GitHub-hosted Git sources this is a
+40-character lowercase Git commit SHA. For the initial npm composition, `source-repository` must use
+the canonical GitHub repository URL rules defined by the
 [JS/TS npm provenance and publish spec](js-ts-npm-provenance-publish.md). The publisher must reject
 a `source-repository` value that cannot be canonicalized by those rules or that does not exactly
 match the canonical `externalParameters.source.repository` value in the verified producer
@@ -152,6 +153,30 @@ For the initial npm composition, `source-repository` and `source-revision` are a
 because the publisher verifies them against the npm producer provenance
 `externalParameters.source.repository` and `externalParameters.source.revision`. A missing, short,
 branch-like, tag-like, or mismatched source identity must fail before upload.
+
+### Final release asset name rules
+
+`final-asset-name` is the basename that will be uploaded to the target GitHub Release and the value
+that must appear in the upstream producer provenance subject. The publisher must validate it before
+retrieving or uploading release assets.
+
+The value is invalid when any of the following are true:
+
+- It is empty or becomes empty after trimming ASCII whitespace.
+- It has leading or trailing ASCII whitespace.
+- It contains `/`, `\\`, NUL, or any ASCII control character.
+- It is exactly `.` or `..`.
+- It contains a path traversal segment when interpreted as slash- or backslash-separated text.
+- It differs from `expected-subject-name`.
+- It differs from the basename of the single payload file inside the `primary-artifact-name` handoff
+  artifact.
+- The derived sidecar name `<final-asset-name>.intoto.jsonl` would violate the same character and
+  whitespace rules.
+
+The publisher must not rely on GitHub's API acceptance rules as the primary validation policy. A
+name that passes GitHub API validation but violates the Windlass rules above must be rejected before
+upload. The duplicate preflight check must evaluate both `final-asset-name` and the derived sidecar
+name as distinct target release asset names.
 
 ### Artifact transport
 
