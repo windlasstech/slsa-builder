@@ -54,8 +54,8 @@ input.
 ### Workspace root discovery
 
 The profile discovers workspace context by starting at the resolved package directory and walking
-upward to the repository root. The first ancestor whose `package.json` declares workspace membership
-for the selected package directory is the workspace root.
+upward to the repository root. Each ancestor is a candidate workspace root. The first candidate
+whose supported workspace metadata claims the selected package directory is the workspace root.
 
 Workspace membership is recognized from supported workspace metadata in each candidate ancestor:
 
@@ -70,8 +70,13 @@ The initial production profile supports only these workspace metadata shapes:
 - pnpm `pnpm-workspace.yaml` as a YAML object whose `packages` member is an array of string
   patterns.
 
-Workspace patterns are evaluated as repository-root-relative, slash-separated path patterns after
-path normalization. Supported pattern syntax is intentionally limited to:
+Workspace patterns are evaluated as candidate-workspace-root-relative, slash-separated path patterns
+after path normalization. For each candidate ancestor, the implementation converts the selected
+package directory to a path relative to that candidate root, then evaluates the candidate root's
+workspace patterns against that relative path. Matched package directories are emitted and recorded
+as repository-root-relative normalized paths after matching.
+
+Supported pattern syntax is intentionally limited to:
 
 - literal path segments;
 - `*` for exactly one path segment;
@@ -79,8 +84,21 @@ path normalization. Supported pattern syntax is intentionally limited to:
 
 The initial production profile rejects workspace patterns with negation (`!`), brace expansion,
 extended glob syntax, absolute paths, empty path segments, `.` or `..` traversal segments, backslash
-separators, or patterns that normalize outside the repository. A future ADR or spec revision may add
-broader package-manager-native workspace pattern semantics.
+separators, or patterns that normalize outside the candidate workspace root or repository. A future
+ADR or spec revision may add broader package-manager-native workspace pattern semantics.
+
+Examples:
+
+- With repository root `/repo`, candidate root `/repo`, pattern `packages/*`, and
+  `package-directory: packages/a`, the relative path `packages/a` matches and the recorded package
+  path is `packages/a`.
+- With repository root `/repo`, candidate root `/repo/apps/web`, pattern `packages/*`, and
+  `package-directory: apps/web/packages/a`, the relative path `packages/a` matches and the recorded
+  package path is `apps/web/packages/a`.
+- With repository root `/repo`, candidate root `/repo/apps/web`, pattern `apps/web/packages/*`, and
+  `package-directory: apps/web/packages/a`, the relative path `packages/a` does not match. The
+  pattern is rejected for that candidate if it was written with repository-root-relative assumptions
+  that escape or duplicate the candidate root.
 
 If multiple ancestors claim the selected package directory, the nearest claiming ancestor is the
 workspace root. If no ancestor claims the selected package directory, the selected package is
