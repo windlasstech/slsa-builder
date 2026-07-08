@@ -502,11 +502,15 @@ publish.
 - For non-npmjs registries, package-identity and package-version existence checks are best-effort
   diagnostics unless a later ADR defines that registry class. The workflow should attempt an
   equivalent metadata check when the selected registry exposes one without requiring publish secrets
-  or weakening provenance behavior. A diagnostic failure to prove preexisting identity or absent
-  version on a custom registry must be recorded clearly, but it is not a Windlass-guaranteed
-  pre-publish gate for unsupported-but-not-blocked registries. The custom registry still must
-  complete tokenless publish with the external provenance bundle; otherwise `npm publish` fails and
-  the workflow must fail.
+  or weakening provenance behavior. A tokenless check that proves package identity or package
+  version state records `true` or `false` in `publish.package_identity_preexisting` and
+  `publish.package_version_preexisting`. An unavailable or inconclusive tokenless check records
+  `null` for the unproven field and may continue to the tokenless publish attempt; this is a
+  diagnostic limitation, not a Windlass-guaranteed pre-publish gate. A check that requires
+  `NPM_TOKEN`, `NODE_AUTH_TOKEN`, OTP, publish credentials, unsigned provenance, npm automatic
+  provenance fallback, or any other weakening of the production contract must fail before registry
+  mutation. The custom registry still must complete tokenless publish with the external provenance
+  bundle; otherwise `npm publish` fails and the workflow must fail.
 
 ## npm trusted publishing authentication
 
@@ -542,8 +546,12 @@ credentials, npm automatic provenance, or unsigned provenance.
 
 For a non-npmjs `publish.resolved_registry_url`, the profile records
 `publish.custom_registry_support: "unsupported-but-not-blocked"`. Pre-publish package existence
-checks and post-publish registry metadata linkage checks are registry-specific best-effort
-diagnostics for that target unless a later ADR defines a supported custom registry class. A custom
+checks and post-publish registry metadata linkage checks are registry-specific diagnostics for that
+target unless a later ADR defines a supported custom registry class. Inconclusive tokenless
+preflight metadata checks are recorded as `null` values in `externalParameters`; they are not
+reported as Windlass-guaranteed registry support and are not by themselves workflow failures.
+Metadata or linkage checks that require publish credentials, token fallback, unsigned provenance,
+npm automatic provenance, or omission of the external provenance bundle are hard failures. A custom
 registry still must accept tokenless publish with the external provenance bundle; otherwise
 `npm publish` fails and the workflow must fail.
 

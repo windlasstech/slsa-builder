@@ -253,6 +253,7 @@ Every fixture must include:
 | `duplicate-sidecar-asset`                  | Deterministic sidecar asset name already exists before upload.                         |
 | `registry-linkage-mismatch`                | Published package does not match the provenance registry metadata.                     |
 | `custom-registry-preflight-diagnostic`     | Non-npmjs registry preflight metadata is best-effort and not guaranteed support.       |
+| `custom-registry-token-required`           | Custom registry metadata or publish path requires token or weaker provenance behavior. |
 | `prepublish-registry-metadata-required`    | Workflow required post-publish registry metadata before publish.                       |
 | `release-version-semver-mismatch`          | Release manifest version or tag is not valid SemVer 2.0.0.                             |
 | `trusted-core-boundary-violation`          | Trusted policy/provenance logic depends on profile ecosystem tooling.                  |
@@ -288,6 +289,14 @@ preflight checks are best-effort diagnostics: an unsupported custom registry may
 `publish.package_identity_preexisting` or `publish.package_version_preexisting` as `null` when a
 tokenless metadata check cannot prove the state, but it must still fail if tokenless publish with
 the external provenance bundle is unavailable.
+
+The custom-registry fixture set must separate inconclusive diagnostics from hard failures. A fixture
+where tokenless metadata is unavailable or inconclusive must pass only when the unproven preflight
+fields are recorded as `null` and `publish.custom_registry_support` is
+`unsupported-but-not-blocked`. A fixture where metadata discovery or publish requires `NPM_TOKEN`,
+`NODE_AUTH_TOKEN`, OTP, unsigned provenance, npm automatic provenance fallback, or omission of the
+external provenance bundle must fail with `custom-registry-token-required` or the narrower publish
+failure category.
 
 The workspace fixture set must include nested workspace roots and prove that workspace patterns are
 evaluated relative to each candidate workspace root, not relative to the repository root. A fixture

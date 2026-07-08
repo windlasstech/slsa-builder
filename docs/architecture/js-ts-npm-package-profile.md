@@ -318,6 +318,15 @@ A manual dispatch release must satisfy all of the following:
   package identity. For non-npmjs registries, package identity and package version preflight checks
   are best-effort diagnostics unless a later ADR defines that registry class. The custom registry
   still must complete tokenless trusted publishing with the supplied external provenance bundle.
+- For non-npmjs registries, preflight metadata diagnostics have three observable outcomes:
+  - If a tokenless metadata check proves the package identity or version state, the workflow records
+    the proven boolean values in provenance and may continue.
+  - If no tokenless metadata check is available, or the check is inconclusive without weakening the
+    no-secret and provenance-file contract, the workflow records `null` for the unproven state and
+    may continue to the tokenless publish attempt.
+  - If the metadata check requires `NPM_TOKEN`, `NODE_AUTH_TOKEN`, OTP, publish credentials, private
+    dependency credentials, unsigned provenance, npm automatic provenance fallback, or any other
+    weakening of the production contract, the workflow must fail before registry mutation.
 - For npmjs, post-publish registry metadata checks are required by the provenance and publish spec.
   For custom registries, registry linkage verification is registry-specific and must not be reported
   as Windlass-guaranteed unless a later ADR defines that registry class.
