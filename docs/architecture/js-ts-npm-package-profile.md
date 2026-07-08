@@ -216,6 +216,53 @@ credential.
 Outputs are release handles for downstream workflows and human operators. They are not substitutes
 for signed provenance.
 
+### `package-url` output
+
+`package-url` is the canonical Package URL (PURL) for the published npm package identity. The
+initial profile follows the Package URL specification, common qualifier guidance, build/parse
+guidance, and official PURL test expectations, and emits only package identity components:
+
+| PURL component | Required value                                                                     |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `scheme`       | `pkg`                                                                              |
+| `type`         | `npm`                                                                              |
+| `namespace`    | For scoped packages, the npm scope including leading `@`, percent-encoded.         |
+| `name`         | The npm package name without scope for scoped packages, or the full unscoped name. |
+| `version`      | The validated package version.                                                     |
+| `qualifiers`   | Omitted in the initial profile.                                                    |
+| `subpath`      | Omitted in the initial profile.                                                    |
+
+Canonical examples:
+
+| npm package identity     | Version | `package-url`                            |
+| ------------------------ | ------- | ---------------------------------------- |
+| `left-pad`               | `1.3.0` | `pkg:npm/left-pad@1.3.0`                 |
+| `@windlass/slsa-builder` | `1.2.3` | `pkg:npm/%40windlass/slsa-builder@1.2.3` |
+
+The profile must not put the registry URL, dist-tag, access mode, tarball name, tarball URL,
+provenance locator, or digest into `package-url` qualifiers. Those values are recorded in dedicated
+outputs or provenance fields such as `publish.resolved_registry_url`, `publish.resolved_dist_tag`,
+and the tarball digest outputs.
+
+The workflow must fail before signing or publishing when it cannot construct a canonical npm PURL
+from the validated package name and version. Producer-side verification must reject a provenance
+bundle before publish when `externalParameters.package.package_url` is not byte-for-byte equal to
+the canonical PURL reconstructed from `externalParameters.package.name` and
+`externalParameters.package.version`.
+
+Rejected `package-url` examples for the initial profile:
+
+- `pkg:npm/@windlass/slsa-builder@1.2.3` because the npm scope's leading `@` is not percent-encoded.
+- `pkg:npm/%40windlass/slsa-builder@1.2.3?repository_url=https://registry.npmjs.org/` because
+  qualifiers are not emitted for the package identity output.
+- `pkg:npm/%40windlass/slsa-builder@1.2.3#dist/index.js` because subpaths are not package identity
+  outputs.
+- `pkg:generic/%40windlass/slsa-builder@1.2.3` because the PURL type must be `npm`.
+- `pkg:npm/%40windlass/slsa-builder@1.2.4` when the validated package version is `1.2.3`.
+
+Normative references for this field are the Package URL specification, common qualifiers guide, PURL
+build and parse guides, and the official PURL tests published at `packageurl.org`.
+
 ## Supported caller triggers
 
 The profile supports the following production caller patterns:

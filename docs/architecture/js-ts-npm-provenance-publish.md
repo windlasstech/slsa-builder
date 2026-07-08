@@ -309,7 +309,10 @@ Type and nullability rules:
   manifest.
 - `package.private` must be `false`.
 - `package.tarball_name` must equal `subject[0].name`.
-- `package.package_url` must be a package URL (`pkg:npm/...`) for the package name and version.
+- `package.package_url` must be a package URL (`pkg:npm/...`) for the package name and version. It
+  must equal the canonical PURL reconstructed from `package.name` and `package.version` according to
+  the npm package URL rules in the public profile spec: `pkg` scheme, `npm` type, percent-encoded
+  npm scope as namespace when present, no qualifiers, and no subpath.
 - `package.packed_name` and `package.packed_version` must match the source package name and version.
 - `package_manager.name` must be `npm`, `pnpm`, or `yarn`.
 - `package_manager.version` must be the actual package-manager version used.
