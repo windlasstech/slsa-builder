@@ -113,19 +113,20 @@ following semantic fields:
 | `native-provenance-locators`        | no       | Producer-native provenance locators.                                    |
 | `linked-artifact-settings`          | no       | Linked artifact storage opt-in settings.                                |
 
-The field names above are the public semantic handoff names for the publisher contract. They map to
-the core same-run artifact handoff schema as follows:
+The field names above are the public semantic handoff names for the publisher contract. The
+publisher constructs two core same-run artifact handoff objects from them:
 
-| Publisher field                     | Core handoff field              | Required core value                             |
-| ----------------------------------- | ------------------------------- | ----------------------------------------------- |
-| `primary-artifact-name`             | `artifact_name`                 | Same-run artifact containing `final-asset-name` |
-| `final-asset-name`                  | `payload_file_name`             | Basename of the primary asset file              |
-| `expected-sha256`                   | `digest.value`                  | SHA-256 of the primary asset bytes              |
-| `producer-provenance-artifact-name` | `artifact_name`                 | Same-run artifact containing the bundle         |
-| `producer-provenance-sha256`        | `digest.value`                  | SHA-256 of the producer provenance bundle       |
-| Primary asset handoff               | `payload_kind`                  | `primary-artifact`                              |
-| Producer provenance handoff         | `payload_kind`                  | `provenance-bundle`                             |
-| All initial publisher handoffs      | `transport`, `digest.algorithm` | `github-actions-artifact`, `sha256`             |
+| Core handoff field  | Primary asset handoff value | Producer provenance handoff value                  |
+| ------------------- | --------------------------- | -------------------------------------------------- |
+| `transport`         | `github-actions-artifact`   | `github-actions-artifact`                          |
+| `artifact_name`     | `primary-artifact-name`     | `producer-provenance-artifact-name`                |
+| `payload_file_name` | `final-asset-name`          | Basename of the single provenance bundle artifact. |
+| `payload_kind`      | `primary-artifact`          | `provenance-bundle`                                |
+| `digest.algorithm`  | `sha256`                    | `sha256`                                           |
+| `digest.value`      | `expected-sha256`           | `producer-provenance-sha256`                       |
+
+The provenance bundle `payload_file_name` is transport metadata only; the public release sidecar
+name is still derived from `final-asset-name` as `<final-asset-name>.intoto.jsonl`.
 
 All required handoff string fields must be non-empty after trimming ASCII whitespace. SHA-256 fields
 must be 64-character lowercase hexadecimal strings. `release-tag` must be a full Git tag ref in the

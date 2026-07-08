@@ -61,6 +61,11 @@ same-run job outputs. These internal job outputs are producer-owned delivery cha
 composed graph; they must not be exposed as standalone producer `workflow_call.outputs` unless a
 later public composition API is specified.
 
+The composition handoff manifest artifact itself must satisfy the core same-run artifact handoff
+schema with `transport: github-actions-artifact`, `payload_file_name: composition-handoff.json`,
+`payload_kind: composition-handoff`, `digest.algorithm: sha256`, and `digest.value` equal to the
+SHA-256 of the `composition-handoff.json` bytes.
+
 ## Manifest schema
 
 The handoff manifest JSON object must use this closed schema shape. Unknown fields are invalid.
@@ -115,13 +120,20 @@ The handoff manifest JSON object must use this closed schema shape. Unknown fiel
 - `primary_artifact.payload_file_name` must be the basename of the pack-produced tarball. For the
   initial npm composition it must end in `.tgz`.
 - `primary_artifact.sha256` must be the lowercase SHA-256 digest of the primary artifact bytes.
+  Together with `primary_artifact.artifact_name` and `primary_artifact.payload_file_name`, it maps
+  to a core handoff object with `transport: github-actions-artifact`,
+  `payload_kind: primary-artifact`, `digest.algorithm: sha256`, and
+  `digest.value: primary_artifact.sha256`.
 - `producer_provenance.artifact_name` must be a same-run GitHub Actions artifact uploaded by the
   producer signing job and containing exactly one signed producer provenance bundle file.
 - `producer_provenance.payload_file_name` is the provenance bundle file basename. It is transport
   metadata only; the publisher sidecar name remains derived from the final asset name by the
   publisher contract.
 - `producer_provenance.sha256` is the producer-owned SHA-256 digest of the signed bundle bytes. This
-  value maps to the publisher handoff field `producer-provenance-sha256`.
+  value maps to the publisher handoff field `producer-provenance-sha256`. Together with
+  `producer_provenance.artifact_name` and `producer_provenance.payload_file_name`, it maps to a core
+  handoff object with `transport: github-actions-artifact`, `payload_kind: provenance-bundle`,
+  `digest.algorithm: sha256`, and `digest.value: producer_provenance.sha256`.
 - `trusted_producer.builder_id` and `trusted_producer.build_type` must match the producer provenance
   and the trusted release manifest or explicit policy.
 - `trusted_producer.source_repository` and `trusted_producer.source_revision` must match the

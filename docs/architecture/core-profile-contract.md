@@ -137,9 +137,10 @@ invariant is not a valid `slsa-builder` profile.
 
 ### Initial handoff schema
 
-The initial production handoff schema is a same-workflow-run GitHub Actions artifact handoff.
-Profile specs may add profile-specific fields, but each payload that crosses a job boundary must
-include at least this semantic shape:
+The initial production handoff schema is a same-workflow-run GitHub Actions artifact handoff. The
+shape below is the semantic minimum every profile-specific handoff must satisfy. Profile specs may
+expose different public field names or add profile-specific fields, but they must map those names to
+this shape explicitly before the receiving job trusts the payload:
 
 ```json
 {
@@ -168,6 +169,12 @@ include at least this semantic shape:
 - The artifact must contain exactly one payload file unless the profile spec defines a stricter
   multi-file schema with a digest for each file and for the canonical archive or manifest that binds
   them.
+
+When a profile uses public fields such as `primary-artifact-name` or `producer-provenance-sha256`,
+those fields are aliases for the core semantic fields above, not a separate handoff model. A
+profile-specific alias must not omit `transport`, `payload_file_name`, `payload_kind`, or
+`digest.algorithm`; the profile may set those fields to fixed values in its mapping table when they
+are not public caller inputs.
 
 The receiving job must fail before using the payload when any required field is missing, the
 transport is not allowed, the artifact cannot be retrieved from the same workflow run, the artifact

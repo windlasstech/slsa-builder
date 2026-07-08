@@ -99,11 +99,19 @@ js-ts-npm-package-tarball-<github.run_id>-<github.run_attempt>
 The artifact must contain exactly one file: the pack-produced `.tgz` package tarball. The
 `provenance-sign` job downloads the artifact and recomputes its digest.
 
-The handoff must include:
+The tarball handoff must satisfy the core same-run artifact handoff schema:
 
-- Tarball artifact name.
-- Tarball SHA-256.
-- Tarball SHA-512 as lowercase hexadecimal.
+| Core handoff field  | Value                                                                |
+| ------------------- | -------------------------------------------------------------------- |
+| `transport`         | `github-actions-artifact`                                            |
+| `artifact_name`     | `js-ts-npm-package-tarball-<github.run_id>-<github.run_attempt>`     |
+| `payload_file_name` | Basename of the single pack-produced `.tgz` file in the artifact.    |
+| `payload_kind`      | `primary-artifact`                                                   |
+| `digest.algorithm`  | `sha256`                                                             |
+| `digest.value`      | SHA-256 of the tarball bytes as 64 lowercase hexadecimal characters. |
+
+The handoff also carries the tarball SHA-512 as lowercase hexadecimal for npm diagnostics and the
+public `package-tarball-sha512` output, but SHA-512 is not the cross-job handoff digest algorithm.
 
 The tarball handoff contains values computed from the local packed tarball bytes before publish. It
 must not require npm registry metadata, because registry metadata exists only after registry
@@ -123,10 +131,16 @@ js-ts-npm-provenance-bundle-<github.run_id>-<github.run_attempt>
 The artifact must contain exactly one file: the signed Sigstore bundle. The `publish` job downloads
 the bundle and recomputes its digest.
 
-The handoff must include:
+The provenance bundle handoff must satisfy the core same-run artifact handoff schema:
 
-- Bundle artifact name.
-- Bundle digest (SHA-256).
+| Core handoff field  | Value                                                                      |
+| ------------------- | -------------------------------------------------------------------------- |
+| `transport`         | `github-actions-artifact`                                                  |
+| `artifact_name`     | `js-ts-npm-provenance-bundle-<github.run_id>-<github.run_attempt>`         |
+| `payload_file_name` | Basename of the single signed Sigstore bundle file in the artifact.        |
+| `payload_kind`      | `provenance-bundle`                                                        |
+| `digest.algorithm`  | `sha256`                                                                   |
+| `digest.value`      | SHA-256 of the signed bundle bytes as 64 lowercase hexadecimal characters. |
 
 ## Digest verification between jobs
 

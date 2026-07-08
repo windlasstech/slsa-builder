@@ -364,16 +364,14 @@ manifest-generate -> manifest-sign -> manifest-upload
   - long-lived signing credentials
 
 The initial handoff from `manifest-generate` to `manifest-sign` contains these same-run artifact
-handles and digests:
+handles and digests. Each row maps to the core same-run artifact handoff schema with
+`transport: github-actions-artifact` and `digest.algorithm: sha256`:
 
-| Output                             | Value                                                                   |
-| ---------------------------------- | ----------------------------------------------------------------------- |
-| `manifest-json-artifact-name`      | Artifact containing exactly one `release-manifest-<version>.json` file. |
-| `manifest-json-sha256`             | SHA-256 of the RFC 8785 JCS canonical manifest JSON bytes.              |
-| `manifest-predicate-artifact-name` | Artifact containing exactly one manifest predicate JSON file.           |
-| `manifest-predicate-sha256`        | SHA-256 of the RFC 8785 JCS canonical predicate JSON bytes.             |
-| `manifest-signing-input-name`      | Artifact containing exactly one signing input metadata JSON file.       |
-| `manifest-signing-input-sha256`    | SHA-256 of the signing input metadata JSON bytes.                       |
+| Handoff payload         | `artifact_name` output             | `payload_file_name`                          | `payload_kind`               | `digest.value` output           |
+| ----------------------- | ---------------------------------- | -------------------------------------------- | ---------------------------- | ------------------------------- |
+| Plain manifest JSON     | `manifest-json-artifact-name`      | `release-manifest-<version>.json`            | `release-manifest`           | `manifest-json-sha256`          |
+| Manifest predicate JSON | `manifest-predicate-artifact-name` | Profile-defined manifest predicate basename. | `release-manifest-predicate` | `manifest-predicate-sha256`     |
+| Signing input metadata  | `manifest-signing-input-name`      | Profile-defined signing input JSON basename. | `signing-input-metadata`     | `manifest-signing-input-sha256` |
 
 The manifest predicate JSON must parse to the same JSON value as the plain manifest JSON. The
 signing input metadata is transport metadata only; the manifest JSON value and the digest above
@@ -397,14 +395,13 @@ remain the trust inputs.
 - Must **not** have `contents: write` or release mutation authority.
 
 The handoff from `manifest-sign` to `manifest-upload` contains only values verified or produced by
-`manifest-sign`:
+`manifest-sign`. Each row maps to the core same-run artifact handoff schema with
+`transport: github-actions-artifact` and `digest.algorithm: sha256`:
 
-| Output                          | Value                                                                                  |
-| ------------------------------- | -------------------------------------------------------------------------------------- |
-| `manifest-json-artifact-name`   | The verified plain manifest artifact from `manifest-generate`.                         |
-| `manifest-json-sha256`          | The verified SHA-256 of the RFC 8785 JCS canonical manifest JSON bytes.                |
-| `manifest-bundle-artifact-name` | Artifact containing exactly one `release-manifest-<version>.intoto.jsonl` bundle file. |
-| `manifest-bundle-sha256`        | SHA-256 of the signed bundle file bytes.                                               |
+| Handoff payload     | `artifact_name` output          | `payload_file_name`                       | `payload_kind`      | `digest.value` output    |
+| ------------------- | ------------------------------- | ----------------------------------------- | ------------------- | ------------------------ |
+| Plain manifest JSON | `manifest-json-artifact-name`   | `release-manifest-<version>.json`         | `release-manifest`  | `manifest-json-sha256`   |
+| Signed bundle       | `manifest-bundle-artifact-name` | `release-manifest-<version>.intoto.jsonl` | `provenance-bundle` | `manifest-bundle-sha256` |
 
 `manifest-sign` must fail before producing the upload handoff if the plain manifest, predicate JSON,
 signing input metadata, emitted Statement, or signed bundle does not match the verified signing
@@ -433,6 +430,8 @@ through the artifact handle re-exported by `manifest-sign`.
 
 - Every handoff between jobs must include an expected digest.
 - The receiving job must recompute the digest and fail closed on mismatch.
+- Every handoff row above must satisfy the core handoff schema, including `transport`,
+  `payload_file_name`, `payload_kind`, `digest.algorithm`, and `digest.value`.
 - Artifact handles, job outputs, logs, and release notes must not be treated as substitutes for
   digest verification.
 - The upload job must fail rather than re-signing, regenerating, or mutating manifest contents after
