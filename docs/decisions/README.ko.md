@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0054`까지입니다.
+`0055`까지입니다.
 
 | 범위      | 주제                         | 설명                                                       |
 | --------- | ---------------------------- | ---------------------------------------------------------- |
@@ -36,6 +36,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0013–0037 | JS/TS npm 패키지 profile     | 패키지 선택, build/pack, OIDC publishing, provenance.      |
 | 0038–0052 | GitHub Release asset profile | 릴리즈 에셋 subject, publisher 모델, sidecar distribution. |
 | 0053–0054 | 릴리즈 매니페스트 메타데이터 | 서명 경계와 release manifest predicate URI.                |
+| 0055      | 서명 어댑터 Statement 구성   | `actions/attest` custom mode와 서명 후 Statement 검사.     |
 
 ## ADR 추적성
 
@@ -94,6 +95,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0052 | Compose npm package tarball producer with release asset publisher  | Composition spec, verification policy                                                        |
 | 0053 | Three-job release manifest signing boundary                        | Release manifest                                                                             |
 | 0054 | Use `slsa-builder.dev` release manifest predicate URI              | Release manifest, verification policy                                                        |
+| 0055 | `actions/attest` custom mode for Statement construction            | Common provenance, JS/TS npm provenance and publish                                          |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
