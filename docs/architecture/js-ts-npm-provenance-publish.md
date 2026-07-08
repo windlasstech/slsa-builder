@@ -226,6 +226,46 @@ fields must be rejected by producer-side verification and by strict consumer pol
 }
 ```
 
+### Closed schema rules
+
+The `externalParameters` value is a closed JSON object. The required top-level members are exactly
+`source`, `workflow`, `runtime`, `package`, `package_manager`, `publish`, `release`, and `build`. No
+other top-level members are allowed. JSON objects in this schema must not contain duplicate member
+names; duplicate member names are rejected before semantic validation.
+
+Required nested members are exactly the fields shown in the example above, with the optional fields
+listed below as the only allowed additions:
+
+| Object            | Required members                                                                                                                                                                                                                                                            | Optional members                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `source`          | `repository`, `ref`, `revision`, `event_name`, `ref_type`                                                                                                                                                                                                                   | none                                                     |
+| `workflow`        | `path`, `sha`, `builder_id`                                                                                                                                                                                                                                                 | none                                                     |
+| `runtime`         | `runner`, `node_version`, `npm_version`                                                                                                                                                                                                                                     | none                                                     |
+| `package`         | `directory`, `workspace_root`, `source_manifest`, `name`, `version`, `private`, `tarball_name`, `package_url`, `packed_name`, `packed_version`                                                                                                                              | `publish_config_raw`, `packed_files`, `consumer_surface` |
+| `package_manager` | `name`, `version`, `selection_source`, `selection_manifest`, `selection_manifest_path`, `selection_lockfile_path`, `root`                                                                                                                                                   | none                                                     |
+| `publish`         | `input_registry_url`, `input_dist_tag`, `input_access`, `publish_config`, `resolved_registry_url`, `resolved_dist_tag`, `publish_access_option`, `effective_access`, `trusted_publishing`, `provenance_file`, `package_identity_preexisting`, `package_version_preexisting` | `custom_registry_support`                                |
+| `release`         | `ref`, `version_tag`                                                                                                                                                                                                                                                        | none                                                     |
+| `build`           | `script_present`, `script_result`                                                                                                                                                                                                                                           | none                                                     |
+
+Type and nullability rules:
+
+- All digest, path, URL, package identity, version, event, tag, and enum fields are JSON strings
+  unless explicitly defined as boolean, object, array, or `null` below.
+- `package.private`, `publish.trusted_publishing`, `publish.provenance_file`,
+  `publish.package_identity_preexisting`, `publish.package_version_preexisting`, and
+  `build.script_present` are JSON booleans.
+- `package.workspace_root` is either `null` or a repository-root-relative directory string.
+- `package_manager.selection_manifest`, `package_manager.selection_manifest_path`, and
+  `package_manager.selection_lockfile_path` are either `null` or repository-root-relative file path
+  strings, according to the selection-source rules below.
+- `publish.input_registry_url`, `publish.input_dist_tag`, `publish.input_access`,
+  `publish.publish_access_option`, and `publish.publish_config` are either `null` or the normalized
+  value type defined below.
+- Optional members are omitted when their value is unknown or not verifier-relevant. Optional
+  members must not be emitted as `null` unless the field rule explicitly allows `null`.
+- Arrays preserve order and contain only strings or objects allowed by the field rule. Unknown
+  object members are rejected at every nesting level.
+
 ### Field rules
 
 - `source.repository` must be the canonical HTTPS source repository URL.
@@ -271,7 +311,8 @@ fields must be rejected by producer-side verification and by strict consumer pol
 - `publish.publish_config` records source `publishConfig` fields that affect publish intent. It is
   `null` when source `publishConfig` is absent. When present, it must contain only `registry`,
   `access`, `tag`, and `provenance`; it must not contain `directory` because
-  `publishConfig.directory` is rejected before pack.
+  `publishConfig.directory` is rejected before pack. `registry`, `access`, and `tag` are strings
+  when present; `provenance` is boolean when present. Unknown `publish_config` members are rejected.
 - `publish.resolved_registry_url` is the normalized effective registry URL: absolute `https:`,
   lowercase scheme and host, no userinfo, no query, no fragment, no default port `443`, path `/`,
   and exactly one trailing slash.
@@ -338,11 +379,13 @@ identity after case-insensitive GitHub owner/repository comparison.
 The schema permits these optional fields only when the value is known and verifier-relevant:
 
 - `package.publish_config_raw`: diagnostic copy of the source manifest `publishConfig` when needed
-  for fixture debugging; it must not contain secrets and is not used to relax the normalized
-  `publish.publish_config` schema.
-- `package.packed_files`: array of packed file paths.
-- `package.consumer_surface`: object containing packed `exports`, `main`, `type`, `bin`, `types`,
-  `typings`, `typesVersions`, and `files` fields when present.
+  for fixture debugging. It must be a JSON object, must not contain secrets, and is not used to
+  relax the normalized `publish.publish_config` schema.
+- `package.packed_files`: array of packed file paths as strings in package archive order.
+- `package.consumer_surface`: object containing only packed `exports`, `main`, `type`, `bin`,
+  `types`, `typings`, `typesVersions`, and `files` fields when present. Values are copied from the
+  packed `package/package.json` JSON value without semantic normalization beyond secret rejection
+  and duplicate-member rejection.
 - `publish.custom_registry_support`: `unsupported-but-not-blocked` when `resolved_registry_url` is
   not `https://registry.npmjs.org/`.
 
