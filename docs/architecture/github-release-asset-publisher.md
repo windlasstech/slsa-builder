@@ -101,7 +101,7 @@ following semantic fields:
 | `primary-artifact-name`             | yes      | Same-run GitHub Actions artifact that contains the primary asset bytes. |
 | `expected-sha256`                   | yes      | Expected SHA-256 of the artifact bytes, lowercase hex.                  |
 | `final-asset-name`                  | yes      | Final GitHub Release asset name.                                        |
-| `release-tag`                       | yes      | Existing Git tag and target release.                                    |
+| `release-tag`                       | yes      | Existing full Git tag ref and target release.                           |
 | `producer-provenance-artifact-name` | yes      | Same-run artifact that contains the producer SLSA provenance bundle.    |
 | `producer-provenance-sha256`        | yes      | Expected SHA-256 of the provenance bundle bytes, lowercase hex.         |
 | `trusted-builder-id`                | yes      | Expected upstream producer `builder.id`.                                |
@@ -128,14 +128,18 @@ the core same-run artifact handoff schema as follows:
 | All initial publisher handoffs      | `transport`, `digest.algorithm` | `github-actions-artifact`, `sha256`             |
 
 All required handoff string fields must be non-empty after trimming ASCII whitespace. SHA-256 fields
-must be 64-character lowercase hexadecimal strings. `source-repository` must be a canonical HTTPS
-repository URL, and `source-revision` must be the full immutable source revision expected by the
-producer policy; for GitHub-hosted Git sources this is a 40-character lowercase Git commit SHA. For
-the initial npm composition, `source-repository` must use the canonical GitHub repository URL rules
-defined by the [JS/TS npm provenance and publish spec](js-ts-npm-provenance-publish.md). The
-publisher must reject a `source-repository` value that cannot be canonicalized by those rules or
-that does not exactly match the canonical `externalParameters.source.repository` value in the
-verified producer provenance.
+must be 64-character lowercase hexadecimal strings. `release-tag` must be a full Git tag ref in the
+form `refs/tags/<tag-name>` and must identify the target existing GitHub Release. A short tag name
+such as `v1.2.3`, a branch ref, a pull request ref, an empty tag name, or a ref containing path
+traversal or ASCII control characters must be rejected before upload. `source-repository` must be a
+canonical HTTPS repository URL, and `source-revision` must be the full immutable source revision
+expected by the producer policy; for GitHub-hosted Git sources this is a 40-character lowercase Git
+commit SHA. For the initial npm composition, `source-repository` must use the canonical GitHub
+repository URL rules defined by the
+[JS/TS npm provenance and publish spec](js-ts-npm-provenance-publish.md). The publisher must reject
+a `source-repository` value that cannot be canonicalized by those rules or that does not exactly
+match the canonical `externalParameters.source.repository` value in the verified producer
+provenance.
 
 Complex handoff fields in the public workflow contract are passed as UTF-8 JSON strings. The
 publisher must parse `native-provenance-locators` as a JSON array and `linked-artifact-settings` as
@@ -302,7 +306,8 @@ Field rules:
 - When `enabled` is `true`, the metadata job must have `artifact-metadata: write` and must not have
   `id-token: write`, `attestations: write`, signing credentials, or GitHub Release mutation
   authority.
-- `version` must be the release version derived from `release-tag` without the leading `v`.
+- `version` must be the release version derived from the `release-tag` full ref by removing
+  `refs/tags/` and then removing the leading `v` from the tag name.
 - `repository` must identify the GitHub repository that owns the release asset storage surface.
 - `registry_url` must be the GitHub Release download URL prefix for the target release.
 
@@ -361,6 +366,7 @@ The publisher must fail before primary asset or sidecar upload when:
 - The provenance bundle bytes cannot be retrieved.
 - The computed provenance bundle digest differs from `producer-provenance-sha256`.
 - The release tag or target GitHub Release does not exist.
+- The release tag is not a full `refs/tags/<tag-name>` ref.
 - The final asset name is invalid, the primary asset name is already present, or the deterministic
   sidecar asset name is already present.
 - Upstream producer provenance is missing, unsigned, unverifiable, or untrusted.

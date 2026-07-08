@@ -92,6 +92,15 @@ The handoff manifest JSON object must use this closed schema shape. Unknown fiel
   "release": {
     "tag": "refs/tags/v1.2.3",
     "final_asset_name": "windlass-slsa-builder-1.2.3.tgz"
+  },
+  "native_provenance_locators": [
+    {
+      "type": "github-artifact-attestation",
+      "url": "https://github.com/example/project/attestations/123"
+    }
+  ],
+  "linked_artifact_settings": {
+    "enabled": false
   }
 }
 ```
@@ -119,8 +128,20 @@ The handoff manifest JSON object must use this closed schema shape. Unknown fiel
   producer provenance `externalParameters.source` values required by the selected producer policy.
 - `subject.name` must equal `primary_artifact.payload_file_name` and `release.final_asset_name`.
 - `subject.sha256` must equal `primary_artifact.sha256`.
-- `release.tag` must identify the existing Git tag and target GitHub Release.
+- `release.tag` must be the full Git tag ref, for example `refs/tags/v1.2.3`, that identifies the
+  existing Git tag and target GitHub Release. A short tag name such as `v1.2.3` is invalid in the
+  handoff manifest.
 - `release.final_asset_name` must be the GitHub Release asset name that the publisher will upload.
+- `native_provenance_locators` is optional. When present, it must be an array of locator objects
+  that conform to the `native-provenance-locators` schema in the
+  [publisher contract](github-release-asset-publisher.md#native-producer-provenance-locators). It
+  maps to the publisher handoff field `native-provenance-locators`.
+- `linked_artifact_settings` is optional. When present, it must be an object that conforms to the
+  `linked-artifact-settings` schema in the
+  [publisher contract](github-release-asset-publisher.md#linked-artifact-storage-opt-in). It maps to
+  the publisher handoff field `linked-artifact-settings`.
+- Optional fields are absent when the producer does not request them. They must not be represented
+  as `null`, empty strings, or differently named fields.
 
 ## Mapping to publisher inputs
 
@@ -141,6 +162,8 @@ then maps the manifest to publisher handoff inputs as follows:
 | `subject.sha256`                     | `expected-subject-sha256`           |
 | `trusted_producer.source_repository` | `source-repository`                 |
 | `trusted_producer.source_revision`   | `source-revision`                   |
+| `native_provenance_locators`         | `native-provenance-locators`        |
+| `linked_artifact_settings`           | `linked-artifact-settings`          |
 
 The mapping job must not use caller-supplied artifact names, deterministic naming alone, public npm
 producer outputs, logs, release notes, or raw file paths as substitutes for this manifest. It may
@@ -162,7 +185,10 @@ The composed workflow must fail before invoking the publisher when:
   closed schema;
 - any required artifact name, subject, digest, source identity, builder identity, build type,
   release tag, or final asset name is missing or malformed;
+- `release.tag` is not a full `refs/tags/<tag-name>` ref;
 - `producer_provenance.sha256` is not a 64-character lowercase hexadecimal SHA-256 digest;
+- `native_provenance_locators` or `linked_artifact_settings` is present but violates the publisher
+  contract schema for the mapped handoff field;
 - `subject.name`, `primary_artifact.payload_file_name`, and `release.final_asset_name` are not
   identical; or
 - the mapping job attempts to construct publisher inputs from caller-controlled values rather than
@@ -173,8 +199,8 @@ The composed workflow must fail before invoking the publisher when:
 - Positive fixture: a valid npm producer handoff manifest maps to the exact publisher inputs.
 - Rejected fixtures: missing internal handoff job outputs, manifest digest mismatch, malformed JSON,
   duplicate object member names, unknown fields, missing `producer_provenance.sha256`, subject/final
-  asset name mismatch, caller-supplied artifact name substitution, and deterministic-name-only
-  substitution.
+  asset name mismatch, malformed optional locator/settings fields, caller-supplied artifact name
+  substitution, and deterministic-name-only substitution.
 - A YAML review checklist proving that the composed graph keeps the handoff manifest internal to the
   same workflow run and does not expose internal artifact names as standalone producer public
   outputs.
