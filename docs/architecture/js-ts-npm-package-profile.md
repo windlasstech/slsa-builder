@@ -41,6 +41,13 @@ profile.
 This profile produces exactly one npm package release per run. The package may be a root package or
 a workspace package, but it is always one package identity.
 
+The initial production profile supports publishing a new version of an existing npm package identity
+through OIDC trusted publishing. It does not support first publication of a package identity because
+the profile does not accept npm tokens, OTP credentials, or other fallback credentials that npm may
+require to create or configure a package for the first time. A package name that does not already
+exist in the selected registry must fail before registry mutation with an unsupported initial
+publication error.
+
 ## Unsupported artifact classes
 
 The following are explicitly out of scope for the initial profile:
@@ -98,9 +105,12 @@ caller-supplied values distinguishable from source `publishConfig` values and Wi
   the profile omits the `npm publish --access` option.
 - `publish_access_option` is the exact value passed to `npm publish --access`; it is `public`,
   `restricted`, or `null` when the option is omitted.
-- `effective_access` records the npmjs interpretation used for diagnostics and verification. When
-  `publish_access_option` is `null`, `effective_access` is `public` for scoped packages and `null`
-  for unscoped packages.
+- `effective_access` records the Windlass publish intent used for diagnostics and verification. When
+  `publish_access_option` is `null`, `effective_access` is `existing-package-access`, meaning the
+  publish operation must not create or change package access and relies on the existing registry
+  package access state. npm's first-publication default for scoped packages without
+  `--access public` is restricted, but first publication is outside the initial Windlass production
+  profile.
 - When `registry-url` is not `https://registry.npmjs.org/`, a caller-supplied non-empty `access` is
   passed only if the registry accepts it during the same tokenless publish flow. If the registry
   rejects the access option or requires token/OTP fallback, the workflow fails; it must not silently
@@ -146,6 +156,31 @@ Conflict rules:
 The profile must not require or expose long-lived publish secrets, npm tokens, OTP secrets, or
 dependency-fetch credentials. OIDC trusted publishing is the only supported production
 authentication mechanism.
+
+### Caller trusted publishing requirements
+
+The caller workflow is part of the npm trusted publishing public contract. A production caller job
+that invokes this reusable workflow must grant at least:
+
+```yaml
+permissions:
+  contents: read
+  id-token: write
+```
+
+npm trusted publisher configuration for the package must identify the **caller** repository and the
+caller workflow filename that invokes this reusable workflow. It must not identify
+`windlasstech/slsa-builder` or `.github/workflows/js-ts-npm-package-slsa3.yml` as the package's
+trusted publisher workflow. npm validates the calling workflow identity for reusable workflow
+publishing, while Windlass provenance separately records and verifies the SHA-pinned reusable
+workflow builder identity.
+
+The production profile must fail before registry mutation when the caller job cannot provide an OIDC
+token to the called workflow, when npm trusted publishing is not configured for the caller
+repository and caller workflow filename, or when the caller repository/workflow identity observed by
+npm does not match the package's trusted publisher policy. The workflow must not recover from these
+failures by accepting `NPM_TOKEN`, `NODE_AUTH_TOKEN`, an OTP secret, or any other publish-capable
+credential.
 
 ### Outputs
 
@@ -200,6 +235,9 @@ A manual dispatch release must satisfy all of the following:
   no-publish-secrets policy.
 - The profile must fail if `npm publish --provenance-file` or the equivalent external provenance
   submission path is unavailable for the selected registry.
+- The profile must fail before registry mutation when the selected package identity does not already
+  exist in the selected registry. The initial production profile publishes new versions of existing
+  packages only; it does not create the first version of a package identity.
 - For npmjs, post-publish registry metadata checks are required by the provenance and publish spec.
   For custom registries, registry linkage verification is registry-specific and must not be reported
   as Windlass-guaranteed unless a later ADR defines that registry class.
@@ -236,18 +274,22 @@ The workflow must fail before any registry mutation when:
 - The package manager selection is ambiguous or unsupported.
 - The runtime environment is not `ubuntu-24.04` with Node.js 24.
 - Private dependency credentials are required.
+- The caller job cannot provide OIDC credentials to the called reusable workflow.
+- npm trusted publisher configuration does not match the caller repository and caller workflow
+  filename.
 - Explicit workflow inputs conflict with source `publishConfig` fields.
 - `publishConfig.provenance` disables provenance or `publishConfig.directory` redirects the package
   root.
 - Any optional input fails validation.
 - The selected registry cannot complete tokenless trusted publishing with the supplied external
   provenance bundle.
+- The selected package identity does not already exist in the selected registry.
 
 ## TDD and fixtures
 
 - Positive fixture: valid tag push with root package and workspace package.
 - Rejected fixtures: wrong trigger, mismatched tag/version, missing `package.json`, arbitrary
   command input, npm token secret, private package, private dependency requirement, `publishConfig`
-  conflict, unsupported `publishConfig.directory`, disabled provenance metadata, and unsupported
-  registry behavior.
+  conflict, unsupported `publishConfig.directory`, disabled provenance metadata, missing caller OIDC
+  permission, npm trusted publisher caller identity mismatch, and unsupported registry behavior.
 - A YAML review checklist that a human can apply to the workflow file.

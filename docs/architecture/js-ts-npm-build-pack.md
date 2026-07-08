@@ -114,6 +114,13 @@ selected package directory. Install commands run from the package manager root. 
 commands must target the selected package only and must not build, pack, or publish sibling
 workspace packages.
 
+The selected source must be recorded in provenance with enough path information for strict verifier
+matching. When manifest metadata selects the package manager, provenance must record the
+repository-root-relative manifest path that supplied the selected field. When lockfile inference
+selects npm, provenance must record the repository-root-relative lockfile path that supplied the
+selection. A basename such as `package.json` is not sufficient by itself for workspace packages
+because both the selected package and the workspace root may have manifests with that basename.
+
 ### `packageManager` field
 
 - Format: `name@version`, for example `pnpm@9.1.0` or `yarn@4.1.0`.
@@ -210,6 +217,20 @@ Command template variables have these meanings:
 - `<dir>` is a trusted empty temporary directory created by the workflow for the pack output.
 - `<tarball-output-path>` is the exact expected tarball file path inside that trusted temporary
   directory.
+
+### Packed tarball name
+
+The authoritative tarball name is the basename of the single file produced by the selected package
+manager's pack command in the trusted pack output directory. The profile must use that basename
+unchanged as the package tarball name, provenance subject name, public `package-tarball-name`
+output, and any downstream release asset name unless a later profile explicitly defines a signed
+rename mapping.
+
+The initial npm package profile expects npm-compatible pack output with a `.tgz` suffix. It must not
+rename the pack-produced tarball to `.tar.gz`, reinterpret a local path as the tarball name, or use
+a registry URL, package identity, or workflow artifact name as the tarball name. If the selected
+pack command produces no file, more than one file, a file whose basename is unsafe, or a package
+tarball whose basename does not end in `.tgz`, the profile must fail before signing or publishing.
 
 The profile must fail before build or pack when the selected package manager cannot target exactly
 the selected package with the command template above, when the package manager reports that the

@@ -95,7 +95,7 @@ The `build` job uploads the tarball as a workflow artifact with this determinist
 js-ts-npm-package-tarball-<github.run_id>-<github.run_attempt>
 ```
 
-The artifact must contain exactly one file: the packed `.tar.gz` package tarball. The
+The artifact must contain exactly one file: the pack-produced `.tgz` package tarball. The
 `provenance-sign` job downloads the artifact and recomputes its digest.
 
 The handoff must include:
@@ -103,7 +103,12 @@ The handoff must include:
 - Tarball artifact name.
 - Tarball SHA-256.
 - Tarball SHA-512 as lowercase hexadecimal.
-- npm integrity value as an SRI string when registry metadata provides one.
+
+The tarball handoff contains values computed from the local packed tarball bytes before publish. It
+must not require npm registry metadata, because registry metadata exists only after registry
+mutation. If an implementation derives an SRI string from the local tarball bytes for diagnostics,
+it must treat that value as a local diagnostic equivalent of the SHA-512 digest, not as registry
+evidence.
 
 ## Provenance bundle handoff
 
@@ -140,14 +145,14 @@ publishes to npm and may later hand off to the GitHub Release asset publisher.
 For example:
 
 ```text
-windlass-slsa-builder-1.2.3.tar.gz
+windlass-slsa-builder-1.2.3.tgz
 ```
 
 The npm package identity is recorded in `externalParameters.package.name` and
 `externalParameters.package.version`.
 
 The profile must fail before signing when the tarball name is empty, contains a path separator, is
-not the basename of the packed tarball path, or does not end in `.tar.gz`.
+not the basename of the pack-produced tarball path, or does not end in `.tgz`.
 
 ## JS/TS npm `externalParameters` schema
 
@@ -181,7 +186,7 @@ fields must be rejected by producer-side verification and by strict consumer pol
     "name": "@windlass/slsa-builder",
     "version": "1.2.3",
     "private": false,
-    "tarball_name": "windlass-slsa-builder-1.2.3.tar.gz",
+    "tarball_name": "windlass-slsa-builder-1.2.3.tgz",
     "package_url": "pkg:npm/%40windlass/slsa-builder@1.2.3",
     "packed_name": "@windlass/slsa-builder",
     "packed_version": "1.2.3"
@@ -191,24 +196,23 @@ fields must be rejected by producer-side verification and by strict consumer pol
     "version": "10.0.0",
     "selection_source": "packageManager",
     "selection_manifest": "package.json",
+    "selection_manifest_path": "package.json",
+    "selection_lockfile_path": null,
     "root": "."
   },
   "publish": {
     "input_registry_url": null,
     "input_dist_tag": null,
     "input_access": null,
-    "publish_config": {
-      "registry": "https://registry.npmjs.org/",
-      "tag": "latest",
-      "access": "public",
-      "provenance": true
-    },
+    "publish_config": null,
     "resolved_registry_url": "https://registry.npmjs.org/",
     "resolved_dist_tag": "latest",
     "publish_access_option": null,
-    "effective_access": "public",
+    "effective_access": "existing-package-access",
     "trusted_publishing": true,
-    "provenance_file": true
+    "provenance_file": true,
+    "package_identity_preexisting": true,
+    "package_version_preexisting": false
   },
   "release": {
     "ref": "refs/tags/v1.2.3",
@@ -251,7 +255,13 @@ fields must be rejected by producer-side verification and by strict consumer pol
 - `package_manager.selection_source` must be one of `packageManager`, `devEngines.packageManager`,
   or `lockfile`.
 - `package_manager.selection_manifest` must identify the manifest whose metadata selected the
-  package manager, or be `null` when `selection_source` is `lockfile`.
+  package manager by basename, or be `null` when `selection_source` is `lockfile`.
+- `package_manager.selection_manifest_path` must identify the repository-root-relative manifest path
+  whose metadata selected the package manager, or be `null` when `selection_source` is `lockfile`.
+  For workspace packages, this path distinguishes selected package metadata from workspace root
+  metadata even when both files are named `package.json`.
+- `package_manager.selection_lockfile_path` must identify the repository-root-relative lockfile path
+  when `selection_source` is `lockfile`, and must be `null` otherwise.
 - `package_manager.root` must be the repository-root-relative package manager root used for install
   and frozen-lockfile checks.
 - `publish.input_registry_url`, `publish.input_dist_tag`, and `publish.input_access` record
@@ -268,10 +278,17 @@ fields must be rejected by producer-side verification and by strict consumer pol
   default resolution.
 - `publish.publish_access_option` is the exact value passed to `npm publish --access`; it is
   `public`, `restricted`, or `null` when the option is omitted.
-- `publish.effective_access` is the npmjs access interpretation used for diagnostics and
-  verification. It is `public`, `restricted`, or `null` when npmjs applies no access option to an
-  unscoped package.
+- `publish.effective_access` is the Windlass publish intent used for diagnostics and verification.
+  It is `public` or `restricted` when `publish_access_option` is supplied. It is
+  `existing-package-access` when `publish_access_option` is `null`, meaning the release must publish
+  a new version of an existing package identity without creating or changing package access. npm's
+  first-publication default for scoped packages without `--access public` is restricted, but first
+  publication is outside the initial production profile.
 - `publish.trusted_publishing` and `publish.provenance_file` must both be `true`.
+- `publish.package_identity_preexisting` must be `true`; the initial production profile does not
+  support first publication of a package identity.
+- `publish.package_version_preexisting` must be `false`; the selected package version must not exist
+  before publish.
 - `release.ref` must equal the release ref accepted by runtime guards.
 - `release.version_tag` must be the tag name without `refs/tags/`.
 - `build.script_present` records whether `scripts.build` existed in the source manifest.
@@ -348,15 +365,24 @@ publish.
 - The profile must not use npm's automatic provenance generation.
 - The profile must not fall back to token-based publish.
 - Before running `npm publish`, the profile must check whether the selected registry already has the
-  package name and version. If the version already exists, the workflow must fail clearly before
-  attempting registry mutation and must report that verification or inspection, not republish, is
-  the correct operation.
+  package identity and package version. If the package identity does not already exist, the workflow
+  must fail clearly before attempting registry mutation because first publication is outside the
+  initial trusted-publishing-only profile. If the package version already exists, the workflow must
+  fail clearly before attempting registry mutation and must report that verification or inspection,
+  not republish, is the correct operation.
 
 ## npm trusted publishing authentication
 
 - The `publish` job uses OIDC trusted publishing.
+- The caller job invoking the reusable workflow must grant `contents: read` and `id-token: write` so
+  the called workflow can obtain the OIDC token required by npm trusted publishing.
+- npm trusted publisher configuration must identify the caller repository and caller workflow
+  filename, not `windlasstech/slsa-builder` or `.github/workflows/js-ts-npm-package-slsa3.yml`.
 - No npm token, OTP, or other long-lived publish secret is used.
 - The registry URL must support OIDC trusted publishing.
+- A missing caller OIDC permission, npm trusted publisher mismatch, or unavailable caller workflow
+  identity must fail before `npm publish`; the profile must not fall back to publish credentials or
+  npm automatic provenance.
 
 ## Registry metadata checks
 
@@ -426,6 +452,7 @@ The `publish` job must fail before `npm publish` when:
 - Unexpected or mismatched `externalParameters`.
 - Source identity mismatch.
 - Package identity mismatch.
+- Package identity does not already exist in the selected registry.
 - Package version already exists in the selected registry.
 - Runtime policy mismatch.
 
@@ -447,6 +474,8 @@ The profile must not fall back to:
 - Positive fixture: accepted signed bundle leading to successful `npm publish`.
 - Rejected fixtures: digest mismatch, signature mismatch, signer mismatch, wrong `predicateType`,
   wrong `builder.id`, wrong `buildType`, unexpected `externalParameters`, package identity mismatch,
-  runtime policy mismatch, npm CLI below `11.5.1`, npmjs post-publish metadata mismatch, and npm
-  automatic provenance fallback attempt.
+  unsupported initial package publication, package-manager selection path mismatch, runtime policy
+  mismatch, npm CLI below `11.5.1`, missing caller OIDC permission, npm trusted publisher caller
+  identity mismatch, npmjs post-publish metadata mismatch, and npm automatic provenance fallback
+  attempt.
 - A fixture proving that the `publish` job cannot publish without the signed bundle.
