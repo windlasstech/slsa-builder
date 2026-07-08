@@ -45,8 +45,8 @@ Every release produces two manifest artifacts:
 
 1. **Plain JSON manifest** — human-readable and machine-parseable, but not a trust root by itself.
 2. **Signed Sigstore bundle** — the canonical trust root. The bundle payload is an in-toto Statement
-   whose `predicate` is byte-for-byte equivalent to the plain JSON manifest after the canonical JSON
-   serialization rules below are applied.
+   whose `predicate` is the same JSON value as the plain JSON manifest. The trust digest is computed
+   from that value using RFC 8785 JSON Canonicalization Scheme (JCS), as defined below.
 
 ### Artifact names
 
@@ -122,12 +122,12 @@ unknown top-level fields and unknown entry fields are invalid.
     "schema_version": { "const": "1" },
     "release_version": {
       "type": "string",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
     },
     "source_repository": { "const": "https://github.com/windlasstech/slsa-builder" },
     "release_tag": {
       "type": "string",
-      "pattern": "^refs/tags/v[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+      "pattern": "^refs/tags/v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
     },
     "release_commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "generated_at": {
@@ -189,7 +189,7 @@ Invalid examples include a manifest with a short workflow SHA, a release tag tha
 `release_version`, a producer entry whose `builder_id` SHA differs from `workflow_sha`, a publisher
 entry containing `build_type`, or any unknown top-level field such as `notes`.
 
-### Canonical JSON serialization
+### RFC 8785 JCS canonical JSON serialization
 
 The release manifest digest and the signed Statement predicate are computed from the canonical JSON
 serialization of the manifest object. The canonical form is JSON Canonicalization Scheme (JCS, RFC
@@ -202,14 +202,17 @@ retain their declared order; duplicate `producer_profiles[].profile` or
 `publisher_workflows[].publisher` entries are invalid before canonicalization.
 
 The plain JSON file published for humans may be pretty-printed, but it must parse to the same JSON
-value as the canonical manifest object. The trust digest is always over the canonical JSON bytes,
-not over the pretty-printed file bytes. A verifier must parse the plain JSON, canonicalize it, and
-compare that canonical digest with the Statement subject digest and Statement predicate value.
+value as the Statement `predicate`. The trust digest is always over the RFC 8785 JCS canonical JSON
+bytes for that manifest value, not over the pretty-printed file bytes or the raw Statement payload
+bytes. A verifier must parse the plain JSON manifest and the Statement `predicate` as JSON values,
+compare those values for equality, canonicalize the agreed value with RFC 8785 JCS, and compare the
+resulting SHA-256 digest with the Statement subject digest.
 
 ### Field semantics
 
 - `schema_version`: manifest schema version. Initial value is `"1"`.
-- `release_version`: SemVer release version.
+- `release_version`: SemVer 2.0.0 release version without a leading `v`; prerelease and build
+  metadata are allowed.
 - `source_repository`: canonical source repository URI.
 - `release_tag`: exact Git tag ref, for example `refs/tags/v1.2.3`.
 - `release_commit_sha`: commit SHA that the tag points to.
@@ -305,18 +308,19 @@ identifier and must be rejected when a release manifest predicate is expected.
 ## Signed payload rules
 
 The signing adapter signs the in-toto Statement bytes, not the plain JSON file directly. The
-Statement's `predicate` must be exactly the canonical manifest JSON value represented as a JSON
-object. The Statement subject digest must be the SHA-256 digest of the canonical manifest JSON
-bytes.
+Statement's `predicate` must be the manifest JSON value, represented as a JSON object. The Statement
+subject digest must be the SHA-256 digest of the RFC 8785 JCS canonical JSON bytes for that value.
 
 The signed bundle is invalid when:
 
 - the DSSE payload is not an in-toto Statement;
 - the Statement `predicateType` is not `https://slsa-builder.dev/predicates/release-manifest/v1`;
-- the Statement `predicate` does not equal the canonical manifest JSON value;
+- the Statement `predicate` JSON value does not equal the plain manifest JSON value;
 - the Statement `subject[0].name` is not `release-manifest-<version>.json`;
-- the Statement `subject[0].digest.sha256` does not equal the canonical manifest JSON SHA-256; or
-- the plain JSON manifest published alongside the bundle canonicalizes to different bytes.
+- the Statement `subject[0].digest.sha256` does not equal the RFC 8785 JCS canonical manifest JSON
+  SHA-256; or
+- the plain JSON manifest published alongside the bundle canonicalizes with RFC 8785 JCS to a
+  different digest.
 
 ## Three-job signing boundary
 
@@ -459,7 +463,7 @@ The release manifest workflow must fail before any mutation when:
 
 - The manifest artifacts cannot be retrieved.
 - A computed digest does not match the handoff digest.
-- The Statement predicate does not equal the canonical manifest JSON value.
+- The Statement predicate JSON value does not equal the plain manifest JSON value.
 - The release tag or target release does not exist.
 - A manifest artifact with the same name already exists.
 - The signing adapter cannot produce a valid bundle.
@@ -474,5 +478,5 @@ The release manifest workflow must fail before any mutation when:
 - Rejected fixtures for wrong signer, wrong predicate type, the superseded
   `buildtype.dev/windlass/slsa-builder/release-manifest/v1` predicate URI, wrong schema version,
   wrong workflow SHA, mismatched builder/buildType, publisher entry with buildType, non-canonical
-  manifest digest, Statement predicate mismatch, and duplicate asset upload.
+  RFC 8785 JCS manifest digest, Statement predicate JSON value mismatch, and duplicate asset upload.
 - A fixture proving that `manifest-upload` cannot re-sign or mutate the manifest.
