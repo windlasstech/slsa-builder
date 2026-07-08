@@ -314,8 +314,9 @@ Type and nullability rules:
   when no lockfile was ignored, and verifiers must not treat the recorded paths as selected
   lockfiles or dependency graph inputs.
 - `publish.input_registry_url`, `publish.input_dist_tag`, and `publish.input_access` record
-  caller-supplied workflow inputs when supplied and are `null` when omitted. GitHub Actions
-  `workflow_call` defaults must not populate these fields.
+  caller-supplied non-empty workflow inputs when supplied and are `null` when omitted or supplied as
+  an empty string after trimming ASCII whitespace. GitHub Actions `workflow_call` defaults must not
+  populate these fields.
 - `publish.publish_config` records source `publishConfig` fields that affect publish intent. It is
   `null` when source `publishConfig` is absent. When present, it must contain only `registry`,
   `access`, `tag`, and `provenance`; it must not contain `directory` because
@@ -334,6 +335,11 @@ Type and nullability rules:
   a new version of an existing package identity without creating or changing package access. npm's
   first-publication default for scoped packages without `--access public` is restricted, but first
   publication is outside the initial production profile.
+- Empty workflow inputs for `registry-url`, `dist-tag`, and `access` are omitted before publish
+  intent resolution. For example, an empty `publish.input_access` is recorded as `null`; if
+  `publish.publish_config.access` is `public`, the resolved `publish.publish_access_option` is
+  `public`. If both `publish.input_access` and `publish.publish_config.access` are non-empty and
+  normalize to different values, producer-side verification must reject the bundle before publish.
 - `publish.trusted_publishing` and `publish.provenance_file` must both be `true`.
 - `publish.package_identity_preexisting` must be `true`; the initial production profile does not
   support first publication of a package identity.

@@ -90,19 +90,26 @@ The workflow must not define GitHub Actions `workflow_call` defaults for these o
 omitted input is represented as unset until the profile's publish intent resolution step. This keeps
 caller-supplied values distinguishable from source `publishConfig` values and Windlass/npm defaults.
 
+For the initial GitHub Actions reusable workflow contract, an optional string input whose value is
+an empty string after trimming ASCII whitespace is normalized as omitted before publish intent
+resolution. Empty `registry-url`, `dist-tag`, and `access` inputs are therefore not caller-supplied
+publish intent values. A caller-supplied value exists only when the normalized input is non-empty.
+
 #### Optional input rules
 
 - `registry-url` must be an absolute `https:` URL. The profile must normalize scheme and host to
   lowercase, remove default port `443`, and ensure exactly one trailing `/` in the effective
   `package-registry-url` output. A non-HTTPS registry URL, URL with userinfo, fragment, or query, or
-  URL whose path is not `/` must be rejected before install, pack, publish, or signing.
+  URL whose path is not `/` must be rejected before install, pack, publish, or signing. An empty
+  `registry-url` input is normalized as omitted before URL validation.
 - `https://registry.npmjs.org/` is the only registry URL with Windlass-guaranteed production
   semantics. Other HTTPS registry URLs are unsupported-but-not-blocked only if they complete the
   same tokenless publish and external provenance submission flow.
 - `dist-tag` must be a non-empty npm dist-tag string that does not contain whitespace, `/`, `\\`,
-  NUL, or path traversal segments.
+  NUL, or path traversal segments. An empty `dist-tag` input is normalized as omitted before
+  dist-tag validation.
 - `access` must be one of `public`, `restricted`, or an empty string. An empty `access` value means
-  the profile omits the `npm publish --access` option.
+  omitted for publish intent resolution; it does not override source `publishConfig.access`.
 - `publish_access_option` is the exact value passed to `npm publish --access`; it is `public`,
   `restricted`, or `null` when the option is omitted.
 - `effective_access` records the Windlass publish intent used for diagnostics and verification. When
@@ -125,13 +132,14 @@ must not silently override conflicting source metadata.
 
 Resolution rules:
 
-- `registry-url` resolves from the caller-supplied workflow input when supplied, otherwise from
-  `publishConfig.registry` when present, otherwise `https://registry.npmjs.org/`.
-- `dist-tag` resolves from the caller-supplied workflow input when supplied, otherwise from
-  `publishConfig.tag` when present, otherwise `latest`.
-- `access` resolves from the caller-supplied workflow input when supplied, otherwise from
+- `registry-url` resolves from the caller-supplied non-empty workflow input when supplied, otherwise
+  from `publishConfig.registry` when present, otherwise `https://registry.npmjs.org/`.
+- `dist-tag` resolves from the caller-supplied non-empty workflow input when supplied, otherwise
+  from `publishConfig.tag` when present, otherwise `latest`.
+- `access` resolves from the caller-supplied non-empty workflow input when supplied, otherwise from
   `publishConfig.access` when present, otherwise the documented npm default represented by an empty
-  publish option.
+  publish option. A caller input of `access: ""` is omitted and therefore allows
+  `publishConfig.access` to supply the value.
 - `publishConfig.provenance`, when present, must not be `false`; the profile always uses
   Windlass-generated external provenance and must reject metadata that attempts to disable
   provenance submission.
@@ -150,6 +158,17 @@ Conflict rules:
   the default `latest`.
 - The workflow must not silently prefer workflow inputs over `publishConfig`, silently prefer
   `publishConfig` over workflow inputs, or drop a conflicting field to continue.
+
+Examples:
+
+- Omitted `access` plus `publishConfig.access: "public"` resolves to `public` and passes
+  `npm publish --access public`.
+- `access: ""` plus `publishConfig.access: "public"` also resolves to `public`; the empty input is
+  omitted and does not create a conflict.
+- `access: ""` with no `publishConfig.access` omits the `npm publish --access` option and records
+  `effective_access` as `existing-package-access`.
+- `access: "restricted"` plus `publishConfig.access: "public"` fails with a publish intent conflict.
+- `dist-tag: ""` plus `publishConfig.tag: "next"` resolves to `next`.
 
 ### Secrets
 
