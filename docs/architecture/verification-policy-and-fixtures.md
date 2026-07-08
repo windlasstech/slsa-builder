@@ -77,6 +77,9 @@ For an npm package published by the JS/TS npm profile, a verifier must check:
     present in the selected registry before publish.
 13. The selected package identity already existed in the selected registry before publish; first
     publication of a package identity is outside the initial trusted-publishing-only profile.
+14. `externalParameters.package.package_url` parses as a canonical npm PURL with no qualifiers or
+    subpath, and its namespace, name, and version match `externalParameters.package.name` and
+    `externalParameters.package.version`.
 
 When manifest metadata selected `externalParameters.package_manager.name` and that manager's
 required lockfile is present, verifier policy treats that lockfile as the selected dependency
@@ -187,6 +190,7 @@ Every fixture must include:
 | Name                            | Surface          | Description                                                  |
 | ------------------------------- | ---------------- | ------------------------------------------------------------ |
 | `npm-valid-release`             | npm              | Valid npm package tarball with matching Windlass provenance. |
+| `npm-valid-scoped-package-purl` | npm              | Valid scoped npm package with canonical PURL package URL.    |
 | `publisher-valid-upload`        | publisher        | Valid producer handoff leading to release asset and sidecar. |
 | `composition-valid-npm-tarball` | composition      | npm tarball successfully composes with publisher.            |
 | `release-manifest-valid`        | release-manifest | Signed manifest with valid producer and publisher mappings.  |
@@ -209,6 +213,7 @@ Every fixture must include:
 | `source-repository-canonicalization-error` | Source repository URL is non-canonical, ambiguous, or malformed.       |
 | `trusted-publisher-mismatch`               | npm trusted publishing caller identity or OIDC permission is wrong.    |
 | `package-identity-mismatch`                | npm package name or version does not match.                            |
+| `package-url-mismatch`                     | npm package PURL is not canonical or does not match name/version.      |
 | `unsupported-initial-publication`          | Selected package identity does not already exist in the registry.      |
 | `package-version-mismatch`                 | Tag version does not match `package.json` version.                     |
 | `package-directory-mismatch`               | `externalParameters.package.directory` does not match expected.        |
@@ -219,8 +224,10 @@ Every fixture must include:
 | `empty-publish-input-fallback`             | Empty workflow input failed to fall back to source `publishConfig`.    |
 | `already-published-version`                | Selected package name/version already exists before publish.           |
 | `workspace-resolution-mismatch`            | Workspace root, package manager root, or lockfile policy is wrong.     |
+| `workspace-pattern-base-mismatch`          | Workspace patterns were evaluated against the wrong base directory.    |
 | `workspace-command-mismatch`               | Workspace package targeting command can affect the wrong package.      |
 | `runtime-policy-mismatch`                  | Runner or Node.js version does not match policy.                       |
+| `excessive-publish-permission`             | npmjs publish job requests permissions outside the initial boundary.   |
 | `npm-version-too-old`                      | npm CLI version is below `11.5.1` for trusted publishing.              |
 | `release-manifest-mismatch`                | Release manifest mapping does not match the provenance.                |
 | `manifest-predicate-mismatch`              | Signed Statement predicate differs from canonical manifest JSON.       |
@@ -228,6 +235,7 @@ Every fixture must include:
 | `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.          |
 | `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.            |
 | `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                    |
+| `handoff-schema-mismatch`                  | Cross-job artifact handoff omits or changes required core fields.      |
 | `composition-handoff-substitution`         | Composition mapping trusts public outputs or deterministic names.      |
 | `publisher-handoff-field-error`            | Publisher handoff uses missing, stale, or malformed field names.       |
 | `sidecar-mismatch`                         | Sidecar bundle does not match the primary asset's provenance.          |
@@ -257,6 +265,26 @@ The publish-intent fixture set must distinguish empty workflow inputs from non-e
 conflicting inputs: empty `registry-url`, `dist-tag`, and `access` inputs are omitted and may fall
 back to source `publishConfig`, while non-empty invalid values fail validation and non-empty values
 that differ from source `publishConfig` fail with `publish-intent-conflict`.
+
+The package URL fixture set must include unscoped and scoped npm package identities. Scoped package
+fixtures must prove that `@scope/name` is emitted as `pkg:npm/%40scope/name@<version>`, that
+qualifiers and subpaths are rejected for the initial package identity output, and that parsed PURL
+type, namespace, name, and version match `externalParameters.package.name` and
+`externalParameters.package.version` after canonical re-serialization.
+
+The workspace fixture set must include nested workspace roots and prove that workspace patterns are
+evaluated relative to each candidate workspace root, not relative to the repository root. A fixture
+whose pattern only matches under the wrong base path must fail with
+`workspace-pattern-base-mismatch`.
+
+The handoff fixture set must prove that every cross-job artifact handoff includes the core semantic
+fields `transport`, `artifact_name`, `payload_file_name`, `payload_kind`, `digest.algorithm`, and
+`digest.value`, whether those fields are public inputs or profile-owned fixed mappings. Missing or
+malformed fields fail with `handoff-schema-mismatch`.
+
+The npm publish permissions fixture set must prove that the initial npmjs production publish job has
+`contents: read`, `id-token: write`, no `attestations: write`, and no `packages: write`. A workflow
+that grants `packages: write` for the initial npmjs path fails with `excessive-publish-permission`.
 
 The publisher fixture set must distinguish duplicate preflight failures from partial upload
 failures: pre-existing primary or sidecar asset names fail before upload, while a sidecar API or
