@@ -242,7 +242,7 @@ listed below as the only allowed additions:
 | `workflow`        | `path`, `sha`, `builder_id`                                                                                                                                                                                                                                                 | none                                                     |
 | `runtime`         | `runner`, `node_version`, `npm_version`                                                                                                                                                                                                                                     | none                                                     |
 | `package`         | `directory`, `workspace_root`, `source_manifest`, `name`, `version`, `private`, `tarball_name`, `package_url`, `packed_name`, `packed_version`                                                                                                                              | `publish_config_raw`, `packed_files`, `consumer_surface` |
-| `package_manager` | `name`, `version`, `selection_source`, `selection_manifest`, `selection_manifest_path`, `selection_lockfile_path`, `root`                                                                                                                                                   | none                                                     |
+| `package_manager` | `name`, `version`, `selection_source`, `selection_manifest`, `selection_manifest_path`, `selection_lockfile_path`, `root`                                                                                                                                                   | `ignored_lockfile_paths`                                 |
 | `publish`         | `input_registry_url`, `input_dist_tag`, `input_access`, `publish_config`, `resolved_registry_url`, `resolved_dist_tag`, `publish_access_option`, `effective_access`, `trusted_publishing`, `provenance_file`, `package_identity_preexisting`, `package_version_preexisting` | `custom_registry_support`                                |
 | `release`         | `ref`, `version_tag`                                                                                                                                                                                                                                                        | none                                                     |
 | `build`           | `script_present`, `script_result`                                                                                                                                                                                                                                           | none                                                     |
@@ -258,6 +258,8 @@ Type and nullability rules:
 - `package_manager.selection_manifest`, `package_manager.selection_manifest_path`, and
   `package_manager.selection_lockfile_path` are either `null` or repository-root-relative file path
   strings, according to the selection-source rules below.
+- `package_manager.ignored_lockfile_paths`, when present, is an array of repository-root-relative
+  file path strings.
 - `publish.input_registry_url`, `publish.input_dist_tag`, `publish.input_access`,
   `publish.publish_access_option`, and `publish.publish_config` are either `null` or the normalized
   value type defined below.
@@ -305,6 +307,12 @@ Type and nullability rules:
   when `selection_source` is `lockfile`, and must be `null` otherwise.
 - `package_manager.root` must be the repository-root-relative package manager root used for install
   and frozen-lockfile checks.
+- `package_manager.ignored_lockfile_paths` is permitted only when the package manager was selected
+  from manifest metadata, the selected manager's required lockfile is present in
+  `package_manager.root`, and supported lockfiles for non-selected managers are also present in that
+  same root. The array records those non-selected lockfiles as stale diagnostics. It must be omitted
+  when no lockfile was ignored, and verifiers must not treat the recorded paths as selected
+  lockfiles or dependency graph inputs.
 - `publish.input_registry_url`, `publish.input_dist_tag`, and `publish.input_access` record
   caller-supplied workflow inputs when supplied and are `null` when omitted. GitHub Actions
   `workflow_call` defaults must not populate these fields.

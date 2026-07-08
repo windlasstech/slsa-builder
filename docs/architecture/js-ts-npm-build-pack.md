@@ -164,13 +164,56 @@ selected package manifest or the workspace root manifest before using the produc
 
 ### Conflict handling
 
-If the selected sources disagree in a way that cannot be resolved, the profile must fail. Examples
-of conflicts:
+If the selected sources disagree in a way that cannot be resolved, the profile must fail. The
+selection source is chosen by the ordered manifest-first rules above, but lockfiles in the package
+manager root still constrain whether the selected package manager can run a reproducible release
+install.
 
-- `packageManager` says `pnpm@9.1.0` but `yarn.lock` exists.
-- `packageManager` says `npm` but `pnpm-lock.yaml` exists.
+The initial production profile applies this decision matrix after parsing the selected package and
+workspace metadata:
+
+| Manifest selection state                                   | Lockfiles in package manager root                  | Result                                                                                                              |
+| ---------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Selected manager is `npm` from manifest metadata           | exactly `package-lock.json`                        | Use npm bundled with Node.js 24.                                                                                    |
+| Selected manager is `npm` from manifest metadata           | no lockfile                                        | Fail before install because `npm ci` requires `package-lock.json`.                                                  |
+| Selected manager is `npm` from manifest metadata           | `package-lock.json` plus pnpm or Yarn lockfiles    | Use npm bundled with Node.js 24; treat non-selected lockfiles as ignored stale diagnostics.                         |
+| Selected manager is `npm` from manifest metadata           | pnpm or Yarn lockfiles without `package-lock.json` | Fail before install because `npm ci` requires `package-lock.json`; non-npm lockfiles must not select npm.           |
+| Selected manager is `pnpm` from manifest metadata          | exactly `pnpm-lock.yaml`                           | Use the exact pnpm version from the selected manifest metadata through Corepack.                                    |
+| Selected manager is `pnpm` from manifest metadata          | no lockfile                                        | Fail before install because frozen pnpm install requires `pnpm-lock.yaml`.                                          |
+| Selected manager is `pnpm` from manifest metadata          | `pnpm-lock.yaml` plus npm or Yarn lockfiles        | Use the exact pnpm version through Corepack; treat non-selected lockfiles as ignored stale diagnostics.             |
+| Selected manager is `pnpm` from manifest metadata          | npm or Yarn lockfiles without `pnpm-lock.yaml`     | Fail before install because frozen pnpm install requires `pnpm-lock.yaml`; non-pnpm lockfiles must not select pnpm. |
+| Selected manager is `yarn` from manifest metadata          | exactly `yarn.lock`                                | Use the exact Yarn version from the selected manifest metadata through Corepack.                                    |
+| Selected manager is `yarn` from manifest metadata          | no lockfile                                        | Fail before install because frozen Yarn install requires `yarn.lock`.                                               |
+| Selected manager is `yarn` from manifest metadata          | `yarn.lock` plus npm or pnpm lockfiles             | Use the exact Yarn version through Corepack; treat non-selected lockfiles as ignored stale diagnostics.             |
+| Selected manager is `yarn` from manifest metadata          | npm or pnpm lockfiles without `yarn.lock`          | Fail before install because frozen Yarn install requires `yarn.lock`; non-Yarn lockfiles must not select Yarn.      |
+| No manifest metadata selects a manager                     | exactly `package-lock.json`                        | Infer npm from the lockfile and use npm bundled with Node.js 24.                                                    |
+| No manifest metadata selects a manager                     | exactly `pnpm-lock.yaml`                           | Fail because pnpm requires an exact version from manifest metadata.                                                 |
+| No manifest metadata selects a manager                     | exactly `yarn.lock`                                | Fail because Yarn requires an exact version from manifest metadata.                                                 |
+| No manifest metadata selects a manager                     | no supported lockfile                              | Fail because the package manager cannot be selected reproducibly.                                                   |
+| No manifest metadata selects a manager                     | more than one supported lockfile                   | Fail with a package-manager conflict.                                                                               |
+| Any manifest field selects an unsupported manager          | any lockfile state                                 | Fail before install; lockfiles must not override an unsupported manifest-selected manager.                          |
+| Manifest fields at different selection priorities disagree | any lockfile state                                 | Fail with a package-manager conflict; lower-priority metadata must not silently override higher-priority metadata.  |
+
+Examples of conflicts:
+
+- `packageManager` says `pnpm@9.1.0` but no `pnpm-lock.yaml` exists.
+- `packageManager` says `npm` but no `package-lock.json` exists.
+- `packageManager` says `yarn@4.1.0` but no `yarn.lock` exists.
 - The selected package manifest says `pnpm@9.1.0` but the workspace root manifest says `yarn@4.1.0`.
 - Multiple lockfiles exist and no `packageManager` field resolves the ambiguity.
+
+When the result is a package-manager conflict, provenance must not be emitted. When lockfile
+inference selects npm, `package_manager.selection_source` is `lockfile`,
+`package_manager.selection_manifest` and `package_manager.selection_manifest_path` are `null`, and
+`package_manager.selection_lockfile_path` is the repository-root-relative path to
+`package-lock.json`.
+
+When manifest metadata selects a package manager and that manager's required lockfile is present,
+that selected lockfile is the only lockfile that constrains the release install. Other supported
+lockfile names in the package manager root are ignored as stale diagnostics. The workflow should
+warn about those ignored lockfiles and record their repository-root-relative paths in provenance,
+but reviewers and verifiers must not treat their presence as a package-manager conflict or as an
+input to the dependency graph used by the selected package manager's frozen install command.
 
 ## Corepack for pnpm and Yarn
 

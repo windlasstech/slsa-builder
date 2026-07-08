@@ -78,6 +78,13 @@ For an npm package published by the JS/TS npm profile, a verifier must check:
 13. The selected package identity already existed in the selected registry before publish; first
     publication of a package identity is outside the initial trusted-publishing-only profile.
 
+When manifest metadata selected `externalParameters.package_manager.name` and that manager's
+required lockfile is present, verifier policy treats that lockfile as the selected dependency
+lockfile. Any non-selected lockfiles recorded in
+`externalParameters.package_manager.ignored_lockfile_paths` are diagnostics only. A verifier must
+not reject otherwise valid provenance merely because another supported package-manager lockfile was
+present and recorded as ignored under that rule.
+
 ## GitHub Release asset verification policy
 
 For a release asset uploaded by the publisher, a verifier must check:
