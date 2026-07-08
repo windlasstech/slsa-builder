@@ -106,9 +106,23 @@ https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1
 documentation. The documentation page for a `buildType` URI should explain the `externalParameters`
 schema, subject naming rules, digest semantics, and verification expectations for that profile.
 
-The documentation host is complementary to the identifier namespace. The URI itself does not need to
-resolve to a live document at build time, but the documentation must be maintained under
-`slsa-builder.dev`.
+The documentation host is complementary to the identifier namespace. Production builds, provenance
+generation, and verifier policy evaluation must not dereference the `buildType` URI at build time or
+verification time to decide whether provenance is valid. They compare the exact identifier value in
+the provenance and the trusted policy.
+
+The public identifier URL is still expected to resolve for human-readable specification discovery.
+Requests to `https://buildtype.dev/windlass/slsa-builder/<profile-name>/v<major-version>` should use
+a permanent redirect, preferably HTTP 308 or otherwise HTTP 301, to the corresponding
+`https://slsa-builder.dev/buildtypes/<profile-name>/v<major-version>` documentation page. Temporary
+redirects, aliases, or redirect targets are not equivalent `buildType` identifiers for verifier
+matching.
+
+Failure to resolve the documentation URL is not a profile runtime failure and must not change
+emitted provenance. It is a release documentation readiness failure: release review must not mark a
+new `buildType` URI ready for public use until the `buildtype.dev` redirect and `slsa-builder.dev`
+documentation page exist or the release notes explicitly identify the missing documentation as a
+known pre-release limitation.
 
 ## Release manifest linkage
 
