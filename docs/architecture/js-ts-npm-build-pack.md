@@ -12,7 +12,8 @@ installs dependencies, runs build scripts, packs the artifact, and validates pac
   [0019](../decisions/0019-validate-js-ts-package-metadata-through-packed-artifacts.md),
   [0023](../decisions/0023-use-package-directory-as-required-js-ts-npm-package-selector.md),
   [0027](../decisions/0027-use-github-hosted-ubuntu-2404-and-node-24-runtime.md),
-  [0033](../decisions/0033-run-build-script-only-when-declared.md)
+  [0033](../decisions/0033-run-build-script-only-when-declared.md),
+  [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md)
 - Related specs: [JS/TS npm package profile](js-ts-npm-package-profile.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Core profile contract](core-profile-contract.md)
