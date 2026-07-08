@@ -10,6 +10,7 @@ tarball producer feeding the GitHub Release asset publisher.
   [0051](../decisions/0051-distribute-producer-provenance-with-release-assets.md),
   [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
+  [Composed workflow internal handoff](composed-workflow-internal-handoff.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md),
@@ -80,17 +81,24 @@ package identity and tarball digest handles defined by the npm profile. Internal
 provenance bundle artifact names are not public outputs.
 
 A composed release workflow or mapping layer that runs the npm producer and publisher in the same
-workflow run must derive or receive the internal same-run artifact names selected by the npm
-producer implementation and pass them to the publisher handoff fields. The mapping layer must not
-use logs, release notes, public workflow outputs, or caller-supplied artifact names as substitutes
-for the producer's trusted same-run handoff values.
+workflow run must receive the producer-owned internal handoff manifest defined by the
+[composed workflow internal handoff spec](composed-workflow-internal-handoff.md). The mapping layer
+must not derive trust from logs, release notes, public workflow outputs, deterministic naming alone,
+or caller-supplied artifact names as substitutes for the producer-owned same-run handoff manifest
+and its digest-verified contents.
 
 The deterministic initial internal artifact names are:
 
 ```text
 js-ts-npm-package-tarball-<github.run_id>-<github.run_attempt>
 js-ts-npm-provenance-bundle-<github.run_id>-<github.run_attempt>
+js-ts-npm-composition-handoff-<github.run_id>-<github.run_attempt>
 ```
+
+The deterministic names are transport locators only. The composed workflow must pass the composition
+handoff manifest artifact name and manifest SHA-256 through internal same-run job outputs owned by
+the producer job. Those internal outputs are not public `workflow_call.outputs`; they exist only for
+the composed workflow graph that connects the producer to the publisher in the same run.
 
 If a future release process needs to connect separately invoked reusable workflows through public
 outputs, that is a new composition contract and must be specified separately.
@@ -108,22 +116,22 @@ The publisher is responsible for:
 
 ## Handoff field mapping
 
-| Composition mapping source                            | Publisher handoff field             | Notes                                                               |
-| ----------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------- |
-| Deterministic tarball artifact name                   | `primary-artifact-name`             | Same-run workflow artifact containing the tarball.                  |
-| `package-tarball-sha256`                              | `expected-sha256`                   | Canonical digest.                                                   |
-| `package-tarball-name`                                | `final-asset-name`                  | Release asset name equals tarball name.                             |
-| Release tag                                           | `release-tag`                       | Same Git tag used by the npm release.                               |
-| Deterministic provenance bundle artifact              | `producer-provenance-artifact-name` | Same-run artifact containing the signed DSSE bundle.                |
-| Internal provenance bundle SHA-256                    | `producer-provenance-sha256`        | Canonical bundle digest.                                            |
-| npm profile `builder.id`                              | `trusted-builder-id`                | From the release manifest or explicit policy.                       |
-| npm profile `buildType`                               | `trusted-build-type`                | `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`. |
-| npm provenance `subject[0].name`                      | `expected-subject-name`             | Must equal `final-asset-name`.                                      |
-| npm provenance `subject[0].digest.sha256`             | `expected-subject-sha256`           | Must equal uploaded bytes.                                          |
-| npm provenance `externalParameters.source.repository` | `source-repository`                 | Required canonical HTTPS source repository URL.                     |
-| npm provenance `externalParameters.source.revision`   | `source-revision`                   | Required full source revision; GitHub Git sources use 40-char SHA.  |
-| Native provenance locators                            | `native-provenance-locators`        | Optional array of locator objects defined by the publisher spec.    |
-| Linked artifact opt-in settings                       | `linked-artifact-settings`          | Optional settings object defined by the publisher spec.             |
+| Composition mapping source                             | Publisher handoff field             | Notes                                                               |
+| ------------------------------------------------------ | ----------------------------------- | ------------------------------------------------------------------- |
+| Deterministic tarball artifact name                    | `primary-artifact-name`             | Same-run workflow artifact containing the tarball.                  |
+| `package-tarball-sha256`                               | `expected-sha256`                   | Canonical digest.                                                   |
+| `package-tarball-name`                                 | `final-asset-name`                  | Release asset name equals tarball name.                             |
+| Release tag                                            | `release-tag`                       | Same Git tag used by the npm release.                               |
+| Deterministic provenance bundle artifact               | `producer-provenance-artifact-name` | Same-run artifact containing the signed DSSE bundle.                |
+| Producer handoff manifest `producer_provenance.sha256` | `producer-provenance-sha256`        | Canonical bundle digest.                                            |
+| npm profile `builder.id`                               | `trusted-builder-id`                | From the release manifest or explicit policy.                       |
+| npm profile `buildType`                                | `trusted-build-type`                | `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`. |
+| npm provenance `subject[0].name`                       | `expected-subject-name`             | Must equal `final-asset-name`.                                      |
+| npm provenance `subject[0].digest.sha256`              | `expected-subject-sha256`           | Must equal uploaded bytes.                                          |
+| npm provenance `externalParameters.source.repository`  | `source-repository`                 | Required canonical HTTPS source repository URL.                     |
+| npm provenance `externalParameters.source.revision`    | `source-revision`                   | Required full source revision; GitHub Git sources use 40-char SHA.  |
+| Native provenance locators                             | `native-provenance-locators`        | Optional array of locator objects defined by the publisher spec.    |
+| Linked artifact opt-in settings                        | `linked-artifact-settings`          | Optional settings object defined by the publisher spec.             |
 
 ## Subject name alignment
 
@@ -139,7 +147,7 @@ consumers can correlate the release asset with the published npm package.
 For the npm-to-release-asset composition:
 
 - The primary `subject[0].name` is the tarball file name, for example
-  `windlass-slsa-builder-1.2.3.tar.gz`.
+  `windlass-slsa-builder-1.2.3.tgz`.
 - The npm package name and version are recorded in `externalParameters` under `package.name` and
   `package.version`.
 - The final GitHub Release asset name equals the tarball file name.
@@ -162,10 +170,17 @@ The publisher uploads the unchanged npm producer provenance bundle as:
 <tarball-name>.intoto.jsonl
 ```
 
-For example, `windlass-slsa-builder-1.2.3.tar.gz.intoto.jsonl`.
+For npm pack-produced tarballs, the sidecar therefore normally uses a `.tgz.intoto.jsonl` suffix,
+for example `windlass-slsa-builder-1.2.3.tgz.intoto.jsonl`.
 
 The sidecar must contain the same bundle bytes that the npm producer generated and that the
 publisher verified.
+
+Before uploading the npm tarball, the publisher must preflight-check that neither the tarball asset
+name nor the deterministic sidecar name already exists on the target GitHub Release. If either name
+exists, the composition fails without mutating the release. A sidecar upload failure after primary
+asset upload is a partial failure only when the duplicate preflight passed and a later upload/API
+failure occurred.
 
 ## npm-specific fields as producer metadata
 
@@ -222,17 +237,17 @@ policy.
 A project releases `@windlass/slsa-builder` version `1.2.3` to npm and also wants a GitHub Release
 copy of the tarball.
 
-1. The npm profile runs and produces `windlass-slsa-builder-1.2.3.tar.gz` with SHA-256 `abc123...`.
+1. The npm profile runs and produces `windlass-slsa-builder-1.2.3.tgz` with SHA-256 `abc123...`.
 2. The npm profile generates provenance with:
-   - `subject[0].name`: `windlass-slsa-builder-1.2.3.tar.gz`
+   - `subject[0].name`: `windlass-slsa-builder-1.2.3.tgz`
    - `subject[0].digest.sha256`: `abc123...`
    - `externalParameters.package.name`: `@windlass/slsa-builder`
    - `externalParameters.package.version`: `1.2.3`
 3. The npm profile publishes to npm and makes the internal handoff values available to the same-run
    mapping layer.
 4. The publisher receives the handoff, verifies the tarball digest and provenance, and uploads:
-   - `windlass-slsa-builder-1.2.3.tar.gz` (primary asset)
-   - `windlass-slsa-builder-1.2.3.tar.gz.intoto.jsonl` (sidecar)
+   - `windlass-slsa-builder-1.2.3.tgz` (primary asset)
+   - `windlass-slsa-builder-1.2.3.tgz.intoto.jsonl` (sidecar)
 5. A consumer downloads the tarball and the sidecar, verifies the producer provenance against the
    tarball, and trusts the npm package identity recorded in `externalParameters`.
 
@@ -270,12 +285,14 @@ The composition must fail when:
 - The publisher cannot verify the producer provenance.
 - The subject name or digest does not align.
 - The release target does not exist.
+- The primary asset name or deterministic sidecar name already exists on the target release.
 - The primary asset upload succeeds but the sidecar upload fails.
 
 ## TDD and fixtures
 
 - Positive fixture: npm tarball successfully composes with the publisher.
 - Rejected fixtures: raw tarball without provenance, renamed subject, digest mismatch, npm-specific
-  publisher coupling, and unsupported producer `buildType`.
+  publisher coupling, pre-existing primary or sidecar release asset name, and unsupported producer
+  `buildType`.
 - A fixture proving that the publisher remains producer-neutral when the same handoff is constructed
   from a different producer profile (mock or stub).
