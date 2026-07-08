@@ -307,9 +307,17 @@ identifier and must be rejected when a release manifest predicate is expected.
 
 ## Signed payload rules
 
-The signing adapter signs the in-toto Statement bytes, not the plain JSON file directly. The
-Statement's `predicate` must be the manifest JSON value, represented as a JSON object. The Statement
-subject digest must be the SHA-256 digest of the RFC 8785 JCS canonical JSON bytes for that value.
+The initial signing adapter is stock `actions/attest` in custom attestation mode. The manifest
+signing job must pass the verified subject name, subject digest, predicate type, and manifest
+predicate JSON to the adapter; it must not pass or document a complete in-toto Statement payload as
+an adapter input. The adapter constructs the in-toto Statement and signs that Statement as a
+Sigstore-backed bundle.
+
+The Statement's `predicate` must be the manifest JSON value, represented as a JSON object. The
+Statement subject digest must be the SHA-256 digest of the RFC 8785 JCS canonical JSON bytes for
+that value. After signing, the manifest signing or upload path must extract the emitted Statement
+payload from the signed bundle and compare it against the Statement implied by the verified subject
+inputs, predicate type, and manifest predicate JSON.
 
 The signed bundle is invalid when:
 
@@ -332,9 +340,9 @@ manifest-generate -> manifest-sign -> manifest-upload
 
 ### `manifest-generate`
 
-- Creates the unsigned release manifest JSON and the in-toto Statement payload.
+- Creates the unsigned release manifest JSON, manifest predicate JSON, and signing input metadata.
 - Computes the manifest digest.
-- Uploads the unsigned manifest and Statement material as workflow artifacts.
+- Uploads the unsigned manifest, predicate JSON, and signing input material as workflow artifacts.
 - Exposes the expected digest and artifact handles to the signing job.
 - Must **not** have:
   - `id-token: write`
@@ -347,8 +355,10 @@ manifest-generate -> manifest-sign -> manifest-upload
 
 - Downloads the manifest artifacts.
 - Recomputes their digests and verifies them against the handoff from `manifest-generate`.
-- Signs the in-toto Statement as a Sigstore DSSE bundle using full-SHA-pinned `actions/attest` in
-  custom predicate mode.
+- Invokes full-SHA-pinned `actions/attest` in custom attestation mode with the verified subject
+  name, subject digest, predicate type, and manifest predicate JSON.
+- Extracts the emitted in-toto Statement from the signed bundle and verifies that it matches the
+  Statement implied by the verified signing inputs.
 - Uploads the signed bundle as a workflow artifact.
 - Permissions:
   - `contents: read`
