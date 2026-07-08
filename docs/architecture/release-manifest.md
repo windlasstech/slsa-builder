@@ -175,19 +175,29 @@ unknown top-level fields and unknown entry fields are invalid.
 }
 ```
 
-The verifier must additionally check cross-field constraints that JSON Schema cannot express here:
+The JSON Schema above is a structural validation gate, not a complete trust policy. A verifier must
+not accept a release manifest only because it passes JSON Schema validation. After schema
+validation, the verifier must additionally check cross-field and policy constraints that JSON Schema
+cannot express here:
 
 - `release_tag` must equal `refs/tags/v<release_version>`.
 - Each `producer_profiles[].builder_id` must equal
   `https://github.com/windlasstech/slsa-builder/<workflow_path>@<workflow_sha>`.
+- Each `producer_profiles[].build_type` must equal the canonical producer `buildType` declared by
+  the architecture spec for that `producer_profiles[].profile` value or by an explicit verifier
+  policy that admits the producer profile.
+- A producer profile that is unknown to the verifier policy must be rejected even when its
+  `build_type` matches the general `buildtype.dev` URI pattern.
 - `producer_profiles[]` must not contain duplicate `profile` values.
 - `publisher_workflows[]` must not contain duplicate `publisher` values.
 - A publisher workflow entry must not contain `builder_id`, `build_type`, or any other field that
   claims source-to-artifact provenance for the publisher.
 
 Invalid examples include a manifest with a short workflow SHA, a release tag that does not match
-`release_version`, a producer entry whose `builder_id` SHA differs from `workflow_sha`, a publisher
-entry containing `build_type`, or any unknown top-level field such as `notes`.
+`release_version`, a producer entry whose `builder_id` SHA differs from `workflow_sha`, a producer
+entry whose `build_type` is not the canonical build type for its `profile`, a producer profile that
+the verifier policy does not recognize, a publisher entry containing `build_type`, or any unknown
+top-level field such as `notes`.
 
 ### RFC 8785 JCS canonical JSON serialization
 
@@ -240,7 +250,9 @@ resulting SHA-256 digest with the Statement subject digest.
   `builder_id`, and `build_type`.
 - Each `producer_profiles[]` `builder_id` must be derived from its `workflow_path` and
   `workflow_sha`.
-- Each `producer_profiles[]` `build_type` must be a canonical producer `buildType` URI.
+- Each `producer_profiles[]` `build_type` must be a canonical producer `buildType` URI for the same
+  producer profile. The schema pattern only checks the URI family; the verifier policy must check
+  the profile-to-buildType mapping.
 - Each `publisher_workflows[]` entry must include `publisher`, `workflow_path`, `workflow_sha`, and
   `role`.
 - The initial publisher `role` value is `verified-distributor`.
@@ -351,6 +363,22 @@ manifest-generate -> manifest-sign -> manifest-upload
   - release mutation authority
   - long-lived signing credentials
 
+The initial handoff from `manifest-generate` to `manifest-sign` contains these same-run artifact
+handles and digests:
+
+| Output                             | Value                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| `manifest-json-artifact-name`      | Artifact containing exactly one `release-manifest-<version>.json` file. |
+| `manifest-json-sha256`             | SHA-256 of the RFC 8785 JCS canonical manifest JSON bytes.              |
+| `manifest-predicate-artifact-name` | Artifact containing exactly one manifest predicate JSON file.           |
+| `manifest-predicate-sha256`        | SHA-256 of the RFC 8785 JCS canonical predicate JSON bytes.             |
+| `manifest-signing-input-name`      | Artifact containing exactly one signing input metadata JSON file.       |
+| `manifest-signing-input-sha256`    | SHA-256 of the signing input metadata JSON bytes.                       |
+
+The manifest predicate JSON must parse to the same JSON value as the plain manifest JSON. The
+signing input metadata is transport metadata only; the manifest JSON value and the digest above
+remain the trust inputs.
+
 ### `manifest-sign`
 
 - Downloads the manifest artifacts.
@@ -360,11 +388,27 @@ manifest-generate -> manifest-sign -> manifest-upload
 - Extracts the emitted in-toto Statement from the signed bundle and verifies that it matches the
   Statement implied by the verified signing inputs.
 - Uploads the signed bundle as a workflow artifact.
+- Re-exports the verified plain manifest artifact handle and canonical manifest digest to
+  `manifest-upload` without modifying the manifest JSON bytes or canonical JSON value.
 - Permissions:
   - `contents: read`
   - `id-token: write`
   - `attestations: write`
 - Must **not** have `contents: write` or release mutation authority.
+
+The handoff from `manifest-sign` to `manifest-upload` contains only values verified or produced by
+`manifest-sign`:
+
+| Output                          | Value                                                                                  |
+| ------------------------------- | -------------------------------------------------------------------------------------- |
+| `manifest-json-artifact-name`   | The verified plain manifest artifact from `manifest-generate`.                         |
+| `manifest-json-sha256`          | The verified SHA-256 of the RFC 8785 JCS canonical manifest JSON bytes.                |
+| `manifest-bundle-artifact-name` | Artifact containing exactly one `release-manifest-<version>.intoto.jsonl` bundle file. |
+| `manifest-bundle-sha256`        | SHA-256 of the signed bundle file bytes.                                               |
+
+`manifest-sign` must fail before producing the upload handoff if the plain manifest, predicate JSON,
+signing input metadata, emitted Statement, or signed bundle does not match the verified signing
+inputs.
 
 ### `manifest-upload`
 
@@ -378,6 +422,12 @@ manifest-generate -> manifest-sign -> manifest-upload
   - `attestations: write`
   - signing credentials
   - authority to create or modify signed metadata
+
+`manifest-upload` must use `manifest-sign` as its only trusted handoff source. It must not consume a
+direct `manifest-generate` handoff, reconstruct artifact names from release version strings, or use
+release notes, logs, local files, or caller inputs as substitutes for the `manifest-sign` outputs.
+It may download the same GitHub Actions artifact originally uploaded by `manifest-generate` only
+through the artifact handle re-exported by `manifest-sign`.
 
 ## Handoff rules
 
