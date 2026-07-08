@@ -295,6 +295,45 @@ fields must be rejected by producer-side verification and by strict consumer pol
 - `build.script_result` must be `executed` when `scripts.build` ran and `skipped-absent` when the
   build step was an explicit no-op.
 
+### Canonical source repository URL
+
+For GitHub-hosted source repositories, `source.repository` is canonicalized from the repository
+owner and name observed in the release workflow context. Implementations must derive exactly this
+form:
+
+```text
+https://github.com/<owner>/<repo>
+```
+
+Canonicalization rules:
+
+- The scheme must be `https` and the host must be exactly `github.com` after lowercase
+  normalization.
+- The path must contain exactly two non-empty segments: `<owner>` and `<repo>`. Both segments must
+  be lowercased in the emitted canonical URL.
+- The output must not have a trailing slash, `.git` suffix, query, fragment, userinfo, port, or
+  extra path segment.
+- Backslashes, percent-encoded path separators, empty path segments, `.` or `..` segments, and ASCII
+  control characters are invalid.
+- Comparisons for GitHub repository identity must treat owner and repository names
+  case-insensitively before emitting the lowercase canonical URL.
+
+Examples that canonicalize to `https://github.com/windlasstech/example`:
+
+- `https://github.com/WindlassTech/Example`
+- `https://github.com/WindlassTech/Example.git`
+- `HTTPS://github.com/WindlassTech/Example/`
+
+Rejected examples include `git@github.com:WindlassTech/Example.git`,
+`https://github.com/WindlassTech/Example/releases`,
+`https://github.com/WindlassTech/Example?tab=readme`,
+`https://github.com/WindlassTech/Example.git/extra`, and
+`https://github.com/WindlassTech/%2E%2E/Example`.
+
+Producer-side verification must reject the bundle before publish when `source.repository` is
+missing, cannot be canonicalized by these rules, or differs from the observed caller repository
+identity after case-insensitive GitHub owner/repository comparison.
+
 The schema permits these optional fields only when the value is known and verifier-relevant:
 
 - `package.publish_config_raw`: diagnostic copy of the source manifest `publishConfig` when needed

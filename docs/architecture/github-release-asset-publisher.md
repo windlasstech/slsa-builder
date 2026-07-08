@@ -130,7 +130,12 @@ the core same-run artifact handoff schema as follows:
 All required handoff string fields must be non-empty after trimming ASCII whitespace. SHA-256 fields
 must be 64-character lowercase hexadecimal strings. `source-repository` must be a canonical HTTPS
 repository URL, and `source-revision` must be the full immutable source revision expected by the
-producer policy; for GitHub-hosted Git sources this is a 40-character lowercase Git commit SHA.
+producer policy; for GitHub-hosted Git sources this is a 40-character lowercase Git commit SHA. For
+the initial npm composition, `source-repository` must use the canonical GitHub repository URL rules
+defined by the [JS/TS npm provenance and publish spec](js-ts-npm-provenance-publish.md). The
+publisher must reject a `source-repository` value that cannot be canonicalized by those rules or
+that does not exactly match the canonical `externalParameters.source.repository` value in the
+verified producer provenance.
 
 Complex handoff fields in the public workflow contract are passed as UTF-8 JSON strings. The
 publisher must parse `native-provenance-locators` as a JSON array and `linked-artifact-settings` as
