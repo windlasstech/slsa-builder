@@ -215,6 +215,8 @@ Every fixture must include:
 | `package-manager-selection-path-mismatch`  | Package-manager selection path is missing or wrong in provenance.      |
 | `private-package`                          | Selected package manifest has `private: true`.                         |
 | `publish-intent-conflict`                  | Workflow publish input conflicts with source `publishConfig`.          |
+| `invalid-publish-input`                    | Non-empty workflow publish input has an unsupported value or format.   |
+| `empty-publish-input-fallback`             | Empty workflow input failed to fall back to source `publishConfig`.    |
 | `already-published-version`                | Selected package name/version already exists before publish.           |
 | `workspace-resolution-mismatch`            | Workspace root, package manager root, or lockfile policy is wrong.     |
 | `workspace-command-mismatch`               | Workspace package targeting command can affect the wrong package.      |
@@ -223,11 +225,13 @@ Every fixture must include:
 | `release-manifest-mismatch`                | Release manifest mapping does not match the provenance.                |
 | `manifest-predicate-mismatch`              | Signed Statement predicate differs from canonical manifest JSON.       |
 | `manifest-digest-mismatch`                 | Statement subject digest differs from canonical manifest JSON bytes.   |
+| `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.          |
 | `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.            |
 | `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                    |
 | `composition-handoff-substitution`         | Composition mapping trusts public outputs or deterministic names.      |
 | `publisher-handoff-field-error`            | Publisher handoff uses missing, stale, or malformed field names.       |
 | `sidecar-mismatch`                         | Sidecar bundle does not match the primary asset's provenance.          |
+| `sidecar-upload-partial-failure`           | Primary release asset uploaded but sidecar upload failed afterward.    |
 | `duplicate-release-asset`                  | Release asset name already exists.                                     |
 | `duplicate-sidecar-asset`                  | Deterministic sidecar asset name already exists before upload.         |
 | `registry-linkage-mismatch`                | Published package does not match the provenance registry metadata.     |
@@ -248,6 +252,21 @@ Fixtures drive implementation:
 2. Implement the behavior that makes the accepted fixture pass.
 3. Ensure the rejected fixture continues to fail with the correct error category.
 4. Add fixtures for any new normative behavior.
+
+The publish-intent fixture set must distinguish empty workflow inputs from non-empty invalid or
+conflicting inputs: empty `registry-url`, `dist-tag`, and `access` inputs are omitted and may fall
+back to source `publishConfig`, while non-empty invalid values fail validation and non-empty values
+that differ from source `publishConfig` fail with `publish-intent-conflict`.
+
+The publisher fixture set must distinguish duplicate preflight failures from partial upload
+failures: pre-existing primary or sidecar asset names fail before upload, while a sidecar API or
+transport failure after successful primary upload fails with `sidecar-upload-partial-failure` and
+reports `upload-result: partial-primary-uploaded`.
+
+The release manifest fixture set must distinguish duplicate preflight failures from partial upload
+failures: pre-existing manifest JSON or bundle names fail before upload, while a signed bundle API
+or transport failure after successful plain JSON upload fails with `manifest-partial-json-uploaded`
+and reports `manifest-upload-result: partial-json-uploaded`.
 
 ## Future standalone verifier decision boundary
 
