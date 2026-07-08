@@ -39,6 +39,52 @@ concrete reusable workflow SHAs that consumers may trust. It is signed as a Sigs
 bundle so that verifiers can authenticate it without relying on GitHub UI state, release notes, or
 unsigned JSON files.
 
+## Workflow entrypoint and public contract
+
+The production release manifest workflow entrypoint is:
+
+```text
+.github/workflows/release-manifest.yml
+```
+
+The initial production contract supports release runs from protected SemVer version tags only. A
+production invocation must run on a Git tag ref whose short tag is `v<release_version>`, where
+`release_version` is the SemVer 2.0.0 version without the leading `v` recorded in the manifest.
+
+The workflow must not expose public inputs that let callers override the release version, release
+tag, release commit SHA, producer workflow SHA, publisher workflow SHA, `builder.id`, `buildType`,
+predicate type, signer workflow path, or manifest artifact names. Those values are derived from the
+checked-out release tag, repository contents, release manifest generation policy, and the trusted
+workflow files in the tagged `slsa-builder` release. A future release process that needs
+caller-supplied profile mappings or cross-repository release metadata requires a later ADR or schema
+version.
+
+The workflow may expose only non-trust-changing operational inputs, such as a dry-run flag or an
+explicit target release repository, if a later section defines their validation and proves they do
+not change the signed manifest value. Until such inputs are specified, the production workflow
+contract has no caller-controlled inputs.
+
+### Supported trigger and runtime guards
+
+The release manifest workflow must fail before manifest signing or GitHub Release mutation when any
+of the following is true:
+
+- `github.ref_type` is not `tag`.
+- `github.ref` is not `refs/tags/v<release_version>` for the generated manifest's `release_version`.
+- The tag name is not a valid `v`-prefixed SemVer 2.0.0 version.
+- The tag does not exist in the `windlasstech/slsa-builder` repository.
+- The target GitHub Release for the tag does not already exist.
+- The resolved tag target commit does not equal `release_commit_sha`.
+- The workflow path observed in the signer identity is not `.github/workflows/release-manifest.yml`.
+- The signer workflow ref is not the same protected release tag recorded in `release_tag`.
+- Any generated producer or publisher workflow path/SHA mapping is caller-supplied rather than
+  derived from the tagged repository contents and release manifest generation policy.
+
+Branch runs, pull request runs, untagged manual dispatch runs, short tag names passed as inputs, and
+caller-supplied workflow SHA allowlists are not production release manifest invocations. They may be
+used only for tests or dry runs that do not upload a signed bundle claiming the production predicate
+type.
+
 ## Canonical artifacts
 
 Every release produces two manifest artifacts:

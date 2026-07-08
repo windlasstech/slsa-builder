@@ -241,6 +241,9 @@ Every fixture must include:
 | `release-manifest-mismatch`                | Release manifest mapping does not match the provenance.                                |
 | `manifest-predicate-mismatch`              | Signed Statement predicate differs from canonical manifest JSON.                       |
 | `manifest-digest-mismatch`                 | Statement subject digest differs from canonical manifest JSON bytes.                   |
+| `manifest-trigger-mismatch`                | Release manifest workflow did not run from the expected protected SemVer tag.          |
+| `manifest-entrypoint-mismatch`             | Release manifest signer workflow path is not the fixed production entrypoint.          |
+| `manifest-caller-override`                 | Caller-controlled input changed a signed manifest trust field.                         |
 | `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.                          |
 | `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.                            |
 | `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                                    |
@@ -326,6 +329,14 @@ The release manifest fixture set must distinguish duplicate preflight failures f
 failures: pre-existing manifest JSON or bundle names fail before upload, while a signed bundle API
 or transport failure after successful plain JSON upload fails with `manifest-partial-json-uploaded`
 and reports `manifest-upload-result: partial-json-uploaded`.
+
+The release manifest fixture set must also cover the production workflow public contract. Accepted
+fixtures run from `.github/workflows/release-manifest.yml` on a protected `refs/tags/v<version>` ref
+whose SemVer version equals `release_version` and whose target commit equals `release_commit_sha`.
+Rejected fixtures must cover branch refs, pull request refs, short tag inputs, non-SemVer tags,
+missing target releases, signer workflow path mismatches, signer workflow ref mismatches, and any
+caller-controlled input that changes `release_version`, workflow SHAs, `builder.id`, `buildType`, or
+predicate type.
 
 ## Future standalone verifier decision boundary
 
