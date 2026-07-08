@@ -82,11 +82,15 @@ build -> provenance-sign -> publish
 
 ## Job permissions summary
 
-| Job               | `contents` | `id-token` | `attestations` | `packages` (if needed) |
-| ----------------- | ---------- | ---------- | -------------- | ---------------------- |
-| `build`           | read       | none       | none           | none                   |
-| `provenance-sign` | read       | write      | write          | none                   |
-| `publish`         | read       | write      | none           | write                  |
+| Job               | `contents` | `id-token` | `attestations` |
+| ----------------- | ---------- | ---------- | -------------- |
+| `build`           | read       | none       | none           |
+| `provenance-sign` | read       | write      | write          |
+| `publish`         | read       | write      | none           |
+
+The initial npmjs production path must not request `packages: write`. A custom registry that needs
+GitHub Packages or another package-write permission is outside the initial guaranteed production
+surface unless a later ADR and profile spec define that registry class and its permission boundary.
 
 ## Tarball artifact handoff
 
