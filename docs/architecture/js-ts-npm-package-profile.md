@@ -194,6 +194,11 @@ trusted publisher workflow. npm validates the calling workflow identity for reus
 publishing, while Windlass provenance separately records and verifies the SHA-pinned reusable
 workflow builder identity.
 
+This npmjs.com trusted publisher configuration is registry-side publish authorization policy, not a
+SLSA `externalParameters` field. The profile must document it as caller setup and enforce it through
+the producer-side publish gate, but consumer-side SLSA provenance verification is not required to
+reconstruct or re-verify the npmjs.com trusted publisher settings from the signed provenance bundle.
+
 The production profile must fail before registry mutation when the caller job cannot provide an OIDC
 token to the called workflow, when npm trusted publishing is not configured for the caller
 repository and caller workflow filename, or when the caller repository/workflow identity observed by
@@ -208,7 +213,7 @@ credential.
 | `package-name`           | string | Normalized npm package name.                            |
 | `package-version`        | string | Package version from `package.json`.                    |
 | `package-registry-url`   | string | Normalized effective registry URL.                      |
-| `package-url`            | string | Package URL (`pkg:npm/...`) for the published package.  |
+| `package-url`            | string | Registry package-version URL for the published package. |
 | `package-tarball-name`   | string | Name of the tarball produced for npm publish.           |
 | `package-tarball-sha256` | string | SHA-256 of the tarball as 64 lowercase hex characters.  |
 | `package-tarball-sha512` | string | SHA-512 of the tarball as 128 lowercase hex characters. |
@@ -218,50 +223,56 @@ for signed provenance.
 
 ### `package-url` output
 
-`package-url` is the canonical Package URL (PURL) for the published npm package identity. The
-initial profile follows the Package URL specification, common qualifier guidance, build/parse
-guidance, and official PURL test expectations, and emits only package identity components:
+`package-url` is the registry package-version metadata URL for the published npm package.
 
-| PURL component | Required value                                                                     |
-| -------------- | ---------------------------------------------------------------------------------- |
-| `scheme`       | `pkg`                                                                              |
-| `type`         | `npm`                                                                              |
-| `namespace`    | For scoped packages, the npm scope including leading `@`, percent-encoded.         |
-| `name`         | The npm package name without scope for scoped packages, or the full unscoped name. |
-| `version`      | The validated package version.                                                     |
-| `qualifiers`   | Omitted in the initial profile.                                                    |
-| `subpath`      | Omitted in the initial profile.                                                    |
+> [!WARNING]  
+> It is not a Package URL (PURL), and the initial profile must not emit `pkg:npm/...` in this output
+> or in `externalParameters.package.package_url`.
 
-Canonical examples:
+For `https://registry.npmjs.org/`, the initial profile emits the npm registry package-version
+metadata URL:
 
-| npm package identity     | Version | `package-url`                            |
-| ------------------------ | ------- | ---------------------------------------- |
-| `left-pad`               | `1.3.0` | `pkg:npm/left-pad@1.3.0`                 |
-| `@windlass/slsa-builder` | `1.2.3` | `pkg:npm/%40windlass/slsa-builder@1.2.3` |
+```text
+https://registry.npmjs.org/<registry-escaped-package-name>/<version>
+```
 
-The profile must not put the registry URL, dist-tag, access mode, tarball name, tarball URL,
-provenance locator, or digest into `package-url` qualifiers. Those values are recorded in dedicated
-outputs or provenance fields such as `publish.resolved_registry_url`, `publish.resolved_dist_tag`,
-and the tarball digest outputs.
+The registry-escaped package name is the validated npm package name with URL percent-encoding for
+path-unsafe bytes. For scoped package names, the slash between scope and name is encoded as `%2F`.
+The version path segment is the validated package version.
 
-The workflow must fail before signing or publishing when it cannot construct a canonical npm PURL
-from the validated package name and version. Producer-side verification must reject a provenance
-bundle before publish when `externalParameters.package.package_url` is not byte-for-byte equal to
-the canonical PURL reconstructed from `externalParameters.package.name` and
-`externalParameters.package.version`.
+Canonical npmjs examples:
+
+| npm package identity     | Version | `package-url`                                                 |
+| ------------------------ | ------- | ------------------------------------------------------------- |
+| `left-pad`               | `1.3.0` | `https://registry.npmjs.org/left-pad/1.3.0`                   |
+| `@windlass/slsa-builder` | `1.2.3` | `https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3` |
+
+For non-npmjs registries, `package-url` is best-effort diagnostic metadata derived from the
+normalized `package-registry-url`, the validated package name, and the validated package version
+using the same path construction rule. Windlass does not guarantee that the resulting URL is a
+stable human page or metadata endpoint unless a later ADR defines that registry class.
+
+The profile must fail before signing or publishing when it cannot construct a URL from the
+normalized registry URL, validated package name, and validated package version. Producer-side
+verification must reject a provenance bundle before publish when
+`externalParameters.package.package_url` is not byte-for-byte equal to the expected registry
+package-version URL reconstructed from `externalParameters.publish.resolved_registry_url`,
+`externalParameters.package.name`, and `externalParameters.package.version`.
 
 Rejected `package-url` examples for the initial profile:
 
-- `pkg:npm/@windlass/slsa-builder@1.2.3` because the npm scope's leading `@` is not percent-encoded.
-- `pkg:npm/%40windlass/slsa-builder@1.2.3?repository_url=https://registry.npmjs.org/` because
-  qualifiers are not emitted for the package identity output.
-- `pkg:npm/%40windlass/slsa-builder@1.2.3#dist/index.js` because subpaths are not package identity
-  outputs.
-- `pkg:generic/%40windlass/slsa-builder@1.2.3` because the PURL type must be `npm`.
-- `pkg:npm/%40windlass/slsa-builder@1.2.4` when the validated package version is `1.2.3`.
+- `https://www.npmjs.com/package/@windlass/slsa-builder` because it omits the package version.
+- `https://www.npmjs.org/@windlass/slsa-builder/v/1.2.3` because npm web UI package pages are not
+  registry metadata URLs for this output.
+- `https://registry.npmjs.org/%40windlass%2Fslsa-builder` because it omits the package version path
+  segment.
+- `https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.4` when the validated package version
+  is `1.2.3`.
+- `https://registry.npmjs.org/left-pad/latest` because dist-tags are not version identifiers for
+  this output.
 
-Normative references for this field are the Package URL specification, common qualifiers guide, PURL
-build and parse guides, and the official PURL tests published at `packageurl.org`.
+If a future profile needs a canonical Package URL, it must define a separate field such as
+`package-purl` or `externalParameters.package.package_purl`; it must not overload `package-url`.
 
 ## Supported caller triggers
 
@@ -301,9 +312,12 @@ A manual dispatch release must satisfy all of the following:
   no-publish-secrets policy.
 - The profile must fail if `npm publish --provenance-file` or the equivalent external provenance
   submission path is unavailable for the selected registry.
-- The profile must fail before registry mutation when the selected package identity does not already
-  exist in the selected registry. The initial production profile publishes new versions of existing
-  packages only; it does not create the first version of a package identity.
+- The profile must fail before registry mutation when publishing to `https://registry.npmjs.org/`
+  and the selected package identity does not already exist. The initial npmjs production path
+  publishes new versions of existing packages only; it does not create the first version of a
+  package identity. For non-npmjs registries, package identity and package version preflight checks
+  are best-effort diagnostics unless a later ADR defines that registry class. The custom registry
+  still must complete tokenless trusted publishing with the supplied external provenance bundle.
 - For npmjs, post-publish registry metadata checks are required by the provenance and publish spec.
   For custom registries, registry linkage verification is registry-specific and must not be reported
   as Windlass-guaranteed unless a later ADR defines that registry class.
@@ -349,13 +363,15 @@ The workflow must fail before any registry mutation when:
 - Any optional input fails validation.
 - The selected registry cannot complete tokenless trusted publishing with the supplied external
   provenance bundle.
-- The selected package identity does not already exist in the selected registry.
+- The selected package identity does not already exist on npmjs when publishing to
+  `https://registry.npmjs.org/`.
 
 ## TDD and fixtures
 
 - Positive fixture: valid tag push with root package and workspace package.
 - Rejected fixtures: wrong trigger, mismatched tag/version, missing `package.json`, arbitrary
   command input, npm token secret, private package, private dependency requirement, `publishConfig`
-  conflict, unsupported `publishConfig.directory`, disabled provenance metadata, missing caller OIDC
-  permission, npm trusted publisher caller identity mismatch, and unsupported registry behavior.
+  conflict, unsupported `publishConfig.directory`, disabled provenance metadata, producer-side
+  missing caller OIDC permission, producer-side npm trusted publisher caller identity mismatch, and
+  unsupported registry behavior.
 - A YAML review checklist that a human can apply to the workflow file.

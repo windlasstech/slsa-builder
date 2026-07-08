@@ -12,7 +12,8 @@ the package to an npm registry through a three-job digest-verified graph.
   [0036](../decisions/0036-use-three-job-digest-verified-publish-graph.md),
   [0037](../decisions/0037-define-initial-verification-deliverables.md),
   [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
-  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md)
+  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
+  [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -206,7 +207,7 @@ fields must be rejected by producer-side verification and by strict consumer pol
     "version": "1.2.3",
     "private": false,
     "tarball_name": "windlass-slsa-builder-1.2.3.tgz",
-    "package_url": "pkg:npm/%40windlass/slsa-builder@1.2.3",
+    "package_url": "https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3",
     "packed_name": "@windlass/slsa-builder",
     "packed_version": "1.2.3"
   },
@@ -269,9 +270,12 @@ Type and nullability rules:
 
 - All digest, path, URL, package identity, version, event, tag, and enum fields are JSON strings
   unless explicitly defined as boolean, object, array, or `null` below.
-- `package.private`, `publish.trusted_publishing`, `publish.provenance_file`,
-  `publish.package_identity_preexisting`, `publish.package_version_preexisting`, and
+- `package.private`, `publish.trusted_publishing`, `publish.provenance_file`, and
   `build.script_present` are JSON booleans.
+- `publish.package_identity_preexisting` and `publish.package_version_preexisting` are JSON booleans
+  for `https://registry.npmjs.org/`. For non-npmjs registries, either field may be `null` when the
+  unsupported-but-not-blocked registry does not expose a tokenless metadata check that can prove the
+  state before publish.
 - `package.workspace_root` is either `null` or a repository-root-relative directory string.
 - `package_manager.selection_manifest`, `package_manager.selection_manifest_path`, and
   `package_manager.selection_lockfile_path` are either `null` or repository-root-relative file path
@@ -309,10 +313,9 @@ Type and nullability rules:
   manifest.
 - `package.private` must be `false`.
 - `package.tarball_name` must equal `subject[0].name`.
-- `package.package_url` must be a package URL (`pkg:npm/...`) for the package name and version. It
-  must equal the canonical PURL reconstructed from `package.name` and `package.version` according to
-  the npm package URL rules in the public profile spec: `pkg` scheme, `npm` type, percent-encoded
-  npm scope as namespace when present, no qualifiers, and no subpath.
+- `package.package_url` must be the registry package-version URL reconstructed from
+  `publish.resolved_registry_url`, `package.name`, and `package.version` according to the
+  `package-url` rules in the public profile spec. It must not be a Package URL (`pkg:npm/...`).
 - `package.packed_name` and `package.packed_version` must match the source package name and version.
 - `package_manager.name` must be `npm`, `pnpm`, or `yarn`.
 - `package_manager.version` must be the actual package-manager version used.
@@ -362,10 +365,14 @@ Type and nullability rules:
   `public`. If both `publish.input_access` and `publish.publish_config.access` are non-empty and
   normalize to different values, producer-side verification must reject the bundle before publish.
 - `publish.trusted_publishing` and `publish.provenance_file` must both be `true`.
-- `publish.package_identity_preexisting` must be `true`; the initial production profile does not
-  support first publication of a package identity.
-- `publish.package_version_preexisting` must be `false`; the selected package version must not exist
-  before publish.
+- `publish.package_identity_preexisting` must be `true` for `https://registry.npmjs.org/`; the
+  initial npmjs production path does not support first publication of a package identity. For
+  non-npmjs registries, it is `true` or `false` when the best-effort metadata diagnostic can prove
+  that state, and `null` when the state is not verifier-proven for that unsupported registry.
+- `publish.package_version_preexisting` must be `false` for `https://registry.npmjs.org/`; the
+  selected package version must not exist before publish. For non-npmjs registries, it is `true` or
+  `false` when the best-effort metadata diagnostic can prove that state, and `null` when the state
+  is not verifier-proven for that unsupported registry.
 - `release.ref` must equal the release ref accepted by runtime guards.
 - `release.version_tag` must be the tag name without `refs/tags/`.
 - `build.script_present` records whether `scripts.build` existed in the source manifest.
@@ -486,12 +493,20 @@ publish.
   with the Windlass-generated provenance.
 - The profile must not use npm's automatic provenance generation.
 - The profile must not fall back to token-based publish.
-- Before running `npm publish`, the profile must check whether the selected registry already has the
-  package identity and package version. If the package identity does not already exist, the workflow
-  must fail clearly before attempting registry mutation because first publication is outside the
-  initial trusted-publishing-only profile. If the package version already exists, the workflow must
-  fail clearly before attempting registry mutation and must report that verification or inspection,
-  not republish, is the correct operation.
+- Before running `npm publish` to `https://registry.npmjs.org/`, the profile must check whether
+  npmjs already has the package identity and package version. If the package identity does not
+  already exist, the workflow must fail clearly before attempting registry mutation because first
+  publication is outside the initial trusted-publishing-only profile. If the package version already
+  exists, the workflow must fail clearly before attempting registry mutation and must report that
+  verification or inspection, not republish, is the correct operation.
+- For non-npmjs registries, package-identity and package-version existence checks are best-effort
+  diagnostics unless a later ADR defines that registry class. The workflow should attempt an
+  equivalent metadata check when the selected registry exposes one without requiring publish secrets
+  or weakening provenance behavior. A diagnostic failure to prove preexisting identity or absent
+  version on a custom registry must be recorded clearly, but it is not a Windlass-guaranteed
+  pre-publish gate for unsupported-but-not-blocked registries. The custom registry still must
+  complete tokenless publish with the external provenance bundle; otherwise `npm publish` fails and
+  the workflow must fail.
 
 ## npm trusted publishing authentication
 
@@ -500,6 +515,9 @@ publish.
   the called workflow can obtain the OIDC token required by npm trusted publishing.
 - npm trusted publisher configuration must identify the caller repository and caller workflow
   filename, not `windlasstech/slsa-builder` or `.github/workflows/js-ts-npm-package-slsa3.yml`.
+- The npm trusted publisher configuration is registry-side authorization policy. It is a required
+  producer-side publish precondition, but it is not part of the closed SLSA `externalParameters`
+  schema and is not a consumer-side Windlass provenance verification field.
 - No npm token, OTP, or other long-lived publish secret is used.
 - The registry URL must support OIDC trusted publishing.
 - A missing caller OIDC permission, npm trusted publisher mismatch, or unavailable caller workflow
@@ -523,10 +541,11 @@ clearly, report that publication may have partially succeeded, and must not retr
 credentials, npm automatic provenance, or unsigned provenance.
 
 For a non-npmjs `publish.resolved_registry_url`, the profile records
-`publish.custom_registry_support: "unsupported-but-not-blocked"`. Registry metadata linkage checks
-are registry-specific diagnostics for that target unless a later ADR defines a supported custom
-registry class. A custom registry still must accept tokenless publish with the external provenance
-bundle; otherwise `npm publish` fails and the workflow must fail.
+`publish.custom_registry_support: "unsupported-but-not-blocked"`. Pre-publish package existence
+checks and post-publish registry metadata linkage checks are registry-specific best-effort
+diagnostics for that target unless a later ADR defines a supported custom registry class. A custom
+registry still must accept tokenless publish with the external provenance bundle; otherwise
+`npm publish` fails and the workflow must fail.
 
 ## Workflow outputs
 
@@ -535,7 +554,7 @@ bundle; otherwise `npm publish` fails and the workflow must fail.
 | `package-name`           | Normalized npm package name.                   |
 | `package-version`        | Package version from `package.json`.           |
 | `package-registry-url`   | Normalized effective registry URL.             |
-| `package-url`            | Package URL (`pkg:npm/...`).                   |
+| `package-url`            | Registry package-version URL.                  |
 | `package-tarball-name`   | Tarball file name.                             |
 | `package-tarball-sha256` | Tarball SHA-256, 64 lowercase hex characters.  |
 | `package-tarball-sha512` | Tarball SHA-512, 128 lowercase hex characters. |
@@ -577,8 +596,8 @@ The `publish` job must fail before `npm publish` when:
 - Unexpected or mismatched `externalParameters`.
 - Source identity mismatch.
 - Package identity mismatch.
-- Package identity does not already exist in the selected registry.
-- Package version already exists in the selected registry.
+- Package identity does not already exist on npmjs when publishing to `https://registry.npmjs.org/`.
+- Package version already exists on npmjs when publishing to `https://registry.npmjs.org/`.
 - Runtime policy mismatch.
 
 The `publish` job must fail after `npm publish` when npmjs post-publish registry metadata
@@ -600,7 +619,7 @@ The profile must not fall back to:
 - Rejected fixtures: digest mismatch, signature mismatch, signer mismatch, wrong `predicateType`,
   wrong `builder.id`, wrong `buildType`, unexpected `externalParameters`, package identity mismatch,
   unsupported initial package publication, package-manager selection path mismatch, runtime policy
-  mismatch, npm CLI below `11.5.1`, missing caller OIDC permission, npm trusted publisher caller
-  identity mismatch, emitted Statement mismatch, npmjs post-publish metadata mismatch, and npm
-  automatic provenance fallback attempt.
+  mismatch, npm CLI below `11.5.1`, producer-side missing caller OIDC permission, producer-side npm
+  trusted publisher caller identity mismatch, emitted Statement mismatch, npmjs post-publish
+  metadata mismatch, and npm automatic provenance fallback attempt.
 - A fixture proving that the `publish` job cannot publish without the signed bundle.
