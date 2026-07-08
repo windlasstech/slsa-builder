@@ -11,7 +11,8 @@ the package to an npm registry through a three-job digest-verified graph.
   [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
   [0036](../decisions/0036-use-three-job-digest-verified-publish-graph.md),
   [0037](../decisions/0037-define-initial-verification-deliverables.md),
-  [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md)
+  [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
+  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -57,8 +58,8 @@ build -> provenance-sign -> publish
 
 - Downloads the tarball artifact.
 - Recomputes the tarball digest and verifies it against the handoff.
-- Constructs the in-toto Statement and SLSA provenance v1 predicate.
-- Signs the Statement using full-SHA-pinned `actions/attest`.
+- Constructs and verifies the SLSA provenance v1 predicate and subject inputs.
+- Invokes full-SHA-pinned `actions/attest` custom mode to construct and sign the in-toto Statement.
 - Uploads the signed bundle as a workflow artifact.
 - Permissions:
   - `contents: read`
@@ -362,16 +363,20 @@ an unknown field is present.
 
 ## Windlass-generated SLSA provenance
 
-The profile generates its own SLSA provenance v1 Statement and predicate. It does not rely on npm's
-automatic provenance feature. The profile uses `actions/attest` only as a signing adapter to sign
-the Windlass-generated Statement.
+The profile generates its own SLSA provenance v1 predicate and subject inputs. It does not rely on
+npm's automatic provenance feature and does not use `actions/attest` default provenance mode.
+Windlass owns the verifier-relevant contents of the emitted Statement: subject, `predicateType`,
+`buildType`, `externalParameters`, `builder.id`, and profile-defined predicate fields.
 
 ## `actions/attest` signing adapter
 
-- The adapter is invoked with the full Statement payload.
-- The adapter signs the payload as a Sigstore-backed DSSE bundle.
+- The adapter is invoked in custom attestation mode with the verified subject name, subject digest,
+  `predicate-type: https://slsa.dev/provenance/v1`, and the Windlass-generated predicate.
+- The adapter constructs the in-toto Statement and signs it as a Sigstore-backed bundle.
 - The adapter may upload the bundle to GitHub artifact attestation storage.
-- The adapter must not alter the Statement contents.
+- The adapter must not be invoked in default provenance mode for the production npm profile.
+- The producer-side verification gate must extract the emitted Statement from the signed bundle and
+  reject the bundle before publish if the Statement does not match the verified signing inputs.
 
 ## Producer signer identity
 
@@ -475,6 +480,8 @@ Before `npm publish`, the `publish` job must verify:
 6. The `subject[0].digest.sha256` matches the tarball bytes.
 7. The `subject[0].name` matches the expected tarball file name.
 8. The `externalParameters` match the expected schema and values.
+9. The emitted Statement matches the subject inputs, predicate type, and predicate that Windlass
+   verified before invoking `actions/attest`.
 
 If any check fails, the job must fail before registry mutation.
 
@@ -488,6 +495,7 @@ The `publish` job must fail before `npm publish` when:
 - Unexpected signer.
 - Wrong `predicateType`.
 - Wrong `builder.id` or `buildType`.
+- Emitted Statement mismatch after `actions/attest` construction.
 - Unexpected or mismatched `externalParameters`.
 - Source identity mismatch.
 - Package identity mismatch.
@@ -515,6 +523,6 @@ The profile must not fall back to:
   wrong `builder.id`, wrong `buildType`, unexpected `externalParameters`, package identity mismatch,
   unsupported initial package publication, package-manager selection path mismatch, runtime policy
   mismatch, npm CLI below `11.5.1`, missing caller OIDC permission, npm trusted publisher caller
-  identity mismatch, npmjs post-publish metadata mismatch, and npm automatic provenance fallback
-  attempt.
+  identity mismatch, emitted Statement mismatch, npmjs post-publish metadata mismatch, and npm
+  automatic provenance fallback attempt.
 - A fixture proving that the `publish` job cannot publish without the signed bundle.

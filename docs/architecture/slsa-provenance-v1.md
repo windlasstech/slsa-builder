@@ -10,7 +10,8 @@ common contract.
   [0029](../decisions/0029-use-windlass-generated-slsa-provenance-for-npm-publish.md),
   [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
   [0037](../decisions/0037-define-initial-verification-deliverables.md),
-  [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md)
+  [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
+  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
@@ -170,15 +171,23 @@ JS/TS npm profile, this includes the installed package versions and lockfile inf
 
 ## Signing adapter role
 
-The signing adapter (`actions/attest` initially) receives the Statement and produces a
-Sigstore-backed DSSE bundle. The adapter must not:
+The initial signing adapter is stock `actions/attest` invoked in custom attestation mode. Windlass
+generates and validates the subject inputs, `predicateType`, and SLSA provenance predicate before
+invoking the adapter. `actions/attest` constructs the in-toto Statement from those inputs and
+produces a Sigstore-backed bundle.
 
-- Change the Statement contents.
-- Add or remove subjects.
-- Change `builder.id` or `buildType`.
-- Define what the Statement means.
+The adapter must not define the Statement's meaning. The producer-side verification gate must
+extract the signed bundle payload before publication and prove that the emitted Statement has:
 
-The signed bundle must contain the exact Statement bytes as its payload.
+- `_type: https://in-toto.io/Statement/v1`.
+- The Windlass-verified subject entries.
+- `predicateType: https://slsa.dev/provenance/v1`.
+- The Windlass-generated SLSA provenance predicate.
+- The expected `builder.id`, `buildType`, and `externalParameters` values.
+
+The initial stock `actions/attest` adapter must not be documented or invoked as if it accepted a
+complete in-toto Statement payload. A future adapter that signs complete Statement bytes directly
+requires a later ADR if it changes verifier-visible behavior or trust boundaries.
 
 ## Common verifier rejection matrix
 
@@ -199,12 +208,13 @@ A verifier must reject provenance if any of the following are true:
 | `subject[0].name` does not match the profile rule       | Subject name mismatch             |
 | Digest encoding is not lowercase hex                    | Digest encoding error             |
 | Sidecar, SBOM, or checksum is in `subject[0].digest`    | Subject digest scope error        |
+| Emitted Statement differs from validated signing inputs | Statement assembly mismatch       |
 
 ## Failure behavior
 
-If the trusted core or a profile produces a Statement that does not match this contract, the signing
-adapter must still sign the exact bytes, but the producer-side verification gate must reject the
-bundle before publication.
+If the trusted core or a profile produces signing inputs that would not result in a Statement
+matching this contract, the producer-side verification gate must reject the bundle before
+publication.
 
 If a verifier receives a bundle that violates this contract, the verification must fail with a clear
 error category from the rejection matrix above.
@@ -215,4 +225,5 @@ error category from the rejection matrix above.
   `subject`.
 - Rejected fixtures for each row in the rejection matrix, including zero-subject and multi-subject
   Statements.
-- A fixture proving that the signing adapter payload matches the Statement bytes.
+- A fixture proving that the signing adapter payload matches the Statement implied by the
+  Windlass-verified subject inputs, predicate type, and predicate.
