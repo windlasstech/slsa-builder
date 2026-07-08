@@ -31,10 +31,10 @@
 | --------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------- |
 | [Core profile contract](core-profile-contract.md)                           | Thin core와 profile-owned reusable workflow의 경계    | 0002, 0003, 0004, 0035, 0042                               |
 | [Identity and build types](identity-and-buildtypes.md)                      | `builder.id`, `buildType` URI, 릴리즈 메타데이터 연결 | 0028, 0031, 0042, 0049, 0053                               |
-| [SLSA provenance v1](slsa-provenance-v1.md)                                 | 공통 in-toto Statement와 SLSA v1 predicate 계약       | 0002, 0003, 0028, 0029, 0035, 0037, 0042                   |
+| [SLSA provenance v1](slsa-provenance-v1.md)                                 | 공통 in-toto Statement와 SLSA v1 predicate 계약       | 0002, 0003, 0028, 0029, 0035, 0037, 0042, 0055             |
 | [JS/TS npm package profile](js-ts-npm-package-profile.md)                   | npm 패키지용 공개 reusable workflow 계약              | 0013, 0018, 0022, 0023, 0024, 0026, 0027, 0030, 0032, 0034 |
 | [JS/TS npm build and pack](js-ts-npm-build-pack.md)                         | 패키지 선택, 패키지 매니저 규칙, install/build/pack   | 0014, 0015, 0016, 0017, 0018, 0019, 0023, 0027, 0033       |
-| [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md)         | 출처, 3단계 publish 그래프, npm publish               | 0024, 0025, 0028, 0029, 0030, 0035, 0036, 0037, 0052       |
+| [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md)         | 출처, 3단계 publish 그래프, npm publish               | 0024, 0025, 0028, 0029, 0030, 0035, 0036, 0037, 0052, 0055 |
 | [GitHub Release asset publisher](github-release-asset-publisher.md)         | 검증된 배포자(distributor) publisher 계약             | 0039, 0043, 0045, 0046, 0048, 0049, 0050, 0051, 0052       |
 | [Composed workflow internal handoff](composed-workflow-internal-handoff.md) | 같은 실행 내 producer-to-publisher 내부 핸드오프      | 0036, 0050, 0052                                           |
 | [npm-to-release-asset composition](npm-to-release-asset-composition.md)     | 첫 번째 producer-to-publisher 조합                    | 0013–0037, 0049, 0050, 0051, 0052                          |
