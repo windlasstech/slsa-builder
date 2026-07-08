@@ -116,22 +116,34 @@ The publisher is responsible for:
 
 ## Handoff field mapping
 
-| Composition mapping source                             | Publisher handoff field             | Notes                                                               |
-| ------------------------------------------------------ | ----------------------------------- | ------------------------------------------------------------------- |
-| Deterministic tarball artifact name                    | `primary-artifact-name`             | Same-run workflow artifact containing the tarball.                  |
-| `package-tarball-sha256`                               | `expected-sha256`                   | Canonical digest.                                                   |
-| `package-tarball-name`                                 | `final-asset-name`                  | Release asset name equals tarball name.                             |
-| Release tag                                            | `release-tag`                       | Same Git tag used by the npm release.                               |
-| Deterministic provenance bundle artifact               | `producer-provenance-artifact-name` | Same-run artifact containing the signed DSSE bundle.                |
-| Producer handoff manifest `producer_provenance.sha256` | `producer-provenance-sha256`        | Canonical bundle digest.                                            |
-| npm profile `builder.id`                               | `trusted-builder-id`                | From the release manifest or explicit policy.                       |
-| npm profile `buildType`                                | `trusted-build-type`                | `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`. |
-| npm provenance `subject[0].name`                       | `expected-subject-name`             | Must equal `final-asset-name`.                                      |
-| npm provenance `subject[0].digest.sha256`              | `expected-subject-sha256`           | Must equal uploaded bytes.                                          |
-| npm provenance `externalParameters.source.repository`  | `source-repository`                 | Required canonical HTTPS source repository URL.                     |
-| npm provenance `externalParameters.source.revision`    | `source-revision`                   | Required full source revision; GitHub Git sources use 40-char SHA.  |
-| Native provenance locators                             | `native-provenance-locators`        | Optional array of locator objects defined by the publisher spec.    |
-| Linked artifact opt-in settings                        | `linked-artifact-settings`          | Optional settings object defined by the publisher spec.             |
+The publisher inputs are constructed from the digest-verified internal handoff manifest, not from
+public npm producer outputs, deterministic names, logs, or caller-supplied values. Public npm
+outputs such as `package-tarball-sha256` and `package-tarball-name` may be compared against the
+manifest for diagnostics, but they are not trusted mapping sources for the publisher contract.
+
+| Verified handoff manifest source       | Publisher handoff field             | Notes                                                               |
+| -------------------------------------- | ----------------------------------- | ------------------------------------------------------------------- |
+| `primary_artifact.artifact_name`       | `primary-artifact-name`             | Same-run workflow artifact containing the tarball.                  |
+| `primary_artifact.sha256`              | `expected-sha256`                   | Canonical digest.                                                   |
+| `release.final_asset_name`             | `final-asset-name`                  | Release asset name equals tarball name.                             |
+| `release.tag`                          | `release-tag`                       | Same Git tag used by the npm release.                               |
+| `producer_provenance.artifact_name`    | `producer-provenance-artifact-name` | Same-run artifact containing the signed DSSE bundle.                |
+| `producer_provenance.sha256`           | `producer-provenance-sha256`        | Canonical bundle digest.                                            |
+| `trusted_producer.builder_id`          | `trusted-builder-id`                | From the release manifest or explicit policy.                       |
+| `trusted_producer.build_type`          | `trusted-build-type`                | `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`. |
+| `subject.name`                         | `expected-subject-name`             | Must equal `final-asset-name`.                                      |
+| `subject.sha256`                       | `expected-subject-sha256`           | Must equal uploaded bytes.                                          |
+| `trusted_producer.source_repository`   | `source-repository`                 | Required canonical HTTPS source repository URL.                     |
+| `trusted_producer.source_revision`     | `source-revision`                   | Required full source revision; GitHub Git sources use 40-char SHA.  |
+| Producer-native locator manifest field | `native-provenance-locators`        | Optional array of locator objects defined by the publisher spec.    |
+| Linked artifact opt-in manifest field  | `linked-artifact-settings`          | Optional settings object defined by the publisher spec.             |
+
+The mapping job must verify that manifest-derived values agree with the npm producer provenance
+before invoking the publisher. For example, `trusted_producer.source_repository` must equal
+`externalParameters.source.repository`, `subject.name` must equal the provenance `subject[0].name`,
+and `subject.sha256` must equal the provenance `subject[0].digest.sha256`. A mismatch is a
+composition failure, not a reason to replace a manifest field with a public workflow output or
+deterministic name.
 
 ## Subject name alignment
 
