@@ -81,8 +81,15 @@ publisher does not change the draft or prerelease status.
 
 ## Duplicate asset behavior
 
-If a release asset with the same name already exists under the target release, the publisher must
-fail rather than overwrite or replace the existing asset.
+Before uploading anything, the publisher must check the target release for both the primary release
+asset name and the deterministic sidecar name `<asset-name>.intoto.jsonl`. If either name already
+exists under the target release, the publisher must fail without uploading the primary asset or the
+sidecar. The publisher must not overwrite, replace, delete, or clobber an existing asset.
+
+If the preflight duplicate check passes but a later GitHub API race or upload failure prevents the
+sidecar from being uploaded after the primary asset succeeds, the run enters the partial failure
+state described below. That partial state is for post-preflight API or transport failures, not for
+known duplicate names.
 
 ## Producer-to-publisher handoff contract
 
@@ -124,6 +131,13 @@ All required handoff string fields must be non-empty after trimming ASCII whites
 must be 64-character lowercase hexadecimal strings. `source-repository` must be a canonical HTTPS
 repository URL, and `source-revision` must be the full immutable source revision expected by the
 producer policy; for GitHub-hosted Git sources this is a 40-character lowercase Git commit SHA.
+
+Complex handoff fields in the public workflow contract are passed as UTF-8 JSON strings. The
+publisher must parse `native-provenance-locators` as a JSON array and `linked-artifact-settings` as
+a JSON object before validation. Empty or omitted optional inputs are treated as absent. Invalid
+JSON, duplicate object member names, top-level JSON values of the wrong kind, or fields not allowed
+by the closed schemas below must be rejected before upload. The parsed JSON values are validation
+inputs; their original string formatting is not trusted and is not used for digest calculation.
 
 For the initial npm composition, `source-repository` and `source-revision` are always required
 because the publisher verifies them against the npm producer provenance
@@ -238,6 +252,18 @@ credentials, malformed digest, or unknown fields. A valid locator still remains 
 publisher must also receive and verify `producer-provenance-artifact-name` and
 `producer-provenance-sha256`.
 
+When supplied as a public workflow input, `native-provenance-locators` must be encoded as a UTF-8
+JSON string whose parsed value is the array shape above. For example:
+
+```json
+[
+  {
+    "type": "github-artifact-attestation",
+    "url": "https://github.com/example/project/attestations/123"
+  }
+]
+```
+
 ## Linked artifact storage opt-in
 
 Linked artifact storage records are explicit opt-in. When enabled, the publisher records metadata
@@ -274,6 +300,13 @@ Field rules:
 - `version` must be the release version derived from `release-tag` without the leading `v`.
 - `repository` must identify the GitHub repository that owns the release asset storage surface.
 - `registry_url` must be the GitHub Release download URL prefix for the target release.
+
+When supplied as a public workflow input, `linked-artifact-settings` must be encoded as a UTF-8 JSON
+string whose parsed value is the object shape above. For example:
+
+```json
+{ "enabled": false }
+```
 
 When enabled, the linked artifact storage record maps fields as follows:
 
@@ -323,7 +356,8 @@ The publisher must fail before primary asset or sidecar upload when:
 - The provenance bundle bytes cannot be retrieved.
 - The computed provenance bundle digest differs from `producer-provenance-sha256`.
 - The release tag or target GitHub Release does not exist.
-- The final asset name is invalid or already present.
+- The final asset name is invalid, the primary asset name is already present, or the deterministic
+  sidecar asset name is already present.
 - Upstream producer provenance is missing, unsigned, unverifiable, or untrusted.
 - The upstream subject digest does not match the bytes to upload.
 - The upstream subject name differs from the final asset name.
@@ -342,7 +376,7 @@ production path.
 - Positive fixture: a valid producer handoff results in a release asset and a sidecar.
 - Rejected fixtures: missing provenance, wrong subject name, digest mismatch, stale
   `artifact-artifact-name` handoff field, duplicate asset name, non-existent release, raw artifact
-  bypass, sidecar upload failure after primary upload, and attempted re-signing of producer
-  provenance.
+  bypass, pre-existing deterministic sidecar name, sidecar upload failure after primary upload,
+  malformed JSON input for complex handoff fields, and attempted re-signing of producer provenance.
 - A YAML review checklist proving the publisher does not combine signing and release mutation
   authorities.
