@@ -207,29 +207,64 @@ is malformed, or the recomputed SHA-256 does not match `digest.value`.
 
 ## Profile extension contract
 
-A new ecosystem profile is admitted when it defines all of the following:
+A new profile is admitted only when it satisfies the common profile requirements and one concrete
+role contract. The initial roles are **producer profile** and **publisher profile**.
+
+### Common profile requirements
+
+Every production profile must define all of the following:
 
 1. A public reusable workflow entrypoint under `.github/workflows/`.
 2. Supported caller triggers and runtime guards.
 3. A complete `workflow_call` input and output schema.
-4. A canonical `buildType` URI under the `buildtype.dev` namespace.
-5. A complete `externalParameters` schema and a verifier policy that rejects unexpected fields.
-6. Subject naming and digest algorithm rules.
-7. Publish behavior and verification expectations.
-8. Fixtures, examples, and reference verifier commands.
-9. A review checklist proving that the profile does not bypass hosted runners, job isolation,
-   digest-verified handoff, minimal permissions, or trusted provenance generation.
+4. Publish, upload, or distribution behavior and verification expectations for the authorities the
+   profile actually holds.
+5. Fixtures, examples, and reference verification commands for its public contract.
+6. A review checklist proving that the profile does not bypass hosted runners, job isolation,
+   digest-verified handoff, minimal permissions, or its role-specific trusted verification boundary.
+
+### Producer profile requirements
+
+A producer profile creates final artifact bytes from source and emits source-to-artifact SLSA
+provenance. In addition to the common requirements, every producer profile must define all of the
+following:
+
+1. A canonical `buildType` URI under the `buildtype.dev` namespace.
+2. A complete `externalParameters` schema and a verifier policy that rejects unexpected fields.
+3. Subject naming and digest algorithm rules.
+4. Build, signing, and publish or upload job separation, unless a later ADR explicitly changes that
+   boundary for the producer.
+5. SLSA provenance v1 generation with documented `builder.id`, `buildType`, and
+   `externalParameters`.
+
+### Publisher profile requirements
+
+A publisher profile distributes artifacts produced by producer profiles and does not claim to build
+those artifacts from source. In addition to the common requirements, every publisher profile must
+define all of the following:
+
+1. A producer-to-publisher handoff contract for artifact bytes, expected digests, producer
+   provenance, trusted producer policy, and the target publication slot.
+2. Mandatory producer provenance verification before publication or release mutation.
+3. The release, registry, or storage mutation authority it holds and the job boundary that isolates
+   that authority from signing authority and producer-controlled build steps.
+4. Sidecar, locator, or metadata distribution behavior for producer provenance.
+5. Explicit confirmation that the default publisher path does not define a source-to-artifact
+   `buildType`, `builder.id`, or publisher-owned SLSA provenance unless a later ADR adds a distinct
+   evidence model.
 
 ### Review criteria for new profiles
 
 Before a new profile is accepted, reviewers must verify that it:
 
 - Runs only on GitHub-hosted runners in production.
-- Separates build, signing, and publish/upload jobs.
 - Does not accept arbitrary commands, scripts, or runtime overrides from the caller.
 - Uses minimal top-level permissions and job-level elevation only where required.
 - Uses digest-verified handoff between jobs.
-- Produces SLSA provenance v1 with documented `builder.id`, `buildType`, and `externalParameters`.
+- Preserves the role-specific authority boundary: producer profiles separate build, signing, and
+  publish/upload concerns, while publisher profiles separate release or storage mutation from
+  signing authority and producer provenance verification.
+- Documents whether it is a producer, publisher, or a later ADR-defined role.
 - Includes accepted and rejected test fixtures for every normative behavior.
 
 ## TDD and fixture expectations
@@ -242,6 +277,12 @@ Each profile conformance test must include:
 - A negative fixture proving that trusted provenance, digest, policy, or release manifest logic is
   not delegated to Node.js, npm, pnpm, Yarn, or shell parsing.
 - A review checklist that a human can run against the profile YAML.
+
+Producer profile conformance tests must additionally include source-to-artifact provenance fixtures
+with valid and rejected `builder.id`, `buildType`, subject, digest, and `externalParameters` values.
+Publisher profile conformance tests must instead include producer handoff fixtures proving that raw
+artifacts, missing producer provenance, publisher-owned source-to-artifact `buildType` claims, and
+release mutation without producer provenance verification are rejected.
 
 ## Failure behavior
 

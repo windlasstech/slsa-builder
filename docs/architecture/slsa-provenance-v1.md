@@ -86,14 +86,18 @@ Must be exactly `https://slsa.dev/provenance/v1`. Any other value is rejected.
 
 ## Subject rules
 
-- `subject` must contain at least one entry.
-- The primary artifact must be `subject[0]`.
+- The initial production producer profiles must emit exactly one `subject` entry.
+- That single entry is the primary artifact and is addressed as `subject[0]` by verifier policy.
 - `subject[0].name` must be the canonical name defined by the profile.
 - `subject[0].digest` must include at least `sha256`.
 - Additional digest algorithms may be present if the profile requires them (for example, npm tarball
   `sha512`).
 - The digest value must be lowercase hexadecimal without a prefix.
 - Checksum files, SBOMs, and provenance sidecars must not appear in `subject[0].digest`.
+- Checksum files, SBOMs, provenance sidecars, and secondary artifacts must not be added as
+  additional `subject` entries unless a later ADR and profile spec define their semantics. Verifiers
+  for the initial production profiles must reject Statements with zero subjects or more than one
+  subject.
 
 ## Digest encoding
 
@@ -122,16 +126,16 @@ Common field groups recorded by producer profiles include:
 - `source`:
   - `repository`: source repository URI.
   - `ref`: source ref, for example `refs/tags/v1.2.3`.
-  - `digest`: commit SHA.
+  - `revision`: immutable source revision, such as a Git commit SHA.
 - `workflow`:
   - `path`: reusable workflow file path.
-  - `ref`: full commit SHA.
-  - `builder.id`: the builder identity derived from the path and SHA.
+  - `sha`: full commit SHA.
+  - `builder_id`: the builder identity derived from the path and SHA.
 - `inputs`: caller-provided inputs that affect the build output.
-- `runner`:
-  - `os`: `ubuntu-24.04`.
-  - `node`: `24` for the JS/TS profile.
-- `package_manager` (JS/TS profile): name, actual version, and selection source.
+- `runtime`:
+  - `runner`: `ubuntu-24.04`.
+- `package_manager`: name, actual version, and selection source when the profile uses a package
+  manager.
 
 A verifier must reject unexpected `externalParameters` fields when the policy requires strict
 matching. The profile spec must define the complete schema and the strict-matching policy.
@@ -190,6 +194,7 @@ A verifier must reject provenance if any of the following are true:
 | `buildType` is not in the canonical namespace           | Build type policy violation       |
 | `externalParameters` is incomplete                      | Incomplete parameters             |
 | `externalParameters` contains unexpected fields         | Strict matching violation         |
+| `subject` contains zero or multiple entries             | Subject cardinality error         |
 | `subject[0].digest.sha256` is missing                   | Missing required digest           |
 | `subject[0].name` does not match the profile rule       | Subject name mismatch             |
 | Digest encoding is not lowercase hex                    | Digest encoding error             |
@@ -208,5 +213,6 @@ error category from the rejection matrix above.
 
 - Golden Statement fixture with valid `_type`, `predicateType`, `builder.id`, `buildType`, and
   `subject`.
-- Rejected fixtures for each row in the rejection matrix.
+- Rejected fixtures for each row in the rejection matrix, including zero-subject and multi-subject
+  Statements.
 - A fixture proving that the signing adapter payload matches the Statement bytes.
