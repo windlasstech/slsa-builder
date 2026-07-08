@@ -367,19 +367,33 @@ without deleting, replacing, or clobbering the primary asset. The failure output
 partial state explicit so operators can retry sidecar publication or remove the incomplete release
 asset according to repository policy.
 
+The observable upload result is reported through `upload-result`:
+
+- `completed`: primary asset and sidecar upload both succeeded.
+- `failed-before-upload`: validation, verification, duplicate preflight, or target lookup failed
+  before the primary asset was uploaded.
+- `partial-primary-uploaded`: the primary asset upload succeeded, but sidecar upload failed.
+
+When `upload-result` is `partial-primary-uploaded`, the workflow fails, primary asset outputs such
+as `asset-name`, `asset-url`, and `asset-sha256` must be set when GitHub returned them,
+`sidecar-name` must be the deterministic sidecar name, and `sidecar-url` must be unset. A duplicate
+primary asset or duplicate deterministic sidecar detected during preflight is
+`failed-before-upload`, not a partial upload state.
+
 ## Outputs
 
-| Output                       | Description                                      |
-| ---------------------------- | ------------------------------------------------ |
-| `asset-name`                 | Final release asset name.                        |
-| `asset-url`                  | Browser URL of the uploaded asset.               |
-| `asset-api-id`               | GitHub API asset ID if available.                |
-| `asset-sha256`               | SHA-256 of the uploaded bytes.                   |
-| `sidecar-name`               | Provenance sidecar asset name.                   |
-| `sidecar-url`                | Browser URL of the sidecar.                      |
-| `sidecar-digest`             | Digest of the sidecar bundle.                    |
-| `native-provenance-locators` | Native producer locators.                        |
-| `linked-artifact-result`     | `disabled`, `created`, or `failed-after-upload`. |
+| Output                       | Description                                                         |
+| ---------------------------- | ------------------------------------------------------------------- |
+| `asset-name`                 | Final release asset name.                                           |
+| `asset-url`                  | Browser URL of the uploaded asset.                                  |
+| `asset-api-id`               | GitHub API asset ID if available.                                   |
+| `asset-sha256`               | SHA-256 of the uploaded bytes.                                      |
+| `sidecar-name`               | Provenance sidecar asset name.                                      |
+| `sidecar-url`                | Browser URL of the sidecar.                                         |
+| `sidecar-digest`             | Digest of the sidecar bundle.                                       |
+| `native-provenance-locators` | Native producer locators.                                           |
+| `upload-result`              | `completed`, `failed-before-upload`, or `partial-primary-uploaded`. |
+| `linked-artifact-result`     | `disabled`, `created`, or `failed-after-upload`.                    |
 
 ## Failure behavior
 

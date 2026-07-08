@@ -451,6 +451,21 @@ through the artifact handle re-exported by `manifest-sign`.
   without deleting or clobbering the primary manifest. The failure output must make the partial
   state explicit.
 
+The observable manifest upload result is reported through `manifest-upload-result`:
+
+- `completed`: the plain JSON manifest and signed bundle were both uploaded.
+- `failed-before-upload`: validation, digest verification, duplicate preflight, or target lookup
+  failed before the plain JSON manifest was uploaded.
+- `partial-json-uploaded`: the plain JSON manifest upload succeeded, but signed bundle upload
+  failed.
+
+When `manifest-upload-result` is `partial-json-uploaded`, the workflow fails, the plain JSON
+manifest may already exist on the target release, and the signed release manifest bundle is absent.
+Because the signed bundle is the canonical trust root, this state must not be reported as a verified
+release manifest publication. The upload job must not delete, replace, clobber, re-sign, or
+regenerate the uploaded JSON manifest. A duplicate plain JSON manifest or duplicate signed bundle
+detected during preflight is `failed-before-upload`, not a partial upload state.
+
 ## Complementary evidence
 
 Plain JSON manifests, checksum files, release notes, GPG-signed annotated tags, GitHub immutable
