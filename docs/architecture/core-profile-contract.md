@@ -195,13 +195,18 @@ is malformed, or the recomputed SHA-256 does not match `digest.value`.
 - The initial signing adapter is full-SHA-pinned `actions/attest`.
 - The signing adapter is responsible for:
   - Receiving a subject name and digest.
-  - Receiving a predicate or statement to sign.
-  - Producing a Sigstore-backed DSSE bundle.
+  - Receiving a predicate type and predicate JSON.
+  - Constructing the in-toto Statement from those verified inputs.
+  - Producing a Sigstore-backed bundle.
   - Optionally uploading the bundle to GitHub artifact attestation storage.
 - The signing adapter is **not** responsible for:
   - Defining what `builder.id`, `buildType`, or `externalParameters` mean.
   - Validating ecosystem-specific subject or digest semantics.
   - Deciding whether an artifact is safe to publish.
+- The initial stock `actions/attest` adapter must not be invoked or documented as accepting a
+  complete in-toto Statement payload. The trusted core and profile own the subject, predicate type,
+  and predicate semantics, then the producer-side verification gate must extract the emitted
+  Statement from the signed bundle and prove that it matches those verified signing inputs.
 - A future ADR may replace `actions/attest` with direct Sigstore tooling, `sigstore-go`, or a
   dedicated reusable workflow. Any migration must preserve the verifier-visible trust contract.
 
