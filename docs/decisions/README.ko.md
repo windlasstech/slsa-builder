@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0055`까지입니다.
+`0056`까지입니다.
 
 | 범위      | 주제                         | 설명                                                       |
 | --------- | ---------------------------- | ---------------------------------------------------------- |
@@ -37,6 +37,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0038–0052 | GitHub Release asset profile | 릴리즈 에셋 subject, publisher 모델, sidecar distribution. |
 | 0053–0054 | 릴리즈 매니페스트 메타데이터 | 서명 경계와 release manifest predicate URI.                |
 | 0055      | 서명 어댑터 Statement 구성   | `actions/attest` custom mode와 서명 후 Statement 검사.     |
+| 0056      | 비선택 lockfile 진단         | Manifest-selected manager에서 stale lockfile 처리.         |
 
 ## ADR 추적성
 
@@ -96,6 +97,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0053 | Three-job release manifest signing boundary                        | Release manifest                                                                             |
 | 0054 | Use `slsa-builder.dev` release manifest predicate URI              | Release manifest, verification policy                                                        |
 | 0055 | `actions/attest` custom mode for Statement construction            | Common provenance, JS/TS npm provenance and publish                                          |
+| 0056 | Treat non-selected lockfiles as stale diagnostics                  | JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy              |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

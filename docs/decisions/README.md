@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0055`.
+sequence currently runs from `0000` through `0056`.
 
 | Range     | Topic                                       | Notes                                                           |
 | --------- | ------------------------------------------- | --------------------------------------------------------------- |
@@ -38,6 +38,7 @@ sequence currently runs from `0000` through `0055`.
 | 0038–0052 | GitHub Release asset profile                | Release asset subjects, publisher model, sidecar distribution.  |
 | 0053–0054 | Release manifest metadata                   | Signing boundary and release manifest predicate URI.            |
 | 0055      | Signing adapter Statement construction      | `actions/attest` custom mode and post-sign Statement checks.    |
+| 0056      | Non-selected lockfile diagnostics           | Stale lockfile handling under manifest-selected managers.       |
 
 ## ADR traceability
 
@@ -98,6 +99,7 @@ implementation work.
 | 0053 | Three-job release manifest signing boundary                        | Release manifest                                                                             |
 | 0054 | Use `slsa-builder.dev` release manifest predicate URI              | Release manifest, verification policy                                                        |
 | 0055 | `actions/attest` custom mode for Statement construction            | Common provenance, JS/TS npm provenance and publish                                          |
+| 0056 | Treat non-selected lockfiles as stale diagnostics                  | JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy              |
 
 ### Superseded or deprecated ADRs (historical only)
 
