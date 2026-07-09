@@ -267,6 +267,13 @@ When the producer profile provides native provenance locators, such as GitHub ar
 URLs, the publisher must expose them in its outputs. Native locators are useful for online
 verification but do not replace the sidecar as the release-page distribution copy.
 
+Native provenance locators are diagnostic and discovery metadata only. They are not trusted handoff
+inputs, they do not prove artifact integrity, and their presence or absence must not change whether
+the publisher trusts the primary asset. The publisher trust decision depends on the retrieved
+producer bundle bytes, producer bundle signature, producer signer identity, producer provenance
+contents, and primary asset digest checks. A valid native locator may help users find
+producer-native attestation storage after those checks succeed, but it must not bypass them.
+
 `native-provenance-locators` must be an array of objects with this shape:
 
 ```json
@@ -283,15 +290,23 @@ Field rules:
 
 - `type` must be `github-artifact-attestation` for the initial production contract. Future locator
   types require profile documentation before use.
-- `url` must be an absolute `https:` URL with no embedded credentials.
-- `digest` is optional. When present, it must be `sha256:<64 lowercase hex characters>` and refer to
-  the producer provenance bundle or native attestation payload named by the locator.
+- `url` must be an absolute `https:` URL whose host is exactly `github.com` after lowercase
+  normalization. It must not contain embedded credentials, a query, a fragment, a non-default port,
+  backslashes, percent-encoded path separators, empty path segments, `.` or `..` segments, or ASCII
+  control characters.
+- For the initial npm composition, the URL path must be under the canonical source repository path
+  recorded in producer provenance, followed by an attestation locator path selected by GitHub. A URL
+  under a different repository is malformed for this locator type.
+- `digest` is optional. When present, it must be `sha256:<64 lowercase hex characters>` and must
+  equal the SHA-256 digest of the exact producer signed bundle bytes that the publisher
+  redistributes as the sidecar. It is not a digest of a separately fetched native service payload.
 - Unknown fields must be rejected by strict publisher policy.
 
 The publisher must reject a locator object with an unsupported `type`, non-HTTPS URL, embedded
-credentials, malformed digest, or unknown fields. A valid locator still remains metadata only; the
-publisher must also receive and verify `producer-provenance-artifact-name` and
-`producer-provenance-sha256`.
+credentials, malformed repository path, malformed digest, digest that differs from the sidecar
+bundle digest, or unknown fields. A valid locator still remains metadata only; the publisher must
+also receive and verify `producer-provenance-artifact-name` and `producer-provenance-sha256`. A
+missing locator is not a provenance verification failure.
 
 When supplied as a public workflow input, `native-provenance-locators` must be encoded as a UTF-8
 JSON string whose parsed value is the array shape above. For example:

@@ -255,6 +255,8 @@ Every fixture must include:
 | `handoff-schema-mismatch`                  | Cross-job artifact handoff omits or changes required core fields.                      |
 | `composition-handoff-substitution`         | Composition mapping trusts public outputs or deterministic names.                      |
 | `publisher-handoff-field-error`            | Publisher handoff uses missing, stale, or malformed field names.                       |
+| `native-locator-malformed`                 | Native provenance locator is not valid diagnostic metadata.                            |
+| `native-locator-digest-mismatch`           | Native provenance locator digest differs from the sidecar bundle digest.               |
 | `sidecar-mismatch`                         | Sidecar bundle does not match the primary asset's provenance.                          |
 | `sidecar-upload-partial-failure`           | Primary release asset uploaded but sidecar upload failed afterward.                    |
 | `duplicate-release-asset`                  | Release asset name already exists.                                                     |
@@ -336,16 +338,22 @@ failures: pre-existing primary or sidecar asset names fail before upload, while 
 transport failure after successful primary upload fails with `sidecar-upload-partial-failure` and
 reports `upload-result: partial-primary-uploaded`.
 
-The release manifest generation fixture set must prove schema version `1` determinism: all producer
-and publisher `workflow_sha` values equal `release_commit_sha`; producer `builder_id` values are
-derived from `workflow_path` and `workflow_sha`; `producer_profiles` is sorted by `profile`; and
-`publisher_workflows` is sorted by `publisher`. Mismatched workflow SHAs fail with
-`manifest-workflow-sha-mismatch`; unsorted arrays fail with `manifest-entry-order-mismatch`.
+The native locator fixture set must prove that native provenance locators are diagnostic metadata
+only. A missing locator must not fail otherwise valid publisher verification. A locator with an
+unsupported type, non-`github.com` URL, repository mismatch, userinfo, query, fragment, malformed
+path, unknown field, or malformed digest must fail with `native-locator-malformed`. A locator digest
+that does not equal the sidecar bundle SHA-256 must fail with `native-locator-digest-mismatch`.
 
 The release manifest fixture set must distinguish duplicate preflight failures from partial upload
 failures: pre-existing manifest JSON or bundle names fail before upload, while a signed bundle API
 or transport failure after successful plain JSON upload fails with `manifest-partial-json-uploaded`
 and reports `manifest-upload-result: partial-json-uploaded`.
+
+The release manifest generation fixture set must prove schema version `1` determinism: all producer
+and publisher `workflow_sha` values equal `release_commit_sha`; producer `builder_id` values are
+derived from `workflow_path` and `workflow_sha`; `producer_profiles` is sorted by `profile`; and
+`publisher_workflows` is sorted by `publisher`. Mismatched workflow SHAs fail with
+`manifest-workflow-sha-mismatch`; unsorted arrays fail with `manifest-entry-order-mismatch`.
 
 The release manifest fixture set must also cover the production workflow public contract. Accepted
 fixtures run from `.github/workflows/release-manifest.yml` on a protected `refs/tags/v<version>` ref

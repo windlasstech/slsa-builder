@@ -246,6 +246,12 @@ tag from the full ref for the publisher contract.
 schema from the publisher contract. A singular `native-provenance-locator` field is invalid and must
 be rejected by strict handoff validation.
 
+Native provenance locators in this composition are diagnostic discovery metadata only. The mapping
+layer and publisher must not use them as substitutes for the same-run producer provenance bundle
+artifact, the `producer-provenance-sha256` digest, or producer bundle verification. When a locator
+includes a digest, that digest must equal the signed producer bundle bytes that will be uploaded as
+the release sidecar.
+
 Any npm-specific behavior must be isolated in the handoff mapping layer or in the trusted producer
 policy.
 
