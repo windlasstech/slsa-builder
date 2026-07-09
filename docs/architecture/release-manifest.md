@@ -64,6 +64,48 @@ explicit target release repository, if a later section defines their validation 
 not change the signed manifest value. Until such inputs are specified, the production workflow
 contract has no caller-controlled inputs.
 
+## Release manifest generation policy
+
+The initial schema version `1` release manifest is generated only from the checked-out
+`windlasstech/slsa-builder` repository at the protected release tag. It must not discover trusted
+profiles by globbing arbitrary workflow files, reading caller-supplied allowlists, consuming release
+notes, or accepting workflow SHA mappings from workflow inputs.
+
+For schema version `1`, every trusted workflow entry records the same immutable Git commit as the
+release tag target:
+
+- `release_commit_sha` is the full 40-character lowercase commit SHA resolved from `release_tag`.
+- Every `producer_profiles[].workflow_sha` must equal `release_commit_sha`.
+- Every `publisher_workflows[].workflow_sha` must equal `release_commit_sha`.
+- Every `producer_profiles[].builder_id` must be derived from that entry's `workflow_path` and
+  `workflow_sha`.
+
+The schema version `1` manifest includes only the production profiles and publishers explicitly
+specified by the architecture docs for the release. The initial required entries are:
+
+| Array                 | Name                             | Workflow path                                        |
+| --------------------- | -------------------------------- | ---------------------------------------------------- |
+| `producer_profiles`   | `js-ts-npm-package`              | `.github/workflows/js-ts-npm-package-slsa3.yml`      |
+| `publisher_workflows` | `github-release-asset-publisher` | `.github/workflows/github-release-asset-publish.yml` |
+
+The release manifest generator must fail before signing when an expected workflow file is missing
+from the tagged checkout, when any generated workflow SHA differs from `release_commit_sha`, when a
+`builder_id` does not match the generated path and SHA, or when the generator attempts to include an
+unknown producer or publisher entry without a later schema version or ADR-backed spec that admits
+it.
+
+### Manifest entry ordering
+
+Because the signed manifest digest is computed over the manifest JSON value and JSON arrays preserve
+order, array ordering is part of the signed contract.
+
+- `producer_profiles` must be sorted by `profile` in lexicographic ascending order.
+- `publisher_workflows` must be sorted by `publisher` in lexicographic ascending order.
+- Duplicate `producer_profiles[].profile` or `publisher_workflows[].publisher` values are invalid.
+- Producers must emit the arrays in sorted order before canonicalization.
+- Verifiers must reject a manifest whose arrays are not sorted, even if sorting them locally would
+  produce an otherwise trusted mapping.
+
 ### Supported trigger and runtime guards
 
 The release manifest workflow must fail before manifest signing or GitHub Release mutation when any

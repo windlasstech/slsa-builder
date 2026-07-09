@@ -128,6 +128,8 @@ For a release manifest, a verifier must check:
    `verified-distributor` role, without `builder.id` or `buildType`.
 9. The in-toto Statement predicate equals the plain release manifest JSON value, and the Statement
    subject digest equals the SHA-256 digest of the RFC 8785 JCS canonical JSON bytes for that value.
+10. For schema version `1`, every producer and publisher workflow SHA equals `release_commit_sha`,
+    `producer_profiles` is sorted by `profile`, and `publisher_workflows` is sorted by `publisher`.
 
 ## Producer-side vs. consumer-side verification
 
@@ -244,6 +246,8 @@ Every fixture must include:
 | `manifest-trigger-mismatch`                | Release manifest workflow did not run from the expected protected SemVer tag.          |
 | `manifest-entrypoint-mismatch`             | Release manifest signer workflow path is not the fixed production entrypoint.          |
 | `manifest-caller-override`                 | Caller-controlled input changed a signed manifest trust field.                         |
+| `manifest-workflow-sha-mismatch`           | Schema v1 workflow SHA does not equal the release tag target commit.                   |
+| `manifest-entry-order-mismatch`            | Release manifest producer or publisher arrays are not in canonical sorted order.       |
 | `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.                          |
 | `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.                            |
 | `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                                    |
@@ -324,6 +328,12 @@ The publisher fixture set must distinguish duplicate preflight failures from par
 failures: pre-existing primary or sidecar asset names fail before upload, while a sidecar API or
 transport failure after successful primary upload fails with `sidecar-upload-partial-failure` and
 reports `upload-result: partial-primary-uploaded`.
+
+The release manifest generation fixture set must prove schema version `1` determinism: all producer
+and publisher `workflow_sha` values equal `release_commit_sha`; producer `builder_id` values are
+derived from `workflow_path` and `workflow_sha`; `producer_profiles` is sorted by `profile`; and
+`publisher_workflows` is sorted by `publisher`. Mismatched workflow SHAs fail with
+`manifest-workflow-sha-mismatch`; unsorted arrays fail with `manifest-entry-order-mismatch`.
 
 The release manifest fixture set must distinguish duplicate preflight failures from partial upload
 failures: pre-existing manifest JSON or bundle names fail before upload, while a signed bundle API
