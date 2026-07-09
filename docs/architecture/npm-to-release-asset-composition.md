@@ -185,8 +185,9 @@ The publisher uploads the unchanged npm producer provenance bundle as:
 For npm pack-produced tarballs, the sidecar therefore normally uses a `.tgz.intoto.jsonl` suffix,
 for example `windlass-slsa-builder-1.2.3.tgz.intoto.jsonl`.
 
-The sidecar must contain the same bundle bytes that the npm producer generated and that the
-publisher verified.
+The sidecar must contain the same signed bundle bytes that the npm producer generated and that the
+publisher verified, byte-for-byte. The publisher must not extract only the Statement, reserialize
+the bundle, or substitute a native provenance locator for the sidecar file.
 
 Before uploading the npm tarball, the publisher must preflight-check that neither the tarball asset
 name nor the deterministic sidecar name already exists on the target GitHub Release. If either name

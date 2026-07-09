@@ -249,6 +249,7 @@ Every fixture must include:
 | `manifest-workflow-sha-mismatch`           | Schema v1 workflow SHA does not equal the release tag target commit.                   |
 | `manifest-entry-order-mismatch`            | Release manifest producer or publisher arrays are not in canonical sorted order.       |
 | `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.                          |
+| `bundle-byte-format-mismatch`              | Signed bundle bytes were extracted, reserialized, wrapped, or otherwise changed.       |
 | `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.                            |
 | `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                                    |
 | `handoff-schema-mismatch`                  | Cross-job artifact handoff omits or changes required core fields.                      |
@@ -314,6 +315,12 @@ The handoff fixture set must prove that every cross-job artifact handoff include
 fields `transport`, `artifact_name`, `payload_file_name`, `payload_kind`, `digest.algorithm`, and
 `digest.value`, whether those fields are public inputs or profile-owned fixed mappings. Missing or
 malformed fields fail with `handoff-schema-mismatch`.
+
+The signed bundle fixture set must prove that the bundle file bytes emitted by `actions/attest` are
+preserved byte-for-byte through npm provenance submission, publisher sidecar redistribution, and
+release manifest upload. Fixtures that extract only the Statement, reserialize the bundle, wrap it
+in a new envelope, or substitute a native attestation locator for the bundle file must fail with
+`bundle-byte-format-mismatch` or the narrower sidecar/provenance mismatch category.
 
 The npm publish permissions fixture set must prove that the initial npmjs production publish job has
 `contents: read`, `id-token: write`, no `attestations: write`, and no `packages: write`. A workflow

@@ -243,6 +243,12 @@ separate signed name-mapping predicate.
 The publisher redistributes the exact verified producer provenance bundle as a GitHub Release asset
 sidecar. The sidecar must not be altered, re-signed, wrapped, or regenerated.
 
+The sidecar bytes are the exact signed bundle bytes received through the verified producer
+provenance handoff. The `.intoto.jsonl` suffix is only the release asset naming convention; the
+publisher must not extract the Statement, reserialize the bundle, rewrite DSSE or Sigstore metadata,
+or substitute a native attestation locator for the bundle file. See the
+[SLSA provenance v1 signed bundle file format](slsa-provenance-v1.md#signed-bundle-file-format).
+
 ### Sidecar name
 
 The sidecar name is deterministic and derived from the primary asset name by appending

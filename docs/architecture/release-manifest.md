@@ -413,6 +413,12 @@ predicate JSON to the adapter; it must not pass or document a complete in-toto S
 an adapter input. The adapter constructs the in-toto Statement and signs that Statement as a
 Sigstore-backed bundle.
 
+The signed release manifest bundle file is the exact byte sequence emitted by `actions/attest`. The
+workflow must not replace it with the extracted Statement, reserialize it, wrap it in another DSSE
+or Sigstore representation, or re-sign it in the upload job. The `.intoto.jsonl` filename is the
+release manifest bundle naming convention, not permission to change the bundle byte format. See the
+[SLSA provenance v1 signed bundle file format](slsa-provenance-v1.md#signed-bundle-file-format).
+
 The Statement's `predicate` must be the manifest JSON value, represented as a JSON object. The
 Statement subject digest must be the SHA-256 digest of the RFC 8785 JCS canonical JSON bytes for
 that value. After signing, the manifest signing or upload path must extract the emitted Statement

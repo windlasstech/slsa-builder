@@ -136,6 +136,11 @@ js-ts-npm-provenance-bundle-<github.run_id>-<github.run_attempt>
 The artifact must contain exactly one file: the signed Sigstore bundle. The `publish` job downloads
 the bundle and recomputes its digest.
 
+The signed bundle file is the exact byte sequence emitted by the `actions/attest` custom-mode
+invocation. The profile must hand off and submit those bytes unchanged; it must not replace the file
+with an extracted Statement, reserialized bundle, or GitHub-attestation-storage locator. See the
+[SLSA provenance v1 signed bundle file format](slsa-provenance-v1.md#signed-bundle-file-format).
+
 The provenance bundle handoff must satisfy the core same-run artifact handoff schema:
 
 | Core handoff field  | Value                                                                      |
@@ -462,6 +467,8 @@ Windlass owns the verifier-relevant contents of the emitted Statement: subject, 
 - The adapter must not be invoked in default provenance mode for the production npm profile.
 - The producer-side verification gate must extract the emitted Statement from the signed bundle and
   reject the bundle before publish if the Statement does not match the verified signing inputs.
+- GitHub artifact attestation storage, when used, is an additional locator. It is not a substitute
+  for the signed bundle bytes required by `npm publish --provenance-file` and downstream handoff.
 
 ## Producer signer identity
 

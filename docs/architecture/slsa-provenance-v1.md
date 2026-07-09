@@ -189,6 +189,35 @@ The initial stock `actions/attest` adapter must not be documented or invoked as 
 complete in-toto Statement payload. A future adapter that signs complete Statement bytes directly
 requires a later ADR if it changes verifier-visible behavior or trust boundaries.
 
+## Signed bundle file format
+
+The initial production signed provenance artifact is the exact Sigstore bundle file emitted by the
+full-SHA-pinned `actions/attest` invocation. The bundle bytes are verifier inputs and must be
+preserved byte-for-byte across job handoff, npm `--provenance-file` submission, and GitHub Release
+sidecar redistribution.
+
+The `.intoto.jsonl` filename suffix used by npm, release sidecars, and release manifest assets is a
+distribution naming convention. It does not mean that Windlass may replace the signed bundle with a
+raw in-toto Statement, a reserialized DSSE envelope, extracted predicate JSON, or any other
+normalized representation.
+
+Implementations must not alter signed bundle bytes after `actions/attest` emits them. In particular,
+they must not:
+
+- extract the in-toto Statement and store only that Statement as the provenance file;
+- reserialize, pretty-print, compact, wrap, unwrap, or reorder the bundle JSON;
+- regenerate DSSE envelopes or Sigstore bundle metadata;
+- re-sign the bundle in publisher or upload jobs; or
+- treat GitHub artifact attestation storage metadata as a substitute for the bundle bytes when a
+  bundle file is required.
+
+Producer-side and consumer-side verifiers must parse the preserved bundle bytes, extract the signed
+in-toto Statement payload, verify the bundle signature and signer identity, and compare the
+extracted Statement fields against the expected subject inputs, `predicateType`, and predicate.
+Verification must fail when the preserved bundle bytes cannot be parsed, the signature is invalid,
+the extracted Statement does not match the expected contract, or a sidecar/downloaded bundle is not
+byte-for-byte the same bundle that the producer emitted and the publisher verified.
+
 ## Common verifier rejection matrix
 
 A verifier must reject provenance if any of the following are true:
