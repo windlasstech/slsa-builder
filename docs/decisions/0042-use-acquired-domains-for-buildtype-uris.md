@@ -1,7 +1,7 @@
 ---
 parent: Decisions
 nav_order: 42
-status: partially updated by ADR-0049
+status: accepted; partially updated by ADR-0049
 date: 12026-07-06
 decision-makers: Yunseo Kim
 ---
