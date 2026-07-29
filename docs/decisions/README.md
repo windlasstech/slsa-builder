@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0060`.
+sequence currently runs from `0000` through `0062`.
 
 | Range     | Topic                                       | Notes                                                            |
 | --------- | ------------------------------------------- | ---------------------------------------------------------------- |
@@ -43,6 +43,8 @@ sequence currently runs from `0000` through `0060`.
 | 0058      | Release publisher authority boundary        | Same-repository target and least-privilege mutation topology.    |
 | 0059      | Public release-asset mode interface         | Minimal user-intent `workflow_call` surface and fail-closed API. |
 | 0060      | Unified npm public entrypoint               | One public API with separated internal authority boundaries.     |
+| 0061      | Duplicate JSON member rejection             | Strict signed SLSA Statement parsing before semantic validation. |
+| 0062      | Trusted producer policy intersection        | Conflict handling for manifest and explicit verifier policy.     |
 
 ## ADR traceability
 
@@ -108,6 +110,8 @@ implementation work.
 | 0058 | Define GitHub Release asset publisher authority boundary           | GitHub Release asset publisher, composition spec, verification policy                        |
 | 0059 | Define public npm release-asset mode interface                     | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher           |
 | 0060 | Unify npm profile public entrypoint with release-asset mode        | JS/TS npm profile, composition spec, verification policy                                     |
+| 0061 | Reject duplicate JSON members in signed SLSA Statements            | Common provenance, JS/TS npm provenance and publish, verification policy                     |
+| 0062 | Intersect trusted producer policies                                | Release manifest, GitHub Release asset publisher, verification policy                        |
 
 ### Superseded or deprecated ADRs (historical only)
 

@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0060`.
+`0062`.
 
 ## STRUCTURE
 
@@ -13,16 +13,18 @@ docs/decisions/
 ├── 0000-use-markdown-architectural-decision-records.md  # MADR template
 ├── 0001-start-slsa-builder-as-clean-repository.md
 ├── 0002-use-extensible-trusted-reusable-workflow-foundation.md
-├── ...                                                  # 0003–0059
+├── ...                                                  # 0003–0061
 ├── 0057-provide-composed-public-npm-release-asset-workflow.md
 ├── 0058-define-github-release-asset-publisher-authority-boundary.md
 ├── 0059-define-public-npm-release-composed-workflow-interface.md
 ├── 0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md
+├── 0061-reject-duplicate-json-members-in-signed-slsa-statements.md
+├── 0062-intersect-trusted-producer-policies.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0060`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0062`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -35,9 +37,9 @@ groupings.
 | Linter choices                | `0005`, `0006`, `0007`         | golangci-lint, ShellCheck, no universal bundle.                 |
 | Formatter choices             | `0008`                         | gofmt/goimports, shfmt, Prettier for Markdown.                  |
 | Dev tooling runtime           | `0009`, `0010`, `0011`, `0012` | Node/pnpm, Lefthook, mise bootstrap.                            |
-| JS/TS npm package profile     | `0013`–`0037`, `0055`–`0060`   | Package manager selection, OIDC publishing, SLSA3 npm workflow. |
-| GitHub release asset profile  | `0038`–`0052`, `0057`–`0060`   | Release asset subject handling, attestation distribution.       |
-| Release manifest metadata     | `0053`, `0054`                 | Signing boundary and predicate URI.                             |
+| JS/TS npm package profile     | `0013`–`0037`, `0055`–`0061`   | Package manager selection, OIDC publishing, SLSA3 npm workflow. |
+| GitHub release asset profile  | `0038`–`0052`, `0057`–`0062`   | Release asset subject handling, attestation distribution.       |
+| Release manifest metadata     | `0053`, `0054`, `0062`         | Signing boundary, predicate URI, producer policy conflicts.     |
 
 ## CONVENTIONS
 
