@@ -68,6 +68,56 @@ The production workflow entrypoint is:
 
 The release manifest must record the exact workflow path and SHA for this entrypoint.
 
+### `workflow_call` contract
+
+The standalone publisher exposes the producer-neutral handoff fields as its public
+`workflow_call.inputs`. The public contract is intentionally low-level: it is an advanced
+composition primitive, not the recommended npm caller surface selected by the public npm profile.
+
+| Input                               | Type   | Required | Default | Validation summary                                            |
+| ----------------------------------- | ------ | -------- | ------- | ------------------------------------------------------------- |
+| `primary-artifact-name`             | string | yes      | none    | Same-run artifact containing exactly one primary payload.     |
+| `expected-sha256`                   | string | yes      | none    | 64 lowercase hexadecimal SHA-256 of the primary payload.      |
+| `final-asset-name`                  | string | yes      | none    | Safe basename that equals the producer subject name.          |
+| `release-tag`                       | string | yes      | none    | Full `refs/tags/<tag-name>` ref for an existing release.      |
+| `producer-provenance-artifact-name` | string | yes      | none    | Same-run artifact containing exactly one signed bundle.       |
+| `producer-provenance-sha256`        | string | yes      | none    | 64 lowercase hexadecimal SHA-256 of the signed bundle.        |
+| `trusted-builder-id`                | string | yes      | none    | Expected producer `builder.id`.                               |
+| `trusted-build-type`                | string | yes      | none    | Expected producer `buildType`.                                |
+| `expected-subject-name`             | string | yes      | none    | Expected producer `subject[0].name`.                          |
+| `expected-subject-sha256`           | string | yes      | none    | Expected producer `subject[0].digest.sha256`.                 |
+| `source-repository`                 | string | yes      | none    | Canonical producer source repository URL.                     |
+| `source-revision`                   | string | yes      | none    | Immutable source revision; GitHub Git sources use SHA-1.      |
+| `native-provenance-locators`        | string | no       | empty   | UTF-8 JSON array; empty string means absent.                  |
+| `linked-artifact-settings`          | string | no       | empty   | UTF-8 JSON object; empty string means `{ "enabled": false }`. |
+
+The workflow must not declare inputs for target repository owner, target repository name, upload
+URL, release URL, custom GitHub token, release creation, overwrite mode, arbitrary local file paths,
+cross-run artifact IDs, or bypassing producer provenance verification. If a caller supplies such a
+value through an unsupported input name, workflow dispatch must fail schema validation or the
+publisher must reject the configuration before release mutation.
+
+The standalone publisher accepts no secrets in the initial production contract. Release mutation
+uses the caller-scoped `GITHUB_TOKEN` permissions granted to the calling job and reduced by the
+called workflow. A future custom-token or cross-repository publication mode requires a new ADR
+because it changes the mutation authority boundary.
+
+### Permissions matrix
+
+The publisher workflow must keep the default top-level permission set read-only and elevate only the
+jobs that need mutation authority.
+
+| Job class                                  | Required permissions                         | Forbidden permissions                                                                             |
+| ------------------------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Handoff download, digest, and verification | `contents: read`                             | `contents: write`, `id-token: write`, `attestations: write`, `artifact-metadata: write`           |
+| Release upload                             | `contents: write`                            | `id-token: write`, `attestations: write`, `artifact-metadata: write`, package publish permissions |
+| Linked artifact metadata, when enabled     | `artifact-metadata: write`, `contents: read` | `contents: write`, `id-token: write`, `attestations: write`, release upload authority             |
+
+The caller job must grant only the permissions required by the selected path. A caller that enables
+linked artifact metadata must grant `artifact-metadata: write`; a caller that disables it must not
+cause the metadata job to run or request that permission. Missing required permissions and excessive
+job permissions are distinct pre-upload failures.
+
 ## One-primary-asset unit
 
 Each publisher run uploads exactly one primary release asset. If a project needs multiple release
@@ -403,33 +453,58 @@ without deleting, replacing, or clobbering the primary asset. The failure output
 partial state explicit so operators can retry sidecar publication or remove the incomplete release
 asset according to repository policy.
 
+If the GitHub API request or network transport returns an ambiguous result after the publisher
+starts uploading the primary asset, the workflow must not assume either success or failure. It must
+perform a same-run target release lookup for the primary asset name and computed digest. When that
+lookup can prove that no primary asset exists, the result remains `failed-before-upload`. When it
+proves that the primary asset exists with the expected digest but the sidecar was not uploaded, the
+result is `partial-primary-uploaded`. When the lookup cannot determine whether the primary asset was
+committed or finds an asset with the expected name but unknown or mismatched digest, the result is
+`indeterminate-primary-upload` and the workflow fails without uploading the sidecar or linked
+artifact metadata.
+
+Reruns are not allowed to overwrite or repair release assets silently. A rerun that observes the
+primary asset or sidecar already present during duplicate preflight must fail before upload with the
+same duplicate category as a fresh run. Operators must reconcile partial or indeterminate release
+state outside the publisher before rerunning the production path.
+
 The observable upload result is reported through `upload-result`:
 
 - `completed`: primary asset and sidecar upload both succeeded.
 - `failed-before-upload`: validation, verification, duplicate preflight, or target lookup failed
   before the primary asset was uploaded.
 - `partial-primary-uploaded`: the primary asset upload succeeded, but sidecar upload failed.
+- `indeterminate-primary-upload`: the publisher cannot prove whether the primary asset upload
+  committed, or cannot prove that the remote asset with the target name has the expected digest.
 
 When `upload-result` is `partial-primary-uploaded`, the workflow fails, primary asset outputs such
 as `asset-name`, `asset-url`, and `asset-sha256` must be set when GitHub returned them,
-`sidecar-name` must be the deterministic sidecar name, and `sidecar-url` must be unset. A duplicate
-primary asset or duplicate deterministic sidecar detected during preflight is
-`failed-before-upload`, not a partial upload state.
+`sidecar-name` must be the deterministic sidecar name, `sidecar-digest` must be set to the verified
+producer bundle SHA-256 when the sidecar bytes were already verified, and `sidecar-url` must be
+unset. When `upload-result` is `indeterminate-primary-upload`, release asset locator outputs must be
+unset unless GitHub returned a locator for an asset whose digest was verified in the same run. A
+duplicate primary asset or duplicate deterministic sidecar detected during preflight is
+`failed-before-upload`, not a partial or indeterminate upload state.
 
 ## Outputs
 
-| Output                       | Description                                                         |
-| ---------------------------- | ------------------------------------------------------------------- |
-| `asset-name`                 | Final release asset name.                                           |
-| `asset-url`                  | Browser URL of the uploaded asset.                                  |
-| `asset-api-id`               | GitHub API asset ID if available.                                   |
-| `asset-sha256`               | SHA-256 of the uploaded bytes.                                      |
-| `sidecar-name`               | Provenance sidecar asset name.                                      |
-| `sidecar-url`                | Browser URL of the sidecar.                                         |
-| `sidecar-digest`             | Digest of the sidecar bundle.                                       |
-| `native-provenance-locators` | Native producer locators.                                           |
-| `upload-result`              | `completed`, `failed-before-upload`, or `partial-primary-uploaded`. |
-| `linked-artifact-result`     | `disabled`, `created`, or `failed-after-upload`.                    |
+| Output                       | Description                                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| `asset-name`                 | Final release asset name.                                                                           |
+| `asset-url`                  | Browser URL of the uploaded asset.                                                                  |
+| `asset-api-id`               | GitHub API asset ID if available.                                                                   |
+| `asset-sha256`               | SHA-256 of the uploaded bytes.                                                                      |
+| `sidecar-name`               | Provenance sidecar asset name.                                                                      |
+| `sidecar-url`                | Browser URL of the sidecar.                                                                         |
+| `sidecar-digest`             | SHA-256 of the sidecar bundle as 64 lowercase hex characters.                                       |
+| `native-provenance-locators` | Native producer locators.                                                                           |
+| `upload-result`              | `completed`, `failed-before-upload`, `partial-primary-uploaded`, or `indeterminate-primary-upload`. |
+| `linked-artifact-result`     | `disabled`, `created`, or `failed-after-upload`.                                                    |
+
+`sidecar-digest` must equal `producer-provenance-sha256` and the SHA-256 digest of the exact bundle
+bytes redistributed as the sidecar. It is set when the bundle bytes were retrieved and verified,
+including `partial-primary-uploaded` cases where the sidecar upload failed after bundle
+verification. It must be unset when producer provenance retrieval or digest verification failed.
 
 ## Failure behavior
 
@@ -455,6 +530,9 @@ The publisher must fail before primary asset or sidecar upload when:
 - A native provenance locator is malformed or unsupported.
 - Linked artifact storage is enabled but the metadata job permission boundary is invalid: it lacks
   `artifact-metadata: write` or has prohibited signing or release mutation authority.
+- The caller grants release mutation, signing, package publication, or linked metadata permissions
+  to a job that must not hold that authority.
+- The publisher cannot determine whether a started primary upload committed remotely.
 
 The publisher must not expose any option to bypass upstream provenance verification in the
 production path.
@@ -465,6 +543,9 @@ production path.
 - Rejected fixtures: missing provenance, wrong subject name, digest mismatch, stale
   `artifact-artifact-name` handoff field, duplicate asset name, non-existent release, raw artifact
   bypass, pre-existing deterministic sidecar name, sidecar upload failure after primary upload,
-  malformed JSON input for complex handoff fields, and attempted re-signing of producer provenance.
-- A YAML review checklist proving the publisher does not combine signing and release mutation
-  authorities.
+  indeterminate primary upload, malformed JSON input for complex handoff fields, excessive job
+  permissions, and attempted re-signing of producer provenance.
+- A YAML review checklist proving the publisher `workflow_call` schema does not expose unsupported
+  target repository, custom token, raw artifact, overwrite, or bypass inputs.
+- A YAML review checklist proving the publisher does not combine signing, release mutation, package
+  publication, or linked artifact metadata authorities.
