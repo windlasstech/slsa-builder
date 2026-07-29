@@ -8,7 +8,11 @@ tarball producer feeding the GitHub Release asset publisher.
   [0049](../decisions/0049-separate-artifact-production-from-github-release-asset-publication.md),
   [0050](../decisions/0050-define-producer-to-publisher-handoff-contract.md),
   [0051](../decisions/0051-distribute-producer-provenance-with-release-assets.md),
-  [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md)
+  [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
+  [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
+  [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
+  [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Composed workflow internal handoff](composed-workflow-internal-handoff.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),

@@ -11,7 +11,11 @@ ecosystem-produced artifacts, not a source-to-artifact builder.
   [0049](../decisions/0049-separate-artifact-production-from-github-release-asset-publication.md),
   [0050](../decisions/0050-define-producer-to-publisher-handoff-contract.md),
   [0051](../decisions/0051-distribute-producer-provenance-with-release-assets.md),
-  [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md)
+  [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
+  [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
+  [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
+  [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),

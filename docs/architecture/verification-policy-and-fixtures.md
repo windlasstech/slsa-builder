@@ -13,7 +13,11 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0051](../decisions/0051-distribute-producer-provenance-with-release-assets.md),
   [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
-  [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md)
+  [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md),
+  [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
+  [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
+  [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),

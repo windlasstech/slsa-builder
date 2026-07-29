@@ -5,7 +5,11 @@ Release asset publisher are composed inside one workflow graph.
 
 - Source ADRs: [0036](../decisions/0036-use-three-job-digest-verified-publish-graph.md),
   [0050](../decisions/0050-define-producer-to-publisher-handoff-contract.md),
-  [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md)
+  [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
+  [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
+  [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
+  [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
   [npm-to-release-asset composition](npm-to-release-asset-composition.md),
