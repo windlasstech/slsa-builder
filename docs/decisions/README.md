@@ -29,16 +29,20 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0056`.
+sequence currently runs from `0000` through `0060`.
 
-| Range     | Topic                                       | Notes                                                           |
-| --------- | ------------------------------------------- | --------------------------------------------------------------- |
-| 0000–0012 | Repository foundation and development tools | ADR format, repository start, Go, linting, formatting, tooling. |
-| 0013–0037 | JS/TS npm package profile                   | Package selection, build/pack, OIDC publishing, provenance.     |
-| 0038–0052 | GitHub Release asset profile                | Release asset subjects, publisher model, sidecar distribution.  |
-| 0053–0054 | Release manifest metadata                   | Signing boundary and release manifest predicate URI.            |
-| 0055      | Signing adapter Statement construction      | `actions/attest` custom mode and post-sign Statement checks.    |
-| 0056      | Non-selected lockfile diagnostics           | Stale lockfile handling under manifest-selected managers.       |
+| Range     | Topic                                       | Notes                                                            |
+| --------- | ------------------------------------------- | ---------------------------------------------------------------- |
+| 0000–0012 | Repository foundation and development tools | ADR format, repository start, Go, linting, formatting, tooling.  |
+| 0013–0037 | JS/TS npm package profile                   | Package selection, build/pack, OIDC publishing, provenance.      |
+| 0038–0052 | GitHub Release asset profile                | Release asset subjects, publisher model, sidecar distribution.   |
+| 0053–0054 | Release manifest metadata                   | Signing boundary and release manifest predicate URI.             |
+| 0055      | Signing adapter Statement construction      | `actions/attest` custom mode and post-sign Statement checks.     |
+| 0056      | Non-selected lockfile diagnostics           | Stale lockfile handling under manifest-selected managers.        |
+| 0057      | Public npm release-asset mode               | Single npm entrypoint plus advanced composition primitives.      |
+| 0058      | Release publisher authority boundary        | Same-repository target and least-privilege mutation topology.    |
+| 0059      | Public release-asset mode interface         | Minimal user-intent `workflow_call` surface and fail-closed API. |
+| 0060      | Unified npm public entrypoint               | One public API with separated internal authority boundaries.     |
 
 ## ADR traceability
 
@@ -100,6 +104,10 @@ implementation work.
 | 0054 | Use `slsa-builder.dev` release manifest predicate URI              | Release manifest, verification policy                                                        |
 | 0055 | `actions/attest` custom mode for Statement construction            | Common provenance, JS/TS npm provenance and publish                                          |
 | 0056 | Treat non-selected lockfiles as stale diagnostics                  | JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy              |
+| 0057 | Provide public npm release-asset mode                              | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher           |
+| 0058 | Define GitHub Release asset publisher authority boundary           | GitHub Release asset publisher, composition spec, verification policy                        |
+| 0059 | Define public npm release-asset mode interface                     | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher           |
+| 0060 | Unify npm profile public entrypoint with release-asset mode        | JS/TS npm profile, composition spec, verification policy                                     |
 
 ### Superseded or deprecated ADRs (historical only)
 

@@ -28,16 +28,20 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0056`까지입니다.
+`0060`까지입니다.
 
-| 범위      | 주제                         | 설명                                                       |
-| --------- | ---------------------------- | ---------------------------------------------------------- |
-| 0000–0012 | 저장소 기반 및 개발 도구     | ADR 형식, 저장소 시작, Go, 린팅, 포맷팅, 도구 체인.        |
-| 0013–0037 | JS/TS npm 패키지 profile     | 패키지 선택, build/pack, OIDC publishing, provenance.      |
-| 0038–0052 | GitHub Release asset profile | 릴리즈 에셋 subject, publisher 모델, sidecar distribution. |
-| 0053–0054 | 릴리즈 매니페스트 메타데이터 | 서명 경계와 release manifest predicate URI.                |
-| 0055      | 서명 어댑터 Statement 구성   | `actions/attest` custom mode와 서명 후 Statement 검사.     |
-| 0056      | 비선택 lockfile 진단         | Manifest-selected manager에서 stale lockfile 처리.         |
+| 범위      | 주제                               | 설명                                                       |
+| --------- | ---------------------------------- | ---------------------------------------------------------- |
+| 0000–0012 | 저장소 기반 및 개발 도구           | ADR 형식, 저장소 시작, Go, 린팅, 포맷팅, 도구 체인.        |
+| 0013–0037 | JS/TS npm 패키지 profile           | 패키지 선택, build/pack, OIDC publishing, provenance.      |
+| 0038–0052 | GitHub Release asset profile       | 릴리즈 에셋 subject, publisher 모델, sidecar distribution. |
+| 0053–0054 | 릴리즈 매니페스트 메타데이터       | 서명 경계와 release manifest predicate URI.                |
+| 0055      | 서명 어댑터 Statement 구성         | `actions/attest` custom mode와 서명 후 Statement 검사.     |
+| 0056      | 비선택 lockfile 진단               | Manifest-selected manager에서 stale lockfile 처리.         |
+| 0057      | 공개 npm release-asset 모드        | 단일 npm 진입점과 advanced composition primitives.         |
+| 0058      | 릴리즈 publisher 권한 경계         | 동일 저장소 target과 최소 권한 mutation topology.          |
+| 0059      | 공개 release-asset 모드 인터페이스 | 최소 user-intent `workflow_call` 표면과 fail-closed API.   |
+| 0060      | 통합 npm 공개 진입점               | 하나의 공개 API와 분리된 내부 권한 경계.                   |
 
 ## ADR 추적성
 
@@ -98,6 +102,10 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0054 | Use `slsa-builder.dev` release manifest predicate URI              | Release manifest, verification policy                                                        |
 | 0055 | `actions/attest` custom mode for Statement construction            | Common provenance, JS/TS npm provenance and publish                                          |
 | 0056 | Treat non-selected lockfiles as stale diagnostics                  | JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy              |
+| 0057 | Provide public npm release-asset mode                              | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher           |
+| 0058 | Define GitHub Release asset publisher authority boundary           | GitHub Release asset publisher, composition spec, verification policy                        |
+| 0059 | Define public npm release-asset mode interface                     | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher           |
+| 0060 | Unify npm profile public entrypoint with release-asset mode        | JS/TS npm profile, composition spec, verification policy                                     |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
