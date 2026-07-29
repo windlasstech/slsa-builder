@@ -16,7 +16,8 @@ the package to an npm registry through a three-job digest-verified graph.
   [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
-  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
+  [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),

@@ -11,7 +11,8 @@ common contract.
   [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
   [0037](../decisions/0037-define-initial-verification-deliverables.md),
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
-  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md)
+  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
+  [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
