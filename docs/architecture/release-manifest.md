@@ -10,7 +10,8 @@ three-job signing boundary that produces and publishes the manifest.
   [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
-  [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md)
+  [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md),
+  [0062](../decisions/0062-intersect-trusted-producer-policies.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [Core profile contract](core-profile-contract.md)
 
@@ -614,6 +615,11 @@ gh attestation verify release-manifest-1.2.3.intoto.jsonl \
 The full Windlass verifier must also check the manifest schema version, release commit SHA, producer
 profile mappings, publisher workflow mappings, and producer `builder.id`/`buildType` values against
 a trusted release manifest or explicit policy.
+
+When both a trusted release manifest and explicit verifier policy are present, the manifest producer
+profile mappings are additional constraints, not overrides. The effective trusted producer policy is
+the intersection of the verified manifest mappings and explicit verifier policy. A conflict or empty
+intersection must fail verification rather than selecting one source by precedence.
 
 ## Migration criteria
 

@@ -17,7 +17,9 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
-  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
+  [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
+  [0062](../decisions/0062-intersect-trusted-producer-policies.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
@@ -59,6 +61,28 @@ A verifier must trust the following roots:
 
 The verifier must obtain the release manifest from a trusted source, such as the signed release
 manifest bundle on the GitHub Release page or a mirrored copy whose signature is verified.
+
+## Trusted producer policy conflict resolution
+
+When both an explicit verifier policy and a verified Windlass release manifest policy are present,
+the effective trusted producer policy is the intersection of both sources. A verifier must reject
+the artifact unless both policy sources allow the observed producer signer identity, source
+repository, source revision, release ref, workflow path, workflow SHA, `builder.id`, `buildType`,
+SLSA `predicateType`, subject name, subject digest, and required or forbidden `externalParameters`.
+
+The signed release manifest policy is eligible for this intersection only after the manifest bundle
+passes the release manifest verification policy below. The manifest must not define or relax its own
+trust root, signer identity, predicate type, schema version, or authority to override explicit
+verifier policy.
+
+Missing trusted producer fields are not wildcards in the initial production policy. If either source
+omits a required producer identity, source, release ref, workflow, subject, or strict
+`externalParameters` constraint, the verifier must treat the effective policy as unsatisfied unless
+a later ADR-backed schema explicitly marks that field as intentionally unconstrained.
+
+When the two sources conflict or their intersection is empty, verification must fail closed. A
+verifier must not use precedence, last-writer-wins behavior, or either-source-allowed behavior in
+the default production policy. Diagnostics should name the conflicting source and field.
 
 ## npm package verification policy
 
@@ -245,6 +269,7 @@ Every fixture must include:
 | `excessive-publish-permission`             | npmjs publish job requests permissions outside the initial boundary.                   |
 | `npm-version-too-old`                      | npm CLI version is below `11.5.1` for trusted publishing.                              |
 | `release-manifest-mismatch`                | Release manifest mapping does not match the provenance.                                |
+| `trusted-producer-policy-conflict`         | Explicit verifier policy and signed release manifest policy cannot both be satisfied.  |
 | `manifest-predicate-mismatch`              | Signed Statement predicate differs from canonical manifest JSON.                       |
 | `manifest-digest-mismatch`                 | Statement subject digest differs from canonical manifest JSON bytes.                   |
 | `manifest-trigger-mismatch`                | Release manifest workflow did not run from the expected protected SemVer tag.          |

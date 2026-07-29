@@ -15,7 +15,8 @@ ecosystem-produced artifacts, not a source-to-artifact builder.
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
-  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
+  [0062](../decisions/0062-intersect-trusted-producer-policies.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -228,6 +229,15 @@ Before publication, the publisher must verify the upstream producer provenance:
    producer policy.
 9. No unexpected `externalParameters` are present when the policy requires strict matching.
 
+When the publisher has both an explicit producer policy from the handoff or profile configuration
+and a verified signed release manifest policy, the effective producer policy is the intersection of
+those policy sources. The publisher must fail before upload when either source does not allow the
+observed producer signer identity, workflow path, workflow SHA, `builder.id`, `buildType`, source,
+release ref, subject, or required `externalParameters`. The publisher must not let a signed release
+manifest relax explicit producer policy, must not let explicit producer policy bypass an
+authenticated manifest constraint, and must not use either-source-allowed or last-writer-wins
+behavior.
+
 ## Final release asset subject name
 
 The final release asset name must be identical to the upstream producer provenance
@@ -439,6 +449,8 @@ The publisher must fail before primary asset or sidecar upload when:
 - The upstream subject name differs from the final asset name.
 - The producer policy does not allow the upstream `builder.id`, `buildType`, source, release ref, or
   `externalParameters`.
+- Explicit producer policy and verified signed release manifest policy conflict or have an empty
+  intersection.
 - A locator is provided without a retrievable producer provenance bundle artifact.
 - A native provenance locator is malformed or unsupported.
 - Linked artifact storage is enabled but the metadata job permission boundary is invalid: it lacks
