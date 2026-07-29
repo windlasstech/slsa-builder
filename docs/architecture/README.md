@@ -37,7 +37,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 | [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md)         | Provenance, three-job publish graph, npm publish             | 0024, 0025, 0028, 0029, 0030, 0035, 0036, 0037, 0052, 0055–0057, 0059–0061 |
 | [GitHub Release asset publisher](github-release-asset-publisher.md)         | Verified distributor publisher contract                      | 0039, 0043, 0045, 0046, 0048, 0049, 0050, 0051, 0052, 0057–0060, 0062      |
 | [Composed workflow internal handoff](composed-workflow-internal-handoff.md) | Same-run producer-to-publisher internal handoff              | 0036, 0050, 0052, 0057–0060                                                |
-| [npm-to-release-asset composition](npm-to-release-asset-composition.md)     | First producer-to-publisher composition                      | 0013–0037, 0049, 0050, 0051, 0052, 0057–0060                               |
+| [npm-to-release-asset composition](npm-to-release-asset-composition.md)     | First producer-to-publisher composition                      | 0013–0019, 0022–0037, 0049, 0050, 0051, 0052, 0057–0060                    |
 | [Release manifest](release-manifest.md)                                     | Signed release manifest and three-job signing boundary       | 0028, 0031, 0035, 0042, 0053, 0054, 0062                                   |
 | [Verification policy and fixtures](verification-policy-and-fixtures.md)     | Verifier policy, fixture taxonomy, reference commands        | 0028, 0029, 0030, 0036, 0037, 0049, 0050, 0051, 0052–0054, 0056–0062       |
 

@@ -4,7 +4,8 @@ This document defines the first concrete producer-to-publisher composition: the 
 tarball producer feeding the GitHub Release asset publisher.
 
 - Source ADRs:
-  [0013](../decisions/0013-scope-initial-js-ts-profile-to-npm-packages.md)–[0037](../decisions/0037-define-initial-verification-deliverables.md),
+  [0013](../decisions/0013-scope-initial-js-ts-profile-to-npm-packages.md)–[0019](../decisions/0019-validate-js-ts-package-metadata-through-packed-artifacts.md),
+  [0022](../decisions/0022-use-js-ts-npm-package-slsa3-workflow-entrypoint.md)–[0037](../decisions/0037-define-initial-verification-deliverables.md),
   [0049](../decisions/0049-separate-artifact-production-from-github-release-asset-publication.md),
   [0050](../decisions/0050-define-producer-to-publisher-handoff-contract.md),
   [0051](../decisions/0051-distribute-producer-provenance-with-release-assets.md),

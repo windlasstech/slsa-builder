@@ -382,7 +382,8 @@ Type and nullability rules:
   selected package version must not exist before publish. For non-npmjs registries, it is `true` or
   `false` when the best-effort metadata diagnostic can prove that state, and `null` when the state
   is not verifier-proven for that unsupported registry.
-- `release.ref` must equal the release ref accepted by runtime guards.
+- `release.ref` must equal the release ref accepted by runtime guards and must be byte-for-byte
+  equal to `source.ref` after both values are represented as full Git refs.
 - `release.version_tag` must be the tag name without `refs/tags/`.
 - `build.script_present` records whether `scripts.build` existed in the source manifest.
 - `build.script_result` must be `executed` when `scripts.build` ran and `skipped-absent` when the
@@ -426,6 +427,18 @@ Rejected examples include `git@github.com:WindlassTech/Example.git`,
 Producer-side verification must reject the bundle before publish when `source.repository` is
 missing, cannot be canonicalized by these rules, or differs from the observed caller repository
 identity after case-insensitive GitHub owner/repository comparison.
+
+### Release ref equality
+
+For the production release path, `externalParameters.source.ref`, `externalParameters.release.ref`,
+and the runtime Git ref accepted by the workflow guards must all be the same full Git tag ref in the
+form `refs/tags/<tag-name>`. The short tag name recorded in `externalParameters.release.version_tag`
+must be exactly the suffix of that ref after removing `refs/tags/`.
+
+Producer-side verification must reject the bundle before publish when any of these refs differ after
+canonical full-ref representation, when either field is a short tag such as `v1.2.3`, when either
+field is a branch or pull request ref, or when `release.version_tag` does not reconstruct the same
+full ref. Consumer-side verification must apply the same equality rule before accepting provenance.
 
 The schema permits these optional fields only when the value is known and verifier-relevant:
 

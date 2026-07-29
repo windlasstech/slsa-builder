@@ -37,7 +37,7 @@
 | [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md)         | 출처, 3단계 publish 그래프, npm publish               | 0024, 0025, 0028, 0029, 0030, 0035, 0036, 0037, 0052, 0055–0057, 0059–0061 |
 | [GitHub Release asset publisher](github-release-asset-publisher.md)         | 검증된 배포자(distributor) publisher 계약             | 0039, 0043, 0045, 0046, 0048, 0049, 0050, 0051, 0052, 0057–0060, 0062      |
 | [Composed workflow internal handoff](composed-workflow-internal-handoff.md) | 같은 실행 내 producer-to-publisher 내부 핸드오프      | 0036, 0050, 0052, 0057–0060                                                |
-| [npm-to-release-asset composition](npm-to-release-asset-composition.md)     | 첫 번째 producer-to-publisher 조합                    | 0013–0037, 0049, 0050, 0051, 0052, 0057–0060                               |
+| [npm-to-release-asset composition](npm-to-release-asset-composition.md)     | 첫 번째 producer-to-publisher 조합                    | 0013–0019, 0022–0037, 0049, 0050, 0051, 0052, 0057–0060                    |
 | [Release manifest](release-manifest.md)                                     | 서명된 릴리즈 매니페스트와 3단계 서명 경계            | 0028, 0031, 0035, 0042, 0053, 0054, 0062                                   |
 | [Verification policy and fixtures](verification-policy-and-fixtures.md)     | 검증자 정책, 픽스처 분류, 참조 명령어                 | 0028, 0029, 0030, 0036, 0037, 0049, 0050, 0051, 0052–0054, 0056–0062       |
 
