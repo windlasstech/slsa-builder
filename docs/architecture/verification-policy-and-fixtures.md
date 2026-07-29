@@ -111,6 +111,9 @@ For an npm package published by the JS/TS npm profile, a verifier must check:
 15. `externalParameters.package.package_url` equals the registry package-version URL reconstructed
     from `externalParameters.publish.resolved_registry_url`, `externalParameters.package.name`, and
     `externalParameters.package.version`. It must not be a Package URL (`pkg:npm/...`).
+16. `externalParameters.source.ref`, `externalParameters.release.ref`, and the accepted runtime ref
+    are the same full `refs/tags/<tag-name>` ref, and `externalParameters.release.version_tag`
+    reconstructs that same ref.
 
 npmjs.com trusted publisher configuration is registry-side publish authorization policy. It is
 enforced by the producer-side publish gate and by npm during `npm publish`, but consumer-side
@@ -158,6 +161,10 @@ For a release manifest, a verifier must check:
    subject digest equals the SHA-256 digest of the RFC 8785 JCS canonical JSON bytes for that value.
 10. For schema version `1`, every producer and publisher workflow SHA equals `release_commit_sha`,
     `producer_profiles` is sorted by `profile`, and `publisher_workflows` is sorted by `publisher`.
+11. Annotated release tags peel recursively to a terminal commit, and that terminal commit equals
+    `release_commit_sha`.
+12. `generated_at` uses the fixed UTC lexical form and is treated as diagnostic release metadata,
+    not as a trust-mapping override.
 
 ## Producer-side vs. consumer-side verification
 
@@ -241,6 +248,7 @@ Every fixture must include:
 | `digest-mismatch`                          | Artifact digest does not match the provenance subject digest.                          |
 | `signature-mismatch`                       | Bundle signature is invalid or missing.                                                |
 | `signer-mismatch`                          | Signer identity is not trusted.                                                        |
+| `duplicate-json-member`                    | Signed Statement JSON contains duplicate object member names after unescaping.         |
 | `wrong-producer-signer`                    | Producer signer repo, workflow path, ref, or issuer is not trusted.                    |
 | `wrong-predicate-type`                     | `predicateType` is not SLSA provenance v1.                                             |
 | `wrong-manifest-predicate-type`            | Release manifest `predicateType` is not the ADR 0054 predicate URI.                    |
@@ -249,6 +257,7 @@ Every fixture must include:
 | `subject-cardinality-error`                | Provenance contains zero subjects or multiple subjects.                                |
 | `unexpected-external-parameters`           | `externalParameters` contains unexpected fields under strict matching.                 |
 | `source-identity-mismatch`                 | Source repository or revision does not match policy.                                   |
+| `release-ref-mismatch`                     | Source ref, release ref, runtime ref, or version tag do not identify the same tag.     |
 | `source-repository-canonicalization-error` | Source repository URL is non-canonical, ambiguous, or malformed.                       |
 | `trusted-publisher-mismatch`               | Producer-side npm trusted publishing caller identity or OIDC permission is wrong.      |
 | `package-identity-mismatch`                | npm package name or version does not match.                                            |
@@ -273,21 +282,29 @@ Every fixture must include:
 | `manifest-predicate-mismatch`              | Signed Statement predicate differs from canonical manifest JSON.                       |
 | `manifest-digest-mismatch`                 | Statement subject digest differs from canonical manifest JSON bytes.                   |
 | `manifest-trigger-mismatch`                | Release manifest workflow did not run from the expected protected SemVer tag.          |
+| `manifest-tag-peel-mismatch`               | Release tag cannot be peeled to the expected terminal commit.                          |
 | `manifest-entrypoint-mismatch`             | Release manifest signer workflow path is not the fixed production entrypoint.          |
 | `manifest-caller-override`                 | Caller-controlled input changed a signed manifest trust field.                         |
 | `manifest-workflow-sha-mismatch`           | Schema v1 workflow SHA does not equal the release tag target commit.                   |
 | `manifest-entry-order-mismatch`            | Release manifest producer or publisher arrays are not in canonical sorted order.       |
+| `manifest-generated-at-invalid`            | `generated_at` is not a fixed-form UTC timestamp.                                      |
+| `manifest-handoff-basename-mismatch`       | Manifest handoff artifact contains an unexpected payload basename.                     |
 | `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.                          |
+| `manifest-indeterminate-json-upload`       | Manifest upload state cannot be determined after an ambiguous upload attempt.          |
 | `bundle-byte-format-mismatch`              | Signed bundle bytes were extracted, reserialized, wrapped, or otherwise changed.       |
 | `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.                            |
 | `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                                    |
 | `handoff-schema-mismatch`                  | Cross-job artifact handoff omits or changes required core fields.                      |
 | `composition-handoff-substitution`         | Composition mapping trusts public outputs or deterministic names.                      |
 | `publisher-handoff-field-error`            | Publisher handoff uses missing, stale, or malformed field names.                       |
+| `publisher-workflow-schema-error`          | Publisher exposes or accepts unsupported public workflow inputs or secrets.            |
+| `publisher-permission-boundary-violation`  | Publisher job permissions combine authorities that must stay separate.                 |
 | `native-locator-malformed`                 | Native provenance locator is not valid diagnostic metadata.                            |
 | `native-locator-digest-mismatch`           | Native provenance locator digest differs from the sidecar bundle digest.               |
 | `sidecar-mismatch`                         | Sidecar bundle does not match the primary asset's provenance.                          |
+| `sidecar-digest-mismatch`                  | `sidecar-digest` does not equal the verified producer bundle SHA-256.                  |
 | `sidecar-upload-partial-failure`           | Primary release asset uploaded but sidecar upload failed afterward.                    |
+| `publisher-indeterminate-primary-upload`   | Primary release asset upload state cannot be determined after an ambiguous upload.     |
 | `duplicate-release-asset`                  | Release asset name already exists.                                                     |
 | `duplicate-sidecar-asset`                  | Deterministic sidecar asset name already exists before upload.                         |
 | `registry-linkage-mismatch`                | Published package does not match the provenance registry metadata.                     |
@@ -323,6 +340,12 @@ the initial `package-url` output, and that the reconstructed URL matches
 `externalParameters.publish.resolved_registry_url`, `externalParameters.package.name`, and
 `externalParameters.package.version`.
 
+The release-ref fixture set must prove that `externalParameters.source.ref`,
+`externalParameters.release.ref`, and the runtime-accepted ref are identical full tag refs, and that
+`externalParameters.release.version_tag` reconstructs that same ref. Fixtures with a short tag,
+branch ref, pull request ref, mismatched source/release refs, or mismatched version tag must fail
+with `release-ref-mismatch`.
+
 The custom-registry fixture set must prove that non-npmjs package identity and package version
 preflight checks are best-effort diagnostics: an unsupported custom registry may record
 `publish.package_identity_preexisting` or `publish.package_version_preexisting` as `null` when a
@@ -353,6 +376,12 @@ release manifest upload. Fixtures that extract only the Statement, reserialize t
 in a new envelope, or substitute a native attestation locator for the bundle file must fail with
 `bundle-byte-format-mismatch` or the narrower sidecar/provenance mismatch category.
 
+The duplicate JSON member fixture set must prove that signed SLSA Statement payloads fail before
+semantic policy validation when any JSON object contains duplicate member names after JSON string
+unescaping. Rejected fixtures must cover a top-level Statement duplicate, a nested predicate
+duplicate, a duplicate extension-field member, and escaped property spellings that decode to the
+same member name. These fixtures fail with `duplicate-json-member`.
+
 The npm publish permissions fixture set must prove that the initial npmjs production publish job has
 `contents: read`, `id-token: write`, no `attestations: write`, and no `packages: write`. A workflow
 that grants `packages: write` for the initial npmjs path fails with `excessive-publish-permission`.
@@ -367,6 +396,28 @@ failures: pre-existing primary or sidecar asset names fail before upload, while 
 transport failure after successful primary upload fails with `sidecar-upload-partial-failure` and
 reports `upload-result: partial-primary-uploaded`.
 
+The publisher fixture set must also include an ambiguous primary upload result. If same-run release
+lookup cannot prove that the primary asset was absent, or cannot prove that a same-name remote asset
+has the expected digest, the fixture must fail with `publisher-indeterminate-primary-upload` and
+report `upload-result: indeterminate-primary-upload`.
+
+The publisher workflow schema fixture set must prove that the standalone publisher accepts only the
+declared producer-neutral `workflow_call.inputs`, accepts no secrets, rejects target repository,
+custom token, raw artifact, overwrite, cross-run artifact, or provenance-bypass inputs, and treats
+empty optional JSON inputs as absent. Unsupported inputs or accepted secrets fail with
+`publisher-workflow-schema-error`.
+
+The publisher permission fixture set must prove that verification jobs are read-only, the release
+upload job has `contents: write` without signing, package publication, or linked metadata authority,
+and the optional metadata job has `artifact-metadata: write` without release mutation or signing
+authority. Excessive or missing permissions fail with `publisher-permission-boundary-violation` or a
+narrower permission category.
+
+The sidecar digest fixture set must prove that `sidecar-digest` is the 64-character lowercase
+SHA-256 digest of the exact verified producer bundle bytes and equals `producer-provenance-sha256`.
+It must be set after bundle verification even when sidecar upload later fails, and unset when bundle
+retrieval or digest verification fails. A mismatched value fails with `sidecar-digest-mismatch`.
+
 The native locator fixture set must prove that native provenance locators are diagnostic metadata
 only. A missing locator must not fail otherwise valid publisher verification. A locator with an
 unsupported type, non-`github.com` URL, repository mismatch, userinfo, query, fragment, malformed
@@ -378,11 +429,29 @@ failures: pre-existing manifest JSON or bundle names fail before upload, while a
 or transport failure after successful plain JSON upload fails with `manifest-partial-json-uploaded`
 and reports `manifest-upload-result: partial-json-uploaded`.
 
+The release manifest fixture set must include an ambiguous plain JSON upload result. If same-run
+release lookup cannot prove that the plain manifest was absent, or cannot prove that a same-name
+remote manifest has the expected digest, the fixture must fail with
+`manifest-indeterminate-json-upload` and report `manifest-upload-result: indeterminate-json-upload`.
+
 The release manifest generation fixture set must prove schema version `1` determinism: all producer
 and publisher `workflow_sha` values equal `release_commit_sha`; producer `builder_id` values are
 derived from `workflow_path` and `workflow_sha`; `producer_profiles` is sorted by `profile`; and
 `publisher_workflows` is sorted by `publisher`. Mismatched workflow SHAs fail with
 `manifest-workflow-sha-mismatch`; unsorted arrays fail with `manifest-entry-order-mismatch`.
+
+The release manifest generation fixture set must also prove annotated tag peeling and timestamp
+rules. Lightweight tags and annotated tags that peel to the expected commit pass. Missing tags,
+cycles, non-commit terminal objects, and terminal commits that differ from `release_commit_sha` fail
+with `manifest-tag-peel-mismatch`. A `generated_at` value with a timezone offset, leap second,
+subsecond precision, non-UTC form, invalid calendar value, or caller-supplied override fails with
+`manifest-generated-at-invalid` or `manifest-caller-override`.
+
+The release manifest handoff fixture set must prove the fixed schema version `1` internal basenames:
+`release-manifest-<version>.json`, `release-manifest-<version>.predicate.json`,
+`release-manifest-<version>.signing-input.json`, and `release-manifest-<version>.intoto.jsonl`. A
+handoff artifact with the expected digest but an unexpected payload basename must fail with
+`manifest-handoff-basename-mismatch`.
 
 The release manifest fixture set must also cover the production workflow public contract. Accepted
 fixtures run from `.github/workflows/release-manifest.yml` on a protected `refs/tags/v<version>` ref

@@ -223,22 +223,23 @@ byte-for-byte the same bundle that the producer emitted and the publisher verifi
 
 A verifier must reject provenance if any of the following are true:
 
-| Condition                                               | Rejection reason                  |
-| ------------------------------------------------------- | --------------------------------- |
-| `_type` is not `https://in-toto.io/Statement/v1`        | Wrong statement type              |
-| `predicateType` is not `https://slsa.dev/provenance/v1` | Wrong predicate type              |
-| Signature is missing or invalid                         | Signature mismatch                |
-| Signer identity is not trusted                          | Signer mismatch                   |
-| `builder.id` uses a branch, tag, or short SHA           | Builder identity policy violation |
-| `buildType` is not in the canonical namespace           | Build type policy violation       |
-| `externalParameters` is incomplete                      | Incomplete parameters             |
-| `externalParameters` contains unexpected fields         | Strict matching violation         |
-| `subject` contains zero or multiple entries             | Subject cardinality error         |
-| `subject[0].digest.sha256` is missing                   | Missing required digest           |
-| `subject[0].name` does not match the profile rule       | Subject name mismatch             |
-| Digest encoding is not lowercase hex                    | Digest encoding error             |
-| Sidecar, SBOM, or checksum is in `subject[0].digest`    | Subject digest scope error        |
-| Emitted Statement differs from validated signing inputs | Statement assembly mismatch       |
+| Condition                                                                                        | Rejection reason                  |
+| ------------------------------------------------------------------------------------------------ | --------------------------------- |
+| `_type` is not `https://in-toto.io/Statement/v1`                                                 | Wrong statement type              |
+| `predicateType` is not `https://slsa.dev/provenance/v1`                                          | Wrong predicate type              |
+| Signature is missing or invalid                                                                  | Signature mismatch                |
+| Signer identity is not trusted                                                                   | Signer mismatch                   |
+| Any JSON object in the signed Statement payload contains duplicate member names after unescaping | Duplicate JSON member error       |
+| `builder.id` uses a branch, tag, or short SHA                                                    | Builder identity policy violation |
+| `buildType` is not in the canonical namespace                                                    | Build type policy violation       |
+| `externalParameters` is incomplete                                                               | Incomplete parameters             |
+| `externalParameters` contains unexpected fields                                                  | Strict matching violation         |
+| `subject` contains zero or multiple entries                                                      | Subject cardinality error         |
+| `subject[0].digest.sha256` is missing                                                            | Missing required digest           |
+| `subject[0].name` does not match the profile rule                                                | Subject name mismatch             |
+| Digest encoding is not lowercase hex                                                             | Digest encoding error             |
+| Sidecar, SBOM, or checksum is in `subject[0].digest`                                             | Subject digest scope error        |
+| Emitted Statement differs from validated signing inputs                                          | Statement assembly mismatch       |
 
 ## Failure behavior
 
@@ -253,7 +254,8 @@ error category from the rejection matrix above.
 
 - Golden Statement fixture with valid `_type`, `predicateType`, `builder.id`, `buildType`, and
   `subject`.
-- Rejected fixtures for each row in the rejection matrix, including zero-subject and multi-subject
-  Statements.
+- Rejected fixtures for each row in the rejection matrix, including zero-subject, multi-subject,
+  top-level duplicate-member, nested predicate duplicate-member, duplicate extension-field, and
+  escaped duplicate-member Statements.
 - A fixture proving that the signing adapter payload matches the Statement implied by the
   Windlass-verified subject inputs, predicate type, and predicate.
