@@ -13,7 +13,10 @@ the package to an npm registry through a three-job digest-verified graph.
   [0037](../decisions/0037-define-initial-verification-deliverables.md),
   [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
   [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
-  [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md)
+  [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
+  [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
+  [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),

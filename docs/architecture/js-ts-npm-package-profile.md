@@ -12,7 +12,8 @@ profile.
   [0027](../decisions/0027-use-github-hosted-ubuntu-2404-and-node-24-runtime.md),
   [0030](../decisions/0030-accept-registry-url-while-guaranteeing-only-npmjs-semantics.md),
   [0032](../decisions/0032-constrain-manual-dispatch-releases-to-version-tags.md),
-  [0034](../decisions/0034-do-not-support-private-dependency-credentials-in-initial-profile.md)
+  [0034](../decisions/0034-do-not-support-private-dependency-credentials-in-initial-profile.md),
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
