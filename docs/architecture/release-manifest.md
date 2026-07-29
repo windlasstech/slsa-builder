@@ -95,6 +95,12 @@ from the tagged checkout, when any generated workflow SHA differs from `release_
 unknown producer or publisher entry without a later schema version or ADR-backed spec that admits
 it.
 
+The release tag target is resolved by recursively peeling annotated tags to a terminal Git object.
+The terminal object must be a commit. The generator and verifier must reject a missing tag, a tag
+object cycle, an annotated tag chain whose terminal object is not a commit, or any resolved commit
+that differs from `release_commit_sha`. Lightweight tags are already terminal commit refs and are
+accepted only when all other protected tag and release checks pass.
+
 ### Manifest entry ordering
 
 Because the signed manifest digest is computed over the manifest JSON value and JSON arrays preserve
@@ -316,7 +322,10 @@ resulting SHA-256 digest with the Statement subject digest.
 - `release_tag`: exact Git tag ref, for example `refs/tags/v1.2.3`.
 - `release_commit_sha`: commit SHA that the tag points to.
 - `generated_at`: ISO 8601 UTC timestamp in the fixed lexical form `YYYY-MM-DDTHH:mm:ssZ`, for
-  example `2026-07-07T12:00:00Z`.
+  example `2026-07-07T12:00:00Z`. It is the manifest generation job's UTC wall-clock time captured
+  once after all release identity inputs have been validated and before canonicalization. It is
+  diagnostic release metadata, not a reproducibility input; rerunning the same release after cleanup
+  may produce a different timestamp while every trust mapping remains identical.
 - `producer_profiles`: array of source-to-artifact producer entries. Each entry maps a profile name
   to the trusted workflow SHA, `builder.id`, and `buildType`.
 - `publisher_workflows`: array of publisher workflow entries. Each entry maps a publisher name to a
@@ -333,6 +342,8 @@ resulting SHA-256 digest with the Statement subject digest.
   SHAs.
 - `generated_at` must match `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$` exactly.
   Verifiers may parse it with standard ISO 8601 timestamp parsers after this lexical validation.
+  Verifiers must reject leap seconds, timezone offsets, subsecond precision, non-UTC timestamps, and
+  timestamps that are not exactly representable in that lexical form.
 - `producer_profiles` must contain at least the `js-ts-npm-package` entry for a release that ships
   the npm producer workflow.
 - Each `producer_profiles[]` entry must include `profile`, `workflow_path`, `workflow_sha`,
@@ -462,15 +473,20 @@ The initial handoff from `manifest-generate` to `manifest-sign` contains these s
 handles and digests. Each row maps to the core same-run artifact handoff schema with
 `transport: github-actions-artifact` and `digest.algorithm: sha256`:
 
-| Handoff payload         | `artifact_name` output             | `payload_file_name`                          | `payload_kind`               | `digest.value` output           |
-| ----------------------- | ---------------------------------- | -------------------------------------------- | ---------------------------- | ------------------------------- |
-| Plain manifest JSON     | `manifest-json-artifact-name`      | `release-manifest-<version>.json`            | `release-manifest`           | `manifest-json-sha256`          |
-| Manifest predicate JSON | `manifest-predicate-artifact-name` | Profile-defined manifest predicate basename. | `release-manifest-predicate` | `manifest-predicate-sha256`     |
-| Signing input metadata  | `manifest-signing-input-name`      | Profile-defined signing input JSON basename. | `signing-input-metadata`     | `manifest-signing-input-sha256` |
+| Handoff payload         | `artifact_name` output             | `payload_file_name`                             | `payload_kind`               | `digest.value` output           |
+| ----------------------- | ---------------------------------- | ----------------------------------------------- | ---------------------------- | ------------------------------- |
+| Plain manifest JSON     | `manifest-json-artifact-name`      | `release-manifest-<version>.json`               | `release-manifest`           | `manifest-json-sha256`          |
+| Manifest predicate JSON | `manifest-predicate-artifact-name` | `release-manifest-<version>.predicate.json`     | `release-manifest-predicate` | `manifest-predicate-sha256`     |
+| Signing input metadata  | `manifest-signing-input-name`      | `release-manifest-<version>.signing-input.json` | `signing-input-metadata`     | `manifest-signing-input-sha256` |
 
 The manifest predicate JSON must parse to the same JSON value as the plain manifest JSON. The
 signing input metadata is transport metadata only; the manifest JSON value and the digest above
 remain the trust inputs.
+
+The internal handoff basenames above are fixed for schema version `1`. A receiving job must reject
+an artifact whose sole file has a different basename, even when the file contents have the expected
+digest, because the basename is part of the closed same-run handoff contract and protects later jobs
+from accidentally consuming stale or misrouted artifacts.
 
 ### `manifest-sign`
 
@@ -545,6 +561,21 @@ through the artifact handle re-exported by `manifest-sign`.
   without deleting or clobbering the primary manifest. The failure output must make the partial
   state explicit.
 
+If the GitHub API request or network transport becomes ambiguous after upload starts, the upload job
+must perform a same-run release lookup for the expected manifest artifact names and digests. When
+the lookup proves that neither manifest artifact exists, the result remains `failed-before-upload`.
+When it proves that the plain JSON manifest exists with the expected digest but the signed bundle is
+absent, the result is `partial-json-uploaded`. When the lookup cannot determine whether the plain
+JSON manifest committed, or finds an artifact with the expected name but unknown or mismatched
+digest, the result is `indeterminate-json-upload` and the workflow fails without uploading,
+regenerating, or re-signing any manifest artifact.
+
+Reruns must use the same duplicate-preflight behavior as first runs. If a rerun observes either
+manifest artifact already present, it must fail before upload rather than overwriting, deleting,
+repairing, or treating the existing artifact as proof that the current run succeeded. Operators must
+resolve partial or indeterminate release state outside the production manifest workflow before
+rerunning it.
+
 The observable manifest upload result is reported through `manifest-upload-result`:
 
 - `completed`: the plain JSON manifest and signed bundle were both uploaded.
@@ -552,6 +583,9 @@ The observable manifest upload result is reported through `manifest-upload-resul
   failed before the plain JSON manifest was uploaded.
 - `partial-json-uploaded`: the plain JSON manifest upload succeeded, but signed bundle upload
   failed.
+- `indeterminate-json-upload`: the workflow cannot prove whether the plain JSON manifest upload
+  committed, or cannot prove that the remote artifact with the manifest name has the expected
+  digest.
 
 When `manifest-upload-result` is `partial-json-uploaded`, the workflow fails, the plain JSON
 manifest may already exist on the target release, and the signed release manifest bundle is absent.
@@ -596,7 +630,8 @@ A release manifest verifier must check:
 3. The predicate type is `https://slsa-builder.dev/predicates/release-manifest/v1`.
 4. The schema version is supported.
 5. The `release_tag` matches the expected tag.
-6. The `release_commit_sha` matches the tag.
+6. The `release_commit_sha` matches the tag after recursively peeling annotated tags to a terminal
+   commit.
 7. Each producer profile entry maps to the expected `workflow_sha`, `builder_id`, and `build_type`.
 8. Each publisher workflow entry maps to the expected `workflow_path`, `workflow_sha`, and `role`,
    and does not claim a `builder_id` or `build_type`.
@@ -639,7 +674,12 @@ The release manifest workflow must fail before any mutation when:
 - A computed digest does not match the handoff digest.
 - The Statement predicate JSON value does not equal the plain manifest JSON value.
 - The release tag or target release does not exist.
+- The release tag cannot be peeled to a terminal commit or peels to a commit that differs from
+  `release_commit_sha`.
 - A manifest artifact with the same name already exists.
+- A handoff artifact contains a file whose basename differs from the fixed schema version `1`
+  basename for that payload kind.
+- The upload job cannot determine whether a started plain manifest upload committed remotely.
 - The signing adapter cannot produce a valid bundle.
 - The upload job lacks the required `contents: write` permission for release asset upload.
 - The upload job has prohibited signing authority, including `id-token: write`,
@@ -652,5 +692,7 @@ The release manifest workflow must fail before any mutation when:
 - Rejected fixtures for wrong signer, wrong predicate type, the superseded
   `buildtype.dev/windlass/slsa-builder/release-manifest/v1` predicate URI, wrong schema version,
   wrong workflow SHA, mismatched builder/buildType, publisher entry with buildType, non-canonical
-  RFC 8785 JCS manifest digest, Statement predicate JSON value mismatch, and duplicate asset upload.
+  RFC 8785 JCS manifest digest, malformed `generated_at`, tag peel failure, wrong internal handoff
+  basename, Statement predicate JSON value mismatch, duplicate asset upload, and indeterminate JSON
+  upload.
 - A fixture proving that `manifest-upload` cannot re-sign or mutate the manifest.
