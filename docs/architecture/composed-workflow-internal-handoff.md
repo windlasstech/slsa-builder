@@ -9,7 +9,8 @@ Release asset publisher are composed inside one workflow graph.
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
-  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
   [npm-to-release-asset composition](npm-to-release-asset-composition.md),
@@ -95,7 +96,8 @@ The handoff manifest JSON object must use this closed schema shape. Unknown fiel
     "source_revision": "fedcba9876543210fedcba9876543210fedcba98"
   },
   "subject": {
-    "name": "windlass-slsa-builder-1.2.3.tgz",
+    "name": "pkg:npm/%40windlass/slsa-builder@1.2.3",
+    "sha512": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
   },
   "release": {
@@ -142,8 +144,14 @@ The handoff manifest JSON object must use this closed schema shape. Unknown fiel
   and the trusted release manifest or explicit policy.
 - `trusted_producer.source_repository` and `trusted_producer.source_revision` must match the
   producer provenance `externalParameters.source` values required by the selected producer policy.
-- `subject.name` must equal `primary_artifact.payload_file_name` and `release.final_asset_name`.
-- `subject.sha256` must equal `primary_artifact.sha256`.
+- For the initial npm composition, `subject.name` must equal the npm Package URL subject in the
+  producer provenance, not `primary_artifact.payload_file_name` or `release.final_asset_name`.
+- `subject.sha512` must equal the producer provenance `subject[0].digest.sha512` and the SHA-512 of
+  the primary artifact bytes.
+- `subject.sha256` must equal `primary_artifact.sha256` and the producer provenance
+  `subject[0].digest.sha256`.
+- `primary_artifact.payload_file_name` must equal `release.final_asset_name` for the initial npm
+  composition.
 - `release.tag` must be the full Git tag ref, for example `refs/tags/v1.2.3`, that identifies the
   existing Git tag and target GitHub Release. A short tag name such as `v1.2.3` is invalid in the
   handoff manifest.
@@ -203,10 +211,11 @@ The composed workflow must fail before invoking the publisher when:
   release tag, or final asset name is missing or malformed;
 - `release.tag` is not a full `refs/tags/<tag-name>` ref;
 - `producer_provenance.sha256` is not a 64-character lowercase hexadecimal SHA-256 digest;
+- the initial npm composition omits `subject.sha512` or records a malformed subject digest;
 - `native_provenance_locators` or `linked_artifact_settings` is present but violates the publisher
   contract schema for the mapped handoff field;
-- `subject.name`, `primary_artifact.payload_file_name`, and `release.final_asset_name` are not
-  identical; or
+- the npm Package URL subject, provenance subject, or package identity policy do not match;
+- `primary_artifact.payload_file_name` and `release.final_asset_name` are not identical; or
 - the mapping job attempts to construct publisher inputs from caller-controlled values rather than
   the verified handoff manifest.
 
@@ -214,9 +223,10 @@ The composed workflow must fail before invoking the publisher when:
 
 - Positive fixture: a valid npm producer handoff manifest maps to the exact publisher inputs.
 - Rejected fixtures: missing internal handoff job outputs, manifest digest mismatch, malformed JSON,
-  duplicate object member names, unknown fields, missing `producer_provenance.sha256`, subject/final
-  asset name mismatch, malformed optional locator/settings fields, caller-supplied artifact name
-  substitution, and deterministic-name-only substitution.
+  duplicate object member names, unknown fields, missing `producer_provenance.sha256`, missing
+  `subject.sha512`, npm Package URL subject mismatch, tarball payload/final asset name mismatch,
+  malformed optional locator/settings fields, caller-supplied artifact name substitution, and
+  deterministic-name-only substitution.
 - A YAML review checklist proving that the composed graph keeps the handoff manifest internal to the
   same workflow run and does not expose internal artifact names as standalone producer public
   outputs.

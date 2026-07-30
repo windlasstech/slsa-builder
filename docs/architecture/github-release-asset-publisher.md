@@ -16,7 +16,8 @@ ecosystem-produced artifacts, not a source-to-artifact builder.
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
-  [0062](../decisions/0062-intersect-trusted-producer-policies.md)
+  [0062](../decisions/0062-intersect-trusted-producer-policies.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -78,7 +79,7 @@ composition primitive, not the recommended npm caller surface selected by the pu
 | ----------------------------------- | ------ | -------- | ------- | ------------------------------------------------------------- |
 | `primary-artifact-name`             | string | yes      | none    | Same-run artifact containing exactly one primary payload.     |
 | `expected-sha256`                   | string | yes      | none    | 64 lowercase hexadecimal SHA-256 of the primary payload.      |
-| `final-asset-name`                  | string | yes      | none    | Safe basename that equals the producer subject name.          |
+| `final-asset-name`                  | string | yes      | none    | Safe basename that will be uploaded as the release asset.     |
 | `release-tag`                       | string | yes      | none    | Full `refs/tags/<tag-name>` ref for an existing release.      |
 | `producer-provenance-artifact-name` | string | yes      | none    | Same-run artifact containing exactly one signed bundle.       |
 | `producer-provenance-sha256`        | string | yes      | none    | 64 lowercase hexadecimal SHA-256 of the signed bundle.        |
@@ -161,7 +162,7 @@ following semantic fields:
 | `producer-provenance-sha256`        | yes      | Expected SHA-256 of the provenance bundle bytes, lowercase hex.         |
 | `trusted-builder-id`                | yes      | Expected upstream producer `builder.id`.                                |
 | `trusted-build-type`                | yes      | Expected upstream producer `buildType`.                                 |
-| `expected-subject-name`             | yes      | Expected upstream subject name, must match `final-asset-name`.          |
+| `expected-subject-name`             | yes      | Expected upstream subject name under the selected producer policy.      |
 | `expected-subject-sha256`           | yes      | Expected upstream subject SHA-256, lowercase hex.                       |
 | `source-repository`                 | yes      | Source repository for producer policy.                                  |
 | `source-revision`                   | yes      | Source revision for producer policy.                                    |
@@ -188,11 +189,12 @@ must be 64-character lowercase hexadecimal strings. `release-tag` must be a full
 form `refs/tags/<tag-name>` and must identify the target existing GitHub Release. A short tag name
 such as `v1.2.3`, a branch ref, a pull request ref, an empty tag name, or a ref containing path
 traversal or ASCII control characters must be rejected before upload. `final-asset-name` must
-satisfy the release asset name rules below and must equal `expected-subject-name`.
-`source-repository` must be a canonical HTTPS repository URL, and `source-revision` must be the full
-immutable source revision expected by the producer policy; for GitHub-hosted Git sources this is a
-40-character lowercase Git commit SHA. For the initial npm composition, `source-repository` must use
-the canonical GitHub repository URL rules defined by the
+satisfy the release asset name rules below. `expected-subject-name` must satisfy the selected
+producer policy; for the initial npm composition it is an npm Package URL and not the final release
+asset name. `source-repository` must be a canonical HTTPS repository URL, and `source-revision` must
+be the full immutable source revision expected by the producer policy; for GitHub-hosted Git sources
+this is a 40-character lowercase Git commit SHA. For the initial npm composition,
+`source-repository` must use the canonical GitHub repository URL rules defined by the
 [JS/TS npm provenance and publish spec](js-ts-npm-provenance-publish.md). The publisher must reject
 a `source-repository` value that cannot be canonicalized by those rules or that does not exactly
 match the canonical `externalParameters.source.repository` value in the verified producer
@@ -212,9 +214,9 @@ branch-like, tag-like, or mismatched source identity must fail before upload.
 
 ### Final release asset name rules
 
-`final-asset-name` is the basename that will be uploaded to the target GitHub Release and the value
-that must appear in the upstream producer provenance subject. The publisher must validate it before
-retrieving or uploading release assets.
+`final-asset-name` is the basename that will be uploaded to the target GitHub Release. The publisher
+must validate it before retrieving or uploading release assets and must verify that the selected
+producer policy binds it to the producer artifact bytes.
 
 The value is invalid when any of the following are true:
 
@@ -223,7 +225,6 @@ The value is invalid when any of the following are true:
 - It contains `/`, `\\`, NUL, or any ASCII control character.
 - It is exactly `.` or `..`.
 - It contains a path traversal segment when interpreted as slash- or backslash-separated text.
-- It differs from `expected-subject-name`.
 - It differs from the basename of the single payload file inside the `primary-artifact-name` handoff
   artifact.
 - The derived sidecar name `<final-asset-name>.intoto.jsonl` would violate the same character and
@@ -274,10 +275,14 @@ Before publication, the publisher must verify the upstream producer provenance:
 5. The `buildType` matches the trusted producer policy.
 6. The `subject[0].digest.sha256` matches `expected-subject-sha256`, `expected-sha256`, and the
    bytes to upload.
-7. The `subject[0].name` exactly matches the final release asset name.
-8. Source repository, source revision, and other producer `externalParameters` match the trusted
+7. The `subject[0].name` exactly matches `expected-subject-name` under the selected producer policy.
+8. The final release asset name is authorized by producer policy and handoff fields. For the initial
+   npm composition, this means the asset name matches the pack-produced tarball filename recorded in
+   producer provenance and the same-run handoff, while `subject[0].name` remains the npm Package
+   URL.
+9. Source repository, source revision, and other producer `externalParameters` match the trusted
    producer policy.
-9. No unexpected `externalParameters` are present when the policy requires strict matching.
+10. No unexpected `externalParameters` are present when the policy requires strict matching.
 
 When the publisher has both an explicit producer policy from the handoff or profile configuration
 and a verified signed release manifest policy, the effective producer policy is the intersection of
@@ -288,11 +293,18 @@ manifest relax explicit producer policy, must not let explicit producer policy b
 authenticated manifest constraint, and must not use either-source-allowed or last-writer-wins
 behavior.
 
-## Final release asset subject name
+## Final release asset and producer subject binding
 
-The final release asset name must be identical to the upstream producer provenance
-`subject[0].name`. If they differ, the publisher must fail before upload. This avoids the need for a
-separate signed name-mapping predicate.
+The final release asset name must be bound to the upstream producer provenance by the selected
+producer policy. Producer profiles whose subject name is their release asset basename can satisfy
+this by requiring `final-asset-name` to equal `subject[0].name`. The initial npm composition cannot:
+ADR 0064 requires the npm producer subject to be the package Package URL. For npm producer
+provenance, the publisher must therefore verify that `subject[0].name` matches the expected npm
+Package URL and separately verify that `final-asset-name` matches the pack-produced tarball filename
+recorded by the producer policy and handoff fields.
+
+If the selected producer policy cannot bind the final release asset name to the verified producer
+artifact bytes and provenance subject, the publisher must fail before upload.
 
 ## Digest semantics
 
@@ -541,7 +553,8 @@ The publisher must fail before primary asset or sidecar upload when:
   sidecar asset name is already present.
 - Upstream producer provenance is missing, unsigned, unverifiable, or untrusted.
 - The upstream subject digest does not match the bytes to upload.
-- The upstream subject name differs from the final asset name.
+- The upstream subject name differs from `expected-subject-name`.
+- The selected producer policy cannot bind the final asset name to the verified producer artifact.
 - The producer policy does not allow the upstream `builder.id`, `buildType`, source, release ref, or
   `externalParameters`.
 - Explicit producer policy and verified signed release manifest policy conflict or have an empty
@@ -560,11 +573,11 @@ production path.
 ## TDD and fixtures
 
 - Positive fixture: a valid producer handoff results in a release asset and a sidecar.
-- Rejected fixtures: missing provenance, wrong subject name, digest mismatch, stale
-  `artifact-artifact-name` handoff field, duplicate asset name, non-existent release, raw artifact
-  bypass, pre-existing deterministic sidecar name, sidecar upload failure after primary upload,
-  indeterminate primary upload, malformed JSON input for complex handoff fields, excessive job
-  permissions, and attempted re-signing of producer provenance.
+- Rejected fixtures: missing provenance, wrong subject name, missing final-asset binding, digest
+  mismatch, stale `artifact-artifact-name` handoff field, duplicate asset name, non-existent
+  release, raw artifact bypass, pre-existing deterministic sidecar name, sidecar upload failure
+  after primary upload, indeterminate primary upload, malformed JSON input for complex handoff
+  fields, excessive job permissions, and attempted re-signing of producer provenance.
 - A YAML review checklist proving the publisher `workflow_call` schema does not expose unsupported
   target repository, custom token, raw artifact, overwrite, or bypass inputs.
 - A YAML review checklist proving the publisher does not combine signing, release mutation, package
