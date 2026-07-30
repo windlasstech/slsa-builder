@@ -468,6 +468,72 @@ Producer-side verification must reject the bundle before publish when any requir
 has the wrong type, has an unexpected value, when `runtime.npm_version` is below `11.5.1`, or when
 an unknown field is present.
 
+## JS/TS npm `resolvedDependencies` schema
+
+The JS/TS npm package profile must emit exactly one `resolvedDependencies` entry for the selected
+lockfile that constrained the release install. The entry is a SLSA v1 `ResourceDescriptor` with this
+closed shape:
+
+```json
+[
+  {
+    "name": "lockfile",
+    "uri": "git+https://github.com/example/project@0123456789abcdef0123456789abcdef01234567#pnpm-lock.yaml",
+    "digest": {
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    "annotations": {
+      "package_manager": "pnpm",
+      "package_manager_root": ".",
+      "selection_source": "packageManager",
+      "selection_manifest_path": "package.json",
+      "selection_lockfile_path": "pnpm-lock.yaml",
+      "stale_non_selected_lockfiles": []
+    }
+  }
+]
+```
+
+The initial profile does not emit one `resolvedDependencies` entry per installed transitive package.
+The selected lockfile descriptor is the verifier-relevant dependency graph input. Consumer-side
+verifiers must not require a generated dependency list for the initial profile, and producer-side
+verification must reject unexpected `resolvedDependencies` entries or unknown annotation members
+under strict policy.
+
+Required descriptor rules:
+
+- `resolvedDependencies` must contain exactly one entry named `lockfile`.
+- `uri` must be
+  `git+<externalParameters.source.repository>@<externalParameters.source.revision>#<selection_lockfile_path>`.
+- The URI fragment must be the repository-root-relative selected lockfile path. It must not be
+  empty, absolute, contain path traversal, contain backslashes, point outside the repository, or
+  name a non-selected lockfile.
+- `digest.sha256` must be the SHA-256 digest of the selected lockfile bytes as 64 lowercase
+  hexadecimal characters.
+- `annotations.package_manager` must equal `externalParameters.package_manager.name`.
+- `annotations.package_manager_root` must equal `externalParameters.package_manager.root`.
+- `annotations.selection_source` must equal `externalParameters.package_manager.selection_source`.
+- `annotations.selection_manifest_path` must equal
+  `externalParameters.package_manager.selection_manifest_path` when manifest metadata selected the
+  package manager, and must be `null` when `selection_source` is `lockfile`.
+- `annotations.selection_lockfile_path` must be the repository-root-relative selected lockfile path
+  for the package manager root, regardless of whether manifest metadata or lockfile inference
+  selected the package manager.
+- `annotations.stale_non_selected_lockfiles` must be an array. It contains the same paths as
+  `externalParameters.package_manager.ignored_lockfile_paths` when that optional field is present,
+  and is empty otherwise.
+
+For manifest-selected npm, pnpm, and Yarn releases, `externalParameters.package_manager` records the
+manifest source that selected the package manager while `resolvedDependencies[0]` records the
+selected lockfile path and digest. For lockfile-inferred npm releases, both
+`externalParameters.package_manager.selection_lockfile_path` and
+`resolvedDependencies[0].annotations.selection_lockfile_path` identify `package-lock.json`.
+
+The profile must fail before signing when the selected lockfile descriptor is missing, has the wrong
+digest, points to a non-selected or stale lockfile, contains extra entries, contains unknown
+annotation members, omits stale lockfile diagnostics that were recorded in `externalParameters`, or
+treats stale non-selected lockfiles as selected dependency graph inputs.
+
 ## Digest semantics
 
 - The provenance `subject[0].digest` must include `sha256`.

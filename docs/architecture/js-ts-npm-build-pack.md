@@ -269,6 +269,13 @@ warn about those ignored lockfiles and record their repository-root-relative pat
 but reviewers and verifiers must not treat their presence as a package-manager conflict or as an
 input to the dependency graph used by the selected package manager's frozen install command.
 
+The selected lockfile path and digest feed the JS/TS npm `resolvedDependencies` lockfile descriptor
+defined in the provenance and publish spec. `externalParameters.package_manager` records how the
+package manager was selected; `resolvedDependencies[0]` records the selected lockfile bytes that
+constrained the dependency graph. Stale non-selected lockfiles may be copied into both
+`externalParameters.package_manager.ignored_lockfile_paths` and the lockfile descriptor annotations
+as diagnostics, but they must not become separate dependency descriptors or selected graph inputs.
+
 ## Corepack for pnpm and Yarn
 
 - pnpm and Yarn must be managed by Corepack.

@@ -153,8 +153,17 @@ decisions. If a field affects trust, it must be in `externalParameters`.
 
 ## `resolvedDependencies`
 
-The profile may record resolved dependencies when they are available and verifier-relevant. For the
-JS/TS npm profile, this includes the installed package versions and lockfile information.
+The profile may record resolved dependencies when they are available and verifier-relevant. The
+common contract does not define a fallback `resolvedDependencies` schema; each profile must define
+the complete shape it emits and the strict matching policy for that shape.
+
+For the initial JS/TS npm profile, `resolvedDependencies` records the selected lockfile descriptor
+that constrained the release install. It does not enumerate every installed package version as a
+separate `ResourceDescriptor`. The selected lockfile is the verifier-relevant dependency graph
+input; package versions are represented by the lockfile bytes and digest rather than by a generated
+transitive dependency list. Non-selected supported lockfiles may appear only as stale diagnostics in
+the profile-defined descriptor annotations and must not be treated as selected dependency graph
+inputs.
 
 ## `runDetails`
 
