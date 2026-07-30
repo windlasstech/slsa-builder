@@ -385,6 +385,10 @@ Type and nullability rules:
   `access`, `tag`, and `provenance`; it must not contain `directory` because
   `publishConfig.directory` is rejected before pack. `registry`, `access`, and `tag` are strings
   when present; `provenance` is boolean when present. Unknown `publish_config` members are rejected.
+  This normalized object is intentionally narrower than the source manifest's `publishConfig`:
+  source members outside `registry`, `access`, `tag`, `provenance`, and `directory` are ignored for
+  verifier-relevant publish intent, are not passed through as normalized policy, and must not cause
+  rejection solely because they exist.
 - `publish.resolved_registry_url` is the normalized effective registry URL: absolute `https:`,
   lowercase scheme and host, no userinfo, no query, no fragment, no default port `443`, path `/`,
   and exactly one trailing slash.
@@ -474,7 +478,9 @@ The schema permits these optional fields only when the value is known and verifi
 
 - `package.publish_config_raw`: diagnostic copy of the source manifest `publishConfig` when needed
   for fixture debugging. It must be a JSON object, must not contain secrets, and is not used to
-  relax the normalized `publish.publish_config` schema.
+  relax the normalized `publish.publish_config` schema. It may contain source `publishConfig`
+  members that were ignored as non-verifier-relevant publish intent, but verifiers must not derive
+  policy from those ignored members.
 - `package.packed_files`: array of packed file paths as strings in package archive order.
 - `package.consumer_surface`: object containing only packed `exports`, `main`, `type`, `bin`,
   `types`, `typings`, `typesVersions`, and `files` fields when present. Values are copied from the

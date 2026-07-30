@@ -206,6 +206,14 @@ Resolution rules:
   provenance submission.
 - `publishConfig.directory` is unsupported in the initial profile and must be rejected because it
   can redirect the packed package root away from the selected `package-directory`.
+- Other source `publishConfig` members that do not affect registry selection, dist-tag selection,
+  access selection, provenance enablement, or package-root selection are not verifier-relevant
+  publish intent. Their presence in the source manifest must not by itself fail the production
+  profile. Implementations must ignore them for publish intent resolution and must not pass them to
+  `npm publish` unless another rule in this spec explicitly allows that behavior. When useful for
+  fixture debugging, they may appear only in the diagnostic `package.publish_config_raw` field
+  defined by the provenance spec; they must not appear in the normalized `publish.publish_config`
+  object.
 
 Conflict rules:
 

@@ -139,16 +139,20 @@ type.
 
 ## Canonical artifacts
 
-Every release produces two manifest artifacts:
+Every production release publishes exactly two release manifest assets to the GitHub Release:
 
 1. **Plain JSON manifest** — human-readable and machine-parseable, but not a trust root by itself.
 2. **Signed Sigstore bundle** — the canonical trust root. The bundle payload is an in-toto Statement
    whose `predicate` is the same JSON value as the plain JSON manifest. The trust digest is computed
    from that value using RFC 8785 JSON Canonicalization Scheme (JCS), as defined below.
 
-### Artifact names
+These are the only release assets produced by the release manifest workflow. The workflow also uses
+additional same-run GitHub Actions artifacts as internal handoff material between jobs; those
+internal artifacts are not release assets and are not public distribution artifacts.
 
-The release manifest artifacts have the following fixed filenames, derived from the
+### Release asset names
+
+The release manifest release assets have the following fixed filenames, derived from the
 `release_version` value:
 
 ```text
@@ -163,7 +167,7 @@ release-manifest-1.2.3.json
 release-manifest-1.2.3.intoto.jsonl
 ```
 
-These names are fixed for the initial release manifest schema version.
+These release asset names are fixed for the initial release manifest schema version.
 
 ## Release manifest JSON schema
 
@@ -472,9 +476,11 @@ manifest-generate -> manifest-sign -> manifest-upload
   - release mutation authority
   - long-lived signing credentials
 
-The initial handoff from `manifest-generate` to `manifest-sign` contains these same-run artifact
-handles and digests. Each row maps to the core same-run artifact handoff schema with
-`transport: github-actions-artifact` and `digest.algorithm: sha256`:
+The initial handoff from `manifest-generate` to `manifest-sign` contains these same-run GitHub
+Actions artifact handles and digests. These are internal workflow artifacts used only for job
+handoff. They are distinct from the two release manifest assets published to the GitHub Release.
+Each row maps to the core same-run artifact handoff schema with `transport: github-actions-artifact`
+and `digest.algorithm: sha256`:
 
 | Handoff payload         | `artifact_name` output             | `payload_file_name`                             | `payload_kind`               | `digest.value` output           |
 | ----------------------- | ---------------------------------- | ----------------------------------------------- | ---------------------------- | ------------------------------- |
