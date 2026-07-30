@@ -16,7 +16,8 @@ profile.
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
-  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
+  [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -380,8 +381,10 @@ Rejected `package-url` examples for the initial profile:
 - `https://registry.npmjs.org/left-pad/latest` because dist-tags are not version identifiers for
   this output.
 
-If a future profile needs a canonical Package URL, it must define a separate field such as
-`package-purl` or `externalParameters.package.package_purl`; it must not overload `package-url`.
+The signed npm provenance Statement subject is a Package URL as defined by the
+[provenance and publish spec](js-ts-npm-provenance-publish.md#npm-package-subject-naming). That
+subject identity must not be exposed by overloading the public `package-url` output or
+`externalParameters.package.package_url`, both of which remain registry package-version URLs.
 
 ## Supported caller triggers
 

@@ -12,7 +12,8 @@ common contract.
   [0037](../decisions/0037-define-initial-verification-deliverables.md),
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
-  [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md)
+  [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
@@ -92,8 +93,8 @@ Must be exactly `https://slsa.dev/provenance/v1`. Any other value is rejected.
 - That single entry is the primary artifact and is addressed as `subject[0]` by verifier policy.
 - `subject[0].name` must be the canonical name defined by the profile.
 - `subject[0].digest` must include at least `sha256`.
-- Additional digest algorithms may be present if the profile requires them (for example, npm tarball
-  `sha512`).
+- Additional digest algorithms may be present if the profile requires them. The JS/TS npm profile
+  requires tarball `sha512` alongside `sha256` for its Package URL subject.
 - The digest value must be lowercase hexadecimal without a prefix.
 - Checksum files, SBOMs, and provenance sidecars must not appear in `subject[0].digest`.
 - Checksum files, SBOMs, provenance sidecars, and secondary artifacts must not be added as

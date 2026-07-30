@@ -18,7 +18,8 @@ the package to an npm registry through a three-job digest-verified graph.
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
   [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
-  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md)
+  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -179,21 +180,27 @@ Every receiving job must:
 
 ## npm package subject naming
 
-The `subject[0].name` in the provenance Statement is the packed tarball file name, not the npm
-package identity. The subject name must exactly match the tarball file name that the profile
-publishes to npm and may later hand off to the GitHub Release asset publisher.
+The `subject[0].name` in the provenance Statement is the npm Package URL for the package version
+being published, not the packed tarball file name. The subject name must exactly match the Package
+URL that npm CLI derives for `npm publish --provenance-file`.
 
 For example:
 
 ```text
-windlass-slsa-builder-1.2.3.tgz
+pkg:npm/%40windlass/slsa-builder@1.2.3
 ```
 
-The npm package identity is recorded in `externalParameters.package.name` and
-`externalParameters.package.version`.
+The npm package identity is also recorded in `externalParameters.package.name` and
+`externalParameters.package.version`. The tarball filename remains verifier-relevant through
+`externalParameters.package.tarball_name`, the tarball artifact handoff, and any GitHub Release
+asset handoff. It is not the npm provenance Statement subject name.
 
 The profile must fail before signing when the tarball name is empty, contains a path separator, is
 not the basename of the pack-produced tarball path, or does not end in `.tgz`.
+
+The profile must fail before signing when it cannot derive an npm Package URL subject from the
+validated package name and version, when the derived subject is empty or malformed, or when the
+subject differs from the npm Package URL that npm CLI will validate for the package being published.
 
 ## JS/TS npm `externalParameters` schema
 
@@ -335,7 +342,8 @@ Type and nullability rules:
 - `package.name`, `package.version`, and `package.private` must come from the validated source
   manifest.
 - `package.private` must be `false`.
-- `package.tarball_name` must equal `subject[0].name`.
+- `package.tarball_name` must equal the basename of the pack-produced tarball and must not be
+  treated as the npm provenance subject name.
 - `package.package_url` must be the registry package-version URL reconstructed from
   `publish.resolved_registry_url`, `package.name`, and `package.version` according to the
   `package-url` rules in the public profile spec. It must not be a Package URL (`pkg:npm/...`).
@@ -547,9 +555,11 @@ treats stale non-selected lockfiles as selected dependency graph inputs.
 
 ## Digest semantics
 
-- The provenance `subject[0].digest` must include `sha256`.
-- The provenance may also include `sha512` as lowercase hexadecimal for npm integrity compatibility.
-- The `sha256` digest is the canonical digest for cross-job handoff and verifier comparison.
+- The provenance `subject[0].digest` must include `sha512` and `sha256` for the same packed tarball
+  bytes.
+- The `sha512` digest is required for npm CLI and registry-facing `--provenance-file` compatibility.
+- The `sha256` digest is the canonical digest for cross-job handoff and Windlass verifier
+  comparison.
 - Public workflow output `package-tarball-sha512` is the tarball SHA-512 digest as 128 lowercase
   hexadecimal characters.
 - The npm registry SRI integrity string is not stored in `subject[0].digest` and is not a public
@@ -570,8 +580,8 @@ mode. Windlass supplies only the adapter inputs supported by that mode:
 
 | Adapter input    | Required value                                                               |
 | ---------------- | ---------------------------------------------------------------------------- |
-| Subject name     | The verified pack-produced tarball basename, equal to `subject[0].name`.     |
-| Subject digest   | The verified tarball digest map, including canonical lowercase `sha256`.     |
+| Subject name     | The verified npm Package URL, equal to `subject[0].name`.                    |
+| Subject digest   | The verified tarball digest map, including lowercase `sha512` and `sha256`.  |
 | `predicate-type` | `https://slsa.dev/provenance/v1`.                                            |
 | Predicate input  | The Windlass-generated SLSA provenance predicate JSON, not a full Statement. |
 
@@ -785,11 +795,12 @@ Before `npm publish`, the `publish` job must verify:
 3. The `predicateType` is `https://slsa.dev/provenance/v1`.
 4. The `builder.id` matches the trusted policy.
 5. The `buildType` matches the canonical JS/TS npm package `buildType`.
-6. The `subject[0].digest.sha256` matches the tarball bytes.
-7. The `subject[0].name` matches the expected tarball file name.
-8. The `externalParameters` match the expected schema and values.
-9. The emitted Statement matches the subject inputs, predicate type, and predicate that Windlass
-   verified before invoking `actions/attest`.
+6. The `subject[0].digest.sha512` matches the tarball bytes.
+7. The `subject[0].digest.sha256` matches the tarball bytes.
+8. The `subject[0].name` matches the expected npm Package URL.
+9. The `externalParameters` match the expected schema and values, including `package.tarball_name`.
+10. The emitted Statement matches the subject inputs, predicate type, and predicate that Windlass
+    verified before invoking `actions/attest`.
 
 If any check fails, the job must fail before registry mutation.
 
@@ -803,6 +814,9 @@ The `publish` job must fail before `npm publish` when:
 - Unexpected signer.
 - Wrong `predicateType`.
 - Wrong `builder.id` or `buildType`.
+- Missing `subject[0].digest.sha512` or `subject[0].digest.sha256`.
+- npm Package URL subject mismatch.
+- Tarball-filename subject used for npm provenance.
 - Emitted Statement mismatch after `actions/attest` construction.
 - Unexpected or mismatched `externalParameters`.
 - Source identity mismatch.
@@ -832,5 +846,7 @@ The profile must not fall back to:
   unsupported initial package publication, package-manager selection path mismatch, runtime policy
   mismatch, npm CLI below `11.5.1`, producer-side missing caller OIDC permission, producer-side npm
   trusted publisher caller identity mismatch, emitted Statement mismatch, npmjs post-publish
-  metadata mismatch, and npm automatic provenance fallback attempt.
+  metadata mismatch, tarball-filename npm subject, missing `sha512`, missing `sha256`, `sha512` or
+  `sha256` digest mismatch, multiple subjects, raw Statement used as the provenance file, and npm
+  automatic provenance fallback attempt.
 - A fixture proving that the `publish` job cannot publish without the signed bundle.

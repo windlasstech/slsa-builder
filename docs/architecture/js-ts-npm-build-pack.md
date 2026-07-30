@@ -14,7 +14,8 @@ installs dependencies, runs build scripts, packs the artifact, and validates pac
   [0027](../decisions/0027-use-github-hosted-ubuntu-2404-and-node-24-runtime.md),
   [0033](../decisions/0033-run-build-script-only-when-declared.md),
   [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
-  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md)
+  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
 - Related specs: [JS/TS npm package profile](js-ts-npm-package-profile.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Core profile contract](core-profile-contract.md)
@@ -382,9 +383,10 @@ Command template variables have these meanings:
 
 The authoritative tarball name is the basename of the single file produced by the selected package
 manager's pack command in the trusted pack output directory. The profile must use that basename
-unchanged as the package tarball name, provenance subject name, public `package-tarball-name`
-output, and any downstream release asset name unless a later profile explicitly defines a signed
-rename mapping.
+unchanged as the package tarball name, public `package-tarball-name` output, and any downstream
+release asset name unless a later profile explicitly defines a signed rename mapping. The npm
+provenance Statement subject name is the package Package URL defined by the provenance and publish
+spec, not this tarball basename.
 
 The initial npm package profile expects npm-compatible pack output with a `.tgz` suffix. It must not
 rename the pack-produced tarball to `.tar.gz`, reinterpret a local path as the tarball name, or use
