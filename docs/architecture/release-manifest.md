@@ -48,9 +48,12 @@ The production release manifest workflow entrypoint is:
 .github/workflows/release-manifest.yml
 ```
 
-The initial production contract supports release runs from protected SemVer version tags only. A
-production invocation must run on a Git tag ref whose short tag is `v<release_version>`, where
-`release_version` is the SemVer 2.0.0 version without the leading `v` recorded in the manifest.
+The initial production contract supports release runs from SemVer version tags only. Repository tag
+protection and rulesets are required release-process controls, but consumer-side manifest
+verification checks the signed bundle identity and expected full tag ref rather than attempting to
+prove historical GitHub tag protection state offline. A production invocation must run on a Git tag
+ref whose short tag is `v<release_version>`, where `release_version` is the SemVer 2.0.0 version
+without the leading `v` recorded in the manifest.
 
 The workflow must not expose public inputs that let callers override the release version, release
 tag, release commit SHA, producer workflow SHA, publisher workflow SHA, `builder.id`, `buildType`,
@@ -483,6 +486,64 @@ The manifest predicate JSON must parse to the same JSON value as the plain manif
 signing input metadata is transport metadata only; the manifest JSON value and the digest above
 remain the trust inputs.
 
+The signing input metadata payload must be a closed JSON object with this shape:
+
+```json
+{
+  "schema_version": "1",
+  "release_identity": {
+    "source_repository": "https://github.com/windlasstech/slsa-builder",
+    "release_version": "1.2.3",
+    "release_tag": "refs/tags/v1.2.3",
+    "release_commit_sha": "e40a91e0a0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5"
+  },
+  "subject": {
+    "name": "release-manifest-1.2.3.json",
+    "digest": {
+      "sha256": "<lowercase hex digest of the canonical manifest JSON bytes>"
+    }
+  },
+  "predicate_type": "https://slsa-builder.dev/predicates/release-manifest/v1",
+  "predicate_artifact": {
+    "artifact_name": "release-manifest-1.2.3-predicate",
+    "payload_file_name": "release-manifest-1.2.3.predicate.json",
+    "sha256": "<lowercase hex digest of the predicate artifact bytes>",
+    "canonical_manifest_sha256": "<same value as subject.digest.sha256>"
+  },
+  "manifest_artifact": {
+    "artifact_name": "release-manifest-1.2.3-json",
+    "payload_file_name": "release-manifest-1.2.3.json",
+    "sha256": "<lowercase hex digest of the plain manifest file bytes>",
+    "canonical_manifest_sha256": "<same value as subject.digest.sha256>"
+  },
+  "signing_input_artifact": {
+    "artifact_name": "release-manifest-1.2.3-signing-input",
+    "payload_file_name": "release-manifest-1.2.3.signing-input.json"
+  }
+}
+```
+
+Normative signing input metadata rules:
+
+- The schema is closed. Unknown top-level fields, unknown nested fields, duplicate object member
+  names, or missing required fields are invalid.
+- `subject.name` must be `release-manifest-<version>.json` and must match the plain manifest
+  artifact payload filename.
+- `subject.digest.sha256`, `predicate_artifact.canonical_manifest_sha256`, and
+  `manifest_artifact.canonical_manifest_sha256` must all equal the SHA-256 digest of the RFC 8785
+  JCS canonical manifest JSON bytes.
+- `predicate_type` must be `https://slsa-builder.dev/predicates/release-manifest/v1`.
+- The predicate artifact bytes must parse to the same JSON value as the plain manifest JSON. Its
+  `sha256` field is the digest of those artifact bytes, while `canonical_manifest_sha256` binds the
+  predicate content to the canonical manifest value that becomes the Statement subject digest.
+- `release_identity` must exactly match the corresponding fields inside the manifest JSON value.
+- Every artifact handle must name the same-run artifact that carried the corresponding payload to
+  `manifest-sign`; handles, filenames, and byte digests are checked before invoking the signing
+  adapter.
+- `manifest-sign` must reject the handoff before signing when the signing input metadata does not
+  bind the same subject name, canonical manifest digest, predicate type, predicate content, release
+  identity, and artifact handles that it verified from the downloaded handoff artifacts.
+
 The internal handoff basenames above are fixed for schema version `1`. A receiving job must reject
 an artifact whose sole file has a different basename, even when the file contents have the expected
 digest, because the basename is part of the closed same-run handoff contract and protects later jobs
@@ -632,7 +693,7 @@ release workflow in this repository. Verifiers must check all of the following s
 - signer workflow path: `.github/workflows/release-manifest.yml`;
 - signer workflow ref: `refs/tags/v<release_version>`;
 - source repository URI: `https://github.com/windlasstech/slsa-builder`;
-- release tag: the protected tag recorded in `release_tag`;
+- release tag: the full tag ref recorded in `release_tag`;
 - predicate type: `https://slsa-builder.dev/predicates/release-manifest/v1`.
 
 The certificate identity must be the GitHub Actions workflow identity for the signer workflow path
@@ -647,10 +708,10 @@ contract to the release manifest values as follows:
 | OIDC issuer                | GitHub Actions.                                                                                                |
 | Signer workflow repository | `windlasstech/slsa-builder`.                                                                                   |
 | Signer workflow path       | `.github/workflows/release-manifest.yml`.                                                                      |
-| Signer workflow ref        | Protected full tag ref `refs/tags/v<release_version>`, equal to the manifest `release_tag`.                    |
+| Signer workflow ref        | Full tag ref `refs/tags/v<release_version>`, equal to the manifest `release_tag`.                              |
 | Signer workflow SHA        | When exposed, the full commit SHA reached by recursively peeling `release_tag`, equal to `release_commit_sha`. |
 | Source repository          | `https://github.com/windlasstech/slsa-builder`.                                                                |
-| Source ref                 | Full protected release tag ref equal to `release_tag`.                                                         |
+| Source ref                 | Full release tag ref equal to `release_tag`.                                                                   |
 | Source revision            | Full 40-character lowercase commit SHA equal to `release_commit_sha`.                                          |
 | Predicate type             | `https://slsa-builder.dev/predicates/release-manifest/v1`.                                                     |
 
@@ -660,6 +721,12 @@ claim spelling is tool-specific; the semantic values above are the policy. If th
 prove every required semantic identity field from verified certificate or bundle data, it must
 reject the release manifest. It must not infer manifest signer identity from release asset names,
 tag names alone, release notes, workflow outputs, or unsigned JSON files.
+
+Consumer verifiers do not need to prove from the signed bundle that GitHub tag protection was
+enabled at the time of signing. They must verify the full tag-ref equality and tag peel rules above.
+Online checks of GitHub repository rulesets, tag protection, or immutable release evidence are
+complementary release-process evidence unless a later verifier policy defines them as required
+policy inputs.
 
 The signer workflow path is fixed for the initial release manifest contract. If the project later
 renames the release workflow or moves release manifest signing into a reusable workflow, direct
@@ -722,6 +789,9 @@ The release manifest workflow must fail before any mutation when:
 - A manifest artifact with the same name already exists.
 - A handoff artifact contains a file whose basename differs from the fixed schema version `1`
   basename for that payload kind.
+- Signing input metadata is missing, has unknown or duplicate fields, or does not bind the same
+  subject name, canonical manifest digest, predicate type, predicate content, release identity, and
+  artifact handles verified from the handoff.
 - The upload job cannot determine whether a started plain manifest upload committed remotely.
 - The signing adapter cannot produce a valid bundle.
 - The upload job lacks the required `contents: write` permission for release asset upload.
@@ -736,6 +806,6 @@ The release manifest workflow must fail before any mutation when:
   `buildtype.dev/windlass/slsa-builder/release-manifest/v1` predicate URI, wrong schema version,
   wrong workflow SHA, mismatched builder/buildType, publisher entry with buildType, non-canonical
   RFC 8785 JCS manifest digest, malformed `generated_at`, tag peel failure, wrong internal handoff
-  basename, Statement predicate JSON value mismatch, duplicate asset upload, and indeterminate JSON
-  upload.
+  basename, malformed or mismatched signing input metadata, Statement predicate JSON value mismatch,
+  duplicate asset upload, and indeterminate JSON upload.
 - A fixture proving that `manifest-upload` cannot re-sign or mutate the manifest.
