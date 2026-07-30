@@ -159,6 +159,19 @@ before invoking the publisher. For example, `trusted_producer.source_repository`
 composition failure, not a reason to replace a manifest field with a public workflow output or
 deterministic name.
 
+The mapping job must also verify the npm release binding before invoking the publisher. For this
+composition, all of the following values must be the same full Git tag ref:
+
+```text
+release.tag == externalParameters.release.ref == externalParameters.source.ref
+```
+
+`externalParameters.release.version_tag` must be the short tag name whose `refs/tags/` expansion
+equals the same ref. The target GitHub Release must be the caller repository's existing release for
+that tag. A missing release field, short ref, branch ref, pull request ref, mismatched
+source/release ref, mismatched version tag, or release target outside the caller repository is a
+composition failure.
+
 The mapping job must also verify that the npm provenance subject includes `subject[0].digest.sha512`
 for the same tarball bytes. SHA-512 is not a generic publisher input, but it remains mandatory npm
 producer policy for this composition.
@@ -184,6 +197,8 @@ For the npm-to-release-asset composition:
 - The npm package name and version are recorded in `externalParameters` under `package.name` and
   `package.version` and must match the Package URL subject.
 - The final GitHub Release asset name equals the tarball file name.
+- The composition release tag, producer `externalParameters.release.ref`, and producer
+  `externalParameters.source.ref` are identical full tag refs.
 - The mapping layer and publisher verify the tarball filename through producer policy and handoff
   fields before upload.
 - The npm provenance subject digest includes both SHA-512 and SHA-256 for the same tarball bytes.
@@ -265,6 +280,11 @@ The mapping layer must pass `release.tag` to the publisher as a full Git tag ref
 `refs/tags/v1.2.3`. It must not pass the short tag name from `release.version_tag` or derive a short
 tag from the full ref for the publisher contract.
 
+The mapping layer must not treat the signed release manifest as the source of npm caller release-ref
+constraints. Manifest schema version `1` authenticates the trusted Windlass workflow mappings, but
+the npm caller source ref and release ref come from the signed npm producer provenance,
+digest-verified handoff, and public workflow runtime guards.
+
 `native-provenance-locators`, when present, must use the plural field name and the locator object
 schema from the publisher contract. A singular `native-provenance-locator` field is invalid and must
 be rejected by strict handoff validation.
@@ -308,6 +328,8 @@ The following must be rejected by the publisher:
 - A tarball whose handoff payload filename differs from the final asset name.
 - A tarball whose digest differs from the provenance subject digest.
 - A producer provenance missing the mandatory npm subject SHA-512 or SHA-256 digest.
+- A producer provenance whose `externalParameters.source.ref`, `externalParameters.release.ref`, or
+  reconstructed `release.version_tag` differs from the publisher `release-tag`.
 - A producer provenance with a non-npm `buildType` unless the policy explicitly allows it.
 - Any attempt to use npm-specific fields to bypass the generic handoff contract.
 

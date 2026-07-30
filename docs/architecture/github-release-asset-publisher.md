@@ -200,6 +200,16 @@ a `source-repository` value that cannot be canonicalized by those rules or that 
 match the canonical `externalParameters.source.repository` value in the verified producer
 provenance.
 
+`release-tag` is also the expected producer release ref unless an ADR-backed producer policy defines
+a different release-binding source for a future producer profile. For the initial npm composition,
+the publisher must verify that `release-tag`, producer `externalParameters.release.ref`, and
+producer `externalParameters.source.ref` are the same full `refs/tags/<tag-name>` ref and that
+producer `externalParameters.release.version_tag` reconstructs that same ref. A missing producer
+release ref, short tag, branch ref, pull request ref, or mismatch with `release-tag` fails before
+upload. Future producer profiles whose signed provenance does not use those npm `externalParameters`
+fields must define, before composition, which signed field or digest-verified handoff field binds
+the verified producer artifact to the target release ref.
+
 Complex handoff fields in the public workflow contract are passed as UTF-8 JSON strings. The
 publisher must parse `native-provenance-locators` as a JSON array and `linked-artifact-settings` as
 a JSON object before validation. Empty or omitted optional inputs are treated as absent. Invalid
@@ -280,18 +290,22 @@ Before publication, the publisher must verify the upstream producer provenance:
    npm composition, this means the asset name matches the pack-produced tarball filename recorded in
    producer provenance and the same-run handoff, while `subject[0].name` remains the npm Package
    URL.
-9. Source repository, source revision, and other producer `externalParameters` match the trusted
-   producer policy.
+9. Source repository, source revision, release ref, and other producer `externalParameters` match
+   the trusted producer policy. For the initial npm composition, `externalParameters.source.ref`,
+   `externalParameters.release.ref`, and `release-tag` must be identical full tag refs.
 10. No unexpected `externalParameters` are present when the policy requires strict matching.
 
 When the publisher has both an explicit producer policy from the handoff or profile configuration
 and a verified signed release manifest policy, the effective producer policy is the intersection of
-those policy sources. The publisher must fail before upload when either source does not allow the
-observed producer signer identity, workflow path, workflow SHA, `builder.id`, `buildType`, source,
-release ref, subject, or required `externalParameters`. The publisher must not let a signed release
-manifest relax explicit producer policy, must not let explicit producer policy bypass an
-authenticated manifest constraint, and must not use either-source-allowed or last-writer-wins
-behavior.
+the fields each source explicitly constrains. For schema version `1`, the release manifest
+constrains Windlass release identity, producer workflow path/SHA, producer `builder.id`, producer
+`buildType`, and publisher workflow path/SHA/role; it does not constrain caller-specific source,
+producer release ref, subject, digest, final asset name, or strict `externalParameters` fields.
+Those fields must still be constrained by explicit producer policy, profile policy, signed producer
+provenance, or digest-verified handoff fields. The publisher must fail before upload when any source
+that constrains an observed field does not allow it, and it must not let a signed release manifest
+relax explicit producer policy, let explicit producer policy bypass an authenticated manifest
+constraint, or use either-source-allowed or last-writer-wins behavior.
 
 ## Final release asset and producer subject binding
 
@@ -431,8 +445,17 @@ Field rules:
   authority.
 - `version` must be the release version derived from the `release-tag` full ref by removing
   `refs/tags/` and then removing the leading `v` from the tag name.
-- `repository` must identify the GitHub repository that owns the release asset storage surface.
-- `registry_url` must be the GitHub Release download URL prefix for the target release.
+- `repository` must identify the same GitHub repository that owns the target release asset storage
+  surface. The publisher must compare it with the caller/target repository after canonicalizing both
+  values to `owner/repo` with lowercase host semantics and no URL syntax, owner or repository path
+  traversal, empty components, `.`, `..`, or extra path segments.
+- `registry_url` must be the GitHub Release download URL prefix for the target release in the same
+  repository and tag. It must exactly equal
+  `https://github.com/<owner>/<repo>/releases/download/<tag-name>/` after deriving `<owner>/<repo>`
+  from the target release and `<tag-name>` from `release-tag`. The publisher must reject a settings
+  object whose `registry_url` points at another repository, another tag, a short or rewritten tag, a
+  non-`https` URL, embedded credentials, a query, a fragment, a non-default port, or any alternate
+  release-download surface.
 
 When supplied as a public workflow input, `linked-artifact-settings` must be encoded as a UTF-8 JSON
 string whose parsed value is the object shape above. For example:
@@ -454,9 +477,12 @@ When enabled, the linked artifact storage record maps fields as follows:
 | `github_repository`    | Target repository when required by the artifact metadata API contract. |
 
 If the primary asset and sidecar upload succeed but linked artifact storage record creation fails,
-the workflow must fail clearly, set `linked-artifact-result` to `failed-after-upload`, and must not
-delete, replace, or clobber the uploaded release assets. When disabled, `linked-artifact-result` is
-`disabled`. When enabled and successful, it is `created`.
+the workflow must fail clearly, set `linked-artifact-result` to `failed-after-upload`, leave linked
+artifact locator outputs unset, and must not delete, replace, or clobber the uploaded release
+assets. When disabled, `linked-artifact-result` is `disabled` and linked artifact locator outputs
+are unset. When enabled and successful, `linked-artifact-result` is `created` and the publisher must
+expose at least one stable linked artifact metadata locator through `linked-artifact-url` or
+`linked-artifact-id`; when the metadata API returns both, both outputs must be set.
 
 ## Partial failure behavior
 
@@ -532,11 +558,20 @@ duplicate primary asset or duplicate deterministic sidecar detected during prefl
 | `native-provenance-locators` | Native producer locators.                                                                           |
 | `upload-result`              | `completed`, `failed-before-upload`, `partial-primary-uploaded`, or `indeterminate-primary-upload`. |
 | `linked-artifact-result`     | `disabled`, `created`, or `failed-after-upload`.                                                    |
+| `linked-artifact-url`        | Stable browser or API URL for the created linked artifact metadata record, or unset.                |
+| `linked-artifact-id`         | Stable API identifier for the created linked artifact metadata record, or unset.                    |
 
 `sidecar-digest` must equal `producer-provenance-sha256` and the SHA-256 digest of the exact bundle
 bytes redistributed as the sidecar. It is set when the bundle bytes were retrieved and verified,
 including `partial-primary-uploaded` cases where the sidecar upload failed after bundle
 verification. It must be unset when producer provenance retrieval or digest verification failed.
+
+`linked-artifact-url` and `linked-artifact-id` are set only when `linked-artifact-result` is
+`created` and the metadata API returned the corresponding locator. Both outputs must be unset when
+linked metadata is disabled, when metadata creation fails after upload, when the primary or sidecar
+upload did not complete, or when metadata creation was not attempted. They are publication locator
+outputs only and must not be used as substitutes for release asset digest verification or signed
+producer provenance.
 
 ## Failure behavior
 

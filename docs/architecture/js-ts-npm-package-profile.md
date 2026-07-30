@@ -315,6 +315,8 @@ workflow even when GitHub would allow the permission set.
 | `native-provenance-locators` | string | UTF-8 JSON array of diagnostic producer-native provenance locators, or unset.                                   |
 | `release-upload-result`      | string | `disabled`, `completed`, `failed-before-upload`, `partial-primary-uploaded`, or `indeterminate-primary-upload`. |
 | `linked-artifact-result`     | string | `disabled`, `created`, or `failed-after-upload`.                                                                |
+| `linked-artifact-url`        | string | Stable browser or API URL for linked artifact metadata, or unset.                                               |
+| `linked-artifact-id`         | string | Stable API identifier for linked artifact metadata, or unset.                                                   |
 
 Outputs are release handles for downstream workflows and human operators. They are not substitutes
 for signed provenance.
@@ -330,6 +332,12 @@ primary and sidecar upload sets `release-upload-result` to `completed`, sets the
 sidecar locator outputs, and sets `linked-artifact-result` according to the linked metadata setting.
 Partial and indeterminate release upload states follow the publisher output rules and must not be
 reported as successful publication.
+
+`linked-artifact-url` and `linked-artifact-id` mirror the standalone publisher locator outputs. They
+must be unset when `linked-artifact-result` is `disabled` or `failed-after-upload`, when release
+asset upload did not complete, or when the metadata API did not return the corresponding locator.
+They are set only when linked metadata creation succeeds and are not substitutes for signed
+provenance, release asset digests, or sidecar outputs.
 
 ### `package-url` output
 
@@ -521,6 +529,8 @@ linked metadata publication when:
 - The caller job does not grant `contents: write` to the reusable workflow invocation.
 - `linked-artifact-metadata` is `true` and the caller job does not grant `artifact-metadata: write`.
 - The effective release tag cannot be reconstructed as the same full ref as the runtime release ref.
+- The producer provenance `externalParameters.source.ref`, `externalParameters.release.ref`, or
+  `externalParameters.release.version_tag` does not bind to that same full release ref.
 - The effective release tag does not already have a GitHub Release in the caller repository.
 - The effective release target resolves outside the caller repository.
 - The pack-produced tarball, producer provenance bundle, or internal handoff manifest is missing,
