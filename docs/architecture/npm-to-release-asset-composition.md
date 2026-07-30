@@ -85,6 +85,13 @@ workflow-output-to-workflow-output API. The npm producer's public `workflow_call
 package identity and tarball digest handles defined by the npm profile. Internal artifact names and
 provenance bundle artifact names are not public outputs.
 
+The recommended public caller surface for this composition is release-asset mode on
+`.github/workflows/js-ts-npm-package-slsa3.yml`, as defined by the
+[JS/TS npm package workflow contract](js-ts-npm-package-profile.md#workflow_call-contract). That
+public mode exposes package, publish, release tag, sidecar policy, linked metadata, and publication
+result handles. It does not expose this composition's internal artifact names, handoff manifest
+name, handoff manifest digest, or publisher handoff inputs as public workflow inputs or outputs.
+
 A composed release workflow or mapping layer that runs the npm producer and publisher in the same
 workflow run must receive the producer-owned internal handoff manifest defined by the
 [composed workflow internal handoff spec](composed-workflow-internal-handoff.md). The mapping layer

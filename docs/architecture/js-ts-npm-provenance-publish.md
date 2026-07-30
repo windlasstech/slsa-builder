@@ -579,7 +579,7 @@ npm automatic provenance, or omission of the external provenance bundle are hard
 registry still must accept tokenless publish with the external provenance bundle; otherwise
 `npm publish` fails and the workflow must fail.
 
-## Workflow outputs
+## npm producer outputs
 
 | Output                   | Description                                    |
 | ------------------------ | ---------------------------------------------- |
@@ -591,11 +591,21 @@ registry still must accept tokenless publish with the external provenance bundle
 | `package-tarball-sha256` | Tarball SHA-256, 64 lowercase hex characters.  |
 | `package-tarball-sha512` | Tarball SHA-512, 128 lowercase hex characters. |
 
-Outputs are release handles. They are not substitutes for signed provenance.
+These outputs are npm producer release handles. They are always present when the npm publish path
+succeeds, including when the public npm workflow later continues into release-asset mode. They are
+not substitutes for signed provenance.
 
 Workflow artifact names for the tarball and provenance bundle are internal same-run handoff handles,
 not public `workflow_call.outputs`. npm SRI integrity values are registry diagnostics, not public
 workflow outputs in the initial profile.
+
+The public `.github/workflows/js-ts-npm-package-slsa3.yml` workflow adds mode-specific GitHub
+Release asset outputs when `release-asset-mode` is enabled, as defined by the
+[JS/TS npm package workflow contract](js-ts-npm-package-profile.md#outputs). Those release-asset
+outputs are publication result handles only. They must not expose the internal composition handoff
+manifest name, handoff manifest digest, producer artifact names, publisher handoff field names, or
+other values that would let separately invoked workflows treat public outputs as a trusted
+composition API.
 
 ## Producer-side verification gate
 

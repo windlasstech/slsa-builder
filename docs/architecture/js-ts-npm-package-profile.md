@@ -13,6 +13,9 @@ profile.
   [0030](../decisions/0030-accept-registry-url-while-guaranteeing-only-npmjs-semantics.md),
   [0032](../decisions/0032-constrain-manual-dispatch-releases-to-version-tags.md),
   [0034](../decisions/0034-do-not-support-private-dependency-credentials-in-initial-profile.md),
+  [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
+  [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
+  [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
@@ -34,13 +37,15 @@ profile.
 
 - Exact package manager selection, install, build, or pack commands (build and pack spec).
 - Provenance generation and publish graph internals (provenance and publish spec).
-- GitHub Release asset distribution (publisher and composition specs).
+- Standalone GitHub Release asset publisher internals (publisher and composition specs).
 - Private dependency credentials, JSR, or non-npm registry semantics.
 
 ## Supported artifact
 
 This profile produces exactly one npm package release per run. The package may be a root package or
-a workspace package, but it is always one package identity.
+a workspace package, but it is always one package identity. When release-asset mode is enabled, the
+same workflow run also attaches the pack-produced tarball and unchanged producer provenance sidecar
+to an existing GitHub Release in the caller repository.
 
 The initial production profile supports publishing a new version of an existing npm package identity
 through OIDC trusted publishing. It does not support first publication of a package identity because
@@ -54,7 +59,7 @@ publication error.
 The following are explicitly out of scope for the initial profile:
 
 - Standalone tarballs without package identity.
-- GitHub Release assets (use the publisher profile instead).
+- GitHub Release assets that are not the same verified npm package tarball produced by this run.
 - Generic files or archives.
 - Container images.
 - JSR or other non-npm registries.
@@ -81,20 +86,27 @@ production use.
 
 ### Optional inputs
 
-| Input          | Type   | Default | Description                                        |
-| -------------- | ------ | ------- | -------------------------------------------------- |
-| `registry-url` | string | unset   | Registry URL. Only npmjs semantics are guaranteed. |
-| `dist-tag`     | string | unset   | npm dist-tag for the publish step.                 |
-| `access`       | string | unset   | `public`, `restricted`, or empty.                  |
+| Input                      | Type    | Default | Description                                                                |
+| -------------------------- | ------- | ------- | -------------------------------------------------------------------------- |
+| `registry-url`             | string  | unset   | Registry URL. Only npmjs semantics are guaranteed.                         |
+| `dist-tag`                 | string  | unset   | npm dist-tag for the publish step.                                         |
+| `access`                   | string  | unset   | `public`, `restricted`, or empty.                                          |
+| `release-asset-mode`       | boolean | `false` | Enables GitHub Release asset publication for the verified package tarball. |
+| `release-tag`              | string  | unset   | Existing GitHub Release tag name for release-asset mode.                   |
+| `provenance-sidecar`       | string  | unset   | Sidecar policy; omitted or `required` for production release-asset mode.   |
+| `linked-artifact-metadata` | boolean | `false` | Enables linked artifact storage metadata after release asset upload.       |
 
-The workflow must not define GitHub Actions `workflow_call` defaults for these optional inputs. An
-omitted input is represented as unset until the profile's publish intent resolution step. This keeps
-caller-supplied values distinguishable from source `publishConfig` values and Windlass/npm defaults.
+The workflow must not define GitHub Actions `workflow_call` defaults for `registry-url`, `dist-tag`,
+`access`, `release-tag`, or `provenance-sidecar`. An omitted string input is represented as unset
+until the profile's intent resolution step. This keeps caller-supplied values distinguishable from
+source `publishConfig` values, Windlass/npm defaults, and release-asset mode defaults. Boolean
+inputs may use GitHub Actions defaults because `false` is the explicit disabled state.
 
 For the initial GitHub Actions reusable workflow contract, an optional string input whose value is
-an empty string after trimming ASCII whitespace is normalized as omitted before publish intent
-resolution. Empty `registry-url`, `dist-tag`, and `access` inputs are therefore not caller-supplied
-publish intent values. A caller-supplied value exists only when the normalized input is non-empty.
+an empty string after trimming ASCII whitespace is normalized as omitted before intent resolution.
+Empty `registry-url`, `dist-tag`, `access`, `release-tag`, and `provenance-sidecar` inputs are
+therefore not caller-supplied intent values. A caller-supplied value exists only when the normalized
+input is non-empty.
 
 #### Optional input rules
 
@@ -111,6 +123,26 @@ publish intent values. A caller-supplied value exists only when the normalized i
   dist-tag validation.
 - `access` must be one of `public`, `restricted`, or an empty string. An empty `access` value means
   omitted for publish intent resolution; it does not override source `publishConfig.access`.
+- `release-asset-mode` must be `false` for npm-only publication and `true` for npm publication plus
+  GitHub Release asset distribution. The workflow must not infer release-asset mode from the
+  presence of release-related inputs.
+- `release-tag` is used only when `release-asset-mode` is `true`. It is a Git tag name, not a full
+  ref. When omitted, the effective release tag is the current release tag accepted by the runtime
+  guards. When supplied, it must equal the current tag name, must reconstruct the same full
+  `refs/tags/<tag-name>` ref as `github.ref`, and must equal `v${package.json version}`. A branch
+  name, pull request ref, full ref, empty tag name, tag name with path traversal or ASCII control
+  characters, or a tag that does not already have a GitHub Release in the caller repository must be
+  rejected before release mutation.
+- `provenance-sidecar` is used only when `release-asset-mode` is `true`. Omitted and `required` both
+  mean the unchanged producer provenance bundle is uploaded as the deterministic sidecar
+  `<package-tarball-name>.intoto.jsonl`. Any value that disables, renames, rewrites, re-signs, or
+  replaces the sidecar is rejected because ADR 0051 makes sidecar distribution mandatory for the
+  production release-asset path.
+- `linked-artifact-metadata` is used only when `release-asset-mode` is `true`. When `false`, the
+  workflow must not request `artifact-metadata: write` or call the linked artifact metadata API.
+  When `true`, the workflow derives the publisher `linked-artifact-settings` object from the caller
+  repository, effective release tag, release download URL prefix, and package version; callers do
+  not supply the publisher's internal JSON settings directly.
 - `publish_access_option` is the exact value passed to `npm publish --access`; it is `public`,
   `restricted`, or `null` when the option is omitted.
 - `effective_access` records the Windlass publish intent used for diagnostics and verification. When
@@ -123,6 +155,33 @@ publish intent values. A caller-supplied value exists only when the normalized i
   passed only if the registry accepts it during the same tokenless publish flow. If the registry
   rejects the access option or requires token/OTP fallback, the workflow fails; it must not silently
   drop the option and continue.
+
+#### Mode validation
+
+The public npm workflow has two modes:
+
+| Mode          | `release-asset-mode` | Observable behavior                                                               |
+| ------------- | -------------------- | --------------------------------------------------------------------------------- |
+| npm-only      | `false`              | Build, sign, publish to npm, and emit npm package outputs only.                   |
+| release-asset | `true`               | Run npm-only behavior, then internally compose with the GitHub Release publisher. |
+
+Release-asset mode is explicit. The workflow must reject release-asset-only inputs when
+`release-asset-mode` is `false`, including non-empty `release-tag`, non-empty `provenance-sidecar`,
+or `linked-artifact-metadata: true`. This prevents callers from believing that release assets were
+published when the mode was not enabled.
+
+When `release-asset-mode` is `true`, the workflow must construct the same-run internal handoff
+described by the [composition spec](npm-to-release-asset-composition.md). The caller cannot supply
+publisher handoff fields, artifact names, artifact digests, release upload URLs, target repository
+coordinates, custom GitHub tokens, overwrite behavior, release creation behavior, raw file paths, or
+multi-asset configuration through this public npm workflow. Unsupported public inputs must fail
+GitHub Actions schema validation or be rejected before npm publish, signing, release mutation, or
+linked metadata publication.
+
+The public release target is always the caller repository's existing GitHub Release for the
+effective release tag. The workflow must not create the release or tag, change draft or prerelease
+status, change the latest marker, delete an existing asset, overwrite an asset, or upload to another
+repository.
 
 #### Publish intent resolution
 
@@ -177,6 +236,11 @@ The profile must not require or expose long-lived publish secrets, npm tokens, O
 dependency-fetch credentials. OIDC trusted publishing is the only supported production
 authentication mechanism.
 
+Release-asset mode must not require or expose a custom GitHub token, personal access token, GitHub
+App token, release upload URL, or cross-repository release credential. GitHub Release mutation uses
+only the caller-scoped `GITHUB_TOKEN` permissions granted to the reusable workflow invocation and
+reduced by internal jobs.
+
 ### Caller trusted publishing requirements
 
 The caller workflow is part of the npm trusted publishing public contract. A production caller job
@@ -207,20 +271,64 @@ npm does not match the package's trusted publisher policy. The workflow must not
 failures by accepting `NPM_TOKEN`, `NODE_AUTH_TOKEN`, an OTP secret, or any other publish-capable
 credential.
 
+### Caller permissions by mode
+
+The caller job that invokes `.github/workflows/js-ts-npm-package-slsa3.yml` must grant permissions
+for the selected mode. The called workflow must still reduce permissions at each internal job so
+build, publish, signing, release upload, and optional metadata authorities remain separated.
+
+| Mode                               | Required caller permissions                                                             | Notes                                                                     |
+| ---------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| npm-only                           | `contents: read`, `id-token: write`, `attestations: write`                              | Enables checkout, npm trusted publishing, and producer bundle signing.    |
+| release-asset                      | `contents: write`, `id-token: write`, `attestations: write`                             | Adds release upload authority for the existing caller-repository release. |
+| release-asset with linked metadata | `contents: write`, `id-token: write`, `attestations: write`, `artifact-metadata: write` | Adds linked artifact metadata only when explicitly enabled.               |
+
+`contents: write` is required at the caller job level only when release-asset mode is enabled. The
+called workflow must grant it only to the internal release upload job. Signing jobs must not have
+release mutation authority, release upload jobs must not have signing or package publishing
+authority, and linked artifact metadata jobs must not have signing or release upload authority.
+
+If a caller enables release-asset mode without `contents: write`, the workflow must fail before
+release mutation. If a caller enables linked artifact metadata without `artifact-metadata: write`,
+the workflow must fail before metadata publication. If the workflow's internal jobs combine
+authorities that must remain separate, implementation review and YAML fixtures must reject the
+workflow even when GitHub would allow the permission set.
+
 ### Outputs
 
-| Output                   | Type   | Description                                             |
-| ------------------------ | ------ | ------------------------------------------------------- |
-| `package-name`           | string | Normalized npm package name.                            |
-| `package-version`        | string | Package version from `package.json`.                    |
-| `package-registry-url`   | string | Normalized effective registry URL.                      |
-| `package-url`            | string | Registry package-version URL for the published package. |
-| `package-tarball-name`   | string | Name of the tarball produced for npm publish.           |
-| `package-tarball-sha256` | string | SHA-256 of the tarball as 64 lowercase hex characters.  |
-| `package-tarball-sha512` | string | SHA-512 of the tarball as 128 lowercase hex characters. |
+| Output                       | Type   | Description                                                                                                     |
+| ---------------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
+| `package-name`               | string | Normalized npm package name.                                                                                    |
+| `package-version`            | string | Package version from `package.json`.                                                                            |
+| `package-registry-url`       | string | Normalized effective registry URL.                                                                              |
+| `package-url`                | string | Registry package-version URL for the published package.                                                         |
+| `package-tarball-name`       | string | Name of the tarball produced for npm publish.                                                                   |
+| `package-tarball-sha256`     | string | SHA-256 of the tarball as 64 lowercase hex characters.                                                          |
+| `package-tarball-sha512`     | string | SHA-512 of the tarball as 128 lowercase hex characters.                                                         |
+| `release-asset-name`         | string | Uploaded primary GitHub Release asset name, or unset in npm-only mode.                                          |
+| `release-asset-url`          | string | Browser URL of the uploaded primary asset, or unset in npm-only mode.                                           |
+| `release-asset-sha256`       | string | SHA-256 of the uploaded primary asset, or unset in npm-only mode.                                               |
+| `provenance-sidecar-name`    | string | Deterministic provenance sidecar name, or unset in npm-only mode.                                               |
+| `provenance-sidecar-url`     | string | Browser URL of the sidecar asset, or unset when unavailable.                                                    |
+| `provenance-sidecar-sha256`  | string | SHA-256 of the exact producer bundle sidecar, or unset before bundle verification.                              |
+| `native-provenance-locators` | string | UTF-8 JSON array of diagnostic producer-native provenance locators, or unset.                                   |
+| `release-upload-result`      | string | `disabled`, `completed`, `failed-before-upload`, `partial-primary-uploaded`, or `indeterminate-primary-upload`. |
+| `linked-artifact-result`     | string | `disabled`, `created`, or `failed-after-upload`.                                                                |
 
 Outputs are release handles for downstream workflows and human operators. They are not substitutes
 for signed provenance.
+
+Release-asset outputs mirror the publisher result categories but remain public result handles, not
+public composition inputs. Internal handoff artifact names, handoff manifest names, handoff manifest
+digests, publisher `primary-artifact-name`, publisher `producer-provenance-artifact-name`, and
+publisher policy JSON are not public outputs of this workflow.
+
+In npm-only mode, all release-asset outputs must be unset except `release-upload-result`, which is
+`disabled`, and `linked-artifact-result`, which is `disabled`. In release-asset mode, successful
+primary and sidecar upload sets `release-upload-result` to `completed`, sets the primary asset and
+sidecar locator outputs, and sets `linked-artifact-result` according to the linked metadata setting.
+Partial and indeterminate release upload states follow the publisher output rules and must not be
+reported as successful publication.
 
 ### `package-url` output
 
@@ -343,7 +451,7 @@ does not provide a pack-only, provenance-only, or no-publish mode for private np
 
 ## Rejected caller inputs
 
-The profile must reject or ignore any attempt to supply:
+The profile must reject any attempt to supply:
 
 - Arbitrary build, install, or pack commands.
 - Package manager override inputs.
@@ -352,6 +460,17 @@ The profile must reject or ignore any attempt to supply:
 - Inherited broad secrets.
 - Multi-package selection inputs.
 - Branch or pull-request based release triggers.
+- Release target repository owner, release target repository name, release upload URL, release API
+  URL, release creation, tag creation, draft mutation, prerelease mutation, latest-marker mutation,
+  asset overwrite, asset delete, or asset replacement inputs.
+- Custom GitHub token, personal access token, GitHub App token, raw artifact path, arbitrary local
+  file upload, caller-supplied release asset digest, internal artifact name, handoff manifest name,
+  handoff manifest digest, or publisher handoff field inputs.
+
+Unsupported release-asset inputs must be rejected, not silently ignored, when their presence could
+make a caller believe that a release asset, sidecar, metadata record, target repository, or
+overwrite policy was applied. Unknown inputs normally fail GitHub Actions reusable workflow schema
+validation before the workflow starts.
 
 ## Failure behavior
 
@@ -371,17 +490,57 @@ The workflow must fail before any registry mutation when:
 - `publishConfig.provenance` disables provenance or `publishConfig.directory` redirects the package
   root.
 - Any optional input fails validation.
+- Release-asset-only inputs are supplied while `release-asset-mode` is `false`.
 - The selected registry cannot complete tokenless trusted publishing with the supplied external
   provenance bundle.
 - The selected package identity does not already exist on npmjs when publishing to
   `https://registry.npmjs.org/`.
 
+When `release-asset-mode` is `true`, the workflow must additionally fail before release mutation or
+linked metadata publication when:
+
+- The caller job does not grant `contents: write` to the reusable workflow invocation.
+- `linked-artifact-metadata` is `true` and the caller job does not grant `artifact-metadata: write`.
+- The effective release tag cannot be reconstructed as the same full ref as the runtime release ref.
+- The effective release tag does not already have a GitHub Release in the caller repository.
+- The effective release target resolves outside the caller repository.
+- The pack-produced tarball, producer provenance bundle, or internal handoff manifest is missing,
+  malformed, unverifiable, or digest-mismatched.
+- The primary release asset name or deterministic sidecar name already exists on the target release.
+- The producer provenance sidecar is disabled, renamed, rewritten, re-signed, replaced by a native
+  locator, or otherwise not the exact signed bundle bytes produced and verified by the npm profile.
+- The internal mapping job attempts to derive publisher inputs from public workflow outputs, logs,
+  deterministic names alone, or caller-controlled values instead of the digest-verified handoff
+  manifest.
+- Internal jobs combine authorities that ADR 0060 requires to stay separate, including release
+  mutation in build, signing, publish, mapping, or metadata jobs; signing authority in release
+  upload jobs; or release mutation authority in linked metadata jobs.
+
+If npm publish succeeds but release asset upload later fails, the workflow must report the mode as a
+partial release failure and must not retry by overwriting assets, deleting assets, changing the
+release target, weakening provenance verification, or using a custom token.
+
 ## TDD and fixtures
 
 - Positive fixture: valid tag push with root package and workspace package.
+- Positive fixture: valid release-asset mode run that publishes the npm package, uploads the same
+  tarball as the GitHub Release primary asset, uploads the unchanged producer provenance sidecar,
+  and emits release asset locator outputs.
+- Positive fixture: valid release-asset mode run with linked artifact metadata enabled and separated
+  metadata permissions.
 - Rejected fixtures: wrong trigger, mismatched tag/version, missing `package.json`, arbitrary
   command input, npm token secret, private package, private dependency requirement, `publishConfig`
   conflict, unsupported `publishConfig.directory`, disabled provenance metadata, producer-side
   missing caller OIDC permission, producer-side npm trusted publisher caller identity mismatch, and
   unsupported registry behavior.
+- Rejected fixtures: release-asset-only inputs while mode is disabled, missing caller
+  `contents: write` for release-asset mode, missing caller `artifact-metadata: write` when linked
+  metadata is enabled, supplied full-ref `release-tag`, release tag mismatch, missing target
+  release, cross-repository target attempt, custom GitHub token attempt, raw artifact upload
+  attempt, caller-supplied artifact digest attempt, overwrite attempt, release creation attempt,
+  sidecar disable or rename attempt, duplicate primary asset, duplicate sidecar asset, internal
+  handoff substitution, and internal job permission-boundary violation.
 - A YAML review checklist that a human can apply to the workflow file.
+- A YAML review checklist proving that `.github/workflows/js-ts-npm-package-slsa3.yml` is the only
+  public npm entrypoint and that release-asset mode does not expose internal handoff mechanics as
+  public inputs or outputs.
