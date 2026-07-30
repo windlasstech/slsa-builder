@@ -463,6 +463,26 @@ committed or finds an asset with the expected name but unknown or mismatched dig
 `indeterminate-primary-upload` and the workflow fails without uploading the sidecar or linked
 artifact metadata.
 
+The same-run target release lookup must prove remote asset digest equality before it treats a
+same-name asset as the asset uploaded by this run. The publisher may use a GitHub API digest or
+checksum field only when the field explicitly identifies the bytes of the release asset and the
+algorithm is SHA-256. If such a field is unavailable, absent, uses another algorithm, or is not
+documented as an asset-byte digest, the publisher must download the candidate release asset bytes
+through the same authenticated GitHub release asset surface and recompute SHA-256 locally. Asset
+IDs, browser URLs, filenames, sizes, content types, release notes, logs, or native provenance
+locators are not digest proof. If the candidate asset cannot be downloaded with the caller-scoped
+token, if the downloaded bytes cannot be hashed, if the candidate digest is unavailable, or if the
+digest differs from `expected-sha256`, the lookup cannot prove success and the result is
+`indeterminate-primary-upload`.
+
+When the lookup proves that the same-name primary asset exists with the expected SHA-256, the
+publisher may classify the upload state from the sidecar state: `partial-primary-uploaded` when the
+sidecar is absent after sidecar upload failed, and `completed` only when both primary and sidecar
+assets are present with their expected digests. When the lookup proves that no same-name primary
+asset exists after an upload attempt that failed before any remote commit was possible, the result
+is `failed-before-upload`. A same-name asset with an unknown digest, a mismatched digest, or an
+unreadable digest is never treated as a successful upload by this run.
+
 Reruns are not allowed to overwrite or repair release assets silently. A rerun that observes the
 primary asset or sidecar already present during duplicate preflight must fail before upload with the
 same duplicate category as a fresh run. Operators must reconcile partial or indeterminate release

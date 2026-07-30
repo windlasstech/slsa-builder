@@ -223,6 +223,39 @@ Sigstore bundle bytes. GitHub artifact attestation storage metadata, URLs, IDs, 
 are native diagnostic locators only. They must not replace the bundle file when a workflow,
 registry, release asset, handoff, or verifier requires provenance bytes.
 
+### Signer identity verification inputs
+
+Verifier policy is expressed in terms of semantic GitHub Actions identity fields rather than a
+single tool-specific claim spelling. Implementations may read those fields from Sigstore certificate
+extensions, GitHub artifact attestation metadata, DSSE bundle verification output, or another
+verified representation of the same signing certificate, but they must prove the semantic fields
+below before accepting a bundle.
+
+| Semantic field             | Required meaning                                                                                                       |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| OIDC issuer                | GitHub Actions, and not another identity provider.                                                                     |
+| Signer workflow repository | Repository that owns the signing workflow, for example `windlasstech/slsa-builder`.                                    |
+| Signer workflow path       | Workflow file path that performed signing, for example `.github/workflows/js-ts-npm-package-slsa3.yml`.                |
+| Signer workflow ref or SHA | Immutable workflow identity selected by the profile: a full commit SHA for reusable producer workflows, or a protected |
+|                            | release tag ref for the release manifest signer.                                                                       |
+| Source repository          | Repository whose source was released, which may differ from the signer workflow repository for reusable workflows.     |
+| Source ref                 | Release ref accepted by the producer or manifest runtime guards.                                                       |
+| Source revision            | Immutable source revision recorded in the signed predicate and expected policy.                                        |
+| Predicate type             | The predicate URI expected for the signed Statement.                                                                   |
+
+For reusable producer profiles, the signer workflow repository and path identify the trusted
+Windlass workflow, while the source repository, ref, and revision identify the caller package
+repository and release. For the release manifest workflow, the signer workflow repository and source
+repository are both `windlasstech/slsa-builder`, and the signer workflow ref is the protected
+release tag recorded in the manifest.
+
+Common GitHub/Sigstore verification outputs expose these concepts with claim names such as `issuer`,
+`repository`, `workflow_ref`, `workflow_sha`, `job_workflow_ref`, `job_workflow_sha`, `ref`, and
+source repository/ref fields. Those names are reference mappings, not alternate policy. If a tool
+omits one of the required semantic fields, the implementation must recover it from another verified
+certificate or bundle field; otherwise verification fails closed. The implementation must not infer
+signer identity from artifact names, workflow outputs, logs, release notes, or unsigned metadata.
+
 Before any production implementation or SHA-pinned `actions/attest` upgrade is accepted, a
 compatibility check must prove that the adapter's custom-mode emitted bundle file is accepted by the
 profile's `npm publish --provenance-file` path and that the same bytes can be preserved as the

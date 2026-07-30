@@ -268,6 +268,7 @@ Every fixture must include:
 | `digest-mismatch`                          | Artifact digest does not match the provenance subject digest.                               |
 | `signature-mismatch`                       | Bundle signature is invalid or missing.                                                     |
 | `signer-mismatch`                          | Signer identity is not trusted.                                                             |
+| `signer-identity-claim-missing`            | Required semantic signer or source identity cannot be proven from verified bundle data.     |
 | `duplicate-json-member`                    | Signed Statement JSON contains duplicate object member names after unescaping.              |
 | `actions-attest-adapter-contract`          | Adapter inputs, emitted bundle basename, or npm provenance-file compatibility is invalid.   |
 | `wrong-producer-signer`                    | Producer signer repo, workflow path, ref, or issuer is not trusted.                         |
@@ -319,6 +320,7 @@ Every fixture must include:
 | `manifest-handoff-basename-mismatch`       | Manifest handoff artifact contains an unexpected payload basename.                          |
 | `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.                               |
 | `manifest-indeterminate-json-upload`       | Manifest upload state cannot be determined after an ambiguous upload attempt.               |
+| `manifest-remote-digest-unproven`          | Same-name remote manifest asset exists but SHA-256 equality cannot be proven.               |
 | `bundle-byte-format-mismatch`              | Signed bundle bytes were extracted, reserialized, wrapped, or otherwise changed.            |
 | `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.                                 |
 | `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                                         |
@@ -333,11 +335,13 @@ Every fixture must include:
 | `sidecar-digest-mismatch`                  | `sidecar-digest` does not equal the verified producer bundle SHA-256.                       |
 | `sidecar-upload-partial-failure`           | Primary release asset uploaded but sidecar upload failed afterward.                         |
 | `publisher-indeterminate-primary-upload`   | Primary release asset upload state cannot be determined after an ambiguous upload.          |
+| `publisher-remote-digest-unproven`         | Same-name remote release asset exists but SHA-256 equality cannot be proven.                |
 | `duplicate-release-asset`                  | Release asset name already exists.                                                          |
 | `duplicate-sidecar-asset`                  | Deterministic sidecar asset name already exists before upload.                              |
 | `registry-linkage-mismatch`                | Published package does not match the provenance registry metadata.                          |
 | `custom-registry-preflight-diagnostic`     | Non-npmjs registry preflight metadata is best-effort and not guaranteed support.            |
 | `custom-registry-token-required`           | Custom registry metadata or publish path requires token or weaker provenance behavior.      |
+| `custom-registry-provenance-weakened`      | Custom registry publish omits, rewrites, re-signs, or substitutes the Windlass bundle.      |
 | `prepublish-registry-metadata-required`    | Workflow required post-publish registry metadata before publish.                            |
 | `release-version-semver-mismatch`          | Release manifest version or tag is not valid SemVer 2.0.0.                                  |
 | `trusted-core-boundary-violation`          | Trusted policy/provenance logic depends on profile ecosystem tooling.                       |
@@ -388,10 +392,33 @@ fields are recorded as `null` and `publish.custom_registry_support` is
 external provenance bundle must fail with `custom-registry-token-required` or the narrower publish
 failure category.
 
+The custom-registry fixture set must also prove the minimum no-secret external-provenance contract.
+Accepted fixtures may use a non-npmjs HTTPS registry only when publish can run without
+publish-capable secrets and submits the exact verified Windlass bundle unchanged. Rejected fixtures
+must cover a custom registry that requires npm automatic provenance, drops the
+`--provenance-file`/equivalent external provenance input, rewrites or re-signs the bundle, omits the
+bundle, requires token credentials, or silently drops a non-empty caller `access` value in order to
+continue. Bundle weakening failures use `custom-registry-provenance-weakened`; credential or token
+fallback failures use `custom-registry-token-required`.
+
 The workspace fixture set must include nested workspace roots and prove that workspace patterns are
 evaluated relative to each candidate workspace root, not relative to the repository root. A fixture
 whose pattern only matches under the wrong base path must fail with
 `workspace-pattern-base-mismatch`.
+
+The workspace fixture set must prove the initial limited glob semantics. Accepted fixtures must
+cover `*` matching exactly one path segment, `**` matching one or more nested segments, `**`
+matching zero segments only when the selected package directory is the candidate root and contains
+`package.json`, nested workspace roots where the nearest claiming ancestor wins, and multiple
+patterns that resolve to the same selected package directory. Rejected fixtures must cover
+`packages/*` incorrectly matching `packages/a/b`, a pattern matching a descendant or ancestor rather
+than the exact selected package directory, a selected package claimed by workspace metadata but
+missing its own `package.json`, patterns that resolve to different package directories for one
+input, malformed `pnpm-workspace.yaml`, unsupported `workspaces` shapes, negation, brace expansion,
+extended glob syntax, absolute paths, empty path segments, traversal segments, and backslash
+separators. Pattern base failures use `workspace-pattern-base-mismatch`; malformed metadata or
+non-exact package selection failures use `workspace-resolution-mismatch` unless a narrower category
+applies.
 
 The package-manager manifest fixture set must prove that top-level `packageManager` uses the
 `name@version` descriptor form while `devEngines.packageManager` uses the closed object form
@@ -426,6 +453,21 @@ emitted Statement mismatch, missing or renamed emitted bundle file, unparseable 
 bytes, and npm CLI rejection of the external provenance file before registry mutation. These
 failures use `actions-attest-adapter-contract` unless the narrower wrong-predicate,
 bundle-byte-format, signer, or duplicate-member category applies.
+
+The signer identity fixture set must prove semantic GitHub Actions identity binding rather than
+artifact-name or log-based inference. Accepted npm producer fixtures must show a bundle whose signer
+workflow repository, workflow path, workflow SHA, source repository, source ref, source revision,
+and predicate type all match the signed Statement and trusted policy. Rejected npm fixtures must
+cover a wrong reusable workflow path, a signer workflow SHA that differs from
+`runDetails.builder.id`, a correct Windlass signer with a mismatched caller source repository, a
+correct caller source identity with an untrusted Windlass signer, and a tool output that omits a
+required semantic identity field. Accepted release manifest fixtures must show signer repository,
+signer workflow path, protected tag ref, peeled release commit SHA, source repository, source ref,
+source revision, and predicate type matching the manifest. Rejected release manifest fixtures must
+cover branch-ref signing, signer workflow path mismatch, release tag/ref mismatch, release commit
+mismatch, and missing semantic identity fields. Wrong values fail with `signer-mismatch`,
+`wrong-producer-signer`, or `manifest-entrypoint-mismatch`; absent unverifiable identity fields fail
+with `signer-identity-claim-missing`.
 
 The `resolvedDependencies` lockfile fixture set must prove that the initial JS/TS npm profile emits
 exactly one selected lockfile `ResourceDescriptor` and no generated transitive dependency list.
@@ -501,6 +543,16 @@ lookup cannot prove that the primary asset was absent, or cannot prove that a sa
 has the expected digest, the fixture must fail with `publisher-indeterminate-primary-upload` and
 report `upload-result: indeterminate-primary-upload`.
 
+The publisher remote digest fixture set must prove that same-name release assets are trusted only
+after SHA-256 equality is established. Accepted fixtures must cover digest proof from a documented
+GitHub release asset digest/checksum field and digest proof from downloading the candidate release
+asset bytes and hashing them locally. Rejected fixtures must cover a same-name asset with no
+documented digest field, an unsupported digest algorithm, a permission failure while downloading the
+candidate asset, a download that cannot be hashed, and a same-name asset whose digest differs from
+`expected-sha256`. These failures report `upload-result: indeterminate-primary-upload` and use
+`publisher-remote-digest-unproven` or the narrower `publisher-indeterminate-primary-upload`
+category.
+
 The publisher workflow schema fixture set must prove that the standalone publisher accepts only the
 declared producer-neutral `workflow_call.inputs`, accepts no secrets, rejects target repository,
 custom token, raw artifact, overwrite, cross-run artifact, or provenance-bypass inputs, and treats
@@ -533,6 +585,16 @@ The release manifest fixture set must include an ambiguous plain JSON upload res
 release lookup cannot prove that the plain manifest was absent, or cannot prove that a same-name
 remote manifest has the expected digest, the fixture must fail with
 `manifest-indeterminate-json-upload` and report `manifest-upload-result: indeterminate-json-upload`.
+
+The release manifest remote digest fixture set must prove that same-name manifest release assets are
+trusted only after SHA-256 equality is established. Accepted fixtures must cover digest proof from a
+documented GitHub release asset digest/checksum field and digest proof from downloading the
+candidate manifest asset bytes and hashing them locally. Rejected fixtures must cover a same-name
+manifest asset with no documented digest field, an unsupported digest algorithm, a permission
+failure while downloading the candidate asset, a download that cannot be hashed, and a same-name
+manifest asset whose digest differs from the expected handoff digest. These failures report
+`manifest-upload-result: indeterminate-json-upload` and use `manifest-remote-digest-unproven` or the
+narrower `manifest-indeterminate-json-upload` category.
 
 The release manifest generation fixture set must prove schema version `1` determinism: all producer
 and publisher `workflow_sha` values equal `release_commit_sha`; producer `builder_id` values are

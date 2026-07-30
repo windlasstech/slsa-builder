@@ -570,6 +570,27 @@ JSON manifest committed, or finds an artifact with the expected name but unknown
 digest, the result is `indeterminate-json-upload` and the workflow fails without uploading,
 regenerating, or re-signing any manifest artifact.
 
+The same-run release lookup must prove digest equality for each same-name manifest asset before it
+treats that remote asset as uploaded by this run. The upload job may use a GitHub API digest or
+checksum field only when the field explicitly identifies the release asset bytes and the algorithm
+is SHA-256. If such a field is unavailable, absent, uses another algorithm, or is not documented as
+an asset-byte digest, the upload job must download the candidate release asset bytes through the
+same authenticated GitHub release asset surface and recompute SHA-256 locally. Asset IDs, browser
+URLs, filenames, sizes, content types, release notes, logs, or workflow artifact names are not
+digest proof. If the candidate asset cannot be downloaded with the caller-scoped token, if the
+downloaded bytes cannot be hashed, if the candidate digest is unavailable, or if the digest differs
+from the expected handoff digest, the lookup cannot prove success and the result is
+`indeterminate-json-upload`.
+
+When the lookup proves that the plain JSON manifest exists with the expected SHA-256, the upload job
+may classify the upload state from the signed bundle state: `partial-json-uploaded` when the signed
+bundle is absent after bundle upload failed, and `completed` only when both the plain JSON manifest
+and signed bundle assets are present with their expected digests. When the lookup proves that no
+same-name plain JSON manifest exists after an upload attempt that failed before any remote commit
+was possible, the result is `failed-before-upload`. A same-name manifest asset with an unknown
+digest, a mismatched digest, or an unreadable digest is never treated as a successful upload by this
+run.
+
 Reruns must use the same duplicate-preflight behavior as first runs. If a rerun observes either
 manifest artifact already present, it must fail before upload rather than overwriting, deleting,
 repairing, or treating the existing artifact as proof that the current run succeeded. Operators must
@@ -617,6 +638,28 @@ release workflow in this repository. Verifiers must check all of the following s
 The certificate identity must be the GitHub Actions workflow identity for the signer workflow path
 and tag ref above. A bundle signed by another repository, another workflow path, a branch ref, a
 pull request ref, a short SHA ref, or a non-GitHub OIDC issuer must be rejected.
+
+The release manifest verifier must bind the semantic identity fields from the common SLSA provenance
+contract to the release manifest values as follows:
+
+| Semantic field             | Required release manifest value                                                                                |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| OIDC issuer                | GitHub Actions.                                                                                                |
+| Signer workflow repository | `windlasstech/slsa-builder`.                                                                                   |
+| Signer workflow path       | `.github/workflows/release-manifest.yml`.                                                                      |
+| Signer workflow ref        | Protected full tag ref `refs/tags/v<release_version>`, equal to the manifest `release_tag`.                    |
+| Signer workflow SHA        | When exposed, the full commit SHA reached by recursively peeling `release_tag`, equal to `release_commit_sha`. |
+| Source repository          | `https://github.com/windlasstech/slsa-builder`.                                                                |
+| Source ref                 | Full protected release tag ref equal to `release_tag`.                                                         |
+| Source revision            | Full 40-character lowercase commit SHA equal to `release_commit_sha`.                                          |
+| Predicate type             | `https://slsa-builder.dev/predicates/release-manifest/v1`.                                                     |
+
+Common GitHub/Sigstore verification outputs may expose signer workflow identity through reusable
+workflow or job-workflow claim names and source identity through repository/ref claim names. The
+claim spelling is tool-specific; the semantic values above are the policy. If the verifier cannot
+prove every required semantic identity field from verified certificate or bundle data, it must
+reject the release manifest. It must not infer manifest signer identity from release asset names,
+tag names alone, release notes, workflow outputs, or unsigned JSON files.
 
 The signer workflow path is fixed for the initial release manifest contract. If the project later
 renames the release workflow or moves release manifest signing into a reusable workflow, direct
