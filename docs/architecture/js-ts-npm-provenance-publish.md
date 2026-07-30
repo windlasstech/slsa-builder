@@ -137,8 +137,15 @@ name:
 js-ts-npm-provenance-bundle-<github.run_id>-<github.run_attempt>
 ```
 
-The artifact must contain exactly one file: the signed Sigstore bundle. The `publish` job downloads
-the bundle and recomputes its digest.
+The artifact must contain exactly one file with this deterministic basename:
+
+```text
+<package-tarball-name>.intoto.jsonl
+```
+
+The file contents are the signed Sigstore bundle emitted by the `actions/attest` custom-mode
+invocation for the package tarball. The `publish` job downloads the bundle and recomputes its
+digest.
 
 The signed bundle file is the exact byte sequence emitted by the `actions/attest` custom-mode
 invocation. The profile must hand off and submit those bytes unchanged; it must not replace the file
@@ -151,10 +158,14 @@ The provenance bundle handoff must satisfy the core same-run artifact handoff sc
 | ------------------- | -------------------------------------------------------------------------- |
 | `transport`         | `github-actions-artifact`                                                  |
 | `artifact_name`     | `js-ts-npm-provenance-bundle-<github.run_id>-<github.run_attempt>`         |
-| `payload_file_name` | Basename of the single signed Sigstore bundle file in the artifact.        |
+| `payload_file_name` | `<package-tarball-name>.intoto.jsonl`                                      |
 | `payload_kind`      | `provenance-bundle`                                                        |
 | `digest.algorithm`  | `sha256`                                                                   |
 | `digest.value`      | SHA-256 of the signed bundle bytes as 64 lowercase hexadecimal characters. |
+
+The `.intoto.jsonl` basename is a distribution name for the emitted Sigstore bundle bytes. It must
+not be interpreted as permission to upload a raw in-toto Statement, extracted predicate, GitHub
+attestation storage locator, or any normalized representation in place of the bundle file.
 
 ## Digest verification between jobs
 
@@ -477,15 +488,41 @@ Windlass owns the verifier-relevant contents of the emitted Statement: subject, 
 
 ## `actions/attest` signing adapter
 
-- The adapter is invoked in custom attestation mode with the verified subject name, subject digest,
-  `predicate-type: https://slsa.dev/provenance/v1`, and the Windlass-generated predicate.
-- The adapter constructs the in-toto Statement and signs it as a Sigstore-backed bundle.
-- The adapter may upload the bundle to GitHub artifact attestation storage.
-- The adapter must not be invoked in default provenance mode for the production npm profile.
-- The producer-side verification gate must extract the emitted Statement from the signed bundle and
-  reject the bundle before publish if the Statement does not match the verified signing inputs.
-- GitHub artifact attestation storage, when used, is an additional locator. It is not a substitute
-  for the signed bundle bytes required by `npm publish --provenance-file` and downstream handoff.
+The `provenance-sign` job invokes stock, full-SHA-pinned `actions/attest` in custom attestation
+mode. Windlass supplies only the adapter inputs supported by that mode:
+
+| Adapter input    | Required value                                                               |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Subject name     | The verified pack-produced tarball basename, equal to `subject[0].name`.     |
+| Subject digest   | The verified tarball digest map, including canonical lowercase `sha256`.     |
+| `predicate-type` | `https://slsa.dev/provenance/v1`.                                            |
+| Predicate input  | The Windlass-generated SLSA provenance predicate JSON, not a full Statement. |
+
+The deterministic predicate input file basename is:
+
+```text
+slsa-provenance-predicate.json
+```
+
+This file is an adapter input only. It must not be uploaded, published, or redistributed as the
+provenance bundle.
+
+The adapter constructs the in-toto Statement, signs it as a Sigstore-backed bundle, emits the bundle
+file named `<package-tarball-name>.intoto.jsonl`, and may also upload the attestation to GitHub
+artifact attestation storage. The adapter must not be invoked in default provenance mode for the
+production npm profile and must not be documented as accepting a complete in-toto Statement input.
+
+The producer-side verification gate must extract the emitted Statement from the signed bundle and
+reject the bundle before publish if the Statement does not match the verified signing inputs. It
+must also reject adapter drift when the bundle file is missing, the emitted bundle basename differs
+from `<package-tarball-name>.intoto.jsonl`, the bundle cannot be parsed as a Sigstore bundle, the
+bundle contains a raw Statement instead of the expected signed bundle structure, or the extracted
+Statement uses unexpected `_type`, subject, `predicateType`, predicate, `builder.id`, `buildType`,
+or `externalParameters` values.
+
+GitHub artifact attestation storage, when used, is an additional native locator. It is not a
+substitute for the signed bundle bytes required by `npm publish --provenance-file`, same-run
+handoff, GitHub Release sidecar publication, or consumer verification.
 
 ## Producer signer identity
 
@@ -515,8 +552,16 @@ publish.
 
 - The `publish` job must use `npm publish --provenance-file=<bundle-path>` to publish the tarball
   with the Windlass-generated provenance.
+- The `<bundle-path>` must point to the downloaded `<package-tarball-name>.intoto.jsonl` file whose
+  SHA-256 digest matched the provenance-bundle handoff. The profile must submit that file unchanged.
 - The profile must not use npm's automatic provenance generation.
 - The profile must not fall back to token-based publish.
+- Before invoking `npm publish`, the profile must prove that the provenance file exists, is the
+  exact byte sequence emitted by the `actions/attest` custom-mode invocation, parses as the expected
+  Sigstore bundle, and contains an extracted Statement matching the Windlass-verified signing
+  inputs. Missing files, raw Statement files, reserialized bundle files, GitHub attestation storage
+  locator files, digest mismatches, Statement mismatches, or npm CLI rejection of the external
+  provenance file must fail closed before registry mutation.
 - Before running `npm publish` to `https://registry.npmjs.org/`, the profile must check whether
   npmjs already has the package identity and package version. If the package identity does not
   already exist, the workflow must fail clearly before attempting registry mutation because first

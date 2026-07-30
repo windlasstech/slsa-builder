@@ -190,6 +190,37 @@ The initial stock `actions/attest` adapter must not be documented or invoked as 
 complete in-toto Statement payload. A future adapter that signs complete Statement bytes directly
 requires a later ADR if it changes verifier-visible behavior or trust boundaries.
 
+### Initial `actions/attest` adapter contract
+
+For the initial production profile, the signing adapter boundary is the stock, full-SHA-pinned
+`actions/attest` custom attestation interface. Windlass supplies only adapter inputs that stock
+`actions/attest` documents for custom mode:
+
+- the verified subject name;
+- the verified subject digest map;
+- `predicate-type: https://slsa.dev/provenance/v1`; and
+- the Windlass-generated SLSA provenance predicate as JSON input.
+
+The adapter is responsible for constructing the in-toto Statement from those inputs, signing that
+Statement with the GitHub Actions OIDC-backed Sigstore identity, emitting the Sigstore bundle file,
+and optionally uploading the attestation to GitHub artifact attestation storage. Windlass remains
+responsible for the verifier-visible Statement semantics. It must validate the subject inputs,
+predicate type, and predicate before invoking the adapter, then extract the emitted Statement
+payload from the signed bundle and compare it with the Statement implied by those validated inputs.
+
+The adapter contract has exactly one file output that can become provenance evidence for npm
+publish, cross-job handoff, release sidecar redistribution, and consumer verification: the emitted
+Sigstore bundle bytes. GitHub artifact attestation storage metadata, URLs, IDs, or lookup results
+are native diagnostic locators only. They must not replace the bundle file when a workflow,
+registry, release asset, handoff, or verifier requires provenance bytes.
+
+Before any production implementation or SHA-pinned `actions/attest` upgrade is accepted, a
+compatibility check must prove that the adapter's custom-mode emitted bundle file is accepted by the
+profile's `npm publish --provenance-file` path and that the same bytes can be preserved as the
+GitHub Release provenance sidecar. If the stock custom-mode output cannot satisfy those
+requirements, the implementation must stop before release and a later ADR must choose a different
+signing adapter or distribution contract.
+
 ## Signed bundle file format
 
 The initial production signed provenance artifact is the exact Sigstore bundle file emitted by the
