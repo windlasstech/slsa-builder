@@ -115,7 +115,7 @@ implementation work.
 | 0061 | Reject duplicate JSON members in signed SLSA Statements            | Common provenance, JS/TS npm provenance and publish, verification policy                     |
 | 0062 | Intersect trusted producer policies                                | Release manifest, GitHub Release asset publisher, verification policy                        |
 | 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                     |
-| 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests              | Common provenance, JS/TS npm provenance and publish, composition spec, verification policy   |
+| 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests              | Common provenance, JS/TS npm specs, composition and publisher specs, verification policy     |
 
 ### Superseded or deprecated ADRs (historical only)
 
