@@ -14,6 +14,8 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
   [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md),
+  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
+  [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
@@ -22,6 +24,7 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0062](../decisions/0062-intersect-trusted-producer-policies.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
+  [JS/TS npm build and pack](js-ts-npm-build-pack.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
   [npm-to-release-asset composition](npm-to-release-asset-composition.md)
@@ -237,6 +240,9 @@ Every fixture must include:
 | ----------------------------------------- | ---------------- | ----------------------------------------------------------------- |
 | `npm-valid-release`                       | npm              | Valid npm package tarball with matching Windlass provenance.      |
 | `npm-valid-scoped-package-url`            | npm              | Valid scoped npm package with registry package-version URL.       |
+| `npm-actions-attest-custom-bundle-valid`  | npm              | Custom-mode emitted bundle is accepted as npm provenance file.    |
+| `npm-resolved-lockfile-valid`             | npm              | Selected lockfile descriptor matches path, digest, and manager.   |
+| `npm-resolved-lockfile-stale-valid`       | npm              | Stale non-selected lockfiles are recorded as diagnostics only.    |
 | `npm-release-asset-mode-valid`            | npm              | Public npm workflow release-asset mode uploads tarball + sidecar. |
 | `npm-release-asset-linked-metadata-valid` | npm              | Release-asset mode creates linked artifact metadata when enabled. |
 | `publisher-valid-upload`                  | publisher        | Valid producer handoff leading to release asset and sidecar.      |
@@ -251,6 +257,7 @@ Every fixture must include:
 | `signature-mismatch`                       | Bundle signature is invalid or missing.                                                    |
 | `signer-mismatch`                          | Signer identity is not trusted.                                                            |
 | `duplicate-json-member`                    | Signed Statement JSON contains duplicate object member names after unescaping.             |
+| `actions-attest-adapter-contract`          | Adapter inputs, emitted bundle basename, or npm provenance-file compatibility is invalid.  |
 | `wrong-producer-signer`                    | Producer signer repo, workflow path, ref, or issuer is not trusted.                        |
 | `wrong-predicate-type`                     | `predicateType` is not SLSA provenance v1.                                                 |
 | `wrong-manifest-predicate-type`            | Release manifest `predicateType` is not the ADR 0054 predicate URI.                        |
@@ -277,6 +284,7 @@ Every fixture must include:
 | `workspace-pattern-base-mismatch`          | Workspace patterns were evaluated against the wrong base directory.                        |
 | `workspace-command-mismatch`               | Workspace package targeting command can affect the wrong package.                          |
 | `package-manager-manifest-shape-error`     | `devEngines.packageManager` uses an unsupported shape, member, or release version form.    |
+| `resolved-dependencies-lockfile`           | Selected lockfile `resolvedDependencies` descriptor is missing, malformed, or mismatched.  |
 | `release-asset-mode-schema-error`          | Public npm release-asset mode input or output schema is invalid.                           |
 | `release-asset-mode-disabled-conflict`     | Release-asset-only inputs are supplied while release-asset mode is disabled.               |
 | `release-asset-mode-permission-error`      | Caller or internal job permissions are missing or combine separated authorities.           |
@@ -381,6 +389,32 @@ pnpm/Yarn versions, range versions, tag versions, URL descriptors, hash-suffixed
 `onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken release-build policy.
 These failures use `package-manager-manifest-shape-error` unless a narrower package-manager
 selection or lockfile category applies.
+
+The `actions/attest` adapter fixture set must prove the stock custom-mode adapter contract selected
+by ADR 0055. Accepted fixtures must include a custom-mode emitted bundle named
+`<package-tarball-name>.intoto.jsonl` whose extracted Statement matches the Windlass-verified
+subject inputs, `predicateType`, and SLSA predicate, and whose bytes are accepted by the npm
+`--provenance-file` path. Rejected fixtures must cover raw Statement files used as provenance,
+reserialized or wrapped bundles, GitHub artifact attestation storage locators substituted for bundle
+bytes, wrong or missing `slsa-provenance-predicate.json` adapter input, wrong predicate type,
+emitted Statement mismatch, missing or renamed emitted bundle file, unparseable Sigstore bundle
+bytes, and npm CLI rejection of the external provenance file before registry mutation. These
+failures use `actions-attest-adapter-contract` unless the narrower wrong-predicate,
+bundle-byte-format, signer, or duplicate-member category applies.
+
+The `resolvedDependencies` lockfile fixture set must prove that the initial JS/TS npm profile emits
+exactly one selected lockfile `ResourceDescriptor` and no generated transitive dependency list.
+Accepted fixtures must cover manifest-selected npm with `package-lock.json`, manifest-selected pnpm
+with `pnpm-lock.yaml`, manifest-selected Yarn with `yarn.lock`, and lockfile-inferred npm with
+`package-lock.json`. Accepted stale-lockfile fixtures must record stale non-selected lockfiles in
+both `externalParameters.package_manager.ignored_lockfile_paths` and
+`resolvedDependencies[0].annotations.stale_non_selected_lockfiles` while keeping the selected
+lockfile descriptor as the only dependency graph input. Rejected fixtures must cover a missing
+descriptor, extra descriptor entries, full dependency-list entries, digest mismatch, URI source or
+revision mismatch, fragment path outside the repository, descriptor path that names a stale or
+non-selected lockfile, missing stale-lockfile diagnostics, unknown annotation members, and treating
+a stale non-selected lockfile as the selected dependency graph input. These failures use
+`resolved-dependencies-lockfile` unless a narrower package-manager or workspace category applies.
 
 The public npm release-asset mode fixture set must prove that
 `.github/workflows/js-ts-npm-package-slsa3.yml` has one public npm entrypoint with two modes.
