@@ -18,9 +18,11 @@ verification policy specification also allows consumers to use explicit verifier
 checking published artifacts.
 
 That leaves one unresolved trust-boundary question: when an authenticated signed release manifest
-and an explicit verifier policy are both present and they disagree about trusted producer identity,
-workflow SHA, `builder.id`, `buildType`, signer identity, source, release ref, subject, or
-`externalParameters`, which policy wins?
+and an explicit verifier policy are both present, how should verifiers combine the constraints each
+policy source actually represents? In the initial release manifest schema, the manifest constrains
+Windlass release version, workflow SHA, `builder.id`, `buildType`, and publisher workflow identity.
+It does not represent caller-specific source repository, source revision, release ref, subject name,
+subject digest, or strict `externalParameters` constraints.
 
 SLSA v1.2 verification is expectation-driven: verifiers authenticate provenance and then compare the
 provenance fields against configured roots of trust and expected values. `slsa-verifier`, GitHub
@@ -31,8 +33,8 @@ statement was not changed; it does not by itself grant that statement authority 
 verifier's trust policy.
 
 Should the verifier prefer explicit verifier policy, prefer the signed release manifest, require
-both policies to agree, accept either policy, or provide an override mode when these trusted
-producer policy sources conflict?
+applicable constraints from both policies to agree, accept either policy, or provide an override
+mode when these trusted producer policy sources conflict?
 
 ## Decision Drivers
 
@@ -50,7 +52,8 @@ producer policy sources conflict?
 
 ## Considered Options
 
-- Apply the intersection of explicit verifier policy and authenticated release manifest policy.
+- Apply the intersection of explicit verifier policy and authenticated release manifest policy over
+  the fields each policy source explicitly constrains.
 - Use explicit verifier policy and ignore release manifest producer policy.
 - Let explicit verifier policy override release manifest producer policy.
 - Let authenticated release manifest policy override explicit verifier policy.
@@ -60,16 +63,23 @@ producer policy sources conflict?
 ## Decision Outcome
 
 Chosen option: "Apply the intersection of explicit verifier policy and authenticated release
-manifest policy", because neither policy source should be able to widen trusted producer authority
-without the other independently allowing the same producer identity and parameters.
+manifest policy over the fields each policy source explicitly constrains", because neither policy
+source should be able to widen trusted producer authority for the fields it represents, while the
+release manifest should not be treated as responsible for caller-specific source, subject, or
+`externalParameters` values that its schema intentionally does not contain.
 
 When both an explicit verifier policy and a signed release manifest policy are present, verifiers
-and producer-side publisher gates must compute the effective trusted producer policy as the
-intersection of the two policy sources. Producer provenance is trusted only when every
-policy-relevant value is allowed by both sources. Policy-relevant values include signer identity,
-source repository, source revision, release ref, workflow path, workflow SHA, `builder.id`,
-`buildType`, SLSA `predicateType`, subject name, subject digest, and required or forbidden
-`externalParameters`.
+and producer-side publisher gates must compute the effective trusted producer policy by applying all
+applicable constraints from both policy sources. A producer provenance field is trusted only when
+every policy source that explicitly constrains that field allows the observed value.
+
+For schema version `1`, the signed release manifest constrains Windlass release identity, producer
+workflow path, producer workflow SHA, producer `builder.id`, producer `buildType`, and publisher
+workflow path/SHA/role. The initial release manifest does not constrain caller-specific source
+repository, source revision, release ref, subject name, subject digest, or strict
+`externalParameters`. Those values remain mandatory verification inputs for the relevant npm,
+publisher, or consumer verification surface, but they must be supplied by explicit verifier policy,
+producer-side expected values, the digest-verified handoff, or another ADR-backed policy source.
 
 A signed release manifest policy is eligible for intersection only after the release manifest bundle
 has been verified against an independently configured local trust root: Sigstore root, expected
@@ -78,15 +88,21 @@ version, expected release tag, release commit SHA, and manifest generation invar
 must not bootstrap trust in its own signer, trust root, predicate type, schema version, or policy
 authority.
 
-If a value is missing from either policy source, the verifier must not treat the omission as a
-wildcard unless the policy schema explicitly marks that field as intentionally unconstrained and the
-other policy source still allows the observed value. For the initial production policy, missing
-producer identity, workflow SHA, `builder.id`, `buildType`, source identity, release ref, subject,
-or strict `externalParameters` constraints make the effective policy unsatisfied.
+If a field is absent because a policy source's schema does not represent it, that field is
+unconstrained by that policy source. This absence must not be interpreted as affirmative permission,
+and it must not remove the field from the overall verification requirements when another spec
+requires that field to be checked.
 
-If the two policy sources conflict or their intersection is empty, verification must fail closed.
-The verifier must not choose one source by precedence, use last-writer-wins behavior, accept either
-source independently, or silently downgrade to a looser policy.
+If a field required by a policy source's own schema is missing from that source, the policy source
+is invalid and verification must fail closed. For example, a schema version `1` release manifest
+that omits a producer `workflow_sha`, `builder_id`, or `build_type` entry is invalid. By contrast,
+the same manifest does not become invalid merely because it lacks caller-specific subject or
+`externalParameters` constraints, because those fields are outside the manifest schema.
+
+If two policy sources explicitly constrain the same field and those constraints conflict or their
+intersection is empty, verification must fail closed. The verifier must not choose one source by
+precedence, use last-writer-wins behavior, accept either source independently, or silently downgrade
+to a looser policy.
 
 The failure result should identify the conflicting policy source and field, such as an explicit
 policy allowing one `builder.id` while the signed release manifest maps the selected release to a
@@ -102,17 +118,20 @@ prevents it from being confused with the default production policy.
 ### Consequences
 
 - Good, because no single signed metadata document or local configuration file can expand producer
-  trust alone.
-- Good, because release manifest policy acts as an authenticated additional constraint while
-  explicit verifier policy remains under verifier control.
-- Good, because policy drift is detected before publication or artifact acceptance.
+  trust for fields constrained by both sources.
+- Good, because release manifest policy acts as an authenticated additional constraint for release
+  and workflow identity while explicit verifier policy remains under verifier control for
+  caller-specific expectations.
+- Good, because policy drift in shared constrained fields is detected before publication or artifact
+  acceptance.
 - Good, because the rule matches SLSA's expectation-check model and common Sigstore/GitHub verifier
   behavior.
 - Good, because diagnostics can point to exact conflict fields instead of hiding drift behind
   precedence.
-- Neutral, because operators must keep explicit policy and release manifest mappings synchronized.
-- Bad, because some otherwise valid attestations will fail during policy migration until both policy
-  sources are updated consistently.
+- Neutral, because operators must keep explicit policy and release manifest mappings synchronized
+  for fields both sources constrain.
+- Bad, because otherwise valid attestations can fail during policy migration when both sources
+  constrain the same field and only one source has been updated.
 - Bad, because verifier implementations must model policy source provenance and field-level conflict
   reporting rather than flattening all policy inputs into one map.
 
@@ -123,12 +142,18 @@ documentation define:
 
 - release manifest policy verification before using manifest producer entries;
 - explicit verifier policy and signed release manifest policy as independent policy sources;
-- effective trusted producer policy as the intersection of both sources when both are present;
-- rejection when either source does not allow the observed producer signer identity, source,
-  workflow path, workflow SHA, `builder.id`, `buildType`, release ref, subject, or required
-  `externalParameters`;
-- rejection when policy intersections are empty or ambiguous;
-- no implicit wildcard behavior for missing producer policy fields in the initial production policy;
+- effective trusted producer policy as the intersection of all applicable constraints from both
+  sources when both are present;
+- release manifest constraints for schema version `1` limited to release identity, workflow path,
+  workflow SHA, `builder.id`, `buildType`, and publisher workflow mappings;
+- explicit verifier policy, producer-side expected values, or digest-verified handoff constraints
+  for caller-specific source, release ref, subject, digest, and strict `externalParameters`;
+- rejection when any policy source explicitly constrains a field and the observed producer
+  provenance does not satisfy that constraint;
+- rejection when a field required by a policy source's own schema is missing;
+- rejection when applicable policy intersections are empty or ambiguous;
+- no affirmative trust from fields that are merely absent because they are outside a policy source's
+  schema;
 - no precedence, last-writer-wins, or either-source-allowed acceptance in the default production
   policy;
 - fixture cases for matching policies, manifest-only mismatch, explicit-policy-only mismatch,
@@ -142,19 +167,23 @@ manifest constraint in the default production path.
 
 ## Pros and Cons of the Options
 
-### Intersect explicit verifier policy and authenticated manifest policy
+### Intersect explicitly constrained fields from verifier policy and authenticated manifest policy
 
-The verifier accepts producer provenance only when both policy sources independently allow the
-observed producer identity and parameters. Any conflict fails closed.
+The verifier accepts producer provenance only when every applicable constraint from both policy
+sources allows the observed producer identity and parameters. A field outside one source's schema is
+unconstrained by that source, but still must satisfy any constraints supplied by the other policy
+source or by another required verification input. Any conflict over a field constrained by both
+sources fails closed.
 
-- Good, because it preserves monotonic security: adding a policy source can only narrow trust.
+- Good, because it preserves monotonic security for represented fields: adding a constraint can only
+  narrow trust.
 - Good, because it gives the signed release manifest real effect without letting it replace local
   verifier judgment.
 - Good, because it detects release metadata drift, local configuration drift, and accidental
-  producer mapping mismatches.
+  producer mapping mismatches in shared constrained fields.
 - Bad, because it is stricter than either-source acceptance and can create operational failures
-  during migration.
-- Bad, because it requires clearer policy schemas and conflict diagnostics.
+  during migration when both sources constrain the same field.
+- Bad, because it requires clearer policy schemas, field-scope rules, and conflict diagnostics.
 
 ### Use explicit verifier policy and ignore release manifest producer policy
 
