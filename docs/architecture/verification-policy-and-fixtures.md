@@ -21,7 +21,8 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
   [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
-  [0062](../decisions/0062-intersect-trusted-producer-policies.md)
+  [0062](../decisions/0062-intersect-trusted-producer-policies.md),
+  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -129,6 +130,17 @@ lockfile. Any non-selected lockfiles recorded in
 `externalParameters.package_manager.ignored_lockfile_paths` are diagnostics only. A verifier must
 not reject otherwise valid provenance merely because another supported package-manager lockfile was
 present and recorded as ignored under that rule.
+
+When `externalParameters.package_manager.name` is `yarn`, verifier policy must additionally require:
+
+- `externalParameters.package_manager.selection_source` is `packageManager`;
+- `externalParameters.package_manager.version` is an exact SemVer version greater than or equal to
+  `4.0.0`;
+- `externalParameters.package_manager.yarn_install_mode` is `immutable`;
+- `resolvedDependencies[0].annotations.selection_lockfile_path` identifies the selected `yarn.lock`;
+- no policy accepts Yarn Classic 1.x, Yarn Berry v2, Yarn Berry v3, `devEngines.packageManager`-only
+  Yarn selection, lockfile-only Yarn inference, ambient global Yarn, or Corepack Known Good Release
+  fallback.
 
 ## GitHub Release asset verification policy
 
@@ -251,83 +263,84 @@ Every fixture must include:
 
 ## Rejected fixture categories
 
-| Category                                   | Description                                                                                |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `digest-mismatch`                          | Artifact digest does not match the provenance subject digest.                              |
-| `signature-mismatch`                       | Bundle signature is invalid or missing.                                                    |
-| `signer-mismatch`                          | Signer identity is not trusted.                                                            |
-| `duplicate-json-member`                    | Signed Statement JSON contains duplicate object member names after unescaping.             |
-| `actions-attest-adapter-contract`          | Adapter inputs, emitted bundle basename, or npm provenance-file compatibility is invalid.  |
-| `wrong-producer-signer`                    | Producer signer repo, workflow path, ref, or issuer is not trusted.                        |
-| `wrong-predicate-type`                     | `predicateType` is not SLSA provenance v1.                                                 |
-| `wrong-manifest-predicate-type`            | Release manifest `predicateType` is not the ADR 0054 predicate URI.                        |
-| `wrong-builder-id`                         | `builder.id` is not trusted or uses a non-SHA reference.                                   |
-| `wrong-build-type`                         | `buildType` is not the canonical profile URI.                                              |
-| `subject-cardinality-error`                | Provenance contains zero subjects or multiple subjects.                                    |
-| `unexpected-external-parameters`           | `externalParameters` contains unexpected fields under strict matching.                     |
-| `source-identity-mismatch`                 | Source repository or revision does not match policy.                                       |
-| `release-ref-mismatch`                     | Source ref, release ref, runtime ref, or version tag do not identify the same tag.         |
-| `source-repository-canonicalization-error` | Source repository URL is non-canonical, ambiguous, or malformed.                           |
-| `trusted-publisher-mismatch`               | Producer-side npm trusted publishing caller identity or OIDC permission is wrong.          |
-| `package-identity-mismatch`                | npm package name or version does not match.                                                |
-| `package-url-mismatch`                     | npm registry package-version URL is malformed or does not match registry/name/version.     |
-| `unsupported-initial-publication`          | Selected package identity does not already exist on npmjs.                                 |
-| `package-version-mismatch`                 | Tag version does not match `package.json` version.                                         |
-| `package-directory-mismatch`               | `externalParameters.package.directory` does not match expected.                            |
-| `package-manager-selection-path-mismatch`  | Package-manager selection path is missing or wrong in provenance.                          |
-| `private-package`                          | Selected package manifest has `private: true`.                                             |
-| `publish-intent-conflict`                  | Workflow publish input conflicts with source `publishConfig`.                              |
-| `invalid-publish-input`                    | Non-empty workflow publish input has an unsupported value or format.                       |
-| `empty-publish-input-fallback`             | Empty workflow input failed to fall back to source `publishConfig`.                        |
-| `already-published-version`                | Selected package name/version already exists before publish.                               |
-| `workspace-resolution-mismatch`            | Workspace root, package manager root, or lockfile policy is wrong.                         |
-| `workspace-pattern-base-mismatch`          | Workspace patterns were evaluated against the wrong base directory.                        |
-| `workspace-command-mismatch`               | Workspace package targeting command can affect the wrong package.                          |
-| `package-manager-manifest-shape-error`     | `devEngines.packageManager` uses an unsupported shape, member, or release version form.    |
-| `resolved-dependencies-lockfile`           | Selected lockfile `resolvedDependencies` descriptor is missing, malformed, or mismatched.  |
-| `release-asset-mode-schema-error`          | Public npm release-asset mode input or output schema is invalid.                           |
-| `release-asset-mode-disabled-conflict`     | Release-asset-only inputs are supplied while release-asset mode is disabled.               |
-| `release-asset-mode-permission-error`      | Caller or internal job permissions are missing or combine separated authorities.           |
-| `release-asset-target-error`               | Effective release tag or target release is missing, malformed, or outside the caller repo. |
-| `runtime-policy-mismatch`                  | Runner or Node.js version does not match policy.                                           |
-| `excessive-publish-permission`             | npmjs publish job requests permissions outside the initial boundary.                       |
-| `npm-version-too-old`                      | npm CLI version is below `11.5.1` for trusted publishing.                                  |
-| `release-manifest-mismatch`                | Release manifest mapping does not match the provenance.                                    |
-| `trusted-producer-policy-conflict`         | Explicit verifier policy and signed release manifest policy cannot both be satisfied.      |
-| `manifest-predicate-mismatch`              | Signed Statement predicate differs from canonical manifest JSON.                           |
-| `manifest-digest-mismatch`                 | Statement subject digest differs from canonical manifest JSON bytes.                       |
-| `manifest-trigger-mismatch`                | Release manifest workflow did not run from the expected protected SemVer tag.              |
-| `manifest-tag-peel-mismatch`               | Release tag cannot be peeled to the expected terminal commit.                              |
-| `manifest-entrypoint-mismatch`             | Release manifest signer workflow path is not the fixed production entrypoint.              |
-| `manifest-caller-override`                 | Caller-controlled input changed a signed manifest trust field.                             |
-| `manifest-workflow-sha-mismatch`           | Schema v1 workflow SHA does not equal the release tag target commit.                       |
-| `manifest-entry-order-mismatch`            | Release manifest producer or publisher arrays are not in canonical sorted order.           |
-| `manifest-generated-at-invalid`            | `generated_at` is not a fixed-form UTC timestamp.                                          |
-| `manifest-handoff-basename-mismatch`       | Manifest handoff artifact contains an unexpected payload basename.                         |
-| `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.                              |
-| `manifest-indeterminate-json-upload`       | Manifest upload state cannot be determined after an ambiguous upload attempt.              |
-| `bundle-byte-format-mismatch`              | Signed bundle bytes were extracted, reserialized, wrapped, or otherwise changed.           |
-| `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.                                |
-| `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                                        |
-| `handoff-schema-mismatch`                  | Cross-job artifact handoff omits or changes required core fields.                          |
-| `composition-handoff-substitution`         | Composition mapping trusts public outputs or deterministic names.                          |
-| `publisher-handoff-field-error`            | Publisher handoff uses missing, stale, or malformed field names.                           |
-| `publisher-workflow-schema-error`          | Publisher exposes or accepts unsupported public workflow inputs or secrets.                |
-| `publisher-permission-boundary-violation`  | Publisher job permissions combine authorities that must stay separate.                     |
-| `native-locator-malformed`                 | Native provenance locator is not valid diagnostic metadata.                                |
-| `native-locator-digest-mismatch`           | Native provenance locator digest differs from the sidecar bundle digest.                   |
-| `sidecar-mismatch`                         | Sidecar bundle does not match the primary asset's provenance.                              |
-| `sidecar-digest-mismatch`                  | `sidecar-digest` does not equal the verified producer bundle SHA-256.                      |
-| `sidecar-upload-partial-failure`           | Primary release asset uploaded but sidecar upload failed afterward.                        |
-| `publisher-indeterminate-primary-upload`   | Primary release asset upload state cannot be determined after an ambiguous upload.         |
-| `duplicate-release-asset`                  | Release asset name already exists.                                                         |
-| `duplicate-sidecar-asset`                  | Deterministic sidecar asset name already exists before upload.                             |
-| `registry-linkage-mismatch`                | Published package does not match the provenance registry metadata.                         |
-| `custom-registry-preflight-diagnostic`     | Non-npmjs registry preflight metadata is best-effort and not guaranteed support.           |
-| `custom-registry-token-required`           | Custom registry metadata or publish path requires token or weaker provenance behavior.     |
-| `prepublish-registry-metadata-required`    | Workflow required post-publish registry metadata before publish.                           |
-| `release-version-semver-mismatch`          | Release manifest version or tag is not valid SemVer 2.0.0.                                 |
-| `trusted-core-boundary-violation`          | Trusted policy/provenance logic depends on profile ecosystem tooling.                      |
+| Category                                   | Description                                                                                 |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `digest-mismatch`                          | Artifact digest does not match the provenance subject digest.                               |
+| `signature-mismatch`                       | Bundle signature is invalid or missing.                                                     |
+| `signer-mismatch`                          | Signer identity is not trusted.                                                             |
+| `duplicate-json-member`                    | Signed Statement JSON contains duplicate object member names after unescaping.              |
+| `actions-attest-adapter-contract`          | Adapter inputs, emitted bundle basename, or npm provenance-file compatibility is invalid.   |
+| `wrong-producer-signer`                    | Producer signer repo, workflow path, ref, or issuer is not trusted.                         |
+| `wrong-predicate-type`                     | `predicateType` is not SLSA provenance v1.                                                  |
+| `wrong-manifest-predicate-type`            | Release manifest `predicateType` is not the ADR 0054 predicate URI.                         |
+| `wrong-builder-id`                         | `builder.id` is not trusted or uses a non-SHA reference.                                    |
+| `wrong-build-type`                         | `buildType` is not the canonical profile URI.                                               |
+| `subject-cardinality-error`                | Provenance contains zero subjects or multiple subjects.                                     |
+| `unexpected-external-parameters`           | `externalParameters` contains unexpected fields under strict matching.                      |
+| `source-identity-mismatch`                 | Source repository or revision does not match policy.                                        |
+| `release-ref-mismatch`                     | Source ref, release ref, runtime ref, or version tag do not identify the same tag.          |
+| `source-repository-canonicalization-error` | Source repository URL is non-canonical, ambiguous, or malformed.                            |
+| `trusted-publisher-mismatch`               | Producer-side npm trusted publishing caller identity or OIDC permission is wrong.           |
+| `package-identity-mismatch`                | npm package name or version does not match.                                                 |
+| `package-url-mismatch`                     | npm registry package-version URL is malformed or does not match registry/name/version.      |
+| `unsupported-initial-publication`          | Selected package identity does not already exist on npmjs.                                  |
+| `package-version-mismatch`                 | Tag version does not match `package.json` version.                                          |
+| `package-directory-mismatch`               | `externalParameters.package.directory` does not match expected.                             |
+| `package-manager-selection-path-mismatch`  | Package-manager selection path is missing or wrong in provenance.                           |
+| `private-package`                          | Selected package manifest has `private: true`.                                              |
+| `publish-intent-conflict`                  | Workflow publish input conflicts with source `publishConfig`.                               |
+| `invalid-publish-input`                    | Non-empty workflow publish input has an unsupported value or format.                        |
+| `empty-publish-input-fallback`             | Empty workflow input failed to fall back to source `publishConfig`.                         |
+| `already-published-version`                | Selected package name/version already exists before publish.                                |
+| `workspace-resolution-mismatch`            | Workspace root, package manager root, or lockfile policy is wrong.                          |
+| `workspace-pattern-base-mismatch`          | Workspace patterns were evaluated against the wrong base directory.                         |
+| `workspace-command-mismatch`               | Workspace package targeting command can affect the wrong package.                           |
+| `package-manager-manifest-shape-error`     | `devEngines.packageManager` uses an unsupported shape, member, or release version form.     |
+| `unsupported-yarn-version`                 | Yarn is Classic 1.x, Berry v2, Berry v3, non-exact, or selected from an unsupported source. |
+| `resolved-dependencies-lockfile`           | Selected lockfile `resolvedDependencies` descriptor is missing, malformed, or mismatched.   |
+| `release-asset-mode-schema-error`          | Public npm release-asset mode input or output schema is invalid.                            |
+| `release-asset-mode-disabled-conflict`     | Release-asset-only inputs are supplied while release-asset mode is disabled.                |
+| `release-asset-mode-permission-error`      | Caller or internal job permissions are missing or combine separated authorities.            |
+| `release-asset-target-error`               | Effective release tag or target release is missing, malformed, or outside the caller repo.  |
+| `runtime-policy-mismatch`                  | Runner or Node.js version does not match policy.                                            |
+| `excessive-publish-permission`             | npmjs publish job requests permissions outside the initial boundary.                        |
+| `npm-version-too-old`                      | npm CLI version is below `11.5.1` for trusted publishing.                                   |
+| `release-manifest-mismatch`                | Release manifest mapping does not match the provenance.                                     |
+| `trusted-producer-policy-conflict`         | Explicit verifier policy and signed release manifest policy cannot both be satisfied.       |
+| `manifest-predicate-mismatch`              | Signed Statement predicate differs from canonical manifest JSON.                            |
+| `manifest-digest-mismatch`                 | Statement subject digest differs from canonical manifest JSON bytes.                        |
+| `manifest-trigger-mismatch`                | Release manifest workflow did not run from the expected protected SemVer tag.               |
+| `manifest-tag-peel-mismatch`               | Release tag cannot be peeled to the expected terminal commit.                               |
+| `manifest-entrypoint-mismatch`             | Release manifest signer workflow path is not the fixed production entrypoint.               |
+| `manifest-caller-override`                 | Caller-controlled input changed a signed manifest trust field.                              |
+| `manifest-workflow-sha-mismatch`           | Schema v1 workflow SHA does not equal the release tag target commit.                        |
+| `manifest-entry-order-mismatch`            | Release manifest producer or publisher arrays are not in canonical sorted order.            |
+| `manifest-generated-at-invalid`            | `generated_at` is not a fixed-form UTC timestamp.                                           |
+| `manifest-handoff-basename-mismatch`       | Manifest handoff artifact contains an unexpected payload basename.                          |
+| `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.                               |
+| `manifest-indeterminate-json-upload`       | Manifest upload state cannot be determined after an ambiguous upload attempt.               |
+| `bundle-byte-format-mismatch`              | Signed bundle bytes were extracted, reserialized, wrapped, or otherwise changed.            |
+| `missing-producer-provenance`              | Publisher receives an artifact without producer provenance.                                 |
+| `raw-artifact-bypass`                      | Raw caller artifact bypasses producer verification.                                         |
+| `handoff-schema-mismatch`                  | Cross-job artifact handoff omits or changes required core fields.                           |
+| `composition-handoff-substitution`         | Composition mapping trusts public outputs or deterministic names.                           |
+| `publisher-handoff-field-error`            | Publisher handoff uses missing, stale, or malformed field names.                            |
+| `publisher-workflow-schema-error`          | Publisher exposes or accepts unsupported public workflow inputs or secrets.                 |
+| `publisher-permission-boundary-violation`  | Publisher job permissions combine authorities that must stay separate.                      |
+| `native-locator-malformed`                 | Native provenance locator is not valid diagnostic metadata.                                 |
+| `native-locator-digest-mismatch`           | Native provenance locator digest differs from the sidecar bundle digest.                    |
+| `sidecar-mismatch`                         | Sidecar bundle does not match the primary asset's provenance.                               |
+| `sidecar-digest-mismatch`                  | `sidecar-digest` does not equal the verified producer bundle SHA-256.                       |
+| `sidecar-upload-partial-failure`           | Primary release asset uploaded but sidecar upload failed afterward.                         |
+| `publisher-indeterminate-primary-upload`   | Primary release asset upload state cannot be determined after an ambiguous upload.          |
+| `duplicate-release-asset`                  | Release asset name already exists.                                                          |
+| `duplicate-sidecar-asset`                  | Deterministic sidecar asset name already exists before upload.                              |
+| `registry-linkage-mismatch`                | Published package does not match the provenance registry metadata.                          |
+| `custom-registry-preflight-diagnostic`     | Non-npmjs registry preflight metadata is best-effort and not guaranteed support.            |
+| `custom-registry-token-required`           | Custom registry metadata or publish path requires token or weaker provenance behavior.      |
+| `prepublish-registry-metadata-required`    | Workflow required post-publish registry metadata before publish.                            |
+| `release-version-semver-mismatch`          | Release manifest version or tag is not valid SemVer 2.0.0.                                  |
+| `trusted-core-boundary-violation`          | Trusted policy/provenance logic depends on profile ecosystem tooling.                       |
 
 ## Error categories
 
@@ -382,13 +395,25 @@ whose pattern only matches under the wrong base path must fail with
 
 The package-manager manifest fixture set must prove that top-level `packageManager` uses the
 `name@version` descriptor form while `devEngines.packageManager` uses the closed object form
-accepted by the JS/TS npm build and pack spec. Accepted fixtures must include exact pnpm and Yarn
-versions in `devEngines.packageManager.version`. Rejected fixtures must cover string-form
-`devEngines.packageManager`, array-form `devEngines.packageManager`, unknown object members, missing
-pnpm/Yarn versions, range versions, tag versions, URL descriptors, hash-suffixed descriptors, and
-`onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken release-build policy.
-These failures use `package-manager-manifest-shape-error` unless a narrower package-manager
-selection or lockfile category applies.
+accepted by the JS/TS npm build and pack spec. Accepted fixtures must include exact pnpm versions in
+`devEngines.packageManager.version` and exact Yarn Berry v4+ versions in top-level `packageManager`.
+Rejected fixtures must cover string-form `devEngines.packageManager`, array-form
+`devEngines.packageManager`, unknown object members, missing pnpm versions, range versions, tag
+versions, URL descriptors, hash-suffixed descriptors, and `onFail: "ignore"` or `onFail: "warn"`
+attempts that would otherwise weaken release-build policy. These failures use
+`package-manager-manifest-shape-error` unless a narrower package-manager selection, Yarn support, or
+lockfile category applies.
+
+The Yarn support fixture set must prove ADR 0063's stable boundary. Accepted fixtures must cover a
+root package and workspace package selected by top-level exact `packageManager` values such as
+`yarn@4.0.0` or newer, with `yarn.lock`, Corepack exact-version execution, and
+`package_manager.yarn_install_mode: "immutable"` in provenance. Rejected fixtures must cover
+`yarn@1.x`, `yarn@2.x`, `yarn@3.x`, Yarn version ranges, Yarn tags, Yarn URL descriptors,
+hash-suffixed Yarn descriptors, missing `packageManager` with only `yarn.lock`, Yarn selected only
+by `devEngines.packageManager`, Corepack Known Good Release fallback, and ambient global Yarn
+execution. Unsupported Yarn generation, descriptor, or selection-source failures use
+`unsupported-yarn-version` unless the failure is more specifically a malformed manifest shape,
+lockfile mismatch, or Corepack enforcement error.
 
 The `actions/attest` adapter fixture set must prove the stock custom-mode adapter contract selected
 by ADR 0055. Accepted fixtures must include a custom-mode emitted bundle named
@@ -405,9 +430,10 @@ bundle-byte-format, signer, or duplicate-member category applies.
 The `resolvedDependencies` lockfile fixture set must prove that the initial JS/TS npm profile emits
 exactly one selected lockfile `ResourceDescriptor` and no generated transitive dependency list.
 Accepted fixtures must cover manifest-selected npm with `package-lock.json`, manifest-selected pnpm
-with `pnpm-lock.yaml`, manifest-selected Yarn with `yarn.lock`, and lockfile-inferred npm with
-`package-lock.json`. Accepted stale-lockfile fixtures must record stale non-selected lockfiles in
-both `externalParameters.package_manager.ignored_lockfile_paths` and
+with `pnpm-lock.yaml`, manifest-selected Yarn Berry v4+ from top-level `packageManager` with
+`yarn.lock`, and lockfile-inferred npm with `package-lock.json`. Accepted stale-lockfile fixtures
+must record stale non-selected lockfiles in both
+`externalParameters.package_manager.ignored_lockfile_paths` and
 `resolvedDependencies[0].annotations.stale_non_selected_lockfiles` while keeping the selected
 lockfile descriptor as the only dependency graph input. Rejected fixtures must cover a missing
 descriptor, extra descriptor entries, full dependency-list entries, digest mismatch, URI source or
