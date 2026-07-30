@@ -78,11 +78,27 @@ package directory to a path relative to that candidate root, then evaluates the 
 workspace patterns against that relative path. Matched package directories are emitted and recorded
 as repository-root-relative normalized paths after matching.
 
+Pattern evaluation is against package directory paths, not arbitrary files. A pattern match is a
+candidate package only when the matched path is a directory inside the repository and that directory
+contains the selected package's `package.json`. A pattern that matches an ancestor, descendant, or
+non-directory path of the selected `package-directory` does not claim the selected package unless
+the matched normalized directory is exactly the selected package directory. The profile must not
+scan all matching workspace directories and then choose a different package from the caller-selected
+`package-directory`.
+
 Supported pattern syntax is intentionally limited to:
 
 - literal path segments;
 - `*` for exactly one path segment;
 - `**` for zero or more path segments.
+
+The `*` segment is not recursive: `packages/*` matches `packages/a` but not `packages/a/b`. The `**`
+segment is recursive and may match zero path segments: `packages/**` matches `packages/a` and
+`packages/a/b` when those exact directories are the selected package directory and contain their own
+`package.json`; `**` may match the candidate workspace root itself only when the selected
+`package-directory` is that candidate root and that root is a valid package. Literal segments must
+match exactly after slash normalization. No package-manager-native expansion beyond these three
+segment types is part of the initial production profile.
 
 The initial production profile rejects workspace patterns with negation (`!`), brace expansion,
 extended glob syntax, absolute paths, empty path segments, `.` or `..` traversal segments, backslash
@@ -94,6 +110,15 @@ Examples:
 - With repository root `/repo`, candidate root `/repo`, pattern `packages/*`, and
   `package-directory: packages/a`, the relative path `packages/a` matches and the recorded package
   path is `packages/a`.
+- With repository root `/repo`, candidate root `/repo`, pattern `packages/*`, and
+  `package-directory: packages/a/b`, the relative path `packages/a/b` does not match because `*`
+  matches exactly one segment.
+- With repository root `/repo`, candidate root `/repo`, pattern `packages/**`, and
+  `package-directory: packages/a/b`, the relative path `packages/a/b` matches only if
+  `/repo/packages/a/b/package.json` exists.
+- With repository root `/repo`, candidate root `/repo/apps/web`, pattern `**`, and
+  `package-directory: apps/web`, the zero-segment match claims the candidate root only if
+  `/repo/apps/web/package.json` exists and the selected package directory is exactly `apps/web`.
 - With repository root `/repo`, candidate root `/repo/apps/web`, pattern `packages/*`, and
   `package-directory: apps/web/packages/a`, the relative path `packages/a` matches and the recorded
   package path is `apps/web/packages/a`.
@@ -109,6 +134,14 @@ treated as a standalone package and the selected package directory is its packag
 The profile must fail before install when a workspace metadata file is malformed, when workspace
 membership cannot identify exactly one selected package, or when the selected package directory is
 claimed by workspace metadata but lacks its own `package.json`.
+
+Malformed workspace metadata includes a root `package.json` whose `workspaces` value uses an
+unsupported shape, a `pnpm-workspace.yaml` file that is not a YAML object, a `pnpm-workspace.yaml`
+object whose `packages` member is missing or is not an array of strings, and any workspace pattern
+that uses unsupported syntax such as negation, brace expansion, extended glob syntax, absolute
+paths, empty path segments, traversal segments, or backslash separators. A malformed metadata file
+at a candidate root that would otherwise be considered for workspace ownership must fail closed
+rather than being ignored in favor of a farther ancestor or standalone package mode.
 
 If the selected package directory matches more than one supported pattern within the nearest
 claiming workspace root, that is still one selected package when every matching pattern resolves to

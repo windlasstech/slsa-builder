@@ -417,6 +417,18 @@ A manual dispatch release must satisfy all of the following:
 - A non-npmjs registry may be accepted as a transport target, but unsupported registry behavior is
   at the caller's risk and must be recorded in provenance as
   `publish.custom_registry_support: "unsupported-but-not-blocked"`.
+- `unsupported-but-not-blocked` means only that the workflow may attempt the same no-secret external
+  provenance publish flow against the selected HTTPS registry. It is not a Windlass guarantee that
+  the registry implements npmjs metadata semantics, provenance discovery, package access behavior,
+  dist-tag behavior, or registry-side verification APIs.
+- A non-npmjs registry attempt is allowed only when all minimum production invariants remain true:
+  the normalized registry URL passes the profile URL rules, the publish path can run without
+  `NPM_TOKEN`, `NODE_AUTH_TOKEN`, OTP, private dependency credentials, or publish-capable secrets,
+  and `npm publish` can submit the exact Windlass signed bundle through
+  `--provenance-file=<bundle-path>` or an equivalent no-secret external provenance-file mechanism.
+- The profile must fail before registry mutation when the selected non-npmjs registry requires npm
+  automatic provenance, unsigned provenance, token-based publish, omission of the Windlass bundle,
+  rewriting of the bundle bytes, or dropping caller-supplied `--access` intent in order to continue.
 - The profile must fail if the registry requires authentication mechanisms that violate the
   no-publish-secrets policy.
 - The profile must fail if `npm publish --provenance-file` or the equivalent external provenance
@@ -436,6 +448,10 @@ A manual dispatch release must satisfy all of the following:
   - If the metadata check requires `NPM_TOKEN`, `NODE_AUTH_TOKEN`, OTP, publish credentials, private
     dependency credentials, unsigned provenance, npm automatic provenance fallback, or any other
     weakening of the production contract, the workflow must fail before registry mutation.
+- A custom registry run that records `null` preflight fields must still submit the exact Windlass
+  signed bundle unchanged during publish. `null` means only that package identity or version state
+  was not verifier-proven before publish; it does not permit weaker authentication, weaker
+  provenance, or reporting the registry as Windlass-guaranteed.
 - For npmjs, post-publish registry metadata checks are required by the provenance and publish spec.
   For custom registries, registry linkage verification is registry-specific and must not be reported
   as Windlass-guaranteed unless a later ADR defines that registry class.

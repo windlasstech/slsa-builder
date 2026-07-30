@@ -620,6 +620,29 @@ The package source repository remains caller-specific and is recorded separately
 must match the Windlass reusable workflow identity, and the source identity must match the expected
 caller repository and release ref.
 
+The npm producer verifier must bind the semantic identity fields from the common SLSA provenance
+contract to the npm profile values as follows:
+
+| Semantic field             | Required npm producer value                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| OIDC issuer                | GitHub Actions.                                                                                                           |
+| Signer workflow repository | `windlasstech/slsa-builder`.                                                                                              |
+| Signer workflow path       | `.github/workflows/js-ts-npm-package-slsa3.yml`.                                                                          |
+| Signer workflow SHA        | Full commit SHA from `externalParameters.workflow.sha` and the SHA suffix of `runDetails.builder.id`.                     |
+| Signer workflow ref        | Must not be a branch, tag, pull request ref, or short SHA when the tool exposes it separately from the full workflow SHA. |
+| Source repository          | Canonical GitHub source repository URL from `externalParameters.source.repository` and the trusted producer policy.       |
+| Source ref                 | Full release tag ref from `externalParameters.source.ref` and `externalParameters.release.ref`.                           |
+| Source revision            | Full 40-character lowercase commit SHA from `externalParameters.source.revision` and the trusted producer policy.         |
+| Predicate type             | `https://slsa.dev/provenance/v1`.                                                                                         |
+
+When a verification tool exposes both reusable-workflow identity claims and caller-workflow/source
+claims, the reusable-workflow claims must satisfy the signer workflow rows above and the caller
+source claims must satisfy the source rows above. The producer verifier must reject a bundle when
+the trusted Windlass workflow identity is correct but the caller source repository, source ref, or
+source revision differs from the signed `externalParameters`, and it must also reject a bundle when
+the caller source identity is correct but the signer workflow path or SHA is not the trusted
+Windlass reusable workflow identity.
+
 A bundle signed by another repository, another workflow path, a branch ref, a pull request ref, a
 short SHA ref, a signer identity that does not match `runDetails.builder.id`, a source identity that
 does not match `externalParameters.source`, or a non-GitHub OIDC issuer must be rejected before
@@ -657,6 +680,23 @@ publish.
   provenance fallback, or any other weakening of the production contract must fail before registry
   mutation. The custom registry still must complete tokenless publish with the external provenance
   bundle; otherwise `npm publish` fails and the workflow must fail.
+
+The minimum non-npmjs publish contract is the same external provenance contract as npmjs, minus
+Windlass-guaranteed registry metadata semantics. The profile may proceed only when `npm publish` can
+run without publish-capable secrets and can submit the exact verified
+`<package-tarball-name>.intoto.jsonl` bundle unchanged through `--provenance-file=<bundle-path>` or
+a documented equivalent no-secret external provenance-file submission path. The profile must fail
+before registry mutation if the registry or npm CLI path requires token credentials, OTP,
+registry-specific secret material, unsigned provenance, npm automatic provenance, omission of the
+Windlass bundle, rewriting or re-signing of the bundle, or silently dropping a non-empty
+caller-supplied `access` value in order to publish.
+
+For non-npmjs registries, `publish.package_identity_preexisting: null` or
+`publish.package_version_preexisting: null` is allowed only when a tokenless metadata check is
+absent or inconclusive. Those `null` values are diagnostics and must be paired with
+`publish.custom_registry_support: "unsupported-but-not-blocked"`. They must not be interpreted by
+producer-side or consumer-side verification as Windlass-guaranteed registry support, and they must
+not relax the requirement that the publish attempt submit the exact external provenance bundle.
 
 ## npm trusted publishing authentication
 
@@ -700,6 +740,13 @@ Metadata or linkage checks that require publish credentials, token fallback, uns
 npm automatic provenance, or omission of the external provenance bundle are hard failures. A custom
 registry still must accept tokenless publish with the external provenance bundle; otherwise
 `npm publish` fails and the workflow must fail.
+
+Consumer verifiers must preserve this distinction. A non-npmjs provenance bundle with
+`publish.custom_registry_support: "unsupported-but-not-blocked"` and `null` preflight fields can be
+valid Windlass provenance for the tarball, but it is not evidence that Windlass verified npmjs-style
+registry state for that custom registry. A consumer verifier must reject the bundle if the signed
+`externalParameters` imply token fallback, npm automatic provenance fallback, omitted external
+provenance, or any other weakening of the production contract.
 
 ## npm producer outputs
 
