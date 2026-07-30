@@ -70,24 +70,48 @@ manifest bundle on the GitHub Release page or a mirrored copy whose signature is
 ## Trusted producer policy conflict resolution
 
 When both an explicit verifier policy and a verified Windlass release manifest policy are present,
-the effective trusted producer policy is the intersection of both sources. A verifier must reject
-the artifact unless both policy sources allow the observed producer signer identity, source
-repository, source revision, release ref, workflow path, workflow SHA, `builder.id`, `buildType`,
-SLSA `predicateType`, subject name, subject digest, and required or forbidden `externalParameters`.
+the effective trusted producer policy is the intersection of the fields each source explicitly
+constrains. A verifier must reject the artifact when any policy source that constrains an observed
+field does not allow that observed value.
 
 The signed release manifest policy is eligible for this intersection only after the manifest bundle
 passes the release manifest verification policy below. The manifest must not define or relax its own
 trust root, signer identity, predicate type, schema version, or authority to override explicit
 verifier policy.
 
-Missing trusted producer fields are not wildcards in the initial production policy. If either source
-omits a required producer identity, source, release ref, workflow, subject, or strict
-`externalParameters` constraint, the verifier must treat the effective policy as unsatisfied unless
-a later ADR-backed schema explicitly marks that field as intentionally unconstrained.
+For schema version `1`, the signed release manifest constrains only the fields it represents:
 
-When the two sources conflict or their intersection is empty, verification must fail closed. A
-verifier must not use precedence, last-writer-wins behavior, or either-source-allowed behavior in
-the default production policy. Diagnostics should name the conflicting source and field.
+| Policy field class                 | Manifest v1 constraint source                                                               |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Windlass release identity          | `release_version`, `release_tag`, `release_commit_sha`, and release manifest signer checks. |
+| Producer workflow path and SHA     | `producer_profiles[].workflow_path` and `producer_profiles[].workflow_sha`.                 |
+| Producer `builder.id`              | `producer_profiles[].builder_id`.                                                           |
+| Producer `buildType`               | `producer_profiles[].build_type`.                                                           |
+| Publisher workflow path, SHA, role | `publisher_workflows[].workflow_path`, `workflow_sha`, and `role`.                          |
+
+The following fields remain mandatory for the relevant npm, publisher, or consumer verification
+surface, but they are not constrained by the schema version `1` release manifest and must be
+supplied by explicit verifier policy, producer-side expected values, the digest-verified handoff, or
+another ADR-backed policy source:
+
+| Required verification field class                   | Required non-manifest source                                                                     |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Producer signer identity beyond manifest mappings   | Explicit verifier policy or profile-owned producer policy.                                       |
+| Caller/source repository, source ref, and revision  | Explicit verifier policy, signed producer `externalParameters`, and producer-side expected data. |
+| Producer release ref and version tag                | Explicit verifier policy, signed producer `externalParameters`, and digest-verified handoff.     |
+| Subject name and subject digest                     | Explicit verifier policy, profile subject rules, and downloaded artifact bytes.                  |
+| Strict `externalParameters` requirements            | Profile verifier policy and signed producer Statement schema.                                    |
+| Release asset filename to producer artifact binding | Producer policy and digest-verified publisher handoff fields.                                    |
+
+If a field is absent because a policy source's schema does not represent it, that field is
+unconstrained by that source. The absence is not affirmative permission and does not remove a check
+required by another spec. If a field required by a policy source's own schema is missing from that
+source, the policy source is invalid and verification must fail closed.
+
+When two sources explicitly constrain the same field and their constraints conflict or their
+intersection is empty, verification must fail closed. A verifier must not use precedence,
+last-writer-wins behavior, or either-source-allowed behavior in the default production policy.
+Diagnostics should name the conflicting source and field.
 
 ## npm package verification policy
 
@@ -169,8 +193,8 @@ For a release manifest, a verifier must check:
 
 1. The signed bundle signature is valid.
 2. The signer identity is the GitHub Actions OIDC identity for
-   `.github/workflows/release-manifest.yml` in `windlasstech/slsa-builder` on the expected protected
-   release tag.
+   `.github/workflows/release-manifest.yml` in `windlasstech/slsa-builder` on the expected full
+   release tag ref.
 3. The predicate type is `https://slsa-builder.dev/predicates/release-manifest/v1`.
 4. The schema version is supported.
 5. The release tag matches the expected tag.
@@ -186,6 +210,14 @@ For a release manifest, a verifier must check:
     `release_commit_sha`.
 12. `generated_at` uses the fixed UTC lexical form and is treated as diagnostic release metadata,
     not as a trust-mapping override.
+
+Consumer-side release manifest verification does not require offline proof that GitHub tag
+protection was enabled at signing time. The required consumer check is that the verified signer
+workflow ref, manifest `release_tag`, and verifier-expected tag are the same full `refs/tags/...`
+ref and that the tag peels to `release_commit_sha`. GitHub tag protection, branch protection, and
+repository ruleset evidence are release-process controls and complementary evidence unless a later
+ADR-backed verifier policy defines an online policy-evidence source, observation time, freshness
+window, and cache semantics.
 
 ## Producer-side vs. consumer-side verification
 
@@ -275,7 +307,7 @@ Every fixture must include:
 | `signature-mismatch`                       | Bundle signature is invalid or missing.                                                     |
 | `signer-mismatch`                          | Signer identity is not trusted.                                                             |
 | `signer-identity-claim-missing`            | Required semantic signer or source identity cannot be proven from verified bundle data.     |
-| `duplicate-json-member`                    | Signed Statement JSON contains duplicate object member names after unescaping.              |
+| `duplicate-json-member`                    | Signed Statement, bundle, or DSSE JSON contains duplicate object member names.              |
 | `actions-attest-adapter-contract`          | Adapter inputs, emitted bundle basename, or npm provenance-file compatibility is invalid.   |
 | `wrong-producer-signer`                    | Producer signer repo, workflow path, ref, or issuer is not trusted.                         |
 | `wrong-predicate-type`                     | `predicateType` is not SLSA provenance v1.                                                  |
@@ -328,6 +360,7 @@ Every fixture must include:
 | `manifest-entry-order-mismatch`            | Release manifest producer or publisher arrays are not in canonical sorted order.            |
 | `manifest-generated-at-invalid`            | `generated_at` is not a fixed-form UTC timestamp.                                           |
 | `manifest-handoff-basename-mismatch`       | Manifest handoff artifact contains an unexpected payload basename.                          |
+| `manifest-signing-input-mismatch`          | Manifest signing input metadata is malformed or does not bind verified signing inputs.      |
 | `manifest-partial-json-uploaded`           | Plain manifest JSON uploaded but signed bundle upload failed.                               |
 | `manifest-indeterminate-json-upload`       | Manifest upload state cannot be determined after an ambiguous upload attempt.               |
 | `manifest-remote-digest-unproven`          | Same-name remote manifest asset exists but SHA-256 equality cannot be proven.               |
@@ -338,6 +371,8 @@ Every fixture must include:
 | `composition-handoff-substitution`         | Composition mapping trusts public outputs or deterministic names.                           |
 | `publisher-handoff-field-error`            | Publisher handoff uses missing, stale, or malformed field names.                            |
 | `release-asset-binding-mismatch`           | Producer policy cannot bind release asset name to verified producer artifact bytes.         |
+| `linked-artifact-settings-mismatch`        | Linked artifact settings do not match the target repository, release tag, or download URL.  |
+| `linked-artifact-locator-mismatch`         | Linked artifact locator outputs are missing, set in the wrong state, or malformed.          |
 | `publisher-workflow-schema-error`          | Publisher exposes or accepts unsupported public workflow inputs or secrets.                 |
 | `publisher-permission-boundary-violation`  | Publisher job permissions combine authorities that must stay separate.                      |
 | `native-locator-malformed`                 | Native provenance locator is not valid diagnostic metadata.                                 |
@@ -523,11 +558,13 @@ unless a narrower publisher category applies.
 The public npm release-asset mode fixture set must also prove that release-asset outputs are
 publication result handles only. Accepted outputs include package identity, npm tarball digests,
 release asset name, release asset URL, release asset SHA-256, provenance sidecar name, sidecar URL,
-sidecar SHA-256, native provenance locators, upload result, and linked artifact result. Rejected
-fixtures must prove that internal handoff manifest names, handoff manifest digests, internal
-producer artifact names, publisher handoff input names, raw artifact paths, caller-supplied artifact
-digests, upload URLs, target repository coordinates, custom tokens, overwrite flags, release
-creation flags, or multi-asset controls are not public inputs or outputs.
+sidecar SHA-256, native provenance locators, upload result, linked artifact result, and linked
+artifact metadata locators when metadata creation succeeds. Rejected fixtures must prove that linked
+artifact locator outputs are unset when metadata is disabled or failed after upload, and that
+internal handoff manifest names, handoff manifest digests, internal producer artifact names,
+publisher handoff input names, raw artifact paths, caller-supplied artifact digests, upload URLs,
+target repository coordinates, custom tokens, overwrite flags, release creation flags, or
+multi-asset controls are not public inputs or outputs.
 
 The handoff fixture set must prove that every cross-job artifact handoff includes the core semantic
 fields `transport`, `artifact_name`, `payload_file_name`, `payload_kind`, `digest.algorithm`, and
@@ -540,11 +577,13 @@ release manifest upload. Fixtures that extract only the Statement, reserialize t
 in a new envelope, or substitute a native attestation locator for the bundle file must fail with
 `bundle-byte-format-mismatch` or the narrower sidecar/provenance mismatch category.
 
-The duplicate JSON member fixture set must prove that signed SLSA Statement payloads fail before
-semantic policy validation when any JSON object contains duplicate member names after JSON string
-unescaping. Rejected fixtures must cover a top-level Statement duplicate, a nested predicate
-duplicate, a duplicate extension-field member, and escaped property spellings that decode to the
-same member name. These fixtures fail with `duplicate-json-member`.
+The duplicate JSON member fixture set must prove that signed SLSA Statement payloads and
+security-relevant Sigstore bundle or DSSE JSON values fail before semantic policy validation when
+any JSON object contains duplicate member names after JSON string unescaping. Rejected fixtures must
+cover a top-level Statement duplicate, a nested predicate duplicate, a duplicate extension-field
+member, duplicate DSSE payload-carrying fields, duplicate Sigstore bundle fields used for signature
+or certificate verification, and escaped property spellings that decode to the same member name.
+These fixtures fail with `duplicate-json-member`.
 
 The npm publish permissions fixture set must prove that the initial npmjs production publish job has
 `contents: read`, `id-token: write`, no `attestations: write`, and no `packages: write`. A workflow
@@ -580,6 +619,16 @@ declared producer-neutral `workflow_call.inputs`, accepts no secrets, rejects ta
 custom token, raw artifact, overwrite, cross-run artifact, or provenance-bypass inputs, and treats
 empty optional JSON inputs as absent. Unsupported inputs or accepted secrets fail with
 `publisher-workflow-schema-error`.
+
+The linked artifact settings fixture set must prove that standalone publisher settings cannot widen
+the release target. Accepted fixtures must derive `version` from `release-tag`, use the target
+caller repository as `repository`, and use exactly the GitHub Release download URL prefix for that
+same repository and tag. Rejected fixtures must cover a repository mismatch, owner or repository
+case/canonicalization mismatch that changes identity, a version not derived from `release-tag`, a
+registry URL for another repository or tag, non-HTTPS registry URLs, embedded credentials, queries,
+fragments, non-default ports, and setting linked artifact locator outputs when the result is not
+`created`. Settings failures use `linked-artifact-settings-mismatch`; output locator failures use
+`linked-artifact-locator-mismatch`.
 
 The publisher permission fixture set must prove that verification jobs are read-only, the release
 upload job has `contents: write` without signing, package publication, or linked metadata authority,
@@ -636,6 +685,16 @@ The release manifest handoff fixture set must prove the fixed schema version `1`
 `release-manifest-<version>.signing-input.json`, and `release-manifest-<version>.intoto.jsonl`. A
 handoff artifact with the expected digest but an unexpected payload basename must fail with
 `manifest-handoff-basename-mismatch`.
+
+The release manifest signing input fixture set must prove the closed signing input metadata schema.
+Accepted fixtures must bind the same subject name, canonical manifest SHA-256, predicate type,
+predicate artifact digest and content, release identity, and same-run artifact handles verified from
+the manifest handoff. Rejected fixtures must cover unknown fields, duplicate fields, missing subject
+or predicate fields, subject digest differing from the canonical manifest digest, predicate artifact
+content differing from the manifest JSON value, release identity differing from the manifest JSON,
+and artifact handles or basenames that do not match the handoff. These failures use
+`manifest-signing-input-mismatch` unless the narrower basename, digest, duplicate-member, or
+predicate mismatch category applies.
 
 The release manifest fixture set must also cover the production workflow public contract. Accepted
 fixtures run from `.github/workflows/release-manifest.yml` on a protected `refs/tags/v<version>` ref
