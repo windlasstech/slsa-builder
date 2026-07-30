@@ -22,7 +22,8 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
   [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
   [0062](../decisions/0062-intersect-trusted-producer-policies.md),
-  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md)
+  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -98,24 +99,25 @@ For an npm package published by the JS/TS npm profile, a verifier must check:
 4. The `predicateType` is `https://slsa.dev/provenance/v1`.
 5. The `builder.id` is in the trusted release manifest and uses a full SHA.
 6. The `buildType` is `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`.
-7. The `subject[0].name` matches the expected tarball file name.
-8. The `subject[0].digest.sha256` matches the tarball bytes.
-9. The `externalParameters` include the expected source repository, ref, commit, package directory,
-   package identity, package manager, runner, publish intent, release ref, and build-script result.
-10. The signer identity is the Windlass reusable workflow identity, while the source repository in
+7. The `subject[0].name` matches the expected npm Package URL for the package version.
+8. The `subject[0].digest.sha512` matches the tarball bytes.
+9. The `subject[0].digest.sha256` matches the tarball bytes.
+10. The `externalParameters` include the expected source repository, ref, commit, package directory,
+    package identity, package manager, runner, publish intent, release ref, and build-script result.
+11. The signer identity is the Windlass reusable workflow identity, while the source repository in
     `externalParameters.source.repository` is the caller package repository.
-11. No unexpected `externalParameters` are present under strict matching.
-12. The selected package is not marked `private: true`.
-13. For `https://registry.npmjs.org/`, the package version was not already present before publish
+12. No unexpected `externalParameters` are present under strict matching.
+13. The selected package is not marked `private: true`.
+14. For `https://registry.npmjs.org/`, the package version was not already present before publish
     and the selected package identity already existed before publish; first publication of a package
     identity is outside the initial npmjs trusted-publishing-only profile.
-14. For non-npmjs registries, package identity and package version preflight fields are best-effort
+15. For non-npmjs registries, package identity and package version preflight fields are best-effort
     diagnostics unless a later ADR defines that registry class. Consumer-side verification must not
     report those diagnostics as Windlass-guaranteed registry support.
-15. `externalParameters.package.package_url` equals the registry package-version URL reconstructed
+16. `externalParameters.package.package_url` equals the registry package-version URL reconstructed
     from `externalParameters.publish.resolved_registry_url`, `externalParameters.package.name`, and
     `externalParameters.package.version`. It must not be a Package URL (`pkg:npm/...`).
-16. `externalParameters.source.ref`, `externalParameters.release.ref`, and the accepted runtime ref
+17. `externalParameters.source.ref`, `externalParameters.release.ref`, and the accepted runtime ref
     are the same full `refs/tags/<tag-name>` ref, and `externalParameters.release.version_tag`
     reconstructs that same ref.
 
@@ -151,9 +153,13 @@ For a release asset uploaded by the publisher, a verifier must check:
 3. The producer bundle signature is valid and the signer identity is trusted.
 4. The producer `predicateType` is `https://slsa.dev/provenance/v1`.
 5. The producer `builder.id` and `buildType` are in the trusted policy.
-6. The producer `subject[0].name` matches the release asset name.
-7. The producer `subject[0].digest.sha256` matches the downloaded asset bytes.
-8. The publisher did not generate or re-sign the provenance.
+6. The producer `subject[0].name` matches the expected producer subject under the selected producer
+   policy. For the initial npm composition, this is the npm Package URL, not the release asset name.
+7. The selected producer policy binds the release asset name to the verified producer artifact. For
+   the initial npm composition, the release asset name must match the pack-produced tarball filename
+   recorded in producer provenance and handoff fields.
+8. The producer `subject[0].digest.sha256` matches the downloaded asset bytes.
+9. The publisher did not generate or re-sign the provenance.
 
 The publisher itself does not have a source-to-artifact `buildType` in the default path.
 
@@ -277,6 +283,10 @@ Every fixture must include:
 | `wrong-builder-id`                         | `builder.id` is not trusted or uses a non-SHA reference.                                    |
 | `wrong-build-type`                         | `buildType` is not the canonical profile URI.                                               |
 | `subject-cardinality-error`                | Provenance contains zero subjects or multiple subjects.                                     |
+| `npm-purl-subject-mismatch`                | npm provenance subject is missing, malformed, or not the expected Package URL.              |
+| `tarball-filename-subject-rejected`        | npm provenance uses the tarball filename as the Statement subject.                          |
+| `missing-subject-sha512`                   | npm provenance subject omits the required tarball SHA-512 digest.                           |
+| `missing-subject-sha256`                   | Provenance subject omits the required tarball SHA-256 digest.                               |
 | `unexpected-external-parameters`           | `externalParameters` contains unexpected fields under strict matching.                      |
 | `source-identity-mismatch`                 | Source repository or revision does not match policy.                                        |
 | `release-ref-mismatch`                     | Source ref, release ref, runtime ref, or version tag do not identify the same tag.          |
@@ -327,6 +337,7 @@ Every fixture must include:
 | `handoff-schema-mismatch`                  | Cross-job artifact handoff omits or changes required core fields.                           |
 | `composition-handoff-substitution`         | Composition mapping trusts public outputs or deterministic names.                           |
 | `publisher-handoff-field-error`            | Publisher handoff uses missing, stale, or malformed field names.                            |
+| `release-asset-binding-mismatch`           | Producer policy cannot bind release asset name to verified producer artifact bytes.         |
 | `publisher-workflow-schema-error`          | Publisher exposes or accepts unsupported public workflow inputs or secrets.                 |
 | `publisher-permission-boundary-violation`  | Publisher job permissions combine authorities that must stay separate.                      |
 | `native-locator-malformed`                 | Native provenance locator is not valid diagnostic metadata.                                 |
@@ -368,9 +379,20 @@ that differ from source `publishConfig` fail with `publish-intent-conflict`.
 The package URL fixture set must include unscoped and scoped npm package identities. Scoped package
 fixtures must prove that `@scope/name` is emitted as an npm registry package-version URL such as
 `https://registry.npmjs.org/%40scope%2Fname/<version>`, that `pkg:npm/...` PURLs are rejected for
-the initial `package-url` output, and that the reconstructed URL matches
-`externalParameters.publish.resolved_registry_url`, `externalParameters.package.name`, and
-`externalParameters.package.version`.
+the public `package-url` output and `externalParameters.package.package_url`, and that the
+reconstructed URL matches `externalParameters.publish.resolved_registry_url`,
+`externalParameters.package.name`, and `externalParameters.package.version`.
+
+The npm provenance subject fixture set must prove ADR 0064's Package URL subject contract. Accepted
+fixtures must include unscoped and scoped package subjects such as `pkg:npm/left-pad@1.3.0` and
+`pkg:npm/%40windlass/slsa-builder@1.2.3`, with `subject[0].digest.sha512` and
+`subject[0].digest.sha256` both matching the same tarball bytes. Rejected fixtures must cover a
+tarball-filename subject, malformed PURL, package name or version mismatch, missing `sha512`,
+missing `sha256`, SHA-512 mismatch, SHA-256 mismatch, zero subjects, multiple subjects, and a PURL
+incorrectly placed in the public `package-url` output or `externalParameters.package.package_url`.
+These failures use `npm-purl-subject-mismatch`, `tarball-filename-subject-rejected`,
+`missing-subject-sha512`, `missing-subject-sha256`, `digest-mismatch`, `package-url-mismatch`, or
+`subject-cardinality-error` as applicable.
 
 The release-ref fixture set must prove that `externalParameters.source.ref`,
 `externalParameters.release.ref`, and the runtime-accepted ref are identical full tag refs, and that
