@@ -653,6 +653,16 @@ source revision differs from the signed `externalParameters`, and it must also r
 the caller source identity is correct but the signer workflow path or SHA is not the trusted
 Windlass reusable workflow identity.
 
+The npm verifier must use the common signer identity fallback and conflict rules from
+[SLSA provenance v1](slsa-provenance-v1.md#signer-identity-verification-inputs). All signer,
+workflow, source, and predicate-type fields for one npm producer verification decision must come
+from the same verified bundle and signing certificate, or from verification output bound to that
+same certificate. If `job_workflow_ref`/`job_workflow_sha` and `workflow_ref`/`workflow_sha` are
+both present, the reusable workflow identity must identify the Windlass signer above, while the
+source or caller identity must agree with the signed `externalParameters.source` fields and trusted
+producer policy. Conflicting claim spellings or missing required semantic fields fail closed before
+publish.
+
 A bundle signed by another repository, another workflow path, a branch ref, a pull request ref, a
 short SHA ref, a signer identity that does not match `runDetails.builder.id`, a source identity that
 does not match `externalParameters.source`, or a non-GitHub OIDC issuer must be rejected before

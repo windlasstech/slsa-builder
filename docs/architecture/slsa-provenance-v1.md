@@ -257,6 +257,32 @@ omits one of the required semantic fields, the implementation must recover it fr
 certificate or bundle field; otherwise verification fails closed. The implementation must not infer
 signer identity from artifact names, workflow outputs, logs, release notes, or unsigned metadata.
 
+All semantic signer identity fields used for one verification decision must be derived from the same
+verified bundle and the same signing certificate or from verification output that is
+cryptographically bound to that certificate. An implementation must not combine a signer workflow
+repository from one bundle, a source repository from another bundle, or unsigned GitHub API metadata
+with signed certificate claims to satisfy one policy.
+
+When the pinned verification tool exposes multiple claim names for the same semantic field, the
+implementation must apply this fallback order:
+
+| Semantic field             | Preferred verified claim source                                         | Fallback verified claim source                                                  |
+| -------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| OIDC issuer                | Sigstore certificate issuer extension.                                  | Tool-reported issuer value bound to the same certificate.                       |
+| Signer workflow repository | Reusable workflow identity such as `job_workflow_ref` owner/repository. | Signing workflow `workflow_ref` owner/repository when no reusable claim exists. |
+| Signer workflow path       | Reusable workflow identity such as `job_workflow_ref` workflow path.    | Signing workflow `workflow_ref` path when no reusable claim exists.             |
+| Signer workflow SHA        | `job_workflow_sha` for reusable workflow signers.                       | `workflow_sha` or the SHA suffix of `runDetails.builder.id`.                    |
+| Signer workflow ref        | Ref component of `job_workflow_ref` for reusable workflow signers.      | Ref component of `workflow_ref` when no reusable claim exists.                  |
+| Source repository          | Source repository claim emitted for the caller/source repository.       | Signed predicate `externalParameters.source.repository` plus local policy.      |
+| Source ref                 | Source ref claim emitted for the caller/source ref.                     | Signed predicate `externalParameters.source.ref` plus local policy.             |
+| Source revision            | Source revision or commit claim emitted for the caller/source revision. | Signed predicate `externalParameters.source.revision` plus local policy.        |
+| Predicate type             | Verified Statement `predicateType`.                                     | Tool-reported predicate type extracted from the same signed Statement.          |
+
+If both a preferred and fallback source are present for the same semantic field, they must identify
+the same value after the profile-defined canonicalization. A conflict is a signer identity failure,
+not a reason to choose one spelling by precedence. If a required field remains unavailable after the
+allowed fallback sources are checked, verification fails with a missing semantic identity field.
+
 Before any production implementation or SHA-pinned `actions/attest` upgrade is accepted, a
 compatibility check must prove that the adapter's custom-mode emitted bundle file is accepted by the
 profile's `npm publish --provenance-file` path and that the same bytes can be preserved as the
@@ -293,27 +319,40 @@ Verification must fail when the preserved bundle bytes cannot be parsed, the sig
 the extracted Statement does not match the expected contract, or a sidecar/downloaded bundle is not
 byte-for-byte the same bundle that the producer emitted and the publisher verified.
 
+Duplicate JSON member rejection applies to every JSON object that the verifier parses before making
+a trust decision from the bundle. This includes the signed in-toto Statement payload, the SLSA
+predicate, the DSSE envelope fields that identify or carry the payload, and Sigstore bundle JSON
+fields used to verify the signature, certificate, transparency log inclusion, or payload binding. A
+verifier may rely on a trusted Sigstore library for cryptographic validation, but any JSON value
+from which Windlass extracts policy fields must be parsed with duplicate-member detection before
+semantic policy checks. If the library exposes only normalized JSON for a security-relevant field
+and cannot prove duplicate-member rejection for that parsed value, Windlass verification must fail
+closed rather than accepting last-member-wins or first-member-wins behavior. Unknown fields remain
+governed by the closed schema or profile strict-matching rules that apply after duplicate detection
+succeeds.
+
 ## Common verifier rejection matrix
 
 A verifier must reject provenance if any of the following are true:
 
-| Condition                                                                                        | Rejection reason                  |
-| ------------------------------------------------------------------------------------------------ | --------------------------------- |
-| `_type` is not `https://in-toto.io/Statement/v1`                                                 | Wrong statement type              |
-| `predicateType` is not `https://slsa.dev/provenance/v1`                                          | Wrong predicate type              |
-| Signature is missing or invalid                                                                  | Signature mismatch                |
-| Signer identity is not trusted                                                                   | Signer mismatch                   |
-| Any JSON object in the signed Statement payload contains duplicate member names after unescaping | Duplicate JSON member error       |
-| `builder.id` uses a branch, tag, or short SHA                                                    | Builder identity policy violation |
-| `buildType` is not in the canonical namespace                                                    | Build type policy violation       |
-| `externalParameters` is incomplete                                                               | Incomplete parameters             |
-| `externalParameters` contains unexpected fields                                                  | Strict matching violation         |
-| `subject` contains zero or multiple entries                                                      | Subject cardinality error         |
-| `subject[0].digest.sha256` is missing                                                            | Missing required digest           |
-| `subject[0].name` does not match the profile rule                                                | Subject name mismatch             |
-| Digest encoding is not lowercase hex                                                             | Digest encoding error             |
-| Sidecar, SBOM, or checksum is in `subject[0].digest`                                             | Subject digest scope error        |
-| Emitted Statement differs from validated signing inputs                                          | Statement assembly mismatch       |
+| Condition                                                                                         | Rejection reason                  |
+| ------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `_type` is not `https://in-toto.io/Statement/v1`                                                  | Wrong statement type              |
+| `predicateType` is not `https://slsa.dev/provenance/v1`                                           | Wrong predicate type              |
+| Signature is missing or invalid                                                                   | Signature mismatch                |
+| Signer identity is not trusted                                                                    | Signer mismatch                   |
+| Any JSON object in the signed Statement payload contains duplicate member names after unescaping  | Duplicate JSON member error       |
+| Any security-relevant bundle or DSSE JSON object contains duplicate member names after unescaping | Duplicate JSON member error       |
+| `builder.id` uses a branch, tag, or short SHA                                                     | Builder identity policy violation |
+| `buildType` is not in the canonical namespace                                                     | Build type policy violation       |
+| `externalParameters` is incomplete                                                                | Incomplete parameters             |
+| `externalParameters` contains unexpected fields                                                   | Strict matching violation         |
+| `subject` contains zero or multiple entries                                                       | Subject cardinality error         |
+| `subject[0].digest.sha256` is missing                                                             | Missing required digest           |
+| `subject[0].name` does not match the profile rule                                                 | Subject name mismatch             |
+| Digest encoding is not lowercase hex                                                              | Digest encoding error             |
+| Sidecar, SBOM, or checksum is in `subject[0].digest`                                              | Subject digest scope error        |
+| Emitted Statement differs from validated signing inputs                                           | Statement assembly mismatch       |
 
 ## Failure behavior
 
