@@ -150,13 +150,48 @@ because both the selected package and the workspace root may have manifests with
 
 ### `devEngines.packageManager` field
 
-- Format: `name@version` or `name`.
-- If the field selects pnpm or Yarn and omits a version, the profile fails because exact version
-  enforcement is required for pnpm and Yarn.
-- If the field selects pnpm or Yarn and specifies a version, the profile uses the exact package
-  manager and version.
+- Format: a JSON object with required `name` and optional `version` and `onFail` members. This
+  follows the package manager manifest shape documented by npm, pnpm, and Corepack for
+  `devEngines.packageManager`; the initial production profile does not accept string or array forms
+  for this field.
+- `name` must be `npm`, `pnpm`, or `yarn`.
+- `version`, when present, must be a JSON string.
+- `onFail`, when present, must be `ignore`, `warn`, `error`, or `download`. The value is diagnostic
+  metadata only for this production profile and must not weaken release-build enforcement.
+- Unknown members are rejected.
+- If the field selects pnpm or Yarn, `version` is required and must be an exact SemVer version.
+  Ranges, tags, URLs, hash-suffixed package-manager descriptors, and omitted versions are rejected
+  because ADR 0017 prohibits release-time range resolution and Corepack Known Good Release fallback.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
-  Node.js 24 toolchain; `devEngines.packageManager` must not override the builder-owned npm runtime.
+  Node.js 24 toolchain; `devEngines.packageManager.version` must not override the builder-owned npm
+  runtime.
+- If `onFail` is `ignore` or `warn`, the profile still fails closed on package-manager policy
+  violations such as an unsupported name, missing exact pnpm/Yarn version, package-manager mismatch,
+  or required lockfile mismatch.
+
+Examples:
+
+```json
+{
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.9.0",
+      "onFail": "download"
+    }
+  }
+}
+```
+
+Rejected examples:
+
+- `"devEngines": { "packageManager": "pnpm@11.9.0" }` because string form is not part of the initial
+  production profile contract.
+- `"devEngines": { "packageManager": { "name": "pnpm" } }` because pnpm requires an exact version.
+- `"devEngines": { "packageManager": { "name": "pnpm", "version": ">=11 <12" } }` because release
+  builds must not resolve ranges.
+- `"devEngines": { "packageManager": [{ "name": "pnpm", "version": "11.9.0" }] }` because array form
+  is ambiguous for a one-package-manager release profile.
 
 ### Lockfile inference
 
