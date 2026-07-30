@@ -17,7 +17,8 @@ the package to an npm registry through a three-job digest-verified graph.
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
-  [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md)
+  [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
+  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -281,7 +282,7 @@ listed below as the only allowed additions:
 | `workflow`        | `path`, `sha`, `builder_id`                                                                                                                                                                                                                                                 | none                                                     |
 | `runtime`         | `runner`, `node_version`, `npm_version`                                                                                                                                                                                                                                     | none                                                     |
 | `package`         | `directory`, `workspace_root`, `source_manifest`, `name`, `version`, `private`, `tarball_name`, `package_url`, `packed_name`, `packed_version`                                                                                                                              | `publish_config_raw`, `packed_files`, `consumer_surface` |
-| `package_manager` | `name`, `version`, `selection_source`, `selection_manifest`, `selection_manifest_path`, `selection_lockfile_path`, `root`                                                                                                                                                   | `ignored_lockfile_paths`                                 |
+| `package_manager` | `name`, `version`, `selection_source`, `selection_manifest`, `selection_manifest_path`, `selection_lockfile_path`, `root`                                                                                                                                                   | `ignored_lockfile_paths`, `yarn_install_mode`            |
 | `publish`         | `input_registry_url`, `input_dist_tag`, `input_access`, `publish_config`, `resolved_registry_url`, `resolved_dist_tag`, `publish_access_option`, `effective_access`, `trusted_publishing`, `provenance_file`, `package_identity_preexisting`, `package_version_preexisting` | `custom_registry_support`                                |
 | `release`         | `ref`, `version_tag`                                                                                                                                                                                                                                                        | none                                                     |
 | `build`           | `script_present`, `script_result`                                                                                                                                                                                                                                           | none                                                     |
@@ -302,6 +303,8 @@ Type and nullability rules:
   strings, according to the selection-source rules below.
 - `package_manager.ignored_lockfile_paths`, when present, is an array of repository-root-relative
   file path strings.
+- `package_manager.yarn_install_mode`, when present, is a string. It is required when
+  `package_manager.name` is `yarn` and omitted otherwise.
 - `publish.input_registry_url`, `publish.input_dist_tag`, `publish.input_access`,
   `publish.publish_access_option`, and `publish.publish_config` are either `null` or the normalized
   value type defined below.
@@ -339,8 +342,13 @@ Type and nullability rules:
 - `package.packed_name` and `package.packed_version` must match the source package name and version.
 - `package_manager.name` must be `npm`, `pnpm`, or `yarn`.
 - `package_manager.version` must be the actual package-manager version used.
+- When `package_manager.name` is `yarn`, `package_manager.version` must be an exact SemVer version
+  greater than or equal to `4.0.0`.
 - `package_manager.selection_source` must be one of `packageManager`, `devEngines.packageManager`,
   or `lockfile`.
+- When `package_manager.name` is `yarn`, `package_manager.selection_source` must be
+  `packageManager`; Yarn releases selected from `devEngines.packageManager` or lockfile inference
+  are invalid for the stable initial profile.
 - `package_manager.selection_manifest` must identify the manifest whose metadata selected the
   package manager by basename, or be `null` when `selection_source` is `lockfile`.
 - `package_manager.selection_manifest_path` must identify the repository-root-relative manifest path
@@ -357,6 +365,9 @@ Type and nullability rules:
   same root. The array records those non-selected lockfiles as stale diagnostics. It must be omitted
   when no lockfile was ignored, and verifiers must not treat the recorded paths as selected
   lockfiles or dependency graph inputs.
+- `package_manager.yarn_install_mode` is required and must be `immutable` when
+  `package_manager.name` is `yarn`. It records that the release install used the supported Yarn
+  Berry v4+ immutable install mode. It must be omitted for npm and pnpm.
 - `publish.input_registry_url`, `publish.input_dist_tag`, and `publish.input_access` record
   caller-supplied non-empty workflow inputs when supplied and are `null` when omitted or supplied as
   an empty string after trimming ASCII whitespace. GitHub Actions `workflow_call` defaults must not

@@ -13,7 +13,8 @@ installs dependencies, runs build scripts, packs the artifact, and validates pac
   [0023](../decisions/0023-use-package-directory-as-required-js-ts-npm-package-selector.md),
   [0027](../decisions/0027-use-github-hosted-ubuntu-2404-and-node-24-runtime.md),
   [0033](../decisions/0033-run-build-script-only-when-declared.md),
-  [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md)
+  [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
+  [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md)
 - Related specs: [JS/TS npm package profile](js-ts-npm-package-profile.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Core profile contract](core-profile-contract.md)
@@ -144,6 +145,9 @@ because both the selected package and the workspace root may have manifests with
 
 - Format: `name@version`, for example `pnpm@9.1.0` or `yarn@4.1.0`.
 - If the field selects pnpm or Yarn, the profile must use the exact package manager and version.
+- If the field selects Yarn, the descriptor must use an exact SemVer version greater than or equal
+  to `4.0.0`. Yarn Classic 1.x, Yarn Berry v2, Yarn Berry v3, ranges, tags, URLs, hash-suffixed
+  descriptors, and omitted versions are rejected before install.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
   Node.js 24 toolchain; the manifest npm version must not override the builder-owned npm runtime.
 - If the field is absent in the current manifest source, the profile falls back to the next source.
@@ -159,9 +163,12 @@ because both the selected package and the workspace root may have manifests with
 - `onFail`, when present, must be `ignore`, `warn`, `error`, or `download`. The value is diagnostic
   metadata only for this production profile and must not weaken release-build enforcement.
 - Unknown members are rejected.
-- If the field selects pnpm or Yarn, `version` is required and must be an exact SemVer version.
-  Ranges, tags, URLs, hash-suffixed package-manager descriptors, and omitted versions are rejected
-  because ADR 0017 prohibits release-time range resolution and Corepack Known Good Release fallback.
+- If the field selects pnpm, `version` is required and must be an exact SemVer version. Ranges,
+  tags, URLs, hash-suffixed package-manager descriptors, and omitted versions are rejected because
+  ADR 0017 prohibits release-time range resolution and Corepack Known Good Release fallback.
+- If the field selects Yarn, the stable initial profile rejects it before install. Yarn support
+  requires an exact Yarn Berry v4 or newer descriptor in a top-level `packageManager` field;
+  `devEngines.packageManager` alone is not a Yarn selection source.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
   Node.js 24 toolchain; `devEngines.packageManager.version` must not override the builder-owned npm
   runtime.
@@ -210,11 +217,12 @@ Lockfile inference has different outcomes by package manager:
   selected Node.js 24 toolchain.
 - `pnpm-lock.yaml` may identify `pnpm`, but the release build must fail because ADR 0017 requires an
   exact pnpm version from selected manifest metadata.
-- `yarn.lock` may identify Yarn, but the release build must fail because ADR 0017 requires an exact
-  Yarn version from selected manifest metadata.
+- `yarn.lock` may identify Yarn, but the release build must fail because stable Yarn support
+  requires an exact Yarn Berry v4 or newer descriptor from a top-level `packageManager` field.
 
-Lockfile-only pnpm or Yarn projects must add exact release package-manager metadata to either the
-selected package manifest or the workspace root manifest before using the production profile.
+Lockfile-only pnpm projects must add exact release package-manager metadata to either the selected
+package manifest or the workspace root manifest before using the production profile. Lockfile-only
+Yarn projects must add top-level exact `packageManager` metadata selecting Yarn Berry v4 or newer.
 
 ### Conflict handling
 
@@ -236,9 +244,9 @@ workspace metadata:
 | Selected manager is `pnpm` from manifest metadata          | no lockfile                                        | Fail before install because frozen pnpm install requires `pnpm-lock.yaml`.                                          |
 | Selected manager is `pnpm` from manifest metadata          | `pnpm-lock.yaml` plus npm or Yarn lockfiles        | Use the exact pnpm version through Corepack; treat non-selected lockfiles as ignored stale diagnostics.             |
 | Selected manager is `pnpm` from manifest metadata          | npm or Yarn lockfiles without `pnpm-lock.yaml`     | Fail before install because frozen pnpm install requires `pnpm-lock.yaml`; non-pnpm lockfiles must not select pnpm. |
-| Selected manager is `yarn` from manifest metadata          | exactly `yarn.lock`                                | Use the exact Yarn version from the selected manifest metadata through Corepack.                                    |
+| Selected manager is `yarn` from top-level `packageManager` | exactly `yarn.lock`                                | Use the exact Yarn Berry v4+ version from `packageManager` through Corepack.                                        |
 | Selected manager is `yarn` from manifest metadata          | no lockfile                                        | Fail before install because frozen Yarn install requires `yarn.lock`.                                               |
-| Selected manager is `yarn` from manifest metadata          | `yarn.lock` plus npm or pnpm lockfiles             | Use the exact Yarn version through Corepack; treat non-selected lockfiles as ignored stale diagnostics.             |
+| Selected manager is `yarn` from top-level `packageManager` | `yarn.lock` plus npm or pnpm lockfiles             | Use the exact Yarn Berry v4+ version through Corepack; treat non-selected lockfiles as ignored stale diagnostics.   |
 | Selected manager is `yarn` from manifest metadata          | npm or pnpm lockfiles without `yarn.lock`          | Fail before install because frozen Yarn install requires `yarn.lock`; non-Yarn lockfiles must not select Yarn.      |
 | No manifest metadata selects a manager                     | exactly `package-lock.json`                        | Infer npm from the lockfile and use npm bundled with Node.js 24.                                                    |
 | No manifest metadata selects a manager                     | exactly `pnpm-lock.yaml`                           | Fail because pnpm requires an exact version from manifest metadata.                                                 |
@@ -282,6 +290,21 @@ as diagnostics, but they must not become separate dependency descriptors or sele
 - Corepack must activate the exact version specified in the selected manifest metadata.
 - Corepack's Known Good Release fallback is prohibited for release builds.
 - If the exact version cannot be enforced, the profile fails.
+- Yarn must be Yarn Berry v4 or newer and selected from a top-level `packageManager` field. The
+  profile must fail before install if Yarn would run from an ambient global installation, Corepack
+  Known Good Release fallback, `devEngines.packageManager` alone, a version range, or `yarn.lock`
+  without top-level exact `packageManager` metadata.
+
+## Yarn install mode
+
+The stable initial Yarn path uses Yarn Berry v4 or newer in immutable install mode.
+`yarn install --immutable` is the default Yarn install command for the initial profile. If a future
+profile allows another reproducible Yarn install mode, that mode must be specified in this section
+before release builds may use it.
+
+The profile records the effective Yarn install mode in provenance so producer-side and consumer-side
+verification can distinguish a supported immutable install from an unsupported fallback or ambient
+Yarn invocation.
 
 ## npm behavior
 
@@ -298,11 +321,11 @@ above; callers cannot override these commands.
 For a root package or standalone package where `package.directory` equals `package_manager.root`,
 the profile runs:
 
-| Step    | npm                         | pnpm                             | Yarn                             |
-| ------- | --------------------------- | -------------------------------- | -------------------------------- |
-| Install | `npm ci`                    | `pnpm install --frozen-lockfile` | `yarn install --frozen-lockfile` |
-| Build   | `npm run build` if declared | `pnpm run build` if declared     | `yarn run build` if declared     |
-| Pack    | `npm pack`                  | `pnpm pack`                      | `yarn pack`                      |
+| Step    | npm                         | pnpm                             | Yarn                         |
+| ------- | --------------------------- | -------------------------------- | ---------------------------- |
+| Install | `npm ci`                    | `pnpm install --frozen-lockfile` | `yarn install --immutable`   |
+| Build   | `npm run build` if declared | `pnpm run build` if declared     | `yarn run build` if declared |
+| Pack    | `npm pack`                  | `pnpm pack`                      | `yarn pack`                  |
 
 For a workspace package where `package.directory` differs from `package_manager.root`, the profile
 runs install from the workspace root, then targets the selected workspace package with these command
@@ -310,7 +333,7 @@ templates:
 
 | Step    | npm                                                                 | pnpm                                                                    | Yarn                                                             |
 | ------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Install | `npm ci`                                                            | `pnpm install --frozen-lockfile`                                        | `yarn install --frozen-lockfile`                                 |
+| Install | `npm ci`                                                            | `pnpm install --frozen-lockfile`                                        | `yarn install --immutable`                                       |
 | Build   | `npm --workspace <package-directory> run build` if declared         | `pnpm --filter "{./<package-directory>}" run build` if declared         | `yarn workspace <package-name> run build` if declared            |
 | Pack    | `npm pack --workspace <package-directory> --pack-destination <dir>` | `pnpm --filter "{./<package-directory>}" pack --pack-destination <dir>` | `yarn workspace <package-name> pack --out <tarball-output-path>` |
 
@@ -409,7 +432,9 @@ The profile must fail before packing when:
   exactly one selected package.
 - Package manager selection is ambiguous.
 - An exact package manager version cannot be determined for pnpm or Yarn.
-- Lockfile is missing for npm `npm ci` or pnpm/Yarn `--frozen-lockfile`.
+- Yarn is selected from any source other than top-level `packageManager`, or the exact Yarn version
+  is lower than `4.0.0`.
+- Lockfile is missing for npm `npm ci`, pnpm `--frozen-lockfile`, or Yarn `--immutable`.
 - Source and packed `name`/`version` mismatch.
 - Pack command fails.
 
@@ -418,6 +443,8 @@ The profile must fail before packing when:
 - Fixture matrix across npm, pnpm, and Yarn.
 - Root package and workspace package cases.
 - Missing lockfile, conflicting lockfiles, and missing `packageManager` version.
+- Yarn Classic, Yarn Berry v2 or v3, Yarn ranges, Yarn selected from `devEngines.packageManager`,
+  and lockfile-only Yarn inference.
 - Malformed workspace metadata, unsupported workspace patterns, and ambiguous workspace ownership.
 - Workspace command targeting failures for npm, pnpm, and Yarn where the command matches zero,
   multiple, or sibling packages.
