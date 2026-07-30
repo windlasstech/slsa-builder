@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0062`.
+sequence currently runs from `0000` through `0063`.
 
 | Range     | Topic                                       | Notes                                                            |
 | --------- | ------------------------------------------- | ---------------------------------------------------------------- |
@@ -45,6 +45,7 @@ sequence currently runs from `0000` through `0062`.
 | 0060      | Unified npm public entrypoint               | One public API with separated internal authority boundaries.     |
 | 0061      | Duplicate JSON member rejection             | Strict signed SLSA Statement parsing before semantic validation. |
 | 0062      | Trusted producer policy intersection        | Conflict handling for manifest and explicit verifier policy.     |
+| 0063      | Yarn Berry v4+ support boundary             | Corepack and `packageManager` requirements for Yarn support.     |
 
 ## ADR traceability
 
@@ -112,6 +113,7 @@ implementation work.
 | 0060 | Unify npm profile public entrypoint with release-asset mode        | JS/TS npm profile, composition spec, verification policy                                     |
 | 0061 | Reject duplicate JSON members in signed SLSA Statements            | Common provenance, JS/TS npm provenance and publish, verification policy                     |
 | 0062 | Intersect trusted producer policies                                | Release manifest, GitHub Release asset publisher, verification policy                        |
+| 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                     |
 
 ### Superseded or deprecated ADRs (historical only)
 

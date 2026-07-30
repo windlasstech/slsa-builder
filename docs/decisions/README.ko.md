@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0062`까지입니다.
+`0063`까지입니다.
 
 | 범위      | 주제                               | 설명                                                       |
 | --------- | ---------------------------------- | ---------------------------------------------------------- |
@@ -44,6 +44,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0060      | 통합 npm 공개 진입점               | 하나의 공개 API와 분리된 내부 권한 경계.                   |
 | 0061      | 중복 JSON member 거부              | 의미 검증 전 서명된 SLSA Statement를 엄격히 파싱.          |
 | 0062      | 신뢰 producer 정책 교집합          | Manifest와 명시적 verifier policy 충돌 처리.               |
+| 0063      | Yarn Berry v4+ 지원 경계           | Yarn 지원을 위한 Corepack과 `packageManager` 요구사항.     |
 
 ## ADR 추적성
 
@@ -110,6 +111,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0060 | Unify npm profile public entrypoint with release-asset mode        | JS/TS npm profile, composition spec, verification policy                                     |
 | 0061 | Reject duplicate JSON members in signed SLSA Statements            | Common provenance, JS/TS npm provenance and publish, verification policy                     |
 | 0062 | Intersect trusted producer policies                                | Release manifest, GitHub Release asset publisher, verification policy                        |
+| 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                     |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

@@ -28,7 +28,7 @@ the Go implementation tree has not been added yet.
 
 | Task                    | Location                                                   | Notes                                    |
 | ----------------------- | ---------------------------------------------------------- | ---------------------------------------- |
-| Why a decision was made | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0062`. |
+| Why a decision was made | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0063`. |
 | Bootstrap / dev setup   | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.         |
 | CI / workflow security  | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.       |
 | Lint/format policy      | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                     |
