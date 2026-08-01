@@ -4,6 +4,12 @@ nav_order: 54
 status: accepted
 date: 12026-07-08
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-supersedes
+    target: ADR-0031
+    scope:
+      "the release manifest predicate type URI example; the Sigstore-signed in-toto Statement
+      manifest decision remains in force"
 ---
 
 # Use slsa-builder.dev for the Release Manifest Predicate URI
