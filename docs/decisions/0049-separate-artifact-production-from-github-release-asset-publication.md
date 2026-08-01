@@ -4,6 +4,19 @@ nav_order: 49
 status: accepted
 date: 12026-07-07
 decision-makers: Yunseo Kim
+relations:
+  - type: supersedes
+    target: ADR-0038
+  - type: supersedes
+    target: ADR-0040
+  - type: supersedes
+    target: ADR-0044
+  - type: partially-supersedes
+    target: ADR-0042
+    scope: "the concrete GitHub Release asset buildType value"
+  - type: amends
+    target: ADR-0045
+    scope: "interpreted as publication-profile rules rather than artifact-production rules"
 ---
 
 # Separate Artifact Production from GitHub Release Asset Publication

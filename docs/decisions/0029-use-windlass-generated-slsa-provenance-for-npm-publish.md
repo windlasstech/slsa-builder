@@ -4,6 +4,12 @@ nav_order: 29
 status: accepted
 date: 12026-07-05
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0042
+    scope:
+      "the repository-path buildType URI value; the Windlass-generated provenance decision remains
+      in force"
 ---
 
 # Use Windlass-Generated SLSA Provenance for npm Publish

@@ -4,6 +4,10 @@ nav_order: 26
 status: accepted
 date: 12026-07-01
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0028
+    scope: "the tag-ref caller examples; the supported caller trigger patterns remain in force"
 ---
 
 # Document Supported Release Caller Patterns and Runtime Guards

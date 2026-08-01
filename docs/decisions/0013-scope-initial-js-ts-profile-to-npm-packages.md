@@ -4,6 +4,13 @@ nav_order: 13
 status: accepted
 date: 12026-06-28
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0002
+  - type: see-also
+    target: ADR-0003
+  - type: see-also
+    target: ADR-0018
 ---
 
 # Scope the Initial JS/TS Profile to npm Packages

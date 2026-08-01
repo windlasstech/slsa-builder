@@ -1,7 +1,7 @@
 ---
 parent: Decisions
 nav_order: 1
-status: "accepted"
+status: accepted
 date: 12026-06-23
 decision-makers: Yunseo Kim
 ---

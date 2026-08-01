@@ -1,9 +1,13 @@
 ---
 parent: Decisions
 nav_order: 50
-status: amended by 0064
+status: accepted
 date: 12026-07-07
 decision-makers: Yunseo Kim
+relations:
+  - type: amended-by
+    target: ADR-0064
+    scope: "the npm producer subject name is the npm Package URL, not the release asset name"
 ---
 
 # Define the Producer-to-Publisher Handoff Contract

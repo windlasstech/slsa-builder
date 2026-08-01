@@ -4,6 +4,9 @@ nav_order: 38
 status: superseded by ADR-0049
 date: 12026-07-06
 decision-makers: Yunseo Kim
+relations:
+  - type: superseded-by
+    target: ADR-0049
 ---
 
 # Use Windlass-Generated Provenance with actions/attest for GitHub Release Assets

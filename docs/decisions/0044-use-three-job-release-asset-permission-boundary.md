@@ -4,6 +4,9 @@ nav_order: 44
 status: superseded by ADR-0049
 date: 12026-07-07
 decision-makers: Yunseo Kim
+relations:
+  - type: superseded-by
+    target: ADR-0049
 ---
 
 # Use a Three-Job Permission Boundary for GitHub Release Assets

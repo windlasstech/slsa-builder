@@ -4,6 +4,9 @@ nav_order: 47
 status: superseded by ADR-0051
 date: 12026-07-07
 decision-makers: Yunseo Kim
+relations:
+  - type: superseded-by
+    target: ADR-0051
 ---
 
 # Use GitHub Attestation Storage as Canonical Release Asset Provenance Distribution

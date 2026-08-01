@@ -4,6 +4,9 @@ nav_order: 41
 status: superseded by ADR-0042
 date: 12026-07-06
 decision-makers: Yunseo Kim
+relations:
+  - type: superseded-by
+    target: ADR-0042
 ---
 
 # Use `github-release-asset` as the GitHub Release Asset `buildType` Profile URI

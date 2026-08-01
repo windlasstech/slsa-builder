@@ -4,6 +4,13 @@ nav_order: 64
 status: accepted
 date: 12026-07-31
 decision-makers: Yunseo Kim
+relations:
+  - type: amends
+    target: ADR-0050
+    scope: "the npm producer subject name is the npm Package URL, not the release asset name"
+  - type: amends
+    target: ADR-0052
+    scope: "the npm producer subject name is the npm Package URL, not the release asset name"
 ---
 
 # Use npm PURL Subject with SHA-512 and SHA-256 Digests

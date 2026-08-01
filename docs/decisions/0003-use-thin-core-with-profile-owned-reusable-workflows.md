@@ -4,6 +4,11 @@ nav_order: 3
 status: accepted
 date: 12026-06-23
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0002
+  - type: see-also
+    target: ADR-0013
 ---
 
 # Use a Thin Core with Profile-Owned Reusable Workflows

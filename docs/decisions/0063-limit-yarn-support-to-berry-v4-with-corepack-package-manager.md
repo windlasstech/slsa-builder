@@ -4,6 +4,16 @@ nav_order: 63
 status: accepted
 date: 12026-07-31
 decision-makers: Yunseo Kim
+relations:
+  - type: amends
+    target: ADR-0014
+    scope:
+      "Yarn support is narrowed to Yarn Berry v4 or newer executed through Corepack packageManager
+      enforcement; the decision to support Yarn remains in force"
+  - type: partially-supersedes
+    target: ADR-0015
+    scope:
+      "lockfile-based Yarn inference fallback; Yarn requires an explicit packageManager declaration"
 ---
 
 # Limit Yarn Support to Berry v4 with Corepack Package Manager Metadata

@@ -4,6 +4,9 @@ nav_order: 51
 status: accepted
 date: 12026-07-07
 decision-makers: Yunseo Kim
+relations:
+  - type: supersedes
+    target: ADR-0047
 ---
 
 # Distribute Producer Provenance with GitHub Release Assets

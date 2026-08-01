@@ -4,6 +4,12 @@ nav_order: 56
 status: accepted
 date: 12026-07-09
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-supersedes
+    target: ADR-0015
+    scope:
+      "the blanket manifest-versus-lockfile conflict rule; non-selected supported lockfiles are
+      stale diagnostics when the selected manager and its required lockfile are present"
 ---
 
 # Treat Non-Selected Lockfiles as Stale Diagnostics
