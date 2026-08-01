@@ -156,7 +156,7 @@ limitations in downstream release workflows.
 
 The decision is based on review of the upstream repository structure, README, provenance format
 documentation, generic generator implementation, Node.js builder documentation, npm provenance
-documentation, and SLSA v1.2 specification pages as of 2026-06-23.
+documentation, and SLSA v1.2 specification pages as of 12026-06-23.
 
 Relevant findings:
 
