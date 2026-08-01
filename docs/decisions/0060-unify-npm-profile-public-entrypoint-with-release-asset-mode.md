@@ -4,6 +4,19 @@ nav_order: 60
 status: accepted
 date: 12026-07-29
 decision-makers: Yunseo Kim
+relations:
+  - type: amends
+    target: ADR-0022
+    scope:
+      "the selected entrypoint is the single public npm profile API for both npm-only and
+      release-asset paths; the workflow filename decision remains in force"
+  - type: amends
+    target: ADR-0057
+    scope:
+      "the release-asset mode lives on the single public npm entrypoint; no second public npm
+      workflow entrypoint"
+  - type: see-also
+    target: ADR-0059
 ---
 
 # Unify the npm Profile Public Entrypoint with Release-Asset Mode

@@ -4,6 +4,12 @@ nav_order: 59
 status: accepted
 date: 12026-07-29
 decision-makers: Yunseo Kim
+relations:
+  - type: amends
+    target: ADR-0057
+    scope: "the release-asset mode public workflow_call interface is a minimal user-intent surface"
+  - type: see-also
+    target: ADR-0060
 ---
 
 # Define the Public npm Release-Asset Mode Interface

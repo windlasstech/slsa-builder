@@ -4,6 +4,20 @@ nav_order: 57
 status: accepted
 date: 12026-07-29
 decision-makers: Yunseo Kim
+relations:
+  - type: amends
+    target: ADR-0022
+    scope:
+      "the selected public npm entrypoint also hosts the explicit GitHub Release asset publication
+      mode; the workflow filename decision remains in force"
+  - type: amended-by
+    target: ADR-0059
+    scope: "the release-asset mode public workflow_call interface is a minimal user-intent surface"
+  - type: amended-by
+    target: ADR-0060
+    scope:
+      "the release-asset mode lives on the single public npm entrypoint; no second public npm
+      workflow entrypoint"
 ---
 
 # Provide a Public npm Release-Asset Mode
