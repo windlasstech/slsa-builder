@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0065`.
+`0066`.
 
 ## STRUCTURE
 
@@ -23,11 +23,12 @@ docs/decisions/
 ├── 0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md
 ├── 0064-use-npm-purl-subject-with-sha512-and-sha256.md
 ├── 0065-use-closed-status-grammar-with-separate-relations-field.md
+├── 0066-serialize-release-mutations-with-job-class-concurrency.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0065`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0066`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -44,6 +45,7 @@ groupings.
 | GitHub release asset profile  | `0038`–`0052`, `0057`–`0062`   | Release asset subject handling, attestation distribution.       |
 | Release manifest metadata     | `0053`, `0054`, `0062`         | Signing boundary, predicate URI, producer policy conflicts.     |
 | ADR lifecycle metadata        | `0065`                         | Closed status grammar and relations field.                      |
+| Release run ownership         | `0066`                         | Job-class concurrency and mutation segment serialization.       |
 
 ## CONVENTIONS
 

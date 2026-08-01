@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0065`까지입니다.
+`0066`까지입니다.
 
 | 범위      | 주제                               | 설명                                                       |
 | --------- | ---------------------------------- | ---------------------------------------------------------- |
@@ -47,6 +47,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0063      | Yarn Berry v4+ 지원 경계           | Yarn 지원을 위한 Corepack과 `packageManager` 요구사항.     |
 | 0064      | npm provenance subject 호환성      | npm PURL subject와 SHA-512 및 SHA-256 tarball digest.      |
 | 0065      | ADR 생애주기 메타데이터            | 닫힌 status 문법과 relations 필드.                         |
+| 0066      | 릴리즈 mutation 런 소유권          | 잡 클래스 concurrency와 직렬화된 mutation segment.         |
 
 ## ADR status와 relations
 
@@ -171,6 +172,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                     |
 | 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests              | Common provenance, JS/TS npm specs, composition and publisher specs, verification policy     |
 | 0065 | Use a closed status grammar and a separate relations field         | 프로세스; 런타임 명세 불필요                                                                 |
+| 0066 | Serialize release mutations with job-class concurrency             | GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy        |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

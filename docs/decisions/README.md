@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0065`.
+sequence currently runs from `0000` through `0066`.
 
 | Range     | Topic                                       | Notes                                                            |
 | --------- | ------------------------------------------- | ---------------------------------------------------------------- |
@@ -48,6 +48,7 @@ sequence currently runs from `0000` through `0065`.
 | 0063      | Yarn Berry v4+ support boundary             | Corepack and `packageManager` requirements for Yarn support.     |
 | 0064      | npm provenance subject compatibility        | npm PURL subject with SHA-512 and SHA-256 tarball digests.       |
 | 0065      | ADR lifecycle metadata                      | Closed status grammar and relations field.                       |
+| 0066      | Release mutation run ownership              | Job-class concurrency and serialized mutation segment.           |
 
 ## ADR status and relations
 
@@ -174,6 +175,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                     |
 | 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests              | Common provenance, JS/TS npm specs, composition and publisher specs, verification policy     |
 | 0065 | Use a closed status grammar and a separate relations field         | Process; no runtime spec needed                                                              |
+| 0066 | Serialize release mutations with job-class concurrency             | GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy        |
 
 ### Superseded or deprecated ADRs (historical only)
 
