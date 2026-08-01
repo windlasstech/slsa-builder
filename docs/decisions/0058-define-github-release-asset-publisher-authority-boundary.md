@@ -4,6 +4,9 @@ nav_order: 58
 status: accepted
 date: 12026-07-29
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0066
 ---
 
 # Define the GitHub Release Asset Publisher Authority Boundary

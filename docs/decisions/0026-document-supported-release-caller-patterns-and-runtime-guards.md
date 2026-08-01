@@ -8,6 +8,8 @@ relations:
   - type: partially-superseded-by
     target: ADR-0028
     scope: "the tag-ref caller examples; the supported caller trigger patterns remain in force"
+  - type: see-also
+    target: ADR-0066
 ---
 
 # Document Supported Release Caller Patterns and Runtime Guards

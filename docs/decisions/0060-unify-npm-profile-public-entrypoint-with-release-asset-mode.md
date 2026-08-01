@@ -17,6 +17,8 @@ relations:
       workflow entrypoint"
   - type: see-also
     target: ADR-0059
+  - type: see-also
+    target: ADR-0066
 ---
 
 # Unify the npm Profile Public Entrypoint with Release-Asset Mode
