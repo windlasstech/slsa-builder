@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0064`까지입니다.
+`0065`까지입니다.
 
 | 범위      | 주제                               | 설명                                                       |
 | --------- | ---------------------------------- | ---------------------------------------------------------- |
@@ -46,11 +46,67 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0062      | 신뢰 producer 정책 교집합          | Manifest와 명시적 verifier policy 충돌 처리.               |
 | 0063      | Yarn Berry v4+ 지원 경계           | Yarn 지원을 위한 Corepack과 `packageManager` 요구사항.     |
 | 0064      | npm provenance subject 호환성      | npm PURL subject와 SHA-512 및 SHA-256 tarball digest.      |
+| 0065      | ADR 생애주기 메타데이터            | 닫힌 status 문법과 relations 필드.                         |
+
+## ADR status와 relations
+
+ADR 0065는 이 디렉터리 모든 ADR의 생애주기·추적성 메타데이터 문법을 정의합니다.
+
+### Status 문법
+
+`status` frontmatter 필드는 다음 형태 중 정확히 하나만 사용해야 합니다.
+
+```text
+proposed
+rejected
+accepted
+deprecated
+superseded by ADR-XXXX
+```
+
+`accepted; partially updated by ...`나 `amended by ...`처럼 합성하거나 서술형으로 쓴 status 값은
+유효하지 않습니다. `deprecated`는 해당 결정이 더 이상 권장되지 않으며 대체 ADR이 없거나 필요하지
+않은 경우입니다. `superseded by ADR-XXXX`는 지정한 ADR이 그 결정을 전체적으로 대체하는 경우입니다.
+
+### Relations 필드
+
+ADR 간 관계는 `status`가 아니라 frontmatter `relations` 필드에 기록합니다.
+
+```yaml
+relations:
+  - type: partially-superseded-by
+    target: ADR-0049
+    scope: "Release asset profile의 buildType URI 배정 및 관련 confirmation 조항"
+```
+
+각 항목은 `type`, 대상 ADR 번호인 `target`, 그리고 `scope`(부분 대체·개정 관계에서는 필수이며,
+영향받는 조항을 특정)를 가집니다. 관계 어휘는 닫혀 있습니다.
+
+| 정방향 (신 ADR)        | 역방향 (구 ADR)           | 의미                                    | 구 ADR status 변화         |
+| ---------------------- | ------------------------- | --------------------------------------- | -------------------------- |
+| `supersedes`           | `superseded-by`           | 신 ADR이 구 ADR을 전체 대체             | `superseded by ...`로 변경 |
+| `partially-supersedes` | `partially-superseded-by` | 명시한 조항만 대체, 나머지는 유효       | `accepted` 유지            |
+| `amends`               | `amended-by`              | 세부 사항을 축소·조정하거나 예외를 추가 | `accepted` 유지            |
+| `see-also`             | `see-also`                | 정보성 상호 참조                        | 없음                       |
+
+구현자가 구 조항을 문자 그대로 더 이상 따를 수 없으면 `partially-supersedes`, 구 조항이 여전히
+지배적이며 신 ADR이 그것을 한정하기만 하면 `amends`를 사용합니다. 모호한 경우는
+`partially-supersedes`로 해결합니다.
+
+관계선은 양방향입니다. 신 ADR이 대상에 대해 `supersedes`, `partially-supersedes`, `amends`를
+선언하면, 같은 변경에서 대상 ADR의 `relations` 필드에 대응하는 역방향 항목을 추가해야 합니다. 신
+ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추적성 결함입니다. 결함은 빠진 역방향 항목을
+추가해 복구하며, 복구만을 위한 새 ADR은 필요 없고 본문은 절대 편집하지 않습니다.
+
+채택 후에는 `status`와 `relations` frontmatter 필드만 변경할 수 있습니다. 전체 결정 내용은
+[ADR 0065](0065-use-closed-status-grammar-with-separate-relations-field.md)를 참조하세요.
 
 ## ADR 추적성
 
 모든 ADR은 명세에 대응되거나, 개발 도구 전용 혹은 대체됨(superseded), 폐기됨(deprecated) 등으로
-분류됩니다. 대체되거나 폐기된 ADR은 과거 맥락일 뿐 새로운 명세나 구현을 주도해서는 안 됩니다.
+분류됩니다. 대체되거나 폐기된 ADR은 과거 맥락일 뿐 새로운 명세나 구현을 주도해서는 안 됩니다. 부분
+대체·개정 관계(ADR 0065)는 ADR을 이 표에서 이동시키지 않으며, 각 ADR의 `relations` frontmatter
+필드에 기록합니다.
 
 ### 채택된 ADR
 
@@ -114,6 +170,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0062 | Intersect trusted producer policies                                | Release manifest, GitHub Release asset publisher, verification policy                        |
 | 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                     |
 | 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests              | Common provenance, JS/TS npm specs, composition and publisher specs, verification policy     |
+| 0065 | Use a closed status grammar and a separate relations field         | 프로세스; 런타임 명세 불필요                                                                 |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
@@ -133,9 +190,14 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 2. **다음 순번 사용.** `0000-title.md` 형식의 연속된 번호 체계를 이어갑니다.
 3. **MADR 4.0.0 사용.** 해당 결정에 명백히 필요 없는 경우가 아니라면 기존 섹션 구조를 유지합니다.
 4. **Human Era 날짜 사용.** ADR front matter 날짜는 `12026-07-08` 형식을 사용합니다.
-5. **채택된 ADR 본문 불변.** 채택 후에는 `status` 필드만 업데이트하고, 결정이 바뀌면 새 ADR을
-   작성합니다.
-6. **추적 표 업데이트.** 새 ADR을 위 목록에 추가하고, 관찰 가능 동작을 정의한다면 아키텍처 명세
+5. **채택된 ADR 본문 불변.** 채택 후에는 `status`와 `relations` frontmatter 필드만 업데이트하고,
+   결정이 바뀌면 새 ADR을 작성합니다.
+6. **닫힌 status 문법 사용.** `status`는 `proposed`, `rejected`, `accepted`, `deprecated`,
+   `superseded by ADR-XXXX` 중 정확히 하나여야 합니다(ADR 0065).
+7. **관계는 양방향으로 선언.** 새 ADR이 선행 ADR을 대체·부분 대체·개정한다면, 자신의 `relations`
+   필드에 정방향 항목을 선언하고 각 대상에 역방향 항목을 추가하며, 부분 대체·개정 관계에는 `scope`를
+   작성합니다. 영향받는 모든 선행 ADR을 열거하세요. 누락은 추적성 결함입니다.
+8. **추적 표 업데이트.** 새 ADR을 위 목록에 추가하고, 관찰 가능 동작을 정의한다면 아키텍처 명세
    링크도 업데이트합니다.
 
 ## 새 ADR 추가 방법
@@ -143,16 +205,21 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 1. 기존 ADR 또는 `0000-use-markdown-architectural-decision-records.md`의 구조를 복사합니다.
 2. 다음 네 자리 순번과 kebab-case 제목을 부여합니다.
 3. 결정의 맥락, 선택지, 결과, 영향, 확인 기준을 기록합니다.
-4. 위 추적성 표에 ADR을 추가합니다.
-5. 결정이 관찰 가능 동작을 바꾼다면 [`docs/architecture/`](../architecture/)의 관련 명세를
+4. 닫힌 문법으로 `status`를 채우고, 대상 ADR의 역방향 엣지를 포함해 필요한 `relations` 항목을
+   선언합니다.
+5. 위 추적성 표에 ADR을 추가합니다.
+6. 결정이 관찰 가능 동작을 바꾼다면 [`docs/architecture/`](../architecture/)의 관련 명세를
    업데이트합니다.
-6. 제출 전 문서 품질 검사 명령을 실행합니다.
+7. 제출 전 문서 품질 검사 명령을 실행합니다.
 
 ## ADR PR 검증 체크리스트
 
 - [ ] ADR 번호가 순차적이고 제목이 kebab-case입니다.
 - [ ] ADR이 MADR 4.0.0 구조와 Human Era 날짜 형식을 사용합니다.
-- [ ] 채택된 ADR 본문을 소급 수정하지 않았습니다.
+- [ ] 채택된 ADR 본문을 소급 수정하지 않았습니다. `status`와 `relations`만 변경했습니다.
+- [ ] `status`가 닫힌 문법을 사용합니다(합성·서술형 값 없음).
+- [ ] 관계 type, target, 필수 `scope` 값이 ADR 0065를 따르고, 모든 정방향 관계에 대상 ADR의 역방향
+      엣지가 있습니다.
 - [ ] 추적성 표가 ADR을 명세, 도구 전용, 또는 과거 상태로 매핑합니다.
 - [ ] ADR이 관찰 가능 동작을 바꾸는 경우 아키텍처 명세를 업데이트했습니다.
 - [ ] 린팅 및 포맷팅을 통과합니다.

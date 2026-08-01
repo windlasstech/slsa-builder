@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0064`.
+sequence currently runs from `0000` through `0065`.
 
 | Range     | Topic                                       | Notes                                                            |
 | --------- | ------------------------------------------- | ---------------------------------------------------------------- |
@@ -47,12 +47,69 @@ sequence currently runs from `0000` through `0064`.
 | 0062      | Trusted producer policy intersection        | Conflict handling for manifest and explicit verifier policy.     |
 | 0063      | Yarn Berry v4+ support boundary             | Corepack and `packageManager` requirements for Yarn support.     |
 | 0064      | npm provenance subject compatibility        | npm PURL subject with SHA-512 and SHA-256 tarball digests.       |
+| 0065      | ADR lifecycle metadata                      | Closed status grammar and relations field.                       |
+
+## ADR status and relations
+
+ADR 0065 defines the lifecycle and traceability metadata grammar for every ADR in this directory.
+
+### Status grammar
+
+The `status` frontmatter field must use exactly one of these forms:
+
+```text
+proposed
+rejected
+accepted
+deprecated
+superseded by ADR-XXXX
+```
+
+Composite or prose status values (for example `accepted; partially updated by ...` or
+`amended by ...`) are invalid. `deprecated` means the decision is no longer recommended and no
+replacing ADR exists or is required. `superseded by ADR-XXXX` means the named ADR replaces the
+decision in full.
+
+### Relations field
+
+ADR-to-ADR relationships are recorded in the frontmatter `relations` field, not in `status`:
+
+```yaml
+relations:
+  - type: partially-superseded-by
+    target: ADR-0049
+    scope: "Release asset profile buildType URI assignment and related confirmation criteria"
+```
+
+Each entry has a `type`, a `target` ADR number, and a `scope` (required for partial supersession and
+amendment relations; identifies the affected clauses). The relation vocabulary is closed:
+
+| Forward (newer ADR)    | Reverse (earlier ADR)     | Meaning                                        | Earlier ADR status effect      |
+| ---------------------- | ------------------------- | ---------------------------------------------- | ------------------------------ |
+| `supersedes`           | `superseded-by`           | The newer ADR replaces the earlier one in full | Changes to `superseded by ...` |
+| `partially-supersedes` | `partially-superseded-by` | Named clauses are replaced; the rest stands    | Remains `accepted`             |
+| `amends`               | `amended-by`              | Details are narrowed, adjusted, or excepted    | Remains `accepted`             |
+| `see-also`             | `see-also`                | Informational cross-reference                  | None                           |
+
+Use `partially-supersedes` when an implementer may no longer follow the earlier clause as written;
+use `amends` when the earlier clause still governs and the newer ADR only qualifies it. Resolve
+ambiguous cases in favor of `partially-supersedes`.
+
+Relation edges are bidirectional: when a new ADR declares `supersedes`, `partially-supersedes`, or
+`amends` against a target, the same change must add the matching reverse entry to the target ADR's
+`relations` field. A new ADR must enumerate every accepted ADR it affects. An omission is a
+traceability defect and is repaired by adding the missing reverse entry — no new ADR is required for
+the repair alone, and body text is never edited.
+
+After acceptance, only the `status` and `relations` frontmatter fields may change. See
+[ADR 0065](0065-use-closed-status-grammar-with-separate-relations-field.md) for the full decision.
 
 ## ADR traceability
 
 Every ADR is either mapped to a spec, marked as tooling-only, or marked as superseded, deprecated,
 etc. Superseded or deprecated ADRs are historical context and must not drive new specification or
-implementation work.
+implementation work. Partial supersession and amendment relations (ADR 0065) do not move an ADR out
+of this table; they are recorded in each ADR's `relations` frontmatter field.
 
 ### Accepted ADRs
 
@@ -116,6 +173,7 @@ implementation work.
 | 0062 | Intersect trusted producer policies                                | Release manifest, GitHub Release asset publisher, verification policy                        |
 | 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                     |
 | 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests              | Common provenance, JS/TS npm specs, composition and publisher specs, verification policy     |
+| 0065 | Use a closed status grammar and a separate relations field         | Process; no runtime spec needed                                                              |
 
 ### Superseded or deprecated ADRs (historical only)
 
@@ -136,9 +194,15 @@ implementation work.
 3. **Use MADR 4.0.0.** Preserve the established sections unless the decision clearly does not need
    one.
 4. **Use Human Era dates.** ADR front matter dates use the `12026-07-08` style.
-5. **Keep accepted ADRs immutable.** After acceptance, update only the `status` field; write a new
-   ADR for changed decisions.
-6. **Update traceability.** Add new ADRs to the inventory above and update architecture spec links
+5. **Keep accepted ADRs immutable.** After acceptance, update only the `status` and `relations`
+   frontmatter fields; write a new ADR for changed decisions.
+6. **Use the closed status grammar.** `status` must be exactly one of `proposed`, `rejected`,
+   `accepted`, `deprecated`, or `superseded by ADR-XXXX` (ADR 0065).
+7. **Declare relations, both directions.** If the new ADR supersedes, partially supersedes, or
+   amends an earlier ADR, declare the forward entry in its own `relations` field, add the reverse
+   entry to each target, and write a `scope` for partial and amendment relations. Enumerate every
+   affected predecessor; omissions are traceability defects.
+8. **Update traceability.** Add new ADRs to the inventory above and update architecture spec links
    when they define observable behavior.
 
 ## How to add a new ADR
@@ -147,16 +211,21 @@ implementation work.
    `0000-use-markdown-architectural-decision-records.md`.
 2. Assign the next four-digit number and a kebab-case title.
 3. Record the decision context, options, outcome, consequences, and confirmation criteria.
-4. Add the ADR to the traceability table above.
-5. Update affected files in [`docs/architecture/`](../architecture/) when the decision changes
+4. Fill in `status` using the closed grammar and declare any `relations` entries, including the
+   reverse edges on target ADRs.
+5. Add the ADR to the traceability table above.
+6. Update affected files in [`docs/architecture/`](../architecture/) when the decision changes
    observable behavior.
-6. Run the documentation quality commands before submitting.
+7. Run the documentation quality commands before submitting.
 
 ## Verification checklist for ADR PRs
 
 - [ ] The ADR number is sequential and the title is kebab-case.
 - [ ] The ADR uses MADR 4.0.0 structure and Human Era date format.
-- [ ] Accepted ADR bodies were not edited retroactively.
+- [ ] Accepted ADR bodies were not edited retroactively; only `status` and `relations` changed.
+- [ ] `status` uses the closed grammar (no composite or prose values).
+- [ ] Relation types, targets, and required `scope` values follow ADR 0065, and every forward
+      relation has its reverse edge on the target ADR.
 - [ ] The traceability table maps the ADR to specs, tooling-only, or historical status.
 - [ ] Architecture specs were updated when the ADR changes observable behavior.
 - [ ] Formatting passes:

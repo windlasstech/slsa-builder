@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0064`.
+`0065`.
 
 ## STRUCTURE
 
@@ -22,11 +22,12 @@ docs/decisions/
 ├── 0062-intersect-trusted-producer-policies.md
 ├── 0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md
 ├── 0064-use-npm-purl-subject-with-sha512-and-sha256.md
+├── 0065-use-closed-status-grammar-with-separate-relations-field.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0064`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0065`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -42,18 +43,36 @@ groupings.
 | JS/TS npm package profile     | `0013`–`0037`, `0055`–`0064`   | Package manager selection, OIDC publishing, SLSA3 npm workflow. |
 | GitHub release asset profile  | `0038`–`0052`, `0057`–`0062`   | Release asset subject handling, attestation distribution.       |
 | Release manifest metadata     | `0053`, `0054`, `0062`         | Signing boundary, predicate URI, producer policy conflicts.     |
+| ADR lifecycle metadata        | `0065`                         | Closed status grammar and relations field.                      |
 
 ## CONVENTIONS
 
 - **Format**: MADR 4.0.0. Use `0000-title.md` numbering (the template itself is `0000`).
-- **Status**: accepted / deprecated / superseded / etc. Only the status field may change after
-  acceptance.
+- **Status**: Closed grammar per ADR 0065. Exactly one of `proposed`, `rejected`, `accepted`,
+  `deprecated`, or `superseded by ADR-XXXX`. Composite or prose status values are invalid.
+- **Relations**: ADR-to-ADR relationships live in the frontmatter `relations` field (ADR 0065), not
+  in `status`. Four directional pairs: `supersedes`/`superseded-by`,
+  `partially-supersedes`/`partially-superseded-by`, `amends`/`amended-by`, `see-also`. Partial and
+  amendment relations require a `scope` identifying the affected clauses. Only full supersession
+  changes the earlier ADR's `status`; partial supersession and amendment leave it `accepted`.
+- **Discriminator**: `partially-supersedes` when an implementer may no longer follow the earlier
+  clause as written; `amends` when the earlier clause still governs and the newer ADR only qualifies
+  it. Resolve ambiguous cases in favor of `partially-supersedes`.
+- **Symmetry**: Relation edges are bidirectional. A new ADR must declare every accepted ADR it
+  supersedes, partially supersedes, or amends, and the same change must add the matching reverse
+  entry to each target. An omission is a traceability defect, repaired by adding the missing reverse
+  entry without a new ADR.
 - **Dates**: Use Holocene Era year format (e.g., `12026-06-23`).
-- **Immutability**: Do not edit the body of an accepted ADR. Write a new ADR instead.
+- **Immutability**: Do not edit the body of an accepted ADR. Write a new ADR instead. After
+  acceptance, only the `status` and `relations` frontmatter fields may change.
 
 ## ANTI-PATTERNS
 
 - Do not invent new numbering schemes; continue the sequence.
 - Do not change an accepted ADR's body to reverse a decision.
+- Do not invent new lifecycle statuses (for example `amended` or `partially updated`); use the
+  closed status grammar and `relations` field instead.
+- Do not write composite or prose `status` values.
+- Do not declare a forward relation without adding the reverse edge to the target ADR.
 - Do not put implementation details here; ADRs explain _why_, specs explain _what_.
 - Do not use Node.js or pnpm for trusted/runtime logic.
