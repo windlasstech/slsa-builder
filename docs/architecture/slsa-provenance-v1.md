@@ -13,7 +13,8 @@ common contract.
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
   [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
-  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
+  [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
@@ -71,8 +72,8 @@ following shape:
       },
       "metadata": {
         "invocationId": "<github.run_id>.<github.run_attempt>",
-        "startedOn": "<ISO 8601 timestamp>",
-        "finishedOn": "<ISO 8601 timestamp>"
+        "startedOn": "<RFC 3339 UTC timestamp at whole-second precision>",
+        "finishedOn": "<RFC 3339 UTC timestamp at whole-second precision>"
       }
     }
   }
@@ -177,8 +178,31 @@ inputs.
 ### `metadata`
 
 - `invocationId`: `<github.run_id>.<github.run_attempt>`.
-- `startedOn`: ISO 8601 timestamp.
-- `finishedOn`: ISO 8601 timestamp.
+- `startedOn`: build start timestamp.
+- `finishedOn`: build completion timestamp.
+
+Both timestamps must use the RFC 3339 profile of ISO 8601, be normalized to UTC with the literal `Z`
+suffix, and use exactly whole-second precision in the form `YYYY-MM-DDTHH:MM:SSZ`. The producer-side
+verification gate must reject provenance before publication when either timestamp has a numeric UTC
+offset, fractional seconds, no timezone, or any other representation.
+
+Whole-second precision is required because SLSA v1 provenance uses these values as event times, and
+seconds preserve interoperable ordering without claiming subsecond accuracy that the build platform
+does not guarantee. Consumers accept `finishedOn` earlier than `startedOn` by at most five seconds
+as clock skew, report a clock-skew diagnostic, and treat the observed duration as zero; consumer
+verification must reject provenance with a negative interval greater than five seconds as a
+timestamp-ordering error.
+
+These are technical protocol fields, so they must retain standard Gregorian RFC 3339 dates rather
+than the project's Holocene Era convention. A Holocene-formatted value, including a five-digit year
+such as `12026`, must fail timestamp-format validation.
+
+Valid example: `startedOn: 2026-08-02T12:00:00Z` and `finishedOn: 2026-08-02T12:00:03Z`.
+
+Invalid examples include `2026-08-02T12:00:00.123Z` (fractional precision),
+`2026-08-02T12:00:00+00:00` (not the canonical `Z` form), and `12026-08-02T12:00:00Z` (Holocene
+year). A pair with `startedOn: 2026-08-02T12:00:10Z` and `finishedOn: 2026-08-02T12:00:04Z` is also
+invalid because its negative interval exceeds the five-second clock-skew tolerance.
 
 ## Signing adapter role
 
@@ -352,6 +376,8 @@ A verifier must reject provenance if any of the following are true:
 | `subject[0].name` does not match the profile rule                                                 | Subject name mismatch             |
 | Digest encoding is not lowercase hex                                                              | Digest encoding error             |
 | Sidecar, SBOM, or checksum is in `subject[0].digest`                                              | Subject digest scope error        |
+| `startedOn` or `finishedOn` is not canonical whole-second UTC RFC 3339                            | Timestamp format error            |
+| `finishedOn` precedes `startedOn` by more than five seconds                                       | Timestamp ordering error          |
 | Emitted Statement differs from validated signing inputs                                           | Statement assembly mismatch       |
 
 ## Failure behavior
@@ -369,6 +395,7 @@ error category from the rejection matrix above.
   `subject`.
 - Rejected fixtures for each row in the rejection matrix, including zero-subject, multi-subject,
   top-level duplicate-member, nested predicate duplicate-member, duplicate extension-field, and
-  escaped duplicate-member Statements.
+  escaped duplicate-member Statements, plus non-`Z`, fractional, Holocene-year, and excessive
+  negative-skew timestamps.
 - A fixture proving that the signing adapter payload matches the Statement implied by the
   Windlass-verified subject inputs, predicate type, and predicate.
