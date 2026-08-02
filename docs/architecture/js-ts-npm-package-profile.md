@@ -17,7 +17,8 @@ profile.
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
-  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
+  [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -110,6 +111,13 @@ therefore not caller-supplied intent values. A caller-supplied value exists only
 input is non-empty.
 
 #### Optional input rules
+
+> [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
+> milestone. The behavior in this section remains the eventual contract but is deferred:
+> first-milestone conformance does not require it. Consistent with ADR 0030's "unsupported but not
+> blocked" stance, this deferral does not prohibit attempts; their results are outside
+> first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
+> requires a new ADR.
 
 - `registry-url` must be an absolute `https:` URL. The profile must normalize scheme and host to
   lowercase, remove default port `443`, and ensure exactly one trailing `/` in the effective
@@ -303,28 +311,69 @@ the workflow must fail before metadata publication. If the workflow's internal j
 authorities that must remain separate, implementation review and YAML fixtures must reject the
 workflow even when GitHub would allow the permission set.
 
+### Job-class concurrency (ADR 0066)
+
+The build, pack, and producer signing jobs in this profile are PRE-mutation jobs. Each of these jobs
+must declare job-level concurrency with `cancel-in-progress: true`; a workflow that omits that
+declaration, sets it to `false`, or places one of these jobs in a mutation concurrency class must be
+rejected by the YAML review gate before release use. A newer run for the same release intent
+therefore cancels stale build, pack, or signing work early. This cancellation is safe because none
+of these jobs has performed registry or GitHub Release mutation. Signing may leave an inert
+transparency log entry, but verification binds attestations to published artifact bytes rather than
+treating the entry itself as publication.
+
+For each PRE-mutation job, the concurrency group key must consist only of a job-specific namespace,
+`github.repository`, `github.ref_name`, and, when needed to distinguish documented release intent,
+declared workflow inputs. A key that uses any other context or omits the repository, release source
+ref, or job-specific namespace must fail the YAML review gate because it can collide across release
+intents or make jobs within one run contend with one another. The key must not include
+`github.workflow`; inside a called reusable workflow that value resolves to the caller's workflow
+name and creates a self-cancellation trap. Any key containing `github.workflow` must fail the YAML
+review gate.
+
+The PRE-mutation/mutation boundary lies after the signed producer bundle has been generated and
+verified and before the npm publish job begins. npm publication is the first registry mutation, and
+GitHub Release asset upload in release-asset mode is a later release mutation. PRE-mutation jobs
+must not hold registry or release mutation authority; a permission or call path that permits such a
+side effect must fail authority-boundary review before release use. Mutation-job serialization and
+precondition re-validation are defined by ADR 0066 and the
+[provenance and publish spec](js-ts-npm-provenance-publish.md); they must not be replaced by the
+PRE-mutation `cancel-in-progress: true` policy, and a workflow that applies that policy to a
+mutation job must be rejected because cancellation could interrupt an external side effect.
+
+The npm publish job, the release-asset upload jobs, and the manifest publish job use this exact
+shared mutation concurrency key:
+
+```text
+release-mutation-${{ github.repository }}-${{ github.ref_name }}
+```
+
+The mutation key must not include `github.workflow` or any other component; a workflow that uses a
+different mutation key must fail the YAML review gate. PRE-mutation groups retain their job-specific
+namespaces so jobs within one run do not contend with one another.
+
 ### Outputs
 
-| Output                       | Type   | Description                                                                                                     |
-| ---------------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
-| `package-name`               | string | Normalized npm package name.                                                                                    |
-| `package-version`            | string | Package version from `package.json`.                                                                            |
-| `package-registry-url`       | string | Normalized effective registry URL.                                                                              |
-| `package-url`                | string | Registry package-version URL for the published package.                                                         |
-| `package-tarball-name`       | string | Name of the tarball produced for npm publish.                                                                   |
-| `package-tarball-sha256`     | string | SHA-256 of the tarball as 64 lowercase hex characters.                                                          |
-| `package-tarball-sha512`     | string | SHA-512 of the tarball as 128 lowercase hex characters.                                                         |
-| `release-asset-name`         | string | Uploaded primary GitHub Release asset name, or unset in npm-only mode.                                          |
-| `release-asset-url`          | string | Browser URL of the uploaded primary asset, or unset in npm-only mode.                                           |
-| `release-asset-sha256`       | string | SHA-256 of the uploaded primary asset, or unset in npm-only mode.                                               |
-| `provenance-sidecar-name`    | string | Deterministic provenance sidecar name, or unset in npm-only mode.                                               |
-| `provenance-sidecar-url`     | string | Browser URL of the sidecar asset, or unset when unavailable.                                                    |
-| `provenance-sidecar-sha256`  | string | SHA-256 of the exact producer bundle sidecar, or unset before bundle verification.                              |
-| `native-provenance-locators` | string | UTF-8 JSON array of diagnostic producer-native provenance locators, or unset.                                   |
-| `release-upload-result`      | string | `disabled`, `completed`, `failed-before-upload`, `partial-primary-uploaded`, or `indeterminate-primary-upload`. |
-| `linked-artifact-result`     | string | `disabled`, `created`, or `failed-after-upload`.                                                                |
-| `linked-artifact-url`        | string | Stable browser or API URL for linked artifact metadata, or unset.                                               |
-| `linked-artifact-id`         | string | Stable API identifier for linked artifact metadata, or unset.                                                   |
+| Output                       | Type   | Description                                                                                                                         |
+| ---------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `package-name`               | string | Normalized npm package name.                                                                                                        |
+| `package-version`            | string | Package version from `package.json`.                                                                                                |
+| `package-registry-url`       | string | Normalized effective registry URL.                                                                                                  |
+| `package-url`                | string | Registry package-version URL for the published package.                                                                             |
+| `package-tarball-name`       | string | Name of the tarball produced for npm publish.                                                                                       |
+| `package-tarball-sha256`     | string | SHA-256 of the tarball as 64 lowercase hex characters.                                                                              |
+| `package-tarball-sha512`     | string | SHA-512 of the tarball as 128 lowercase hex characters.                                                                             |
+| `release-asset-name`         | string | Uploaded primary GitHub Release asset name, or unset in npm-only mode.                                                              |
+| `release-asset-url`          | string | Browser URL of the uploaded primary asset, or unset in npm-only mode.                                                               |
+| `release-asset-sha256`       | string | SHA-256 of the uploaded primary asset, or unset in npm-only mode.                                                                   |
+| `provenance-sidecar-name`    | string | Deterministic provenance sidecar name, or unset in npm-only mode.                                                                   |
+| `provenance-sidecar-url`     | string | Browser URL of the sidecar asset, or unset when unavailable.                                                                        |
+| `provenance-sidecar-sha256`  | string | SHA-256 of the exact producer bundle sidecar, or unset before bundle verification.                                                  |
+| `native-provenance-locators` | string | UTF-8 JSON array of diagnostic producer-native provenance locators, or unset.                                                       |
+| `release-upload-result`      | string | `disabled`, `completed`, `failed-before-upload`, `partial-primary-uploaded`, `foreign-conflict`, or `indeterminate-primary-upload`. |
+| `linked-artifact-result`     | string | `disabled`, `created`, or `failed-after-upload`.                                                                                    |
+| `linked-artifact-url`        | string | Stable browser or API URL for linked artifact metadata, or unset.                                                                   |
+| `linked-artifact-id`         | string | Stable API identifier for linked artifact metadata, or unset.                                                                       |
 
 Outputs are release handles for downstream workflows and human operators. They are not substitutes
 for signed provenance.
@@ -430,6 +479,13 @@ A manual dispatch release must satisfy all of the following:
 - The caller does not supply arbitrary runtime overrides.
 
 ## Registry URL support
+
+> [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
+> milestone. The behavior in this section remains the eventual contract but is deferred:
+> first-milestone conformance does not require it. Consistent with ADR 0030's "unsupported but not
+> blocked" stance, this deferral does not prohibit attempts; their results are outside
+> first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
+> requires a new ADR.
 
 - The profile accepts a `registry-url` input.
 - The profile guarantees only npmjs publish semantics.
@@ -581,3 +637,6 @@ release target, weakening provenance verification, or using a custom token.
 - A YAML review checklist proving that `.github/workflows/js-ts-npm-package-slsa3.yml` is the only
   public npm entrypoint and that release-asset mode does not expose internal handoff mechanics as
   public inputs or outputs.
+- A YAML review checklist proving that build, pack, and producer signing jobs use PRE-mutation
+  concurrency with `cancel-in-progress: true`; group keys use only the ADR 0066 composition and
+  never `github.workflow`; and no mutation job uses the PRE-mutation cancellation policy.

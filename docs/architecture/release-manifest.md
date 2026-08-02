@@ -11,7 +11,11 @@ three-job signing boundary that produces and publishes the manifest.
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
   [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md),
-  [0062](../decisions/0062-intersect-trusted-producer-policies.md)
+  [0062](../decisions/0062-intersect-trusted-producer-policies.md),
+  [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
+  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
+  [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md),
+  [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [Core profile contract](core-profile-contract.md)
 
@@ -107,14 +111,42 @@ accepted only when all other protected tag and release checks pass.
 ### Manifest entry ordering
 
 Because the signed manifest digest is computed over the manifest JSON value and JSON arrays preserve
-order, array ordering is part of the signed contract.
+order, array ordering is part of the signed contract. This comparator detail specifies the ordering
+contract already established by ADR 0031 and does not introduce locale-dependent behavior.
 
-- `producer_profiles` must be sorted by `profile` in lexicographic ascending order.
-- `publisher_workflows` must be sorted by `publisher` in lexicographic ascending order.
-- Duplicate `producer_profiles[].profile` or `publisher_workflows[].publisher` values are invalid.
-- Producers must emit the arrays in sorted order before canonicalization.
+- `producer_profiles` must be sorted by the exact `profile` field value in ascending Unicode code
+  point order; producer generation fails before canonicalization or signing, and verification
+  rejects the manifest, when the array is not sorted by this comparator.
+- `publisher_workflows` must be sorted by the exact `publisher` field value using the same
+  comparator; producer generation fails before canonicalization or signing, and verification rejects
+  the manifest, when the array is not sorted by this comparator.
+- The comparator compares each string from its first differing Unicode code point, with the lower
+  code point sorting first; if one string is an exact prefix of the other, the shorter string sorts
+  first. For valid Unicode strings this is equivalent to comparing their UTF-8 byte sequences as
+  unsigned bytes.
+- Comparison is not locale-aware and applies no case folding or Unicode normalization. In
+  particular, neither NFC nor NFD normalization is applied: the byte-exact field value is compared
+  as supplied.
+- Duplicate `producer_profiles[].profile` or `publisher_workflows[].publisher` values are invalid;
+  producer generation fails before signing and verification rejects the manifest on a duplicate.
+- Producers must emit the arrays in sorted order before canonicalization; a producer that cannot
+  apply the comparator fails before canonicalization and signing rather than emitting a manifest.
 - Verifiers must reject a manifest whose arrays are not sorted, even if sorting them locally would
-  produce an otherwise trusted mapping.
+  produce an otherwise trusted mapping; verification does not repair producer output.
+
+The following comparator-only fixture is valid for either ordering field. Uppercase `Z` (U+005A)
+sorts before lowercase `a` (U+0061), which distinguishes this contract from locale-sensitive orders:
+
+```json
+["Alpha", "Zulu", "alpha", "éclair"]
+```
+
+The following fixture is invalid because `alpha` appears before `Zulu`; producers fail before
+signing and verifiers reject the containing manifest:
+
+```json
+["Alpha", "alpha", "Zulu", "éclair"]
+```
 
 ### Supported trigger and runtime guards
 
@@ -463,6 +495,11 @@ The release manifest is produced through three primary jobs:
 manifest-generate -> manifest-sign -> manifest-upload
 ```
 
+`manifest-generate` and `manifest-sign` are PRE-mutation jobs. Each must declare job-level
+concurrency with `cancel-in-progress: true`; a workflow that omits that declaration, sets it to
+`false`, or places either job in the mutation concurrency group must fail static workflow
+conformance before release use.
+
 ### `manifest-generate`
 
 - Creates the unsigned release manifest JSON, manifest predicate JSON, and signing input metadata.
@@ -604,6 +641,39 @@ release notes, logs, local files, or caller inputs as substitutes for the `manif
 It may download the same GitHub Actions artifact originally uploaded by `manifest-generate` only
 through the artifact handle re-exported by `manifest-sign`.
 
+### Manifest publication concurrency (ADR 0066)
+
+`manifest-upload` is the manifest-publish job and belongs to the mutation segment defined by
+ADR 0066. It must declare job-level concurrency with `cancel-in-progress: false`; a workflow lacking
+that declaration fails conformance review and must not be used for production manifest publication.
+The concurrency mechanism must therefore queue a contender instead of cancelling a manifest
+publication in flight; a configuration that can cancel the running mutation job fails conformance
+review and is not a valid production workflow.
+
+The concurrency group represents one release intent and is shared by mutation jobs for that intent.
+The exact mutation concurrency group is:
+
+```text
+release-mutation-${{ github.repository }}-${{ github.ref_name }}
+```
+
+It consists only of the common literal namespace, caller-scoped `github.repository`, and
+`github.ref_name`. The namespace distinguishes the mutation segment from PRE-mutation job groups but
+is identical across release mutation jobs so jobs within the same release intent use the same gate.
+Any other component fails conformance review and must not publish.
+
+The group key must never include `github.workflow`; a workflow that includes it fails conformance
+review and must not publish. In a called reusable workflow that value resolves to the caller's
+workflow name, so using it can collide with caller-level concurrency and trigger the
+self-cancellation trap that ADR 0066 forbids.
+
+After acquiring the mutation group and before its first release lookup or upload that can mutate
+remote state, `manifest-upload` must revalidate the release tag and target release, the handoff
+digests and fixed asset names, and the duplicate/convergence state specified below. Failure to
+revalidate, or any failed or indeterminate precondition, fails the job before its first mutating
+call. Checks performed before the job waited for the group are not substitutes for this
+mutation-segment entry revalidation.
+
 ## Handoff rules
 
 - Every handoff between jobs must include an expected digest.
@@ -622,65 +692,96 @@ through the artifact handle re-exported by `manifest-sign`.
 
 - Upload targets an existing GitHub Release identified by the release tag.
 - If the release or tag does not exist, the upload job must fail.
-- If a manifest artifact with the same name already exists, the upload job must fail rather than
-  overwrite.
+- Under ADR 0067, a manifest artifact with the same name may be adopted only by a retry attempt of
+  the same `run_id` after the semantic and signer binding below succeeds. A new `run_id` or a failed
+  binding must fail before upload rather than overwrite, delete, repair, or adopt the artifact.
 - If the primary manifest upload succeeds but the bundle upload fails, the job must fail clearly
   without deleting or clobbering the primary manifest. The failure output must make the partial
   state explicit.
 
+### Outcome classification and same-run convergence (ADR 0067)
+
+Before acting, and again after a mutating call whose result is ambiguous, the manifest publication
+step must classify the remote pair into exactly one of these states; inability to produce exactly
+one state fails the step as `indeterminate` without another mutating call:
+
+- `committed-as-expected`: both same-name assets exist, and their content, signed binding, and run
+  identity satisfy the comparison procedure below;
+- `absent`: neither same-name asset exists;
+- `foreign-conflict`: one or both same-name assets exist, but the pair is incomplete, belongs to a
+  different `run_id`, or fails the required content or signed binding;
+- `indeterminate`: the workflow cannot determine existence or complete the required download,
+  parsing, digest, signature, identity, or comparison checks through the authenticated release asset
+  surface.
+
+The state machine must upload both candidate assets only from `absent`; encountering any other state
+before a first-run or new-`run_id` upload fails before mutation. After an ambiguous mutating call,
+or within a retry attempt of the same `run_id`, `committed-as-expected` satisfies the step without
+another upload. `foreign-conflict` and `indeterminate` always fail closed, naming the state and the
+available remote evidence, without uploading, deleting, replacing, regenerating, or re-signing an
+asset.
+
+Run identity is the idempotency key. A retry with the same `github.run_id` may converge, including
+when `github.run_attempt` has increased; a new `github.run_id` remains a new release intent and must
+fail closed on either pre-existing manifest asset. Failure to prove from the verified existing
+bundle identity that its signed run identity equals the current `github.run_id` classifies the pair
+as `foreign-conflict` when the mismatch is proved, or `indeterminate` when the identity cannot be
+read or verified. Re-run failed jobs is the supported recovery surface. Re-run all jobs does not
+relax any binding or state rule; if it encounters existing assets, it can converge only under the
+same same-`run_id` procedure.
+
+For same-`run_id` convergence, the publication step must perform this procedure in order; failure at
+any step produces the state specified here and prevents mutation:
+
+1. Download both existing release assets through the authenticated GitHub release asset surface. If
+   only one asset exists, classify `foreign-conflict`; if existence or bytes cannot be determined,
+   classify `indeterminate`.
+2. Strictly parse the existing plain manifest and the current candidate manifest, rejecting
+   duplicate JSON member names, unknown fields, schema violations, and invalid ordering. A proved
+   validation failure classifies `foreign-conflict`; an unreadable value classifies `indeterminate`.
+3. Create comparison copies of both parsed manifest values and remove the top-level `generated_at`
+   member from each copy. Remove no other field, nested member, or array element; do not normalize
+   or otherwise transform string values. Failure to isolate exactly that one field classifies
+   `indeterminate`.
+4. Serialize both comparison copies with RFC 8785 JCS and compare the resulting byte sequences for
+   exact equality. Unequal bytes classify `foreign-conflict`; serialization failure classifies
+   `indeterminate`.
+5. Verify the existing bundle under the signed payload rules in this spec, including that its
+   Statement predicate equals the complete existing plain manifest value with the existing
+   `generated_at`, its subject digest binds that complete value, and its verified run identity
+   equals the current `github.run_id`. A proved mismatch classifies `foreign-conflict`; inability to
+   complete verification classifies `indeterminate`.
+
+When all five steps succeed, the result is `committed-as-expected`. The publication step must adopt
+the first commit's existing plain manifest and bundle as the committed artifacts, including the
+existing manifest's `generated_at`, complete JSON value, asset bytes, and digests; failure to use
+those existing values fails the step before reporting success. The retry's newly generated manifest
+and bundle are discarded as candidates and must not be uploaded or substituted. Thus `generated_at`
+is the only field excluded from semantic comparison, but the adopted signed artifact continues to
+bind the first commit's original `generated_at`.
+
 If the GitHub API request or network transport becomes ambiguous after upload starts, the upload job
-must perform a same-run release lookup for the expected manifest artifact names and digests. When
-the lookup proves that neither manifest artifact exists, the result remains `failed-before-upload`.
-When it proves that the plain JSON manifest exists with the expected digest but the signed bundle is
-absent, the result is `partial-json-uploaded`. When the lookup cannot determine whether the plain
-JSON manifest committed, or finds an artifact with the expected name but unknown or mismatched
-digest, the result is `indeterminate-json-upload` and the workflow fails without uploading,
-regenerating, or re-signing any manifest artifact.
+must repeat the same classification procedure before reporting failure; if it cannot do so, it
+reports `indeterminate` and performs no further mutation. The lookup may use a GitHub API digest
+field only when it explicitly identifies release asset bytes with SHA-256. Otherwise it must
+download the candidate bytes through the same authenticated surface and recompute SHA-256 locally;
+failure to download or hash produces `indeterminate`. Asset IDs, browser URLs, filenames, sizes,
+content types, release notes, logs, and workflow artifact names are not digest proof and using one
+as proof fails the step as `indeterminate`.
 
-The same-run release lookup must prove digest equality for each same-name manifest asset before it
-treats that remote asset as uploaded by this run. The upload job may use a GitHub API digest or
-checksum field only when the field explicitly identifies the release asset bytes and the algorithm
-is SHA-256. If such a field is unavailable, absent, uses another algorithm, or is not documented as
-an asset-byte digest, the upload job must download the candidate release asset bytes through the
-same authenticated GitHub release asset surface and recompute SHA-256 locally. Asset IDs, browser
-URLs, filenames, sizes, content types, release notes, logs, or workflow artifact names are not
-digest proof. If the candidate asset cannot be downloaded with the caller-scoped token, if the
-downloaded bytes cannot be hashed, if the candidate digest is unavailable, or if the digest differs
-from the expected handoff digest, the lookup cannot prove success and the result is
-`indeterminate-json-upload`.
+The observable result is reported through `manifest-upload-result` using exactly the four state
+names above. An auxiliary `manifest-report` job must run with `if: always()` and emit a
+machine-readable report containing the final state and available evidence even when an earlier job
+fails or is cancelled; failure to emit the report is a workflow failure and the missing report is
+never trusted as evidence of `absent` or success. The report is diagnostic and must not be accepted
+as trusted input by another run; a consumer that attempts to use it as a convergence binding must
+fail closed.
 
-When the lookup proves that the plain JSON manifest exists with the expected SHA-256, the upload job
-may classify the upload state from the signed bundle state: `partial-json-uploaded` when the signed
-bundle is absent after bundle upload failed, and `completed` only when both the plain JSON manifest
-and signed bundle assets are present with their expected digests. When the lookup proves that no
-same-name plain JSON manifest exists after an upload attempt that failed before any remote commit
-was possible, the result is `failed-before-upload`. A same-name manifest asset with an unknown
-digest, a mismatched digest, or an unreadable digest is never treated as a successful upload by this
-run.
-
-Reruns must use the same duplicate-preflight behavior as first runs. If a rerun observes either
-manifest artifact already present, it must fail before upload rather than overwriting, deleting,
-repairing, or treating the existing artifact as proof that the current run succeeded. Operators must
-resolve partial or indeterminate release state outside the production manifest workflow before
-rerunning it.
-
-The observable manifest upload result is reported through `manifest-upload-result`:
-
-- `completed`: the plain JSON manifest and signed bundle were both uploaded.
-- `failed-before-upload`: validation, digest verification, duplicate preflight, or target lookup
-  failed before the plain JSON manifest was uploaded.
-- `partial-json-uploaded`: the plain JSON manifest upload succeeded, but signed bundle upload
-  failed.
-- `indeterminate-json-upload`: the workflow cannot prove whether the plain JSON manifest upload
-  committed, or cannot prove that the remote artifact with the manifest name has the expected
-  digest.
-
-When `manifest-upload-result` is `partial-json-uploaded`, the workflow fails, the plain JSON
-manifest may already exist on the target release, and the signed release manifest bundle is absent.
-Because the signed bundle is the canonical trust root, this state must not be reported as a verified
-release manifest publication. The upload job must not delete, replace, clobber, re-sign, or
-regenerate the uploaded JSON manifest. A duplicate plain JSON manifest or duplicate signed bundle
-detected during preflight is `failed-before-upload`, not a partial upload state.
+A partial pair, including a plain manifest whose bundle upload failed, is `foreign-conflict`, not a
+verified publication. The upload job must not delete, replace, clobber, re-sign, regenerate, or
+repair the uploaded JSON manifest; violating this rule fails the workflow and invalidates the
+publication result. Operators must resolve partial or indeterminate release state outside the
+production manifest workflow.
 
 ## Complementary evidence
 
@@ -792,7 +893,8 @@ The release manifest workflow must fail before any mutation when:
 - The release tag or target release does not exist.
 - The release tag cannot be peeled to a terminal commit or peels to a commit that differs from
   `release_commit_sha`.
-- A manifest artifact with the same name already exists.
+- A manifest artifact with the same name already exists and the current attempt is a new `run_id`,
+  or a same-`run_id` retry cannot classify the complete existing pair as `committed-as-expected`.
 - A handoff artifact contains a file whose basename differs from the fixed schema version `1`
   basename for that payload kind.
 - Signing input metadata is missing, has unknown or duplicate fields, or does not bind the same
@@ -803,6 +905,9 @@ The release manifest workflow must fail before any mutation when:
 - The upload job lacks the required `contents: write` permission for release asset upload.
 - The upload job has prohibited signing authority, including `id-token: write`,
   `attestations: write`, signing credentials, or permission to regenerate signed manifest contents.
+- The manifest-publish job lacks mutation-class concurrency with `cancel-in-progress: false`, uses a
+  prohibited group component such as `github.workflow`, or does not revalidate preconditions after
+  entering the mutation segment.
 
 ## TDD and fixtures
 
@@ -813,5 +918,19 @@ The release manifest workflow must fail before any mutation when:
   wrong workflow SHA, mismatched builder/buildType, publisher entry with buildType, non-canonical
   RFC 8785 JCS manifest digest, malformed `generated_at`, tag peel failure, wrong internal handoff
   basename, malformed or mismatched signing input metadata, Statement predicate JSON value mismatch,
-  duplicate asset upload, and indeterminate JSON upload.
+  a new-`run_id` duplicate asset upload, and an `indeterminate` manifest publication.
+- Comparator fixtures containing the valid order `["Alpha", "Zulu", "alpha", "éclair"]` and the
+  rejected order `["Alpha", "alpha", "Zulu", "éclair"]`, proving code-point order without locale,
+  case-folding, or Unicode normalization.
+- An ADR 0066 concurrency fixture with two runs for the same repository and ref: the first
+  manifest-publish job remains running without cancellation, the second waits on the shared mutation
+  group, and the second revalidates at segment entry and fails closed on the first run's committed
+  state.
+- A valid ADR 0067 convergence fixture in which a later attempt of the same `run_id` generates a
+  candidate differing only in `generated_at`, obtains equal RFC 8785 JCS bytes after removing
+  exactly that field, verifies the existing bundle's same-run binding, and adopts the first commit's
+  complete manifest and bundle as `committed-as-expected` without upload or re-signing.
+- An invalid ADR 0067 convergence fixture in which a same-`run_id` candidate differs semantically in
+  `workflow_sha`; unequal RFC 8785 JCS comparison bytes produce `foreign-conflict`, and no asset is
+  uploaded, replaced, deleted, or adopted.
 - A fixture proving that `manifest-upload` cannot re-sign or mutate the manifest.
