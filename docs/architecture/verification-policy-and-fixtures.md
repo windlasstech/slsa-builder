@@ -23,7 +23,11 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
   [0062](../decisions/0062-intersect-trusted-producer-policies.md),
   [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md),
-  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
+  [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
+  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
+  [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md),
+  [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -57,15 +61,267 @@ A future ADR may add a standalone verifier CLI when the project needs one.
 
 ## Roots of trust
 
-A verifier must trust the following roots:
+This section implements ADRs 0037 and 0069. A verifier must use only the following roots; using an
+unlisted or ungoverned root fails with `windlass.verify.error.ungoverned-trust-root`:
 
-1. **Sigstore root of trust** for bundle signatures.
+1. **Sigstore public good root of trust** for the Fulcio CA, Fulcio certificate-transparency log,
+   and Rekor log. GitHub's private Sigstore instance and custom Sigstore deployments are outside the
+   production policy.
 2. **Windlass release manifest** for the mapping of release versions to trusted workflow SHAs,
-   `builder.id` values, and `buildType` URIs.
+   `builder.id` values, `buildType` URIs, and the immutable identity expectations represented by the
+   verifier-facing manifest expectation schema below.
 3. **GitHub** as the hosted runner and OIDC identity provider.
 
 The verifier must obtain the release manifest from a trusted source, such as the signed release
-manifest bundle on the GitHub Release page or a mirrored copy whose signature is verified.
+manifest bundle on the GitHub Release page or a mirrored copy whose signature is verified; an
+unsigned, self-trusting, or unverifiable manifest fails with
+`windlass.verify.error.release-manifest-mismatch`.
+
+### Sigstore trust-root acquisition and freshness
+
+The default trust-root path is the Sigstore public good instance's TUF-distributed trusted root. The
+verification tool refreshes and validates TUF metadata before an online verification session and
+then performs bundle verification locally. Failure to authenticate current TUF metadata fails with
+`windlass.verify.error.ungoverned-trust-root`; the verifier must not fall back to cached component
+keys or an environment override.
+
+A pinned `trusted_root.json` is allowed only for offline or reproducible verification under all of
+these ADR 0069 freshness rules:
+
+- the verifier policy identifies the pinned file by SHA-256 and records the TUF repository against
+  which it was last revalidated; a digest or repository mismatch fails with
+  `windlass.verify.error.ungoverned-trust-root`;
+- whenever the verification environment is online, the pinned root is revalidated against the TUF
+  repository before it is used; failure or refusal to revalidate fails with
+  `windlass.verify.error.stale-pinned-trust-root` rather than silently using the pin; and
+- a long-lived verification environment documents a refresh schedule and records the next refresh
+  deadline. Use after that deadline fails with `windlass.verify.error.stale-pinned-trust-root`.
+
+ADR 0069 deliberately does not select one universal duration for the documented schedule. Therefore
+the verifier policy supplies the deadline rather than this specification inventing a global age. A
+pin is stale when its policy deadline has passed or when an online run has not revalidated it,
+regardless of whether the bundle would otherwise verify.
+
+The documented verification path forbids `SIGSTORE_ROOT_FILE`, `SIGSTORE_REKOR_PUBLIC_KEY`,
+`SIGSTORE_CT_LOG_PUBLIC_KEY_FILE`, and semantically equivalent per-component environment overrides.
+If any such override can affect root selection, verification fails with
+`windlass.verify.error.legacy-trust-root-override`.
+
+## Verifier policy and manifest expectation schemas
+
+This section implements ADRs 0037, 0062, and 0068. These are verifier-input schemas, not a new
+standalone CLI interface. Both schemas are closed: an unknown member, a missing required member, a
+numeric identifier that does not match `^[1-9][0-9]*$`, or a SHA that is not 40 lowercase
+hexadecimal characters fails with `windlass.verify.error.policy-schema-invalid`. Identifiers are
+strings because GitHub identifiers are opaque decimal identifiers, not values on which a verifier
+performs arithmetic.
+
+The explicit verifier policy has this minimum identity and root shape:
+
+```json
+{
+  "schema_version": "1",
+  "source": {
+    "repository_uri": "https://github.com/example/acme-widget",
+    "repository_id": "123456789",
+    "repository_owner_id": "9876543",
+    "digest": "0123456789abcdef0123456789abcdef01234567",
+    "ref": "refs/tags/v1.2.3"
+  },
+  "producer": {
+    "workflow_path": ".github/workflows/js-ts-npm-package-slsa3.yml",
+    "workflow_sha": "89abcdef0123456789abcdef0123456789abcdef",
+    "runner_environment": "github-hosted"
+  },
+  "trust_root": {
+    "mode": "tuf",
+    "instance": "sigstore-public-good"
+  }
+}
+```
+
+The explicit policy requires every member shown in the example. Its identity members have these
+closed constraints; a violation fails with `windlass.verify.error.policy-schema-invalid`:
+
+| Field                         | Required value form                                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `schema_version`              | Exactly `"1"`.                                                                                           |
+| `source.repository_uri`       | Canonical `https://github.com/<owner>/<repository>` URI without userinfo, port, query, or fragment.      |
+| `source.repository_id`        | Positive decimal string matching `^[1-9][0-9]*$`; authoritative over the repository name.                |
+| `source.repository_owner_id`  | Positive decimal string matching `^[1-9][0-9]*$`; authoritative over the owner name.                     |
+| `source.digest`               | Full 40-character lowercase hexadecimal Git commit SHA.                                                  |
+| `source.ref`                  | Full `refs/tags/<tag-name>` ref.                                                                         |
+| `producer.workflow_path`      | Exact trusted `.github/workflows/<file>.yml` or `.yaml` path, with no traversal or extra path separator. |
+| `producer.workflow_sha`       | Full 40-character lowercase hexadecimal called-workflow SHA.                                             |
+| `producer.runner_environment` | Exactly `"github-hosted"`.                                                                               |
+| `trust_root`                  | Exactly one of the closed TUF or pinned-root shapes specified here.                                      |
+
+For pinned-root operation, `trust_root` instead has this shape. The timestamps are technical JSON
+timestamps and therefore use the standard four-digit Gregorian year:
+
+```json
+{
+  "mode": "pinned",
+  "instance": "sigstore-public-good",
+  "path": "trusted_root.json",
+  "sha256": "7c222fb2927d828af22f592134e8932480637c0d3f9c2072e82716801567e69f",
+  "tuf_repository": "https://tuf-repo-cdn.sigstore.dev",
+  "revalidated_at": "2026-08-01T00:00:00Z",
+  "refresh_before": "2026-08-08T00:00:00Z"
+}
+```
+
+For `mode: "tuf"`, `instance` must be `"sigstore-public-good"` and no other root member is allowed;
+violation fails with `windlass.verify.error.ungoverned-trust-root`. For `mode: "pinned"`, all
+pinned-root members shown above are required, `instance` has that same fixed value, `sha256` is 64
+lowercase hexadecimal characters, both timestamps use `YYYY-MM-DDTHH:mm:ssZ`, and `refresh_before`
+is later than `revalidated_at`. Malformed values fail with
+`windlass.verify.error.policy-schema-invalid`; an authenticated but expired or
+not-online-revalidated pin fails with `windlass.verify.error.stale-pinned-trust-root`.
+
+The verifier-facing release-manifest expectation schema carries the immutable source identity for
+the release manifest signer as well as the selected producer mapping:
+
+```json
+{
+  "schema_version": "1",
+  "release_manifest": {
+    "source_repository_uri": "https://github.com/windlasstech/slsa-builder",
+    "source_repository_id": "102030405",
+    "source_repository_owner_id": "5060708",
+    "workflow_path": ".github/workflows/release-manifest.yml",
+    "workflow_sha": "89abcdef0123456789abcdef0123456789abcdef"
+  },
+  "producer_profile": {
+    "profile": "js-ts-npm-package",
+    "workflow_path": ".github/workflows/js-ts-npm-package-slsa3.yml",
+    "workflow_sha": "89abcdef0123456789abcdef0123456789abcdef"
+  }
+}
+```
+
+The release-manifest expectation requires every member shown above. Both numeric-ID fields match
+`^[1-9][0-9]*$`, both workflow paths are exact trusted paths, both workflow SHAs are full lowercase
+40-hex values, and `producer_profile.profile` is a non-empty policy-registered profile name. A
+missing numeric ID, a name in place of an ID, an unknown member, an unregistered profile, or a
+malformed path/SHA fails with `windlass.verify.error.policy-schema-invalid` before the manifest can
+contribute constraints.
+
+The signed release-manifest payload remains the closed schema defined by
+[Release manifest](release-manifest.md); the expectation object above does not add caller-specific
+fields to that signed payload. It supplies the numeric identity against which the manifest bundle's
+own certificate is checked. Caller/source numeric IDs for a producer bundle come from the explicit
+verifier policy or producer-side expected values. This preserves ADR 0062's schema-version-`1` field
+scope while satisfying ADR 0068's requirement that every bundle be checked against immutable numeric
+identity. ADR 0068 assigns those caller-specific expectations to the explicit verifier policy rather
+than the signed release manifest; placing them in the signed manifest v1 instead fails with
+`windlass.verify.error.release-manifest-mismatch`.
+
+Invalid examples include the following; each fails before bundle policy evaluation with
+`windlass.verify.error.policy-schema-invalid`:
+
+```json
+{
+  "source": {
+    "repository_uri": "https://github.com/example/acme-widget",
+    "repository_id": "example/acme-widget",
+    "repository_owner_id": -42,
+    "digest": "01234567",
+    "ref": "v1.2.3"
+  }
+}
+```
+
+```json
+{
+  "release_manifest": {
+    "source_repository_uri": "https://github.com/windlasstech/slsa-builder",
+    "source_repository_id": "",
+    "source_repository_owner_id": "windlasstech",
+    "workflow_path": ".github/workflows/release-manifest.yml",
+    "workflow_sha": "main"
+  }
+}
+```
+
+Repository and owner names in URIs are display and routing values. The decimal
+`repository_id`/`source_repository_id` and `repository_owner_id`/`source_repository_owner_id` values
+are authoritative. A name match cannot compensate for a numeric-ID mismatch; that mismatch fails
+with `windlass.verify.error.source-numeric-id-mismatch`.
+
+## Fulcio claims and maximal identity binding
+
+This section implements the identity depth selected by ADR 0068 and the fail-closed deliverable from
+ADR 0037. The verifier extracts the signing certificate from the verified bundle and decodes these
+Fulcio extensions. Values are UTF-8 strings after X.509 extension decoding; a duplicate, malformed,
+or undecodable required extension fails with `windlass.verify.error.signer-identity-claim-missing`.
+
+| Fulcio extension OID     | Fulcio semantic claim                      | GitHub OIDC origin         | Required comparison                                               |
+| ------------------------ | ------------------------------------------ | -------------------------- | ----------------------------------------------------------------- |
+| `1.3.6.1.4.1.57264.1.1`  | Issuer (deprecated legacy raw-string form) | `iss`                      | Decode old bundles only; never use as authoritative issuer.       |
+| `1.3.6.1.4.1.57264.1.8`  | Issuer V2                                  | `iss`                      | DER-decoded issuer exactly matches the trusted GitHub issuer.     |
+| `1.3.6.1.4.1.57264.1.9`  | Build Signer URI                           | `job_workflow_ref`         | Exact trusted policy-selected signer workflow URI and path.       |
+| `1.3.6.1.4.1.57264.1.10` | Build Signer Digest                        | `job_workflow_sha`         | Full SHA equals the selected manifest/policy `workflow_sha`.      |
+| `1.3.6.1.4.1.57264.1.11` | Runner Environment                         | `runner_environment`       | Exactly `github-hosted`.                                          |
+| `1.3.6.1.4.1.57264.1.12` | Source Repository URI                      | `repository`               | Exact expected canonical `https://github.com/<owner>/<repo>` URI. |
+| `1.3.6.1.4.1.57264.1.13` | Source Repository Digest                   | `sha`                      | Full expected source commit SHA.                                  |
+| `1.3.6.1.4.1.57264.1.14` | Source Repository Ref                      | `ref`                      | Exact full expected `refs/tags/...` ref.                          |
+| `1.3.6.1.4.1.57264.1.15` | Source Repository Identifier               | `repository_id`            | Exact expected decimal repository ID.                             |
+| `1.3.6.1.4.1.57264.1.17` | Source Repository Owner Identifier         | `repository_owner_id`      | Exact expected decimal owner ID.                                  |
+| `1.3.6.1.4.1.57264.1.21` | Run Invocation URI                         | `run_id` and `run_attempt` | Well-formed URI for the expected source repository.               |
+
+Issuer V2 OID `.8` is the current authoritative issuer source. A verifier may decode deprecated OID
+`.1` for old-bundle diagnostics, but using `.1` instead of `.8` as the authoritative issuer source
+fails with `windlass.verify.error.issuer-mismatch`.
+
+The certificate URI SAN carries the called workflow ref. The Build Signer URI and SAN are separate
+surfaces and both are checked; equality on one does not excuse absence or mismatch on the other. The
+verifier enforces all six bindings below for npm producer, release asset producer, and release
+manifest bundles. Every binding is mandatory, and no mismatch is downgraded to a warning.
+
+| Binding | Required check                                                                                                                                                                                                                                                                                                         | Failure diagnostic                                                                                            |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 1       | Certificate OIDC issuer is exactly `https://token.actions.githubusercontent.com`; URI normalization, redirects, prefixes, and alternate GitHub issuers are not accepted.                                                                                                                                               | `windlass.verify.error.issuer-mismatch`                                                                       |
+| 2       | URI SAN and Build Signer URI identify the exact policy-selected signer workflow path, and Build Signer Digest (`job_workflow_sha`) exactly equals the manifest/policy `workflow_sha`. `github.workflow_sha` is the caller SHA and is forbidden as builder identity.                                                    | `windlass.verify.error.signer-workflow-path-mismatch` or `windlass.verify.error.signer-workflow-sha-mismatch` |
+| 3       | Source Repository URI equals the expected source URI, and OIDs `.15` and `.17` equal the expected decimal repository and owner IDs. Numeric IDs decide; names are display-only.                                                                                                                                        | `windlass.verify.error.source-identity-mismatch` or `windlass.verify.error.source-numeric-id-mismatch`        |
+| 4       | Source Repository Digest equals the expected full source commit SHA and Source Repository Ref equals the expected full release ref.                                                                                                                                                                                    | `windlass.verify.error.source-digest-mismatch` or `windlass.verify.error.source-ref-mismatch`                 |
+| 5       | Run Invocation URI is present and has exactly `https://github.com/<owner>/<repo>/actions/runs/<run-id>/attempts/<attempt-number>`, where owner/repo equal the expected source URI and both final components are positive base-10 integers without signs, whitespace, query, fragment, userinfo, or a non-default port. | `windlass.verify.error.run-invocation-uri-invalid`                                                            |
+| 6       | Runner Environment OID `.11` is present and its platform-signed value is exactly `github-hosted`. A self-hosted, missing, unknown, or caller-asserted runner value is not accepted.                                                                                                                                    | `windlass.verify.error.self-hosted-runner`                                                                    |
+
+ADR 0062 policy intersection operates over these immutable keys: workflow path plus `workflow_sha`,
+source `repository_id`, source `repository_owner_id`, source digest, and source ref. When the
+explicit policy and an authenticated release-manifest expectation both constrain one of those keys,
+both values apply. An empty intersection fails with
+`windlass.verify.error.trusted-producer-policy-conflict`; names never break a tie between different
+numeric IDs.
+
+## Bundle, transparency, and signing-time requirements
+
+This section implements ADRs 0037 and 0069. Every Windlass bundle class—npm provenance, release
+asset producer provenance, and release manifest—must contain all evidence below. Missing or invalid
+evidence rejects the bundle with the listed diagnostic before predicate policy is trusted.
+
+| Evidence                        | Required verification                                                                                                                                                                            | Failure diagnostic                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| Fulcio chain                    | Validate the leaf and chain against the governed Sigstore public good trusted root.                                                                                                              | `windlass.verify.error.signature-mismatch`       |
+| Fulcio SCT                      | Verify the certificate's embedded signed certificate timestamp against the governed Fulcio CT log key and certificate.                                                                           | `windlass.verify.error.missing-sct`              |
+| Rekor inclusion proof in bundle | Verify the bundle-contained inclusion proof, log entry body, log index/tree material, and Rekor signature against the governed Rekor key; bind the entry to the exact signature and certificate. | `windlass.verify.error.missing-rekor-entry`      |
+| SET-covered integrated time     | Verify the Rekor signed entry timestamp and use its covered `integratedTime` as signing time; prove that time lies within the Fulcio leaf certificate validity interval.                         | `windlass.verify.error.signature-time-violation` |
+| Optional RFC 3161 TSA timestamp | If present, verify it against the governed root and require consistency with the signature and certificate.                                                                                      | `windlass.verify.error.signature-time-violation` |
+
+The SCT, Rekor inclusion proof, SET, certificate, and signature must be mutually consistent;
+inconsistency fails with the narrowest diagnostic above or
+`windlass.verify.error.signature-mismatch` when no narrower check applies. A TSA timestamp is
+additive evidence only. It never substitutes for the SCT, bundle-contained Rekor proof, SET, or SET
+integrated time.
+
+The required verification path must not call Rekor, Fulcio, a CT log, or another log operator.
+Attempting or requiring such a call fails conformance with
+`windlass.verify.error.verification-network-call`. Fetching TUF metadata when the environment is
+online and obtaining artifacts before verification are trust-root acquisition and input-retrieval
+steps, not log queries. Once the bundle and governed root are inputs, all cryptographic and policy
+checks run offline. Optional online monitoring is outside the pass/fail path and cannot repair a
+bundle that lacks required evidence.
 
 ## Trusted producer policy conflict resolution
 
@@ -94,14 +350,15 @@ surface, but they are not constrained by the schema version `1` release manifest
 supplied by explicit verifier policy, producer-side expected values, the digest-verified handoff, or
 another ADR-backed policy source:
 
-| Required verification field class                   | Required non-manifest source                                                                     |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Producer signer identity beyond manifest mappings   | Explicit verifier policy or profile-owned producer policy.                                       |
-| Caller/source repository, source ref, and revision  | Explicit verifier policy, signed producer `externalParameters`, and producer-side expected data. |
-| Producer release ref and version tag                | Explicit verifier policy, signed producer `externalParameters`, and digest-verified handoff.     |
-| Subject name and subject digest                     | Explicit verifier policy, profile subject rules, and downloaded artifact bytes.                  |
-| Strict `externalParameters` requirements            | Profile verifier policy and signed producer Statement schema.                                    |
-| Release asset filename to producer artifact binding | Producer policy and digest-verified publisher handoff fields.                                    |
+| Required verification field class                                       | Required non-manifest source                                                                                               |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Producer signer identity beyond manifest mappings                       | Explicit verifier policy or profile-owned producer policy.                                                                 |
+| Caller/source repository URI and immutable numeric repository/owner IDs | Explicit verifier policy or producer-side expected data; certificate OIDs `.12`, `.15`, and `.17` provide observed values. |
+| Caller/source ref and revision                                          | Explicit verifier policy, signed producer `externalParameters`, and producer-side expected data.                           |
+| Producer release ref and version tag                                    | Explicit verifier policy, signed producer `externalParameters`, and digest-verified handoff.                               |
+| Subject name and subject digest                                         | Explicit verifier policy, profile subject rules, and downloaded artifact bytes.                                            |
+| Strict `externalParameters` requirements                                | Profile verifier policy and signed producer Statement schema.                                                              |
+| Release asset filename to producer artifact binding                     | Producer policy and digest-verified publisher handoff fields.                                                              |
 
 If a field is absent because a policy source's schema does not represent it, that field is
 unconstrained by that source. The absence is not affirmative permission and does not remove a check
@@ -110,12 +367,15 @@ source, the policy source is invalid and verification must fail closed.
 
 When two sources explicitly constrain the same field and their constraints conflict or their
 intersection is empty, verification must fail closed. A verifier must not use precedence,
-last-writer-wins behavior, or either-source-allowed behavior in the default production policy.
-Diagnostics should name the conflicting source and field.
+last-writer-wins behavior, or either-source-allowed behavior in the default production policy. The
+error diagnostic must name the conflicting source and field; omission fails the diagnostics contract
+with `windlass.verify.error.diagnostics-contract-invalid`.
 
 ## npm package verification policy
 
-For an npm package published by the JS/TS npm profile, a verifier must check:
+For an npm package published by the JS/TS npm profile, the bundle must first pass the maximal
+identity, offline transparency, signing-time, and trust-root sections above; failure rejects the
+package with the narrow diagnostic from those sections. The verifier then must check:
 
 1. The package tarball is the artifact being verified.
 2. The provenance bundle is the Windlass-signed bundle for the tarball.
@@ -170,7 +430,9 @@ When `externalParameters.package_manager.name` is `yarn`, verifier policy must a
 
 ## GitHub Release asset verification policy
 
-For a release asset uploaded by the publisher, a verifier must check:
+For a release asset uploaded by the publisher, the unchanged producer bundle must first pass the
+maximal identity, offline transparency, signing-time, and trust-root sections above; failure rejects
+the asset with the narrow diagnostic from those sections. The verifier then must check:
 
 1. The downloaded release asset is the primary artifact.
 2. The provenance sidecar is present and is the unchanged producer bundle.
@@ -189,7 +451,9 @@ The publisher itself does not have a source-to-artifact `buildType` in the defau
 
 ## Release manifest verification policy
 
-For a release manifest, a verifier must check:
+For a release manifest, its bundle must first pass the maximal identity, offline transparency,
+signing-time, and trust-root sections above using the release-manifest expectation object; failure
+rejects the manifest with the narrow diagnostic from those sections. The verifier then must check:
 
 1. The signed bundle signature is valid.
 2. The signer identity is the GitHub Actions OIDC identity for
@@ -210,6 +474,11 @@ For a release manifest, a verifier must check:
     `release_commit_sha`.
 12. `generated_at` uses the fixed UTC lexical form and is treated as diagnostic release metadata,
     not as a trust-mapping override.
+13. The certificate Source Repository Identifier and Source Repository Owner Identifier equal the
+    numeric IDs in the release-manifest expectation object; matching `windlasstech/slsa-builder`
+    names cannot override an ID mismatch.
+14. The Run Invocation URI is present and well-formed, and the platform-signed runner environment is
+    GitHub-hosted.
 
 Consumer-side release manifest verification does not require offline proof that GitHub tag
 protection was enabled at signing time. The required consumer check is that the verified signer
@@ -233,6 +502,77 @@ not trust the workflow outputs, logs, or release notes as substitutes for the si
 
 The following commands are reference starting points. They are not complete Windlass policy
 verifiers on their own.
+
+### Complete verification procedure
+
+This procedure implements ADRs 0037, 0062, 0068, and 0069. There is currently no off-the-shelf
+command that checks Fulcio's numeric repository-ID extensions. In particular, a successful
+`gh attestation verify` command is necessary but insufficient. The current procedure is GitHub CLI
+verification plus machine-readable JSON and X.509 post-processing; the future trusted Go
+implementation path is `sigstore-go`, which can verify the bundle and expose the certificate claims
+without changing this policy.
+
+Run the steps in this order:
+
+1. Parse the explicit verifier policy, manifest expectation, signed release manifest, and bundle
+   with duplicate-member rejection. Validate their closed schemas. A parse or schema failure stops
+   evaluation with `windlass.verify.error.duplicate-json-member` or
+   `windlass.verify.error.policy-schema-invalid`; signed fields are not evaluated after ambiguous
+   parsing.
+2. Resolve the trust root. Use TUF by default, or authenticate the pinned `trusted_root.json` and
+   enforce its freshness record. Root failure stops evaluation with the applicable trust-root
+   diagnostic; no signature or predicate claim is trusted after that failure.
+3. Verify the local artifact and local bundle with `gh`, requesting JSON. Supply all constraints the
+   command supports rather than relying on tool defaults. For example:
+
+   ```bash
+   gh attestation verify "$ARTIFACT" \
+     --bundle "$BUNDLE" \
+     --repo "$SOURCE_REPOSITORY" \
+     --signer-workflow "$SIGNER_WORKFLOW" \
+     --cert-oidc-issuer https://token.actions.githubusercontent.com \
+     --predicate-type "$PREDICATE_TYPE" \
+     --format json >gh-verified.json
+   ```
+
+   For pinned-root verification, add `--custom-trusted-root trusted_root.json` only after the
+   freshness checks above. The command consumes the supplied bundle; it must not discover or repair
+   Rekor material online. A nonzero result fails with the corresponding signature, transparency,
+   identity, or input diagnostic rather than continuing to predicate checks.
+
+4. Parse `gh-verified.json` as untrusted machine-readable data and require a successful result for
+   the exact artifact digest and bundle supplied in step 3. Extract the leaf certificate from the
+   verified bundle, decode the URI SAN and the OIDs in the Fulcio table above, and emit those values
+   into the post-processor's typed JSON model. Missing, duplicate, or malformed certificate values
+   fail with `windlass.verify.error.signer-identity-claim-missing`.
+5. In the JSON post-processor, compare the exact issuer; SAN and Build Signer URI; Build Signer
+   Digest; source URI, numeric repository IDs, digest, and ref; Run Invocation URI; and runner
+   environment against the policy inputs. A mismatch fails with the diagnostic assigned to that
+   binding. Do not read `github.workflow_sha`, workflow logs, unsigned outputs, or artifact names to
+   fill a missing certificate claim.
+6. Verify the bundle-contained SCT, Rekor inclusion proof, SET, and SET-covered integrated time
+   against the governed root. This step uses only local bundle and root bytes and fails with the
+   applicable transparency or signing-time diagnostic. An RFC 3161 timestamp, when present, is
+   verified as additional evidence and cannot make missing Rekor or SCT evidence pass.
+7. Authenticate the release manifest bundle by repeating steps 3–6 with the release-manifest
+   predicate type and manifest identity expectations. Only after it passes may its represented
+   fields enter the ADR 0062 policy intersection. An unauthenticated manifest fails with
+   `windlass.verify.error.release-manifest-mismatch` and contributes no policy values.
+8. Compute the field-by-field intersection of authenticated manifest expectations and explicit
+   policy, then validate Statement structure, `predicateType`, `builder.id`, `buildType`, strict
+   `externalParameters`, subject identity, and artifact digests. A conflict fails with
+   `windlass.verify.error.trusted-producer-policy-conflict`; semantic or digest failures use the
+   narrower registered diagnostic.
+9. Serialize the diagnostic report defined below. Acceptance occurs only when every required check
+   passed and the report has no `error` diagnostic. Warnings remain visible but do not convert a
+   failure to a pass.
+
+The JSON post-processor may be a small consumer-owned program during the initial profile, but its
+comparisons and output must conform to this document or its result is not Windlass policy
+verification. `jq` may validate ordinary JSON values, but it is not by itself an X.509 extension
+decoder. The post-processor must use an X.509 parser for certificate extensions; treating a rendered
+certificate dump or log text as authoritative fails with
+`windlass.verify.error.signer-identity-claim-missing`.
 
 ### Verify a GitHub artifact attestation
 
@@ -284,6 +624,156 @@ Every fixture must include:
 | `expected-failure-category` | Required for `rejected` fixtures.                         |
 | `covered-requirement`       | Spec or ADR requirement covered by the fixture.           |
 
+## Diagnostics contract
+
+This section specifies the conformance diagnostics required by ADRs 0037 and 0062. It does not
+stabilize a standalone verifier CLI, which remains a future ADR decision. Producer gates, fixture
+harnesses, and consumer implementations claiming conformance must apply this contract; an output
+that cannot represent it fails the fixture harness with
+`windlass.verify.error.diagnostics-contract-invalid`.
+
+### Stable diagnostic IDs
+
+Every diagnostic ID has the closed form `windlass.verify.<severity>.<category>`, where `<severity>`
+is `error` or `warning` and `<category>` is a lowercase kebab-case stable check name.
+Rejected-fixture categories in the registry below map to
+`windlass.verify.error.<expected-failure-category>`. The ID, not the human message, is the stable
+machine key. Implementations may translate `message`, but they must not rename, reuse, or
+dynamically construct a different ID for the same registered check; doing so fails with
+`windlass.verify.error.diagnostics-contract-invalid`.
+
+The non-fatal warning IDs initially registered by this specification are:
+
+| Diagnostic ID                                                    | Meaning                                                                                |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `windlass.verify.warning.stale-non-selected-lockfile`            | A supported but non-selected lockfile was recorded; verification remains valid.        |
+| `windlass.verify.warning.custom-registry-preflight-inconclusive` | Non-npmjs metadata preflight was inconclusive under the documented best-effort policy. |
+| `windlass.verify.warning.native-provenance-locator-missing`      | Optional native provenance locator is absent while the required sidecar verifies.      |
+
+No identity, root, signature, transparency, signing-time, policy-intersection, Statement, or digest
+failure has a warning form. Emitting one of those failures as a warning fails the diagnostics
+contract and the verification result remains rejected.
+
+### Machine-readable serialization
+
+The report is one UTF-8 JSON object. It is parsed with duplicate-member rejection and has this
+closed shape:
+
+| Member           | Type                        | Contract                                                                                  |
+| ---------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
+| `schema_version` | string                      | Exactly `"1"`.                                                                            |
+| `result`         | string                      | `pass` or `fail`; `fail` exactly when at least one `error` exists.                        |
+| `exit_code`      | integer                     | Equals the exit-code table below.                                                         |
+| `primary_id`     | string or `null`            | First ordered error ID, or `null` when no error exists.                                   |
+| `run_invocation` | string or `null`            | Verified Run Invocation URI, or `null` only when verification could not authenticate one. |
+| `diagnostics`    | array of diagnostic objects | Deterministically ordered as specified below.                                             |
+
+Each diagnostic object has required `id`, `severity`, `category`, `check`, and `message` string
+members. It may also have `field`, `expected`, `actual`, `policy_sources`, and `evidence` members.
+`expected` and `actual` are typed JSON values, not interpolated message fragments. `policy_sources`
+is an array containing only `explicit-policy`, `release-manifest`, `producer-expected-value`, or
+`digest-verified-handoff`. `evidence` contains only non-secret local identifiers such as an OID,
+bundle path, artifact digest, or certificate fingerprint. Unknown members, secret/token values, or
+an `actual` value copied from a secret fail with
+`windlass.verify.error.diagnostics-contract-invalid`.
+
+Valid warning-only example:
+
+```json
+{
+  "schema_version": "1",
+  "result": "pass",
+  "exit_code": 0,
+  "primary_id": null,
+  "run_invocation": "https://github.com/example/acme-widget/actions/runs/123456789/attempts/2",
+  "diagnostics": [
+    {
+      "id": "windlass.verify.warning.stale-non-selected-lockfile",
+      "severity": "warning",
+      "category": "stale-non-selected-lockfile",
+      "check": "externalParameters.package_manager.ignored_lockfile_paths",
+      "message": "A non-selected pnpm lockfile was recorded.",
+      "field": "externalParameters.package_manager.ignored_lockfile_paths",
+      "actual": ["pnpm-lock.yaml"],
+      "evidence": { "bundle": "package.tgz.intoto.jsonl" }
+    }
+  ]
+}
+```
+
+Valid failed-verification example:
+
+```json
+{
+  "schema_version": "1",
+  "result": "fail",
+  "exit_code": 1,
+  "primary_id": "windlass.verify.error.source-numeric-id-mismatch",
+  "run_invocation": "https://github.com/example/acme-widget/actions/runs/123456789/attempts/2",
+  "diagnostics": [
+    {
+      "id": "windlass.verify.error.source-numeric-id-mismatch",
+      "severity": "error",
+      "category": "source-numeric-id-mismatch",
+      "check": "fulcio.1.3.6.1.4.1.57264.1.15",
+      "message": "The source repository identifier does not match policy.",
+      "field": "source.repository_id",
+      "expected": "123456789",
+      "actual": "222222222",
+      "policy_sources": ["explicit-policy"],
+      "evidence": {
+        "oid": "1.3.6.1.4.1.57264.1.15",
+        "certificate_sha256": "7c222fb2927d828af22f592134e8932480637c0d3f9c2072e82716801567e69f"
+      }
+    }
+  ]
+}
+```
+
+Invalid examples include `result: "pass"` with an error, exit code `0` with `result: "fail"`, a
+warning ID whose `severity` is `error`, diagnostics in nondeterministic order, a missing
+`primary_id` for a failed result, duplicate JSON members, or a token in `evidence`. Each is a
+`windlass.verify.error.diagnostics-contract-invalid` fixture-harness failure.
+
+### Diagnostic precedence and ordering
+
+Checks and diagnostics use this precedence, from highest to lowest:
+
+1. input availability, byte digest, strict JSON parsing, and schema;
+2. trust-root governance and freshness;
+3. certificate chain, SCT, Rekor inclusion, SET, and signing time;
+4. issuer, workflow, source numeric identity, source content, run invocation, and runner identity;
+5. authenticated-policy intersection;
+6. Statement, predicate, `builder.id`, `buildType`, and `externalParameters` semantics;
+7. package, manifest, handoff, publisher, and registry surface checks; and
+8. warnings.
+
+Within a precedence level, diagnostics sort by `id`, then `field` (missing `field` sorts as the
+empty string), then canonical JSON serialization of `actual`. `primary_id` is the first ordered
+error. Implementations report every independently provable diagnostic that is safe to evaluate, but
+they must not derive secondary diagnostics from unauthenticated or ambiguously parsed content. A
+duplicate-member parse error therefore prevents semantic diagnostics for that JSON value; a failed
+manifest authentication prevents manifest-intersection diagnostics; and a missing certificate
+prevents extension mismatch diagnostics. Ordering or suppression contrary to these rules fails the
+fixture harness with `windlass.verify.error.diagnostics-contract-invalid`.
+
+### Exit codes and warning behavior
+
+| Exit code | Class              | Required result and behavior                                                                                                                       |
+| --------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`       | Verified           | `result` is `pass`; zero or more registered `warning` diagnostics may be present.                                                                  |
+| `1`       | Verification error | `result` is `fail`; at least one registered policy, cryptographic, identity, schema, artifact, or fixture-check error exists.                      |
+| `2`       | Invocation failure | `result` is `fail`; required local input is unreadable, an option/policy document is unusable, or the verifier cannot execute the requested check. |
+
+Exit code `2` does not mean the artifact failed a completed cryptographic check; it means no valid
+acceptance decision was produced and the report contains `windlass.verify.error.input-unavailable`
+or `windlass.verify.error.verifier-execution-failure` as its primary diagnostic. Producer-side
+publication gates treat both `1` and `2` as fatal and stop before mutation. Consumer automation
+treats both as non-acceptance. Warnings are non-fatal only with exit code `0`, remain structurally
+distinguishable through `severity: "warning"`, and must not hide, replace, or lower the exit status
+of any error. Violating this mapping fails the fixture harness with
+`windlass.verify.error.diagnostics-contract-invalid`.
+
 ## Accepted fixtures
 
 | Name                                      | Surface          | Description                                                       |
@@ -298,6 +788,9 @@ Every fixture must include:
 | `publisher-valid-upload`                  | publisher        | Valid producer handoff leading to release asset and sidecar.      |
 | `composition-valid-npm-tarball`           | composition      | npm tarball successfully composes with publisher.                 |
 | `release-manifest-valid`                  | release-manifest | Signed manifest with valid producer and publisher mappings.       |
+| `npm-maximal-identity-valid`              | npm              | All six ADR 0068 identity bindings match immutable policy keys.   |
+| `npm-offline-transparency-valid`          | npm              | SCT, Rekor proof, SET, and signing time verify without log calls. |
+| `release-manifest-pinned-root-valid`      | release-manifest | Authenticated fresh pin verifies the manifest bundle offline.     |
 
 ## Rejected fixture categories
 
@@ -306,7 +799,26 @@ Every fixture must include:
 | `digest-mismatch`                          | Artifact digest does not match the provenance subject digest.                               |
 | `signature-mismatch`                       | Bundle signature is invalid or missing.                                                     |
 | `signer-mismatch`                          | Signer identity is not trusted.                                                             |
+| `issuer-mismatch`                          | Certificate OIDC issuer is not the exact GitHub Actions issuer.                             |
+| `signer-workflow-path-mismatch`            | SAN or Build Signer URI does not identify the exact expected workflow path.                 |
+| `signer-workflow-sha-mismatch`             | Build Signer Digest does not equal the manifest/policy workflow SHA.                        |
 | `signer-identity-claim-missing`            | Required semantic signer or source identity cannot be proven from verified bundle data.     |
+| `source-numeric-id-mismatch`               | Source repository or owner numeric ID is missing, malformed, or mismatched.                 |
+| `source-digest-mismatch`                   | Certificate Source Repository Digest differs from the expected source commit.               |
+| `source-ref-mismatch`                      | Certificate Source Repository Ref differs from the expected full ref.                       |
+| `run-invocation-uri-invalid`               | Run Invocation URI is missing, malformed, or identifies another repository.                 |
+| `self-hosted-runner`                       | Runner identity is missing, unknown, caller-asserted, or not GitHub-hosted.                 |
+| `missing-rekor-entry`                      | Bundle lacks a valid bundle-contained Rekor inclusion proof or SET binding.                 |
+| `missing-sct`                              | Fulcio certificate lacks a valid embedded SCT.                                              |
+| `signature-time-violation`                 | SET-covered integrated time is invalid or outside certificate validity.                     |
+| `ungoverned-trust-root`                    | Trust root is not the authenticated Sigstore public good TUF root or allowed pin.           |
+| `stale-pinned-trust-root`                  | Pinned trusted root missed online revalidation or its documented refresh deadline.          |
+| `legacy-trust-root-override`               | A forbidden per-component Sigstore environment override can affect verification.            |
+| `verification-network-call`                | Required verification attempts to query Rekor, Fulcio, or a log operator.                   |
+| `policy-schema-invalid`                    | Explicit policy or manifest expectation is missing, malformed, or contains unknown fields.  |
+| `diagnostics-contract-invalid`             | Machine-readable diagnostics violate the ID, shape, order, severity, or exit-code contract. |
+| `input-unavailable`                        | A required local artifact, bundle, policy, manifest, or trusted-root input is unreadable.   |
+| `verifier-execution-failure`               | The verifier cannot execute a requested check and therefore produces no acceptance result.  |
 | `duplicate-json-member`                    | Signed Statement, bundle, or DSSE JSON contains duplicate object member names.              |
 | `actions-attest-adapter-contract`          | Adapter inputs, emitted bundle basename, or npm provenance-file compatibility is invalid.   |
 | `wrong-producer-signer`                    | Producer signer repo, workflow path, ref, or issuer is not trusted.                         |
@@ -394,8 +906,10 @@ Every fixture must include:
 
 ## Error categories
 
-Each rejected fixture must produce a clear error category. Verifier implementations should surface
-the category in a machine-readable way where possible.
+Each rejected fixture must produce the stable `windlass.verify.error.<expected-failure-category>` ID
+and machine-readable report defined by the diagnostics contract. A missing, warning-only,
+differently named, or text-only result fails the fixture harness with
+`windlass.verify.error.diagnostics-contract-invalid`.
 
 ## TDD usage
 
@@ -514,17 +1028,57 @@ bundle-byte-format, signer, or duplicate-member category applies.
 The signer identity fixture set must prove semantic GitHub Actions identity binding rather than
 artifact-name or log-based inference. Accepted npm producer fixtures must show a bundle whose signer
 workflow repository, workflow path, workflow SHA, source repository, source ref, source revision,
-and predicate type all match the signed Statement and trusted policy. Rejected npm fixtures must
-cover a wrong reusable workflow path, a signer workflow SHA that differs from
-`runDetails.builder.id`, a correct Windlass signer with a mismatched caller source repository, a
-correct caller source identity with an untrusted Windlass signer, and a tool output that omits a
-required semantic identity field. Accepted release manifest fixtures must show signer repository,
-signer workflow path, protected tag ref, peeled release commit SHA, source repository, source ref,
-source revision, and predicate type matching the manifest. Rejected release manifest fixtures must
-cover branch-ref signing, signer workflow path mismatch, release tag/ref mismatch, release commit
-mismatch, and missing semantic identity fields. Wrong values fail with `signer-mismatch`,
-`wrong-producer-signer`, or `manifest-entrypoint-mismatch`; absent unverifiable identity fields fail
-with `signer-identity-claim-missing`.
+numeric repository and owner IDs, Run Invocation URI, GitHub-hosted runner identity, and predicate
+type all match the signed Statement and trusted policy. Rejected npm fixtures must cover a wrong
+reusable workflow path, a signer workflow SHA that differs from both `runDetails.builder.id` and the
+manifest `workflow_sha`, a correct Windlass signer with a mismatched caller source repository, a
+name-matching source repository whose repository or owner numeric ID differs, a correct caller
+source identity with an untrusted Windlass signer, a missing or malformed Run Invocation URI, a
+self-hosted runner, and a tool output that omits a required semantic identity field. Accepted
+release manifest fixtures must show signer repository, signer workflow path, protected tag ref,
+peeled release commit SHA, source repository, numeric repository and owner IDs, source ref, source
+revision, Run Invocation URI, GitHub-hosted runner identity, and predicate type matching the
+manifest expectation. Rejected release manifest fixtures must cover branch-ref signing, signer
+workflow path mismatch, release tag/ref mismatch, release commit mismatch, numeric-ID mismatch, and
+missing semantic identity fields. Wrong values fail with the narrow ADR 0068 diagnostic; absent
+unverifiable identity fields fail with `signer-identity-claim-missing`.
+
+The mandatory ADR 0068 rejection fixtures are:
+
+| Fixture name                             | Mutation                                                                                           | Expected diagnostic             |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `identity-issuer-mismatch`               | Issuer differs from `https://token.actions.githubusercontent.com` by host, path, or normalization. | `issuer-mismatch`               |
+| `identity-workflow-path-mismatch`        | URI SAN or Build Signer URI names another workflow while all other claims match.                   | `signer-workflow-path-mismatch` |
+| `identity-workflow-sha-mismatch`         | Build Signer Digest differs from manifest/policy `workflow_sha`.                                   | `signer-workflow-sha-mismatch`  |
+| `identity-source-repository-id-mismatch` | Source repository name/URI matches but OID `.15` differs.                                          | `source-numeric-id-mismatch`    |
+| `identity-source-owner-id-mismatch`      | Source owner name/URI matches but OID `.17` differs.                                               | `source-numeric-id-mismatch`    |
+| `identity-run-invocation-missing`        | Run Invocation URI extension is absent.                                                            | `run-invocation-uri-invalid`    |
+| `identity-run-invocation-malformed`      | Run Invocation URI has another repository, zero/non-decimal IDs, query, fragment, or userinfo.     | `run-invocation-uri-invalid`    |
+| `identity-self-hosted-runner`            | Platform-signed runner environment identifies a self-hosted runner.                                | `self-hosted-runner`            |
+
+Each fixture changes only the named condition from `npm-maximal-identity-valid`. Every fixture is a
+hard failure; no fixture may pass because a repository name, `builder.id`, workflow log, or unsigned
+context value agrees with policy.
+
+The ADR 0069 transparency and trust-root fixtures are:
+
+| Fixture name                               | Mutation                                                                                        | Expected diagnostic          |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------- |
+| `transparency-rekor-entry-missing`         | Bundle omits the Rekor inclusion proof or SET/log-entry binding.                                | `missing-rekor-entry`        |
+| `transparency-rekor-entry-mismatch`        | Included entry binds another signature or certificate.                                          | `missing-rekor-entry`        |
+| `transparency-sct-missing`                 | Fulcio leaf certificate omits its embedded SCT.                                                 | `missing-sct`                |
+| `transparency-signature-time-before-cert`  | SET-covered `integratedTime` is before the certificate validity interval.                       | `signature-time-violation`   |
+| `transparency-signature-time-after-cert`   | SET-covered `integratedTime` is after the certificate validity interval.                        | `signature-time-violation`   |
+| `transparency-tsa-only`                    | A valid RFC 3161 timestamp is present, but Rekor evidence is absent.                            | `missing-rekor-entry`        |
+| `trust-root-pinned-stale-deadline`         | Verification time is after the policy's `refresh_before` timestamp.                             | `stale-pinned-trust-root`    |
+| `trust-root-pinned-online-not-revalidated` | An online run uses the pin without first revalidating it against the configured TUF repository. | `stale-pinned-trust-root`    |
+| `trust-root-legacy-override`               | A prohibited component-key environment override can change root selection.                      | `legacy-trust-root-override` |
+| `transparency-required-online-query`       | The pass/fail path attempts a Rekor, Fulcio, or CT-log network call.                            | `verification-network-call`  |
+
+The valid offline fixture denies network access to log operators and still passes from local
+artifact, bundle, and governed root bytes. The stale-root fixtures use standard Gregorian technical
+timestamps in JSON. Each rejected fixture changes only the named condition from an accepted bundle
+or trust-root fixture and fails before signed predicate contents can grant trust.
 
 The `resolvedDependencies` lockfile fixture set must prove that the initial JS/TS npm profile emits
 exactly one selected lockfile `ResourceDescriptor` and no generated transitive dependency list.
@@ -594,25 +1148,35 @@ permission or npmjs.com trusted publisher mismatch fails before registry mutatio
 back to token publish. These fixtures must not require adding caller trusted publisher settings to
 the signed SLSA `externalParameters` schema.
 
-The publisher fixture set must distinguish duplicate preflight failures from partial upload
-failures: pre-existing primary or sidecar asset names fail before upload, while a sidecar API or
-transport failure after successful primary upload fails with `sidecar-upload-partial-failure` and
-reports `upload-result: partial-primary-uploaded`.
+The publisher convergence fixture set must classify the primary asset and sidecar independently,
+before mutation and after an ambiguous mutating call, into exactly `committed-as-expected`,
+`absent`, `foreign-conflict`, or `indeterminate`. A same-`run_id` retry must treat
+`committed-as-expected` as satisfied without upload, upload only an `absent` asset, and fail without
+mutation on `foreign-conflict` or `indeterminate`, reporting the exact state and remote evidence. A
+new-`run_id` fixture with any pre-existing same-name asset must report `foreign-conflict` and fail
+without mutation even when the asset digest matches. Any fixture that cannot produce exactly one of
+the four states fails as `indeterminate` with `publisher-indeterminate-primary-upload` or the
+narrower step diagnostic.
 
-The publisher fixture set must also include an ambiguous primary upload result. If same-run release
-lookup cannot prove that the primary asset was absent, or cannot prove that a same-name remote asset
-has the expected digest, the fixture must fail with `publisher-indeterminate-primary-upload` and
-report `upload-result: indeterminate-primary-upload`.
+Partial and ambiguous publisher fixtures must express each step through those same four states. For
+example, a primary upload followed by a sidecar API or transport failure reports the primary as
+`committed-as-expected` after authoritative read-back and the sidecar as `absent`,
+`foreign-conflict`, or `indeterminate` according to its observed remote state; a sidecar state other
+than `committed-as-expected` fails with `sidecar-upload-partial-failure` or the narrower state
+diagnostic. An ambiguous primary upload reports `committed-as-expected` only after authoritative
+digest equality, `absent` after bounded authoritative absence, `foreign-conflict` after
+authoritative digest inequality, or `indeterminate` when presence or digest equality cannot be
+proved within the polling bound.
 
-The publisher remote digest fixture set must prove that same-name release assets are trusted only
-after SHA-256 equality is established. Accepted fixtures must cover digest proof from a documented
-GitHub release asset digest/checksum field and digest proof from downloading the candidate release
-asset bytes and hashing them locally. Rejected fixtures must cover a same-name asset with no
-documented digest field, an unsupported digest algorithm, a permission failure while downloading the
-candidate asset, a download that cannot be hashed, and a same-name asset whose digest differs from
-`expected-sha256`. These failures report `upload-result: indeterminate-primary-upload` and use
-`publisher-remote-digest-unproven` or the narrower `publisher-indeterminate-primary-upload`
-category.
+The publisher remote digest fixture set must prove that the GitHub Release asset `digest` field is
+the sole authoritative release-asset binding. Accepted fixtures must cover an exact
+`sha256:<64 lowercase hexadecimal characters>` match with `expected-sha256`. Rejected fixtures must
+cover a missing or unreadable `digest`, an unsupported or malformed algorithm/value, API or
+transport failure through the polling bound, contradictory observations, and a digest unequal to
+`expected-sha256`. An unequal authoritative digest reports `foreign-conflict`; inability to read a
+usable authoritative digest reports `indeterminate`. Downloaded bytes and a locally computed hash
+may appear only as diagnostic evidence and must not change either result to `committed-as-expected`;
+doing so fails the fixture with `publisher-remote-digest-unproven` or the narrower state diagnostic.
 
 The publisher workflow schema fixture set must prove that the standalone publisher accepts only the
 declared producer-neutral `workflow_call.inputs`, accepts no secrets, rejects target repository,
@@ -636,6 +1200,22 @@ and the optional metadata job has `artifact-metadata: write` without release mut
 authority. Excessive or missing permissions fail with `publisher-permission-boundary-violation` or a
 narrower permission category.
 
+Permission verification has two distinct halves. Static YAML conformance runs at lint time and
+checks declared workflow/job `permissions`, authority separation, and the absence of unintended
+write grants. A static mismatch fails its fixture with `publisher-permission-boundary-violation` or
+the narrower `release-asset-mode-permission-error`; it must not be reported as proof of the
+permissions GitHub actually granted at runtime.
+
+Runtime permission verification checks actual GitHub API behavior because GitHub does not expose the
+caller's complete effective permission map in any workflow context. Read-only verification jobs
+probe the non-mutating API operations they require, while mutation jobs observe the required API
+operation at the guarded mutation boundary after all non-permission preconditions pass. An HTTP
+`403` is a permission-failure signal and fails closed with `publisher-permission-boundary-violation`
+or the narrower permission category before any later dependent operation. The implementation must
+not infer runtime authority only from YAML, context strings, or token presence; such inference fails
+the runtime-permission fixture with the same category. Static conformance and successful runtime API
+behavior are both required, and success in one half cannot waive failure in the other.
+
 The sidecar digest fixture set must prove that `sidecar-digest` is the 64-character lowercase
 SHA-256 digest of the exact verified producer bundle bytes and equals `producer-provenance-sha256`.
 It must be set after bundle verification even when sidecar upload later fails, and unset when bundle
@@ -647,25 +1227,36 @@ unsupported type, non-`github.com` URL, repository mismatch, userinfo, query, fr
 path, unknown field, or malformed digest must fail with `native-locator-malformed`. A locator digest
 that does not equal the sidecar bundle SHA-256 must fail with `native-locator-digest-mismatch`.
 
-The release manifest fixture set must distinguish duplicate preflight failures from partial upload
-failures: pre-existing manifest JSON or bundle names fail before upload, while a signed bundle API
-or transport failure after successful plain JSON upload fails with `manifest-partial-json-uploaded`
-and reports `manifest-upload-result: partial-json-uploaded`.
+The release manifest convergence fixture set must classify the plain JSON asset and signed bundle
+asset independently, before mutation and after an ambiguous mutating call, into exactly
+`committed-as-expected`, `absent`, `foreign-conflict`, or `indeterminate`. A same-`run_id` retry
+must treat `committed-as-expected` as satisfied without upload, upload only an `absent` asset, and
+fail without mutation on `foreign-conflict` or `indeterminate`, reporting the exact state and remote
+evidence. A new-`run_id` fixture with either pre-existing same-name manifest asset must report
+`foreign-conflict` and fail without mutation even when its digest matches. Failure to classify an
+asset into exactly one state reports `indeterminate` and fails with
+`manifest-indeterminate-json-upload` or the narrower step diagnostic.
 
-The release manifest fixture set must include an ambiguous plain JSON upload result. If same-run
-release lookup cannot prove that the plain manifest was absent, or cannot prove that a same-name
-remote manifest has the expected digest, the fixture must fail with
-`manifest-indeterminate-json-upload` and report `manifest-upload-result: indeterminate-json-upload`.
+Partial and ambiguous manifest fixtures must use the four-state results rather than separate partial
+or indeterminate upload result names. A signed-bundle API or transport failure after a successful
+plain JSON upload reports the JSON asset as `committed-as-expected` after authoritative read-back
+and the bundle as `absent`, `foreign-conflict`, or `indeterminate` according to remote state; a
+bundle state other than `committed-as-expected` fails with `manifest-partial-json-uploaded` or the
+narrower state diagnostic. An ambiguous plain JSON upload reports `committed-as-expected` only after
+authoritative digest equality, `absent` after bounded authoritative absence, `foreign-conflict`
+after authoritative digest inequality, or `indeterminate` when presence or digest equality cannot be
+proved within the polling bound.
 
-The release manifest remote digest fixture set must prove that same-name manifest release assets are
-trusted only after SHA-256 equality is established. Accepted fixtures must cover digest proof from a
-documented GitHub release asset digest/checksum field and digest proof from downloading the
-candidate manifest asset bytes and hashing them locally. Rejected fixtures must cover a same-name
-manifest asset with no documented digest field, an unsupported digest algorithm, a permission
-failure while downloading the candidate asset, a download that cannot be hashed, and a same-name
-manifest asset whose digest differs from the expected handoff digest. These failures report
-`manifest-upload-result: indeterminate-json-upload` and use `manifest-remote-digest-unproven` or the
-narrower `manifest-indeterminate-json-upload` category.
+The release manifest remote digest fixture set must prove that the GitHub Release asset `digest`
+field is the sole authoritative binding for both manifest assets. Accepted fixtures must cover an
+exact `sha256:<64 lowercase hexadecimal characters>` match with the expected handoff digest.
+Rejected fixtures must cover a missing or unreadable `digest`, an unsupported or malformed
+algorithm/value, API or transport failure through the polling bound, contradictory observations, and
+a digest unequal to the expected handoff digest. An unequal authoritative digest reports
+`foreign-conflict`; inability to read a usable authoritative digest reports `indeterminate`.
+Downloaded bytes and a locally computed hash may appear only as diagnostic evidence and must not
+change either result to `committed-as-expected`; doing so fails with
+`manifest-remote-digest-unproven` or the narrower state diagnostic.
 
 The release manifest generation fixture set must prove schema version `1` determinism: all producer
 and publisher `workflow_sha` values equal `release_commit_sha`; producer `builder_id` values are
