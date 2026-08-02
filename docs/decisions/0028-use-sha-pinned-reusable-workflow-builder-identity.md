@@ -13,6 +13,8 @@ relations:
   - type: partially-supersedes
     target: ADR-0026
     scope: "the tag-ref caller examples"
+  - type: see-also
+    target: ADR-0068
 ---
 
 # Use SHA-Pinned Reusable Workflow Builder Identity

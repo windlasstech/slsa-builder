@@ -4,6 +4,9 @@ nav_order: 62
 status: accepted
 date: 12026-07-30
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0068
 ---
 
 # Intersect Trusted Producer Policies

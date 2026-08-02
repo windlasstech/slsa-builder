@@ -4,6 +4,12 @@ nav_order: 37
 status: accepted
 date: 12026-07-06
 decision-makers: Yunseo Kim
+relations:
+  - type: amended-by
+    target: ADR-0068
+    scope:
+      "the identity binding depth of the documented verifier policy and the producer publish gate;
+      ADR 0068 pins the required bindings"
 ---
 
 # Define Initial Verification Deliverables

@@ -10,6 +10,8 @@ relations:
     scope:
       "the repository-path buildType URI value; the Windlass-generated provenance decision remains
       in force"
+  - type: see-also
+    target: ADR-0068
 ---
 
 # Use Windlass-Generated SLSA Provenance for npm Publish
