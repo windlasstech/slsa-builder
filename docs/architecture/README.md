@@ -47,6 +47,13 @@ Every ADR is either mapped to a spec, marked as tooling-only, or marked as super
 etc. Superseded or deprecated ADRs are historical context and must not drive new specification or
 implementation work.
 
+| ADR  | Decision                                                      | Spec mapping                                                                                                                                    |
+| ---- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0066 | Serialize release mutations with job-class concurrency        | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, JS/TS npm package profile, verification policy and fixtures |
+| 0067 | Converge repeated runs within run identity                    | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                            |
+| 0068 | Bind verification to immutable builder and source identities  | Verification policy and fixtures, identity and build types, JS/TS npm provenance and publish, release manifest                                  |
+| 0069 | Require Rekor transparency and govern the Sigstore trust root | Verification policy and fixtures, SLSA provenance v1, release manifest                                                                          |
+
 See [`../decisions/README.md`](../decisions/README.md#adr-traceability) for the canonical detailed
 ADR traceability tables.
 
@@ -70,16 +77,22 @@ ADR traceability tables.
 
 ## Canonical terminology
 
-| Term                 | Meaning                                                                                                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Core**             | The shared trusted foundation: reusable workflow invariants, provenance construction, digest-verified handoff, signing adapter interface, and verification documentation conventions. |
-| **Profile**          | A profile-owned reusable workflow that defines an ecosystem-specific build, pack, subject, digest, publish, and verification contract.                                                |
-| **Producer**         | A profile that produces final artifact bytes and source-to-artifact SLSA provenance.                                                                                                  |
-| **Publisher**        | The GitHub Release asset publisher profile, which verifies and distributes producer artifacts without claiming to build them.                                                         |
-| **Builder**          | The trusted reusable workflow platform that generates source-to-artifact provenance. The GitHub Release asset publisher is not a builder in the default production path.              |
-| **Handoff**          | The digest- and provenance-verified contract between a producer profile and the publisher.                                                                                            |
-| **Sidecar**          | A release asset that travels alongside the primary asset but is not part of the primary asset's SLSA subject digest.                                                                  |
-| **Release manifest** | The Windlass-signed machine-verifiable mapping from release versions to workflow SHAs, `builder.id` values, and `buildType` URIs.                                                     |
+| Term                                 | Meaning                                                                                                                                                                                                                                                    |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core**                             | The shared trusted foundation: reusable workflow invariants, provenance construction, digest-verified handoff, signing adapter interface, and verification documentation conventions.                                                                      |
+| **Profile**                          | A profile-owned reusable workflow that defines an ecosystem-specific build, pack, subject, digest, publish, and verification contract.                                                                                                                     |
+| **Producer**                         | A profile that produces final artifact bytes and source-to-artifact SLSA provenance.                                                                                                                                                                       |
+| **Publisher**                        | The GitHub Release asset publisher profile, which verifies and distributes producer artifacts without claiming to build them.                                                                                                                              |
+| **Builder**                          | The trusted reusable workflow platform that generates source-to-artifact provenance. The GitHub Release asset publisher is not a builder in the default production path.                                                                                   |
+| **Handoff**                          | The digest- and provenance-verified contract between a producer profile and the publisher.                                                                                                                                                                 |
+| **Sidecar**                          | A release asset that travels alongside the primary asset but is not part of the primary asset's SLSA subject digest.                                                                                                                                       |
+| **Release manifest**                 | The Windlass-signed machine-verifiable mapping from release versions to workflow SHAs, `builder.id` values, and `buildType` URIs.                                                                                                                          |
+| **Producer provenance subject name** | Reserved term for the producer provenance Statement's `subject[0].name`; for the npm producer it is the npm package PURL defined by [ADR 0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md), not an uploaded filename.                |
+| **Release asset name**               | Reserved term for the final uploaded filename defined by [ADR 0045](../decisions/0045-use-release-asset-name-as-slsa-subject-name.md); it remains distinct from the npm producer provenance subject name even when the same tarball bytes are distributed. |
+
+Both names are reserved terms and are not interchangeable. Any specification, implementation, or
+verification policy that substitutes one for the other is invalid and is rejected as a naming
+contract error.
 
 ## How to add a new architecture spec
 

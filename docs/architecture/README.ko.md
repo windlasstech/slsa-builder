@@ -46,6 +46,13 @@
 모든 ADR은 명세에 대응되거나, 개발 도구 전용 혹은 대체됨(superseded), 폐기됨(deprecated) 등으로
 분류됩니다. 대체되거나 폐기된 ADR은 과거 맥락일 뿐 새로운 명세나 구현을 주도해서는 안 됩니다.
 
+| ADR  | 결정                                                          | 명세 매핑                                                                                                                                       |
+| ---- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0066 | Serialize release mutations with job-class concurrency        | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, JS/TS npm package profile, verification policy and fixtures |
+| 0067 | Converge repeated runs within run identity                    | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                            |
+| 0068 | Bind verification to immutable builder and source identities  | Verification policy and fixtures, identity and build types, JS/TS npm provenance and publish, release manifest                                  |
+| 0069 | Require Rekor transparency and govern the Sigstore trust root | Verification policy and fixtures, SLSA provenance v1, release manifest                                                                          |
+
 자세한 ADR 추적성 표는 [`../decisions/README.ko.md`](../decisions/README.ko.md#adr-추적성)를
 참조하세요.
 
@@ -66,16 +73,21 @@
 
 ## 표준 용어
 
-| 용어                 | 의미                                                                                                                                                 |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Core**             | 공유된 신뢰 기반: reusable workflow 불변식, 출처 생성, 다이제스트 검증 핸드오프, 서명 어댑터 인터페이스, 검증 문서화 규칙                            |
-| **Profile**          | 생태계별 build, pack, subject, digest, publish, 검증 계약을 정의하는 profile-owned reusable workflow                                                 |
-| **Producer**         | 최종 아티팩트 바이트와 source-to-artifact SLSA 출처를 생성하는 profile                                                                               |
-| **Publisher**        | GitHub Release asset publisher profile. 아티팩트를 빌드한다고 주장하지 않고 검증하고 배포함                                                          |
-| **Builder**          | source-to-artifact 출처를 생성하는 신뢰할 수 있는 reusable workflow 플랫폼. GitHub Release asset publisher는 기본 production path에서 builder가 아님 |
-| **Handoff**          | producer profile과 publisher 간의 다이제스트 및 출처 검증 계약                                                                                       |
-| **Sidecar**          | 주 에셋과 함께 이동하지만 주 에셋의 SLSA subject digest에 포함되지 않는 release asset                                                                |
-| **Release manifest** | 릴리즈 버전을 workflow SHA, `builder.id`, `buildType` URI에 매핑하는, Windlass가 서명한 기계적으로 검증 가능한 문서                                  |
+| 용어                                 | 의미                                                                                                                                                                                                                         |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core**                             | 공유된 신뢰 기반: reusable workflow 불변식, 출처 생성, 다이제스트 검증 핸드오프, 서명 어댑터 인터페이스, 검증 문서화 규칙                                                                                                    |
+| **Profile**                          | 생태계별 build, pack, subject, digest, publish, 검증 계약을 정의하는 profile-owned reusable workflow                                                                                                                         |
+| **Producer**                         | 최종 아티팩트 바이트와 source-to-artifact SLSA 출처를 생성하는 profile                                                                                                                                                       |
+| **Publisher**                        | GitHub Release asset publisher profile. 아티팩트를 빌드한다고 주장하지 않고 검증하고 배포함                                                                                                                                  |
+| **Builder**                          | source-to-artifact 출처를 생성하는 신뢰할 수 있는 reusable workflow 플랫폼. GitHub Release asset publisher는 기본 production path에서 builder가 아님                                                                         |
+| **Handoff**                          | producer profile과 publisher 간의 다이제스트 및 출처 검증 계약                                                                                                                                                               |
+| **Sidecar**                          | 주 에셋과 함께 이동하지만 주 에셋의 SLSA subject digest에 포함되지 않는 release asset                                                                                                                                        |
+| **Release manifest**                 | 릴리즈 버전을 workflow SHA, `builder.id`, `buildType` URI에 매핑하는, Windlass가 서명한 기계적으로 검증 가능한 문서                                                                                                          |
+| **Producer provenance subject name** | Producer provenance Statement의 `subject[0].name`을 가리키는 예약어. npm producer에서는 [ADR 0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)가 정의한 npm 패키지 PURL이며, 업로드된 파일 이름이 아님 |
+| **Release asset name**               | [ADR 0045](../decisions/0045-use-release-asset-name-as-slsa-subject-name.md)가 정의한 최종 업로드 파일 이름을 가리키는 예약어. 동일한 tarball 바이트를 배포하더라도 npm producer provenance subject name과 구별됨            |
+
+두 이름은 모두 예약어이며 서로 바꾸어 사용할 수 없습니다. 명세, 구현 또는 검증 정책에서 한 용어를
+다른 용어 대신 사용하면 이름 계약 오류로 간주하여 거부합니다.
 
 ## 새 아키텍처 명세 추가 방법
 
