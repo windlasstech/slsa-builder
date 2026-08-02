@@ -18,7 +18,8 @@ profile.
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
   [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
-  [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md)
+  [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
+  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -119,6 +120,13 @@ input is non-empty.
 > first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
 > requires a new ADR.
 
+Custom registry diagnostics use the stable IDs defined by the
+[verification policy and fixtures](verification-policy-and-fixtures.md#stable-diagnostic-ids). A
+non-npmjs registry URL is not itself a failed preflight condition. The profile may emit
+`windlass.verify.warning.custom-registry-preflight-inconclusive` when its best-effort tokenless
+metadata preflight cannot establish the requested state, then it must continue to the tokenless
+publish attempt unless a separately proved failure condition below applies.
+
 - `registry-url` must be an absolute `https:` URL. The profile must normalize scheme and host to
   lowercase, remove default port `443`, and ensure exactly one trailing `/` in the effective
   `package-registry-url` output. A non-HTTPS registry URL, URL with userinfo, fragment, or query, or
@@ -161,8 +169,11 @@ input is non-empty.
   `--access public` is restricted, but first publication is outside the initial Windlass production
   profile.
 - When `registry-url` is not `https://registry.npmjs.org/`, a caller-supplied non-empty `access` is
-  passed only if the registry accepts it during the same tokenless publish flow. If the registry
-  rejects the access option or requires token/OTP fallback, the workflow fails; it must not silently
+  passed only if the registry accepts it during the same tokenless publish flow. A registry response
+  that proves token or OTP authentication is required fails before publish with
+  `windlass.verify.error.custom-registry-token-required`. An access-option rejection without proof
+  of a token or OTP requirement fails before publish at the publish boundary with
+  `windlass.verify.error.custom-registry-access-option-rejected`. The workflow must not silently
   drop the option and continue.
 
 #### Mode validation
@@ -191,6 +202,16 @@ The public release target is always the caller repository's existing GitHub Rele
 effective release tag. The workflow must not create the release or tag, change draft or prerelease
 status, change the latest marker, delete an existing asset, overwrite an asset, or upload to another
 repository.
+
+After the pack-produced tarball and the unchanged signed producer provenance sidecar have known
+names and digests, and before `npm publish`, release-asset mode must read the existing release's
+`draft` and `immutable` state and evaluate both expected release assets. This target-state gate is
+fail-fast evidence only, not authority to mutate the release. If the target is immutable and either
+required asset is absent, the workflow must fail before npm mutation with
+`windlass.verify.error.release-target-immutable`. If the target is immutable and both required
+assets exist, the workflow may proceed only when both can satisfy complete same-`run_id` read-only
+convergence. The publisher must re-read the target state at mutation-segment entry; it must not
+reuse this earlier observation as mutation authorization.
 
 #### Publish intent resolution
 
@@ -501,13 +522,22 @@ A manual dispatch release must satisfy all of the following:
   `NPM_TOKEN`, `NODE_AUTH_TOKEN`, OTP, private dependency credentials, or publish-capable secrets,
   and `npm publish` can submit the exact Windlass signed bundle through
   `--provenance-file=<bundle-path>` or an equivalent no-secret external provenance-file mechanism.
-- The profile must fail before registry mutation when the selected non-npmjs registry requires npm
-  automatic provenance, unsigned provenance, token-based publish, omission of the Windlass bundle,
-  rewriting of the bundle bytes, or dropping caller-supplied `--access` intent in order to continue.
-- The profile must fail if the registry requires authentication mechanisms that violate the
-  no-publish-secrets policy.
-- The profile must fail if `npm publish --provenance-file` or the equivalent external provenance
-  submission path is unavailable for the selected registry.
+- A non-npmjs registry that requires a token or OTP before mutation fails before publish with
+  `windlass.verify.error.custom-registry-token-required`. The profile must not add a token, OTP, or
+  secret fallback.
+- A detected requirement for npm automatic provenance, unsigned provenance, omission of the exact
+  Windlass bundle, bundle rewriting, or dropping caller-supplied `--access` intent fails before
+  publish with `windlass.verify.error.custom-registry-provenance-weakened`.
+- A tokenless authentication rejection fails at the authentication or publish boundary with
+  `windlass.verify.error.custom-registry-tokenless-auth-failed`.
+- Rejection of the exact external provenance file during publish fails at the publish boundary with
+  `windlass.verify.error.custom-registry-provenance-submission-rejected`. The diagnostic report must
+  state whether the package mutation could have committed.
+- Missing required registry linkage metadata after publication fails post-publish with
+  `windlass.verify.error.custom-registry-linkage-metadata-absent`. Absent, malformed, incompatible,
+  or mismatched registry digest semantics fail post-publish with
+  `windlass.verify.error.custom-registry-digest-semantics-mismatch`. Each report must state that a
+  partial publication may have occurred.
 - The profile must fail before registry mutation when publishing to `https://registry.npmjs.org/`
   and the selected package identity does not already exist. The initial npmjs production path
   publishes new versions of existing packages only; it does not create the first version of a
@@ -520,16 +550,19 @@ A manual dispatch release must satisfy all of the following:
   - If no tokenless metadata check is available, or the check is inconclusive without weakening the
     no-secret and provenance-file contract, the workflow records `null` for the unproven state and
     may continue to the tokenless publish attempt.
-  - If the metadata check requires `NPM_TOKEN`, `NODE_AUTH_TOKEN`, OTP, publish credentials, private
-    dependency credentials, unsigned provenance, npm automatic provenance fallback, or any other
-    weakening of the production contract, the workflow must fail before registry mutation.
+  - If the metadata check proves that a token or OTP is required, the workflow must fail before
+    publish with `windlass.verify.error.custom-registry-token-required`. If it proves a provenance
+    weakening, it must fail before publish with
+    `windlass.verify.error.custom-registry-provenance-weakened`. The profile must never substitute a
+    token, OTP, secret, unsigned provenance, or npm automatic-provenance fallback.
 - A custom registry run that records `null` preflight fields must still submit the exact Windlass
   signed bundle unchanged during publish. `null` means only that package identity or version state
   was not verifier-proven before publish; it does not permit weaker authentication, weaker
   provenance, or reporting the registry as Windlass-guaranteed.
 - For npmjs, post-publish registry metadata checks are required by the provenance and publish spec.
-  For custom registries, registry linkage verification is registry-specific and must not be reported
-  as Windlass-guaranteed unless a later ADR defines that registry class.
+  For custom registries, linkage and digest checks are required fail-clearly observations, not
+  successful-registry conformance. They must use the registered post-publish diagnostics above and
+  must not be reported as Windlass-guaranteed unless a later ADR defines that registry class.
 
 ## Private dependency credentials
 
@@ -583,7 +616,12 @@ The workflow must fail before any registry mutation when:
 - Any optional input fails validation.
 - Release-asset-only inputs are supplied while `release-asset-mode` is `false`.
 - The selected registry cannot complete tokenless trusted publishing with the supplied external
-  provenance bundle.
+  provenance bundle. Custom registry failures use the fixed timing and diagnostics in Registry URL
+  support: `custom-registry-token-required` and `custom-registry-provenance-weakened` fail before
+  publish, `custom-registry-access-option-rejected`, `custom-registry-tokenless-auth-failed`, and
+  `custom-registry-provenance-submission-rejected` fail at the authentication or publish boundary,
+  and `custom-registry-linkage-metadata-absent` and `custom-registry-digest-semantics-mismatch` fail
+  post-publish with possible partial publication reported.
 - The selected package identity does not already exist on npmjs when publishing to
   `https://registry.npmjs.org/`.
 
@@ -599,7 +637,10 @@ linked metadata publication when:
 - The effective release target resolves outside the caller repository.
 - The pack-produced tarball, producer provenance bundle, or internal handoff manifest is missing,
   malformed, unverifiable, or digest-mismatched.
-- The primary release asset name or deterministic sidecar name already exists on the target release.
+- The primary release asset name or deterministic sidecar name already exists on the target release
+  for a new `run_id`, a different run identity, or without the required binding and convergence
+  proof. Existing names are not a failure when the target satisfies complete same-`run_id` read-only
+  convergence.
 - The producer provenance sidecar is disabled, renamed, rewritten, re-signed, replaced by a native
   locator, or otherwise not the exact signed bundle bytes produced and verified by the npm profile.
 - The internal mapping job attempts to derive publisher inputs from public workflow outputs, logs,
@@ -608,6 +649,12 @@ linked metadata publication when:
 - Internal jobs combine authorities that ADR 0060 requires to stay separate, including release
   mutation in build, signing, publish, mapping, or metadata jobs; signing authority in release
   upload jobs; or release mutation authority in linked metadata jobs.
+- The pre-publication target-state gate observes an immutable release with either expected release
+  asset absent. This must fail before `npm publish` with
+  `windlass.verify.error.release-target-immutable`.
+- The pre-publication target-state gate observes a complete immutable asset pair that cannot satisfy
+  same-`run_id` read-only convergence. This must fail before `npm publish` with
+  `windlass.verify.error.release-target-immutable`.
 
 If npm publish succeeds but release asset upload later fails, the workflow must report the mode as a
 partial release failure and must not retry by overwriting assets, deleting assets, changing the
@@ -625,14 +672,24 @@ release target, weakening provenance verification, or using a custom token.
   command input, npm token secret, private package, private dependency requirement, `publishConfig`
   conflict, unsupported `publishConfig.directory`, disabled provenance metadata, producer-side
   missing caller OIDC permission, producer-side npm trusted publisher caller identity mismatch, and
-  unsupported registry behavior.
+  unsupported registry behavior, a custom registry that requires token or OTP before mutation
+  (`custom-registry-token-required`), a detected weakened provenance path before mutation
+  (`custom-registry-provenance-weakened`), access-option rejection without token or OTP proof at the
+  publish boundary (`custom-registry-access-option-rejected`), tokenless authentication rejection at
+  the authentication boundary (`custom-registry-tokenless-auth-failed`), external provenance-file
+  rejection at publish with mutation-commit status reported
+  (`custom-registry-provenance-submission-rejected`), absent linkage metadata after publish
+  (`custom-registry-linkage-metadata-absent`), and incompatible digest semantics after publish with
+  possible partial publication reported (`custom-registry-digest-semantics-mismatch`).
 - Rejected fixtures: release-asset-only inputs while mode is disabled, missing caller
   `contents: write` for release-asset mode, missing caller `artifact-metadata: write` when linked
   metadata is enabled, supplied full-ref `release-tag`, release tag mismatch, missing target
   release, cross-repository target attempt, custom GitHub token attempt, raw artifact upload
   attempt, caller-supplied artifact digest attempt, overwrite attempt, release creation attempt,
   sidecar disable or rename attempt, duplicate primary asset, duplicate sidecar asset, internal
-  handoff substitution, and internal job permission-boundary violation.
+  handoff substitution, internal job permission-boundary violation, immutable target with either
+  expected asset absent before `npm publish` (`release-target-immutable`), and a complete immutable
+  target that cannot perform same-`run_id` read-only convergence (`release-target-immutable`).
 - A YAML review checklist that a human can apply to the workflow file.
 - A YAML review checklist proving that `.github/workflows/js-ts-npm-package-slsa3.yml` is the only
   public npm entrypoint and that release-asset mode does not expose internal handoff mechanics as
@@ -640,3 +697,11 @@ release target, weakening provenance verification, or using a custom token.
 - A YAML review checklist proving that build, pack, and producer signing jobs use PRE-mutation
   concurrency with `cancel-in-progress: true`; group keys use only the ADR 0066 composition and
   never `github.workflow`; and no mutation job uses the PRE-mutation cancellation policy.
+- A YAML review checklist proving that no registry allowlist or registry-identity preflight rejects
+  a non-npmjs URL; inconclusive custom-registry preflight emits only
+  `custom-registry-preflight-inconclusive` and permits the tokenless attempt; and every custom
+  registry failure surface emits its registered diagnostic at the required stage.
+- A YAML review checklist proving that release-asset mode reads `draft` and `immutable` after both
+  expected asset names and digests are known but before `npm publish`, rejects incomplete immutable
+  targets with `release-target-immutable`, permits only same-`run_id` read-only convergence for a
+  complete immutable target, and re-reads target state at publisher mutation-segment entry.

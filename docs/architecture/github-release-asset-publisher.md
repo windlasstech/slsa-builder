@@ -85,12 +85,12 @@ composition primitive, not the recommended npm caller surface selected by the pu
 | `release-tag`                       | string | yes      | none    | Full `refs/tags/<tag-name>` ref for an existing release.      |
 | `producer-provenance-artifact-name` | string | yes      | none    | Same-run artifact containing exactly one signed bundle.       |
 | `producer-provenance-sha256`        | string | yes      | none    | 64 lowercase hexadecimal SHA-256 of the signed bundle.        |
-| `trusted-builder-id`                | string | yes      | none    | Expected producer `builder.id`.                               |
-| `trusted-build-type`                | string | yes      | none    | Expected producer `buildType`.                                |
-| `expected-subject-name`             | string | yes      | none    | Expected producer `subject[0].name`.                          |
-| `expected-subject-sha256`           | string | yes      | none    | Expected producer `subject[0].digest.sha256`.                 |
-| `source-repository`                 | string | yes      | none    | Canonical producer source repository URL.                     |
-| `source-revision`                   | string | yes      | none    | Immutable source revision; GitHub Git sources use SHA-1.      |
+| `trusted-builder-id`                | string | yes      | none    | Narrowing constraint on the selected policy's `builder.id`.   |
+| `trusted-build-type`                | string | yes      | none    | Exact closed-registry selector and caller constraint.         |
+| `expected-subject-name`             | string | yes      | none    | Narrowing constraint on the registered producer subject.      |
+| `expected-subject-sha256`           | string | yes      | none    | Narrowing SHA-256 constraint on the registered subject.       |
+| `source-repository`                 | string | yes      | none    | Narrowing canonical producer source repository constraint.    |
+| `source-revision`                   | string | yes      | none    | Narrowing immutable source revision constraint.               |
 | `native-provenance-locators`        | string | no       | empty   | UTF-8 JSON array; empty string means absent.                  |
 | `linked-artifact-settings`          | string | no       | empty   | UTF-8 JSON object; empty string means `{ "enabled": false }`. |
 
@@ -104,6 +104,14 @@ The standalone publisher accepts no secrets in the initial production contract. 
 uses the caller-scoped `GITHUB_TOKEN` permissions granted to the calling job and reduced by the
 called workflow. A future custom-token or cross-repository publication mode requires a new ADR
 because it changes the mutation authority boundary.
+
+`trusted-build-type` selects an entry from the
+[closed producer-policy registry](#closed-producer-policy-registry). It does not register a producer
+or extend the selected policy. All other `trusted-*`, subject, and source inputs are caller
+constraints. They must intersect the selected policy and may only narrow what that policy allows. A
+caller value that conflicts with a registered baseline fails before upload with
+`windlass.verify.error.trusted-producer-policy-conflict`, or the narrower registered field
+diagnostic when one applies.
 
 ### Permissions matrix
 
@@ -163,11 +171,11 @@ and release source ref use this one shared mutation key.
 
 The release-asset mutation segment begins when the first job with release upload authority enters
 the concurrency group and ends only after the primary and sidecar upload calls have completed or
-been classified. At segment entry, before its first mutating call, each upload job must revalidate
-the target repository and release ref, release existence, expected primary and sidecar digests, and
-the absence or same-run convergence classification of both target asset names. A failed or
-indeterminate revalidation fails before mutation with the corresponding evidence; checks completed
-before queueing are never sufficient after the job enters the segment.
+been classified. At segment entry, before its first mutating call, each upload job must re-read and
+revalidate the target repository and release ref, release existence, expected primary and sidecar
+digests, and the absence or same-run convergence classification of both target asset names. A failed
+or indeterminate revalidation fails before mutation with the corresponding evidence; checks
+completed before queueing are never sufficient after the job enters the segment.
 
 GitHub's repository-scoped pending semantics are part of the caller contract: one execution may be
 running and one may be pending for a group, and a new arrival replaces the pending execution. A
@@ -186,13 +194,18 @@ assets, it must invoke the publisher once per asset.
 ## Existing release requirement
 
 The publisher uploads to an existing GitHub Release identified by an existing Git tag. The publisher
-does not create the release or the tag. If the tag or release does not exist, the publisher fails
-before any upload.
+does not create the release or the tag. Before any upload, it must read the target's `draft` and
+`immutable` state, as well as both required asset names. If the tag or release does not exist, the
+publisher fails before any upload.
 
 ## Draft and prerelease behavior
 
 The publisher may upload to a draft or prerelease target only if the release already exists. The
-publisher does not change the draft or prerelease status.
+publisher does not change the draft or prerelease status. Draft state does not weaken the immutable
+target rule: when `immutable` is true and either required asset is absent, the publisher fails
+before mutation with `windlass.verify.error.release-target-immutable`. When `immutable` is true and
+both assets are complete, digest-proven, and bound to the same `run_id`, the publisher may perform
+only read-only same-run convergence. It must not upload, delete, replace, or create linked metadata.
 
 ## Duplicate asset behavior
 
@@ -218,6 +231,30 @@ not for known duplicate names.
 
 ## Producer-to-publisher handoff contract
 
+### Closed producer-policy registry
+
+This registry is the publisher's complete initial producer-policy admission set. It is keyed by the
+exact observed producer `buildType`, has no wildcard, alias, default, union, or caller-extension
+mechanism, and is evaluated before any release upload. The sole registered entry is:
+
+| Exact `buildType`                                                  | Required baseline                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1` | The signer repository is `windlasstech/slsa-builder`; its signer workflow is `.github/workflows/js-ts-npm-package-slsa3.yml`; `builder.id` is SHA-based; `subject[0].name` is the npm Package URL; `subject[0].digest` contains matching SHA-512 and SHA-256 digests; `final-asset-name` equals `externalParameters.package.tarball_name`; canonical source repository, immutable source revision, and identical full source, release, and caller release-tag refs apply; and `externalParameters` uses the closed JS/TS npm schema. |
+
+For this entry, the publisher validates the signer repository and workflow, SHA-based `builder.id`,
+npm Package URL subject, both required subject digests, tarball filename binding, canonical source
+and release-ref rules, and the complete closed npm `externalParameters` schema. The profile
+baseline, caller constraints, digest-verified handoff, and authenticated release-manifest
+constraints are intersected. Every source that constrains an observed field must allow that value.
+
+An absent or unknown observed `buildType` fails before upload with
+`windlass.verify.error.unregistered-producer-build-type`. A caller may select only the exact entry
+above using `trusted-build-type`; it may not add, replace, relax, union, or override any baseline
+constraint. A conflicting caller constraint fails with
+`windlass.verify.error.trusted-producer-policy-conflict`, unless a narrower registered field
+diagnostic applies. A future producer policy requires profile admission through its own accepted
+ADR, specification process, and accepted and rejected fixtures before registry insertion.
+
 The publisher accepts a fixed, profile-owned handoff contract. The contract must include the
 following semantic fields:
 
@@ -229,12 +266,12 @@ following semantic fields:
 | `release-tag`                       | yes      | Existing full Git tag ref and target release.                           |
 | `producer-provenance-artifact-name` | yes      | Same-run artifact that contains the producer SLSA provenance bundle.    |
 | `producer-provenance-sha256`        | yes      | Expected SHA-256 of the provenance bundle bytes, lowercase hex.         |
-| `trusted-builder-id`                | yes      | Expected upstream producer `builder.id`.                                |
-| `trusted-build-type`                | yes      | Expected upstream producer `buildType`.                                 |
-| `expected-subject-name`             | yes      | Expected upstream subject name under the selected producer policy.      |
-| `expected-subject-sha256`           | yes      | Expected upstream subject SHA-256, lowercase hex.                       |
-| `source-repository`                 | yes      | Source repository for producer policy.                                  |
-| `source-revision`                   | yes      | Source revision for producer policy.                                    |
+| `trusted-builder-id`                | yes      | Narrowing constraint on the selected policy's `builder.id`.             |
+| `trusted-build-type`                | yes      | Exact registry selector and caller constraint, not an extension.        |
+| `expected-subject-name`             | yes      | Narrowing constraint on the selected policy's subject name.             |
+| `expected-subject-sha256`           | yes      | Narrowing constraint on the selected policy's subject SHA-256.          |
+| `source-repository`                 | yes      | Narrowing source repository constraint for the selected policy.         |
+| `source-revision`                   | yes      | Narrowing source revision constraint for the selected policy.           |
 | `native-provenance-locators`        | no       | Producer-native provenance locators.                                    |
 | `linked-artifact-settings`          | no       | Linked artifact storage opt-in settings.                                |
 
@@ -253,7 +290,9 @@ publisher constructs two core same-run artifact handoff objects from them:
 The provenance bundle `payload_file_name` is transport metadata only; the public release sidecar
 name is still derived from `final-asset-name` as `<final-asset-name>.intoto.jsonl`.
 
-All required handoff string fields must be non-empty after trimming ASCII whitespace. SHA-256 fields
+All required handoff string fields must be non-empty after trimming ASCII whitespace. The
+`trusted-build-type` value must exactly select a registry entry before artifact retrieval or upload;
+an unknown value fails with `windlass.verify.error.unregistered-producer-build-type`. SHA-256 fields
 must be 64-character lowercase hexadecimal strings. `release-tag` must be a full Git tag ref in the
 form `refs/tags/<tag-name>` and must identify the target existing GitHub Release. A short tag name
 such as `v1.2.3`, a branch ref, a pull request ref, an empty tag name, or a ref containing path
@@ -344,37 +383,39 @@ rejected because the publisher cannot redistribute an unchanged sidecar without 
 
 ## Producer provenance verification
 
-Before publication, the publisher must verify the upstream producer provenance:
+Before publication, the publisher must select the exact `buildType` registry entry and verify the
+upstream producer provenance against the intersection of that immutable baseline, caller
+constraints, the digest-verified handoff, and authenticated release-manifest constraints:
 
 1. The attestation signature is valid.
-2. The signer identity matches the producer signer identity defined by the producer profile; for the
-   initial npm composition, this is the JS/TS npm producer signer identity.
+2. The signer repository is `windlasstech/slsa-builder` and the signer workflow is
+   `.github/workflows/js-ts-npm-package-slsa3.yml`.
 3. The `predicateType` is `https://slsa.dev/provenance/v1`.
-4. The `builder.id` matches the trusted producer policy.
-5. The `buildType` matches the trusted producer policy.
-6. The `subject[0].digest.sha256` matches `expected-subject-sha256`, `expected-sha256`, and the
-   bytes to upload.
-7. The `subject[0].name` exactly matches `expected-subject-name` under the selected producer policy.
+4. The SHA-based `builder.id` matches the registry baseline and `trusted-builder-id` constraint.
+5. The `buildType` exactly selects and matches the registered policy.
+6. The `subject[0].digest.sha512` and `subject[0].digest.sha256` both match the primary bytes; the
+   SHA-256 also matches `expected-subject-sha256`, `expected-sha256`, and the bytes to upload.
+7. The `subject[0].name` is the registered npm Package URL and exactly matches
+   `expected-subject-name`.
 8. The final release asset name is authorized by producer policy and handoff fields. For the initial
    npm composition, this means the asset name matches the pack-produced tarball filename recorded in
    producer provenance and the same-run handoff, while `subject[0].name` remains the npm Package
    URL.
-9. Source repository, source revision, release ref, and other producer `externalParameters` match
-   the trusted producer policy. For the initial npm composition, `externalParameters.source.ref`,
-   `externalParameters.release.ref`, and `release-tag` must be identical full tag refs.
-10. No unexpected `externalParameters` are present when the policy requires strict matching.
+9. Source repository and revision match every applicable narrowing constraint. The canonical source
+   repository and `externalParameters.source.repository` match; `externalParameters.source.ref`,
+   `externalParameters.release.ref`, and `release-tag` are identical full tag refs; and
+   `externalParameters.release.version_tag` reconstructs that ref.
+10. `externalParameters.package.tarball_name` equals `final-asset-name`, and the closed JS/TS npm
+    `externalParameters` schema has no missing or unexpected member.
 
-When the publisher has both an explicit producer policy from the handoff or profile configuration
-and a verified signed release manifest policy, the effective producer policy is the intersection of
-the fields each source explicitly constrains. For schema version `1`, the release manifest
-constrains Windlass release identity, producer workflow path/SHA, producer `builder.id`, producer
-`buildType`, and publisher workflow path/SHA/role; it does not constrain caller-specific source,
-producer release ref, subject, digest, final asset name, or strict `externalParameters` fields.
-Those fields must still be constrained by explicit producer policy, profile policy, signed producer
-provenance, or digest-verified handoff fields. The publisher must fail before upload when any source
-that constrains an observed field does not allow it, and it must not let a signed release manifest
-relax explicit producer policy, let explicit producer policy bypass an authenticated manifest
-constraint, or use either-source-allowed or last-writer-wins behavior.
+For schema version `1`, the release manifest constrains Windlass release identity, producer workflow
+path/SHA, producer `builder.id`, producer `buildType`, and publisher workflow path/SHA/role; it does
+not constrain caller-specific source, producer release ref, subject, digest, final asset name, or
+strict `externalParameters` fields. Those fields remain constrained by the registry baseline, caller
+constraints, signed producer provenance, and digest-verified handoff. The publisher must fail before
+upload when any source that constrains an observed field does not allow it. It must not let the
+manifest, a caller value, or a handoff value relax the registry baseline, use either-source-allowed,
+or use last-writer-wins behavior.
 
 ## Final release asset and producer subject binding
 
@@ -383,8 +424,8 @@ producer policy. Producer profiles whose subject name is their release asset bas
 this by requiring `final-asset-name` to equal `subject[0].name`. The initial npm composition cannot:
 ADR 0064 requires the npm producer subject to be the package Package URL. For npm producer
 provenance, the publisher must therefore verify that `subject[0].name` matches the expected npm
-Package URL and separately verify that `final-asset-name` matches the pack-produced tarball filename
-recorded by the producer policy and handoff fields.
+Package URL and separately verify that `final-asset-name` exactly matches
+`externalParameters.package.tarball_name` and the digest-verified handoff.
 
 If the selected producer policy cannot bind the final release asset name to the verified producer
 artifact bytes and provenance subject, the publisher must fail before upload.
@@ -562,6 +603,14 @@ mutation step remains subject to the same-`run_id` rules below. A new `run_id` r
 for any pre-existing primary asset or sidecar, even when its bytes match, and fails as
 `foreign-conflict` without mutation.
 
+Before every upload segment, the publisher must re-read the target's `draft` and `immutable` state.
+If `immutable` is true and either required asset is `absent`, `foreign-conflict`, or
+`indeterminate`, it must fail before mutation with `windlass.verify.error.release-target-immutable`.
+If `immutable` is true, both assets are `committed-as-expected`, and both bindings prove the same
+`run_id`, the publisher may finish only as read-only convergence. No upload, deletion, retry, or
+linked artifact metadata mutation is permitted. A mutable or draft target continues through the
+normal convergence rules below.
+
 Before a release-asset mutation and after any mutating call with an ambiguous response, the
 publisher must classify each of the primary asset and sidecar independently into exactly one ADR
 0067 outcome state; inability to produce one of these states fails the run as `indeterminate`:
@@ -656,6 +705,11 @@ If the primary asset upload succeeds but the sidecar upload fails, the workflow 
 without deleting, replacing, or clobbering the primary asset. The failure output must make the
 aggregate partial condition explicit so operators can use same-`run_id` convergence or reconcile the
 incomplete release asset according to repository policy.
+
+An immutable target never enters this partial-failure path. Its target state is read before upload,
+and any incomplete required asset set fails before mutation with
+`windlass.verify.error.release-target-immutable`. Only a complete, digest-proven same-`run_id` set
+may converge, read-only.
 
 If the GitHub API request or network transport returns an ambiguous result after the publisher
 starts uploading the primary asset, the workflow must not assume either success or failure. It must
@@ -753,10 +807,14 @@ The publisher must fail before primary asset or sidecar upload when:
 - The provenance bundle bytes cannot be retrieved.
 - The computed provenance bundle digest differs from `producer-provenance-sha256`.
 - The release tag or target GitHub Release does not exist.
+- The target is immutable and either required asset is absent, foreign, or indeterminate; this fails
+  with `windlass.verify.error.release-target-immutable` before any upload.
 - The release tag is not a full `refs/tags/<tag-name>` ref.
 - The final asset name is invalid, or a primary or deterministic sidecar asset is `foreign-conflict`
   under the ADR 0067 new-run or same-run rules.
 - Upstream producer provenance is missing, unsigned, unverifiable, or untrusted.
+- The observed producer `buildType` is absent from the closed registry; this fails with
+  `windlass.verify.error.unregistered-producer-build-type` before upload.
 - The upstream subject digest does not match the bytes to upload.
 - The upstream subject name differs from `expected-subject-name`.
 - The selected producer policy cannot bind the final asset name to the verified producer artifact.
@@ -764,6 +822,9 @@ The publisher must fail before primary asset or sidecar upload when:
   `externalParameters`.
 - Explicit producer policy and verified signed release manifest policy conflict or have an empty
   intersection.
+- A caller constraint attempts to widen, replace, union with, or override a registered producer
+  baseline; this fails with `windlass.verify.error.trusted-producer-policy-conflict` or the narrower
+  registered field diagnostic.
 - A locator is provided without a retrievable producer provenance bundle artifact.
 - A native provenance locator is malformed or unsupported.
 - Linked artifact storage is enabled but the metadata job permission boundary is invalid: it lacks
@@ -780,12 +841,23 @@ current field is `primary-artifact-name`.
 
 ## TDD and fixtures
 
-- Positive fixture: a valid producer handoff results in a release asset and a sidecar.
+- Positive fixture: a valid registered npm producer handoff results in a release asset and a
+  sidecar.
 - Rejected fixtures: missing provenance, wrong subject name, missing final-asset binding, digest
   mismatch, stale `artifact-artifact-name` handoff field, duplicate asset name, non-existent
   release, raw artifact bypass, pre-existing deterministic sidecar name, sidecar upload failure
   after primary upload, indeterminate primary upload, malformed JSON input for complex handoff
   fields, excessive job permissions, and attempted re-signing of producer provenance.
+- Producer-policy fixtures accept only
+  `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1` with its signer, SHA-based
+  `builder.id`, npm PURL, SHA-512 plus SHA-256, tarball-name, canonical source/ref, and closed npm
+  `externalParameters` requirements. They reject an unknown build type before upload with
+  `unregistered-producer-build-type` and reject every caller baseline override or union attempt with
+  `trusted-producer-policy-conflict` or the narrower field diagnostic.
+- Immutable-target fixtures accept a mutable or draft existing release, reject an immutable target
+  with either required asset absent using `release-target-immutable` before mutation, and accept a
+  complete digest-proven same-`run_id` pair only as read-only convergence. They reject cross-run or
+  indeterminate immutable evidence with `release-target-immutable`.
 - A YAML review checklist proving the publisher `workflow_call` schema does not expose unsupported
   target repository, custom token, raw artifact, overwrite, or bypass inputs.
 - A YAML review checklist proving the publisher does not combine signing, release mutation, package

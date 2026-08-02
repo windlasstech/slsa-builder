@@ -10,7 +10,10 @@ Release asset publisher are composed inside one workflow graph.
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
-  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
+  [0062](../decisions/0062-intersect-trusted-producer-policies.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
+  [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
+  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
   [npm-to-release-asset composition](npm-to-release-asset-composition.md),
@@ -43,10 +46,21 @@ identity and tarball digest handles. A composed workflow that needs publisher in
 publisher handoff values from those public outputs alone. It must consume the producer-owned handoff
 manifest defined below.
 
+The verified handoff supplies the expected primary and sidecar names and digests, producer build
+type, and source identity needed by the composed release-state and policy preflight. Remote release
+state is time-sensitive and is not handoff evidence: the composed workflow must read it directly
+before composed npm mutation, and the publisher must read it again at publisher mutation-segment
+entry. The later publisher read is required even when the earlier preflight passed.
+
 ## Producer-owned handoff manifest
 
 After the producer has created the primary artifact and signed producer provenance bundle, it must
 write a handoff manifest JSON file and upload it as a same-run GitHub Actions artifact.
+
+The manifest carries producer expectations only. Its closed schema does not carry `draft`,
+`immutable`, observed release asset state, or a release-state preflight result. Those remote values
+can become stale between jobs, so they must be obtained through the direct reads at the two points
+defined in [Composition boundary](#composition-boundary), not accepted from the handoff.
 
 The handoff manifest artifact name is deterministic for the initial npm composition:
 
@@ -73,7 +87,8 @@ SHA-256 of the `composition-handoff.json` bytes.
 
 ## Manifest schema
 
-The handoff manifest JSON object must use this closed schema shape. Unknown fields are invalid.
+The handoff manifest JSON object must use this closed schema shape. Its member set is unchanged:
+unknown fields, including injected release-state or preflight-result fields, are invalid.
 
 ```json
 {
@@ -142,6 +157,11 @@ The handoff manifest JSON object must use this closed schema shape. Unknown fiel
   `digest.algorithm: sha256`, and `digest.value: producer_provenance.sha256`.
 - `trusted_producer.builder_id` and `trusted_producer.build_type` must match the producer provenance
   and the trusted release manifest or explicit policy.
+- `trusted_producer.build_type` must be an exact selector registered by the
+  [publisher's closed producer-policy registry](github-release-asset-publisher.md#closed-producer-policy-registry).
+  It is a selector and narrowing constraint, not a mechanism to register, extend, or override
+  producer policy. In composed mode, an absent or unknown selector must fail before `npm publish`
+  with `windlass.verify.error.unregistered-producer-build-type`.
 - `trusted_producer.source_repository` and `trusted_producer.source_revision` must match the
   producer provenance `externalParameters.source` values required by the selected producer policy.
 - For the initial npm composition, `subject.name` must equal the npm Package URL subject in the
@@ -189,6 +209,13 @@ then maps the manifest to publisher handoff inputs as follows:
 | `native_provenance_locators`         | `native-provenance-locators`        |
 | `linked_artifact_settings`           | `linked-artifact-settings`          |
 
+Before composed npm mutation, the mapping job uses the verified expected release asset names and
+digests, `trusted_producer.build_type`, and source identity from this mapping for the release-state
+and policy preflight. It must read the target release state directly at that point and must not read
+or derive it from the handoff. The preflight result is not publisher mutation authorization: at
+publisher mutation-segment entry, the publisher must directly re-read and revalidate the target
+release state and both expected asset names and digests.
+
 The mapping job must not use caller-supplied artifact names, deterministic naming alone, public npm
 producer outputs, logs, release notes, or raw file paths as substitutes for this manifest. It may
 use deterministic names only to retrieve artifacts whose names are also present in the
@@ -206,11 +233,15 @@ The composed workflow must fail before invoking the publisher when:
 - the computed SHA-256 of `composition-handoff.json` differs from the producer-owned internal job
   output digest;
 - the JSON is malformed, contains duplicate object member names, has unknown fields, or violates the
-  closed schema;
+  closed schema, including an injected `draft`, `immutable`, observed release asset state, or
+  preflight-result field;
 - any required artifact name, subject, digest, source identity, builder identity, build type,
   release tag, or final asset name is missing or malformed;
 - `release.tag` is not a full `refs/tags/<tag-name>` ref;
 - `producer_provenance.sha256` is not a 64-character lowercase hexadecimal SHA-256 digest;
+- `trusted_producer.build_type` is absent or does not exactly select the publisher's registered
+  producer policy. In composed mode this must fail before `npm publish` with
+  `windlass.verify.error.unregistered-producer-build-type`;
 - the initial npm composition omits `subject.sha512` or records a malformed subject digest;
 - `native_provenance_locators` or `linked_artifact_settings` is present but violates the publisher
   contract schema for the mapped handoff field;
@@ -223,10 +254,14 @@ The composed workflow must fail before invoking the publisher when:
 
 - Positive fixture: a valid npm producer handoff manifest maps to the exact publisher inputs.
 - Rejected fixtures: missing internal handoff job outputs, manifest digest mismatch, malformed JSON,
-  duplicate object member names, unknown fields, missing `producer_provenance.sha256`, missing
-  `subject.sha512`, npm Package URL subject mismatch, tarball payload/final asset name mismatch,
-  malformed optional locator/settings fields, caller-supplied artifact name substitution, and
-  deterministic-name-only substitution.
+  duplicate object member names, unknown fields, injected release-state fields, stale
+  preflight-result fields, missing `producer_provenance.sha256`, unknown producer build type before
+  `npm publish` (`unregistered-producer-build-type`), missing `subject.sha512`, npm Package URL
+  subject mismatch, tarball payload/final asset name mismatch, malformed optional locator/settings
+  fields, caller-supplied artifact name substitution, and deterministic-name-only substitution.
 - A YAML review checklist proving that the composed graph keeps the handoff manifest internal to the
   same workflow run and does not expose internal artifact names as standalone producer public
   outputs.
+- A YAML review checklist proving that the handoff schema has no release-state or preflight-result
+  member, composed mode reads target release state directly before `npm publish`, and the publisher
+  re-reads target release state at mutation-segment entry.

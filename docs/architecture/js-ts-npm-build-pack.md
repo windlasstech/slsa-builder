@@ -459,11 +459,82 @@ The profile reads and records the following fields from the source `package.json
 - `packageManager`
 - `devEngines.packageManager`
 - `publishConfig`
+- `repository`
 - Workspace metadata if applicable
 
 The profile must fail before packing when `private` is `true`. The initial release profile publishes
 public npm package releases only; it does not support a pack-only, provenance-only, or no-publish
 mode for private packages.
+
+### Repository identity validation
+
+`repository` is required verifier-relevant metadata. The profile must normalize it, compare the
+result with the observed caller repository identity, and fail before packing with
+`package-repository-identity-mismatch` when it is missing, malformed, unsupported, or different. The
+observed caller repository identity is the GitHub owner and repository observed from the caller
+workflow context. It uses the canonical source repository URL rules in the
+[provenance and publish specification](js-ts-npm-provenance-publish.md#canonical-source-repository-url).
+
+The accepted `repository` JSON forms are closed:
+
+- string shorthand `owner/repository`;
+- string shorthand `github:owner/repository`;
+- `https://github.com/owner/repository`, `git+https://github.com/owner/repository`, or
+  `git://github.com/owner/repository`;
+- SCP-like `git@github.com:owner/repository.git`;
+- `ssh://git@github.com/owner/repository.git`; or
+- a closed object with exactly `type: "git"` and string `url`, plus optional string `directory`,
+  where `url` is one of the accepted string forms above.
+
+Every accepted form normalizes to exactly:
+
+```text
+https://github.com/<lowercase-owner>/<lowercase-repository>
+```
+
+The normalizer lowercases the owner and repository. It may remove one terminal `.git` suffix and one
+terminal `/` from an accepted URL path, then requires exactly two non-empty path segments. The
+canonical output has an `https` scheme, `github.com` host, no trailing slash, no `.git` suffix, no
+userinfo, no port, no query, no fragment, and no extra path segment. Comparison is case-insensitive
+for GitHub owner and repository names before this lowercase canonical form is emitted.
+
+The optional object `directory` records a diagnostic package location only. It does not contribute
+to repository identity and cannot alter normalization or comparison.
+
+The profile rejects missing, empty, or non-string/non-object values; non-GitHub hosts; non-`git`
+object types; credentials; ports; query or fragment components; backslashes; path traversal;
+percent-encoded separators; empty path segments; malformed shorthand; extra path segments; and
+ambiguous object shapes. It also rejects a `.git` suffix or trailing slash anywhere other than the
+permitted terminal path position. It does not accept arbitrary repository URLs that npm may accept.
+
+These values are valid and normalize as shown:
+
+| Source `repository` value                                                                                    | Canonical repository identity             |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| `WindlassTech/Example`                                                                                       | `https://github.com/windlasstech/example` |
+| `github:WindlassTech/Example`                                                                                | `https://github.com/windlasstech/example` |
+| `git+https://github.com/WindlassTech/Example.git`                                                            | `https://github.com/windlasstech/example` |
+| `git://github.com/WindlassTech/Example/`                                                                     | `https://github.com/windlasstech/example` |
+| `git@github.com:WindlassTech/Example.git`                                                                    | `https://github.com/windlasstech/example` |
+| `{ "type": "git", "url": "ssh://git@github.com/WindlassTech/Example.git", "directory": "packages/example" }` | `https://github.com/windlasstech/example` |
+
+The following are invalid and fail before packing with `package-repository-identity-mismatch`:
+
+| Source `repository` value                                                                | Reason                                               |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| missing or `""`                                                                          | Repository identity is required.                     |
+| `gitlab:WindlassTech/Example`                                                            | Unsupported host and shorthand.                      |
+| `https://github.com/WindlassTech/Example/releases`                                       | Extra path segment.                                  |
+| `https://github.com/WindlassTech/Example?tab=readme`                                     | Query is prohibited.                                 |
+| `https://token@github.com/WindlassTech/Example`                                          | Credentials are prohibited.                          |
+| `https://github.com:443/WindlassTech/Example`                                            | Port is prohibited.                                  |
+| `https://github.com/WindlassTech/%2E%2E/Example`                                         | Path traversal and encoded separator are prohibited. |
+| `{ "type": "svn", "url": "https://github.com/WindlassTech/Example" }`                    | Object type must be `git`.                           |
+| `{ "type": "git", "url": "https://github.com/WindlassTech/Example", "name": "example" }` | Object shape is ambiguous because `name` is unknown. |
+
+For example, a selected package declaring `github:OtherOrg/Example` while the observed caller
+repository is `WindlassTech/Example` fails before packing with
+`package-repository-identity-mismatch`; neither install, build, nor pack may start.
 
 ## Packed artifact inspection
 
@@ -482,19 +553,23 @@ profile must:
 - Packed file list
 - Consumer-surface fields when present
 
-## Metadata fields recorded but not semantically validated
+## Diagnostic package metadata
 
-The profile records additional metadata for provenance and diagnostics but does not treat it as a
-trust root. For example:
+The profile may route only the following raw source-manifest values to the closed
+`diagnostic_metadata.package_manifest` report surface defined by the
+[verification policy and fixtures](verification-policy-and-fixtures.md#producer-diagnostic-metadata-extension):
 
+- `repository`
 - `license`
 - `description`
 - `keywords`
 - `author`
-- `repository`
 - `homepage`
 
-These fields are stored as-is and may be used for diagnostics.
+Absent values are omitted. Their raw JSON forms must follow that report surface's closed,
+source-preserving rules. Raw values are diagnostic-only and must not change trust decisions or enter
+SLSA `internalParameters` or `externalParameters`. The normalized repository identity defined above
+is verifier-relevant, but this task does not assign it a provenance field.
 
 ## Failure behavior
 
@@ -510,6 +585,9 @@ The profile must fail before packing when:
 - Yarn is selected from any source other than top-level `packageManager`, or the exact Yarn version
   is lower than `4.0.0`.
 - Lockfile is missing for npm `npm ci`, pnpm `--frozen-lockfile`, or Yarn `--immutable`.
+- `repository` is missing, malformed, unsupported, or normalizes to an identity different from the
+  observed caller repository. The profile emits `package-repository-identity-mismatch` and stops
+  before install, build, or pack.
 - Source and packed `name`/`version` mismatch.
 - Pack command fails.
 
@@ -526,5 +604,16 @@ The profile must fail before packing when:
 - Missing `build` script (successful no-op).
 - Source/packed identity mismatch.
 - Private package rejection before pack.
+- Valid repository normalization for every accepted shorthand, URL, SSH, and object form, with each
+  result equal to the observed caller repository's lowercase canonical identity.
+- Rejected repository cases for missing values, malformed shorthand, non-GitHub hosts, non-`git`
+  object types, credentials, ports, queries, fragments, traversal, encoded separators, extra path
+  segments, and ambiguous object shapes. Each emits `package-repository-identity-mismatch` before
+  install, build, or pack.
+- A normalized repository identity mismatch with the observed caller repository, including a
+  case-only match that succeeds and a different owner or repository that fails.
+- Raw `repository`, `license`, `description`, `keywords`, `author`, and `homepage` values recorded
+  only in `diagnostic_metadata.package_manifest`, preserving permitted source JSON forms and never
+  entering SLSA `internalParameters` or `externalParameters`.
 - Workspace package using root package-manager metadata and root lockfile.
 - Corepack exact version enforcement failure.

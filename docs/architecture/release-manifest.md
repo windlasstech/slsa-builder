@@ -626,7 +626,11 @@ inputs.
 
 - Downloads the unsigned manifest and signed bundle.
 - Recomputes their digests and verifies them against the handoff from `manifest-sign`.
-- Uploads both artifacts to the selected existing GitHub Release.
+- Reads the selected existing GitHub Release's `draft` and `immutable` fields and both expected
+  asset records before any release mutation.
+- Reports one outcome for the plain JSON manifest and signed bundle as a manifest pair. Per-asset
+  substates are evidence for that outcome only and are not independently actionable results.
+- Uploads both artifacts only when the pair outcome is `absent` and the target is mutable or draft.
 - Permissions:
   - `contents: write` (only on this job)
 - Must **not** have:
@@ -668,11 +672,11 @@ workflow name, so using it can collide with caller-level concurrency and trigger
 self-cancellation trap that ADR 0066 forbids.
 
 After acquiring the mutation group and before its first release lookup or upload that can mutate
-remote state, `manifest-upload` must revalidate the release tag and target release, the handoff
-digests and fixed asset names, and the duplicate/convergence state specified below. Failure to
-revalidate, or any failed or indeterminate precondition, fails the job before its first mutating
-call. Checks performed before the job waited for the group are not substitutes for this
-mutation-segment entry revalidation.
+remote state, `manifest-upload` must revalidate the release tag and target release, including its
+`draft` and `immutable` fields; the handoff digests and fixed asset names; and the pair outcome
+specified below. Failure to revalidate, or any failed or indeterminate precondition, fails the job
+before its first mutating call. Checks performed before the job waited for the group are not
+substitutes for this mutation-segment entry revalidation.
 
 ## Handoff rules
 
@@ -692,21 +696,34 @@ mutation-segment entry revalidation.
 
 - Upload targets an existing GitHub Release identified by the release tag.
 - If the release or tag does not exist, the upload job must fail.
-- Under ADR 0067, a manifest artifact with the same name may be adopted only by a retry attempt of
-  the same `run_id` after the semantic and signer binding below succeeds. A new `run_id` or a failed
-  binding must fail before upload rather than overwrite, delete, repair, or adopt the artifact.
-- If the primary manifest upload succeeds but the bundle upload fails, the job must fail clearly
-  without deleting or clobbering the primary manifest. The failure output must make the partial
-  state explicit.
+- The upload job must read the target's `draft` and `immutable` fields with both expected asset
+  records before any upload. An immutable target with either required asset absent must fail before
+  mutation with `release-target-immutable`.
+- An immutable target with both assets present may perform only complete, same-`run_id`,
+  digest-proven semantic read-only convergence. It must not upload, replace, delete, repair,
+  regenerate, or re-sign either asset. Cross-run, foreign-conflict, or indeterminate evidence fails
+  before mutation with `release-target-immutable`.
+- Under ADR 0067, an existing manifest pair may be adopted only by a retry attempt of the same
+  `run_id` after the pair procedure below succeeds. A new `run_id` or a failed binding must fail
+  before upload rather than overwrite, delete, repair, or adopt either asset.
+- If the plain JSON upload succeeds but the bundle upload fails, the job must fail clearly without
+  deleting or clobbering the JSON. It must classify the bundle's remote state through the same pair
+  procedure: a proven absent or mismatched bundle makes the pair `foreign-conflict`, while a bundle
+  state unresolved within the polling bound makes the pair `indeterminate`. The `foreign-conflict`
+  result reports `manifest-partial-json-uploaded`; the `indeterminate` result reports
+  `manifest-indeterminate-json-upload`.
 
 ### Outcome classification and same-run convergence (ADR 0067)
 
 Before acting, and again after a mutating call whose result is ambiguous, the manifest publication
-step must classify the remote pair into exactly one of these states; inability to produce exactly
-one state fails the step as `indeterminate` without another mutating call:
+step must classify the remote manifest pair into exactly one of these states. Per-asset substates
+are evidence used only to derive that one pair-level result; they are not independently actionable
+outcomes. Inability to produce exactly one state fails the pair as `indeterminate` without another
+mutating call:
 
-- `committed-as-expected`: both same-name assets exist, and their content, signed binding, and run
-  identity satisfy the comparison procedure below;
+- `committed-as-expected`: both same-name assets exist, each has a valid matching authoritative
+  GitHub `digest`, and their content, signed binding, and run identity satisfy the comparison
+  procedure below;
 - `absent`: neither same-name asset exists;
 - `foreign-conflict`: one or both same-name assets exist, but the pair is incomplete, belongs to a
   different `run_id`, or fails the required content or signed binding;
@@ -714,12 +731,17 @@ one state fails the step as `indeterminate` without another mutating call:
   parsing, digest, signature, identity, or comparison checks through the authenticated release asset
   surface.
 
-The state machine must upload both candidate assets only from `absent`; encountering any other state
-before a first-run or new-`run_id` upload fails before mutation. After an ambiguous mutating call,
-or within a retry attempt of the same `run_id`, `committed-as-expected` satisfies the step without
-another upload. `foreign-conflict` and `indeterminate` always fail closed, naming the state and the
-available remote evidence, without uploading, deleting, replacing, regenerating, or re-signing an
-asset.
+Pair reduction is deterministic: both assets absent are `absent`; both assets with valid matching
+GitHub `digest` evidence and successful semantic binding are `committed-as-expected`; any proved
+mismatch, cross-run ownership, or incomplete committed/absent pair is `foreign-conflict`; otherwise,
+any unresolved required evidence is `indeterminate`.
+
+The state machine must upload both candidate assets only from an `absent` pair; encountering any
+other state before a first-run or new-`run_id` upload fails before mutation. After an ambiguous
+mutating call, or within a retry attempt of the same `run_id`, `committed-as-expected` satisfies the
+pair without another upload. `foreign-conflict` and `indeterminate` always fail closed, naming the
+pair outcome and both available per-asset substates, without uploading, deleting, replacing,
+regenerating, or re-signing an asset.
 
 Run identity is the idempotency key. A retry with the same `github.run_id` may converge, including
 when `github.run_attempt` has increased; a new `github.run_id` remains a new release intent and must
@@ -733,26 +755,30 @@ same same-`run_id` procedure.
 For same-`run_id` convergence, the publication step must perform this procedure in order; failure at
 any step produces the state specified here and prevents mutation:
 
-1. Download both existing release assets through the authenticated GitHub release asset surface. If
-   only one asset exists, classify `foreign-conflict`; if existence or bytes cannot be determined,
-   classify `indeterminate`.
-2. Strictly parse the existing plain manifest and the current candidate manifest, rejecting
+1. Read both existing release asset records through the authenticated GitHub release asset surface.
+   If only one asset exists, classify the pair as `foreign-conflict`; if existence cannot be
+   determined, classify it as `indeterminate`.
+2. Require each present asset to expose a valid authoritative GitHub `digest` exactly matching
+   `sha256:<64 lowercase hexadecimal characters>` and its expected handoff SHA-256. An unequal
+   digest is `foreign-conflict`; missing, malformed, unsupported, unreadable, or contradictory
+   digest evidence is `indeterminate` and emits `manifest-remote-digest-unproven`.
+3. Strictly parse the existing plain manifest and the current candidate manifest, rejecting
    duplicate JSON member names, unknown fields, schema violations, and invalid ordering. A proved
    validation failure classifies `foreign-conflict`; an unreadable value classifies `indeterminate`.
-3. Create comparison copies of both parsed manifest values and remove the top-level `generated_at`
+4. Create comparison copies of both parsed manifest values and remove the top-level `generated_at`
    member from each copy. Remove no other field, nested member, or array element; do not normalize
    or otherwise transform string values. Failure to isolate exactly that one field classifies
    `indeterminate`.
-4. Serialize both comparison copies with RFC 8785 JCS and compare the resulting byte sequences for
+5. Serialize both comparison copies with RFC 8785 JCS and compare the resulting byte sequences for
    exact equality. Unequal bytes classify `foreign-conflict`; serialization failure classifies
    `indeterminate`.
-5. Verify the existing bundle under the signed payload rules in this spec, including that its
+6. Verify the existing bundle under the signed payload rules in this spec, including that its
    Statement predicate equals the complete existing plain manifest value with the existing
    `generated_at`, its subject digest binds that complete value, and its verified run identity
    equals the current `github.run_id`. A proved mismatch classifies `foreign-conflict`; inability to
    complete verification classifies `indeterminate`.
 
-When all five steps succeed, the result is `committed-as-expected`. The publication step must adopt
+When all six steps succeed, the result is `committed-as-expected`. The publication step must adopt
 the first commit's existing plain manifest and bundle as the committed artifacts, including the
 existing manifest's `generated_at`, complete JSON value, asset bytes, and digests; failure to use
 those existing values fails the step before reporting success. The retry's newly generated manifest
@@ -762,26 +788,56 @@ bind the first commit's original `generated_at`.
 
 If the GitHub API request or network transport becomes ambiguous after upload starts, the upload job
 must repeat the same classification procedure before reporting failure; if it cannot do so, it
-reports `indeterminate` and performs no further mutation. The lookup may use a GitHub API digest
-field only when it explicitly identifies release asset bytes with SHA-256. Otherwise it must
-download the candidate bytes through the same authenticated surface and recompute SHA-256 locally;
-failure to download or hash produces `indeterminate`. Asset IDs, browser URLs, filenames, sizes,
-content types, release notes, logs, and workflow artifact names are not digest proof and using one
-as proof fails the step as `indeterminate`.
+reports `indeterminate` and performs no further mutation. Each asset needs a valid GitHub `digest`
+that explicitly identifies release asset bytes with SHA-256 before the pair can be
+`committed-as-expected`. Downloaded bytes and local SHA-256 values are diagnostic-only evidence and
+must not establish `committed-as-expected`. Asset IDs, browser URLs, filenames, sizes, content
+types, release notes, logs, and workflow artifact names are not digest proof and using one as proof
+fails the pair as `indeterminate`.
 
-The observable result is reported through `manifest-upload-result` using exactly the four state
-names above. An auxiliary `manifest-report` job must run with `if: always()` and emit a
-machine-readable report containing the final state and available evidence even when an earlier job
-fails or is cancelled; failure to emit the report is a workflow failure and the missing report is
-never trusted as evidence of `absent` or success. The report is diagnostic and must not be accepted
-as trusted input by another run; a consumer that attempts to use it as a convergence binding must
-fail closed.
+The observable result is reported through `manifest-upload-result` using exactly the four pair
+outcome names above. An auxiliary `manifest-report` job must run with `if: always()` and emit a
+machine-readable report containing the final pair outcome and both per-asset evidence substates,
+even when an earlier job fails or is cancelled. Failure to emit the report is a workflow failure and
+the missing report is never trusted as evidence of `absent` or success. The report is diagnostic and
+must not be accepted as trusted input by another run; a consumer that attempts to use it as a
+convergence binding must fail closed.
 
-A partial pair, including a plain manifest whose bundle upload failed, is `foreign-conflict`, not a
-verified publication. The upload job must not delete, replace, clobber, re-sign, regenerate, or
+A partial pair, including a plain manifest whose bundle upload failed, is not a verified
+publication. A committed plain JSON asset plus a proven absent or mismatched bundle is
+`foreign-conflict`; a committed plain JSON asset plus bundle evidence unresolved within the polling
+bound is `indeterminate`. The `foreign-conflict` result reports `manifest-partial-json-uploaded`;
+the `indeterminate` result reports `manifest-indeterminate-json-upload`. Neither case creates a
+fifth outcome state. The upload job must not delete, replace, clobber, re-sign, regenerate, or
 repair the uploaded JSON manifest; violating this rule fails the workflow and invalidates the
 publication result. Operators must resolve partial or indeterminate release state outside the
 production manifest workflow.
+
+Valid same-run read-only convergence reports one pair outcome:
+
+```json
+{
+  "pair_outcome": "committed-as-expected",
+  "assets": {
+    "release-manifest-1.2.3.json": "digest-proven",
+    "release-manifest-1.2.3.intoto.jsonl": "digest-proven"
+  }
+}
+```
+
+The following is an invalid successful report. It is a `foreign-conflict` pair with the aggregate
+partial-upload diagnostic, not a fifth outcome:
+
+```json
+{
+  "pair_outcome": "foreign-conflict",
+  "primary_id": "windlass.verify.error.manifest-partial-json-uploaded",
+  "assets": {
+    "release-manifest-1.2.3.json": "digest-proven",
+    "release-manifest-1.2.3.intoto.jsonl": "absent"
+  }
+}
+```
 
 ## Complementary evidence
 
@@ -893,6 +949,10 @@ The release manifest workflow must fail before any mutation when:
 - The release tag or target release does not exist.
 - The release tag cannot be peeled to a terminal commit or peels to a commit that differs from
   `release_commit_sha`.
+- The target release is immutable and either required manifest asset is absent. This failure uses
+  `release-target-immutable` before any mutation.
+- The target release is immutable and the complete pair cannot satisfy same-`run_id`, digest-proven
+  semantic read-only convergence. This failure uses `release-target-immutable` before any mutation.
 - A manifest artifact with the same name already exists and the current attempt is a new `run_id`,
   or a same-`run_id` retry cannot classify the complete existing pair as `committed-as-expected`.
 - A handoff artifact contains a file whose basename differs from the fixed schema version `1`
@@ -901,6 +961,12 @@ The release manifest workflow must fail before any mutation when:
   subject name, canonical manifest digest, predicate type, predicate content, release identity, and
   artifact handles verified from the handoff.
 - The upload job cannot determine whether a started plain manifest upload committed remotely.
+- Either present manifest asset lacks a usable authoritative GitHub `digest`; downloaded bytes or a
+  local SHA-256 calculation cannot satisfy this condition. This failure uses
+  `manifest-remote-digest-unproven` with the resulting pair state.
+- A started plain JSON upload is committed while the bundle is absent or unresolved. These failures
+  use `manifest-partial-json-uploaded` for the committed/absent pair or
+  `manifest-indeterminate-json-upload` for unresolved bundle evidence.
 - The signing adapter cannot produce a valid bundle.
 - The upload job lacks the required `contents: write` permission for release asset upload.
 - The upload job has prohibited signing authority, including `id-token: write`,
@@ -918,7 +984,8 @@ The release manifest workflow must fail before any mutation when:
   wrong workflow SHA, mismatched builder/buildType, publisher entry with buildType, non-canonical
   RFC 8785 JCS manifest digest, malformed `generated_at`, tag peel failure, wrong internal handoff
   basename, malformed or mismatched signing input metadata, Statement predicate JSON value mismatch,
-  a new-`run_id` duplicate asset upload, and an `indeterminate` manifest publication.
+  a new-`run_id` duplicate asset upload, missing, malformed, or unequal GitHub `digest` evidence for
+  either asset, and an `indeterminate` manifest publication.
 - Comparator fixtures containing the valid order `["Alpha", "Zulu", "alpha", "éclair"]` and the
   rejected order `["Alpha", "alpha", "Zulu", "éclair"]`, proving code-point order without locale,
   case-folding, or Unicode normalization.
@@ -933,4 +1000,15 @@ The release manifest workflow must fail before any mutation when:
 - An invalid ADR 0067 convergence fixture in which a same-`run_id` candidate differs semantically in
   `workflow_sha`; unequal RFC 8785 JCS comparison bytes produce `foreign-conflict`, and no asset is
   uploaded, replaced, deleted, or adopted.
+- Pair-reduction fixtures proving: both assets absent reduce to `absent`; both digest-proven assets
+  with successful semantic binding reduce to `committed-as-expected`; a committed JSON asset plus an
+  absent bundle reduces to `foreign-conflict` with `manifest-partial-json-uploaded`; and a committed
+  JSON asset plus unresolved bundle evidence reduces to `indeterminate` with
+  `manifest-indeterminate-json-upload`. Downloaded bytes and locally recomputed hashes appear only
+  as diagnostics and cannot make either fixture `committed-as-expected`.
+- Immutable-target fixtures proving that mutable and draft targets accept an absent pair for upload,
+  while an immutable target with either asset absent fails before mutation with
+  `release-target-immutable`. A complete immutable pair passes only as digest-proven same-`run_id`
+  read-only convergence; cross-run or indeterminate immutable evidence fails with
+  `release-target-immutable`.
 - A fixture proving that `manifest-upload` cannot re-sign or mutate the manifest.

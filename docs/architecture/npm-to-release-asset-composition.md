@@ -14,7 +14,10 @@ tarball producer feeding the GitHub Release asset publisher.
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
   [0059](../decisions/0059-define-public-npm-release-composed-workflow-interface.md),
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
-  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
+  [0062](../decisions/0062-intersect-trusted-producer-policies.md),
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
+  [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
+  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Composed workflow internal handoff](composed-workflow-internal-handoff.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
@@ -76,8 +79,9 @@ The npm producer is responsible for:
 - Installing dependencies, running the build script, and packing the tarball.
 - Generating the Windlass SLSA provenance v1 Statement for the tarball.
 - Signing the provenance with `actions/attest`.
-- Publishing to the npm registry using `npm publish --provenance-file`.
 - Making the tarball and provenance bundle available to a same-run composition mapping layer.
+- Publishing to the npm registry using `npm publish --provenance-file` only after the composed
+  release-state and policy preflight passes.
 
 ## Composition execution boundary
 
@@ -113,6 +117,37 @@ handoff manifest artifact name and manifest SHA-256 through internal same-run jo
 the producer job. Those internal outputs are not public `workflow_call.outputs`; they exist only for
 the composed workflow graph that connects the producer to the publisher in the same run.
 
+The observable composed ordering is:
+
+```text
+build/pack/sign/handoff
+  -> read-only release-state and policy preflight
+  -> npm publish or same-run npm convergence
+  -> publisher upload or same-run read-only convergence
+```
+
+Before the release-state preflight, the mapping layer must verify the handoff and derive both
+expected release asset names and their SHA-256 digests from it: the tarball `final-asset-name` and
+`expected-sha256`, plus the deterministic sidecar name and `producer-provenance-sha256`. It must not
+derive either expected asset or digest from public outputs, deterministic naming alone, logs, or
+caller values.
+
+The read-only preflight must select the publisher's closed producer-policy registry from the
+verified `trusted_producer.build_type`, verify that the selected policy admits the handoff and
+producer provenance, and read the existing target release's `draft` and `immutable` state and both
+expected asset states. An absent or unknown selector fails before `npm publish` with
+`windlass.verify.error.unregistered-producer-build-type`. Handoff and caller values are constraints
+on the selected policy only. They cannot register, extend, replace, relax, union with, or override a
+producer policy.
+
+If the target is immutable and either expected asset is absent, foreign, or indeterminate, the
+workflow must fail before `npm publish` with `windlass.verify.error.release-target-immutable`. An
+immutable complete target may proceed only when the npm publish step and every release mutation step
+can satisfy same-`run_id` read-only convergence. The preflight is fail-fast evidence only. It grants
+no release mutation authority, and the publisher must re-read and revalidate target state when its
+release mutation segment begins. It must never use the earlier preflight result as mutation
+authorization.
+
 If a future release process needs to connect separately invoked reusable workflows through public
 outputs, that is a new composition contract and must be specified separately.
 
@@ -127,6 +162,12 @@ The publisher is responsible for:
 - Uploading the unchanged producer provenance bundle as the sidecar.
 - Exposing native provenance locators if available.
 
+The publisher retains all GitHub Release mutation authority. The build, signing, npm publish, and
+mapping jobs may perform the read-only preflight but must not upload, replace, delete, or otherwise
+mutate release assets. Before any publisher upload segment, the publisher must re-read the target
+release state and revalidate both expected assets against the verified handoff and selected closed
+policy. This mutation-entry revalidation is mandatory even when the preflight passed.
+
 ## Handoff field mapping
 
 The publisher inputs are constructed from the digest-verified internal handoff manifest, not from
@@ -134,22 +175,22 @@ public npm producer outputs, deterministic names, logs, or caller-supplied value
 outputs such as `package-tarball-sha256` and `package-tarball-name` may be compared against the
 manifest for diagnostics, but they are not trusted mapping sources for the publisher contract.
 
-| Verified handoff manifest source     | Publisher handoff field             | Notes                                                               |
-| ------------------------------------ | ----------------------------------- | ------------------------------------------------------------------- |
-| `primary_artifact.artifact_name`     | `primary-artifact-name`             | Same-run workflow artifact containing the tarball.                  |
-| `primary_artifact.sha256`            | `expected-sha256`                   | Canonical digest.                                                   |
-| `release.final_asset_name`           | `final-asset-name`                  | Release asset name equals the pack-produced tarball name.           |
-| `release.tag`                        | `release-tag`                       | Same full `refs/tags/<tag-name>` ref used by the npm release.       |
-| `producer_provenance.artifact_name`  | `producer-provenance-artifact-name` | Same-run artifact containing the signed DSSE bundle.                |
-| `producer_provenance.sha256`         | `producer-provenance-sha256`        | Canonical bundle digest.                                            |
-| `trusted_producer.builder_id`        | `trusted-builder-id`                | From the release manifest or explicit policy.                       |
-| `trusted_producer.build_type`        | `trusted-build-type`                | `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`. |
-| `subject.name`                       | `expected-subject-name`             | npm Package URL subject from producer provenance.                   |
-| `subject.sha256`                     | `expected-subject-sha256`           | Must equal uploaded tarball bytes.                                  |
-| `trusted_producer.source_repository` | `source-repository`                 | Required canonical HTTPS source repository URL.                     |
-| `trusted_producer.source_revision`   | `source-revision`                   | Required full source revision; GitHub Git sources use 40-char SHA.  |
-| `native_provenance_locators`         | `native-provenance-locators`        | Optional array of locator objects defined by the publisher spec.    |
-| `linked_artifact_settings`           | `linked-artifact-settings`          | Optional settings object defined by the publisher spec.             |
+| Verified handoff manifest source     | Publisher handoff field             | Notes                                                              |
+| ------------------------------------ | ----------------------------------- | ------------------------------------------------------------------ |
+| `primary_artifact.artifact_name`     | `primary-artifact-name`             | Same-run workflow artifact containing the tarball.                 |
+| `primary_artifact.sha256`            | `expected-sha256`                   | Canonical digest.                                                  |
+| `release.final_asset_name`           | `final-asset-name`                  | Release asset name equals the pack-produced tarball name.          |
+| `release.tag`                        | `release-tag`                       | Same full `refs/tags/<tag-name>` ref used by the npm release.      |
+| `producer_provenance.artifact_name`  | `producer-provenance-artifact-name` | Same-run artifact containing the signed DSSE bundle.               |
+| `producer_provenance.sha256`         | `producer-provenance-sha256`        | Canonical bundle digest.                                           |
+| `trusted_producer.builder_id`        | `trusted-builder-id`                | Narrowing constraint on the selected registry policy.              |
+| `trusted_producer.build_type`        | `trusted-build-type`                | Exact closed-registry selector, not a policy extension.            |
+| `subject.name`                       | `expected-subject-name`             | npm Package URL subject from producer provenance.                  |
+| `subject.sha256`                     | `expected-subject-sha256`           | Must equal uploaded tarball bytes.                                 |
+| `trusted_producer.source_repository` | `source-repository`                 | Required canonical HTTPS source repository URL.                    |
+| `trusted_producer.source_revision`   | `source-revision`                   | Required full source revision; GitHub Git sources use 40-char SHA. |
+| `native_provenance_locators`         | `native-provenance-locators`        | Optional array of locator objects defined by the publisher spec.   |
+| `linked_artifact_settings`           | `linked-artifact-settings`          | Optional settings object defined by the publisher spec.            |
 
 The mapping job must verify that manifest-derived values agree with the npm producer provenance
 before invoking the publisher. For example, `trusted_producer.source_repository` must equal
@@ -158,6 +199,14 @@ before invoking the publisher. For example, `trusted_producer.source_repository`
 `release.final_asset_name` must equal `primary_artifact.payload_file_name`. A mismatch is a
 composition failure, not a reason to replace a manifest field with a public workflow output or
 deterministic name.
+
+For this composition, `trusted_producer.build_type` must exactly select the publisher's sole
+registered policy, `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`. The mapping
+layer must reject a missing or unknown value before the release-state preflight and before
+`npm publish` with `windlass.verify.error.unregistered-producer-build-type`. It must pass the
+selected value unchanged as `trusted-build-type`; it must not use handoff or caller values to add a
+registry entry or override the registered signer, builder, subject, digest, source, release-ref,
+tarball-name, or closed `externalParameters` baseline.
 
 The mapping job must also verify the npm release binding before invoking the publisher. For this
 composition, all of the following values must be the same full Git tag ref:
@@ -227,11 +276,18 @@ The sidecar must contain the same signed bundle bytes that the npm producer gene
 publisher verified, byte-for-byte. The publisher must not extract only the Statement, reserialize
 the bundle, or substitute a native provenance locator for the sidecar file.
 
-Before uploading the npm tarball, the publisher must preflight-check that neither the tarball asset
-name nor the deterministic sidecar name already exists on the target GitHub Release. If either name
-exists, the composition fails without mutating the release. A sidecar upload failure after primary
-asset upload is a partial failure only when the duplicate preflight passed and a later upload/API
-failure occurred.
+This publisher preflight occurs at release mutation-segment entry and is distinct from the earlier
+composed preflight before `npm publish`. Before uploading the npm tarball, it must re-read the
+target's `draft` and `immutable` state and classify both handoff-derived expected assets. A
+pre-existing tarball asset name or deterministic sidecar name fails without release mutation when it
+belongs to a new or different `run_id`, or when the required digest and same-run binding or
+convergence proof cannot be established. When revalidation classifies both existing assets as a
+complete same-`run_id` set satisfying read-only convergence, their presence is the expected
+convergence state, not a duplicate failure, and the publisher must finish without mutation. An
+immutable target with an incomplete asset set must fail with
+`windlass.verify.error.release-target-immutable` without upload. A sidecar upload failure after
+primary asset upload is a partial failure only when this qualified duplicate preflight permits the
+primary upload and a later upload/API failure occurs.
 
 ## npm-specific fields as producer metadata
 
@@ -275,6 +331,15 @@ extensions. The mapping layer must pass them from npm provenance `externalParame
 the publisher must verify exact equality before upload. A missing source repository, a branch or tag
 name in place of a revision, a short SHA, or a value that differs from npm producer provenance is a
 composition failure.
+
+`trusted-build-type` is the exact selector for the publisher's closed producer-policy registry. For
+this composition, it selects only
+`https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`; an absent or unknown value fails
+before `npm publish` and before any release upload with
+`windlass.verify.error.unregistered-producer-build-type`. The registry baseline, verified handoff,
+authenticated release manifest, and caller constraints intersect. The mapping layer and publisher
+must reject a conflict rather than allow a handoff or caller value to widen, register, or override a
+policy.
 
 The mapping layer must pass `release.tag` to the publisher as a full Git tag ref, such as
 `refs/tags/v1.2.3`. It must not pass the short tag name from `release.version_tag` or derive a short
@@ -330,7 +395,14 @@ The following must be rejected by the publisher:
 - A producer provenance missing the mandatory npm subject SHA-512 or SHA-256 digest.
 - A producer provenance whose `externalParameters.source.ref`, `externalParameters.release.ref`, or
   reconstructed `release.version_tag` differs from the publisher `release-tag`.
-- A producer provenance with a non-npm `buildType` unless the policy explicitly allows it.
+- A composed ordering that performs `npm publish` before handoff-derived release-state and policy
+  preflight.
+- A missing or unknown producer `buildType`, including any value other than the sole registered npm
+  policy selector (`unregistered-producer-build-type`).
+- An immutable target with either expected handoff-derived asset absent, foreign, or indeterminate
+  before `npm publish` (`release-target-immutable`).
+- A stale preflight observation presented as authority for publisher mutation.
+- Any handoff or caller attempt to register, widen, or override a producer policy.
 - Any attempt to use npm-specific fields to bypass the generic handoff contract.
 
 ## Future producer profile compatibility
@@ -357,7 +429,15 @@ The composition must fail when:
 - The publisher cannot verify the producer provenance.
 - The npm Package URL subject, tarball filename binding, or digest does not align.
 - The release target does not exist.
-- The primary asset name or deterministic sidecar name already exists on the target release.
+- The read-only preflight finds an immutable target whose required handoff-derived asset set cannot
+  complete same-`run_id` convergence. It must fail before `npm publish` with
+  `windlass.verify.error.release-target-immutable`.
+- The verified `trusted_producer.build_type` is missing or unregistered. It must fail before
+  `npm publish` with `windlass.verify.error.unregistered-producer-build-type`.
+- Publisher mutation-entry revalidation fails or differs from the earlier preflight. The publisher
+  must fail before release mutation and must not reuse the stale preflight as authorization.
+- The primary asset name or deterministic sidecar name already exists on a mutable target without
+  same-`run_id` convergence proof.
 - The primary asset upload succeeds but the sidecar upload fails.
 
 ## TDD and fixtures
@@ -365,6 +445,12 @@ The composition must fail when:
 - Positive fixture: npm tarball successfully composes with the publisher.
 - Rejected fixtures: raw tarball without provenance, npm Package URL subject mismatch, tarball
   filename binding mismatch, digest mismatch, npm-specific publisher coupling, pre-existing primary
-  or sidecar release asset name, and unsupported producer `buildType`.
+  or sidecar release asset name, a composed ordering that reaches `npm publish` before preflight, an
+  unknown `buildType` (`unregistered-producer-build-type`), an immutable target with a partial asset
+  set before `npm publish` (`release-target-immutable`), and a stale preflight result reused at
+  publisher mutation entry.
 - A fixture proving that the publisher remains producer-neutral when the same handoff is constructed
   from a different producer profile (mock or stub).
+- A review checklist proving that expected asset names and digests come from the verified handoff,
+  policy selection uses the publisher's closed registry, immutable-incomplete targets fail before
+  npm mutation, and publisher mutation-entry revalidation never trusts an early preflight result.

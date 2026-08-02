@@ -281,6 +281,7 @@ fields must be rejected by producer-side verification and by strict consumer pol
     "name": "@windlass/slsa-builder",
     "version": "1.2.3",
     "private": false,
+    "repository": "https://github.com/example/project",
     "tarball_name": "windlass-slsa-builder-1.2.3.tgz",
     "package_url": "https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3",
     "packed_name": "@windlass/slsa-builder",
@@ -335,7 +336,7 @@ listed below as the only allowed additions:
 | `source`          | `repository`, `ref`, `revision`, `event_name`, `ref_type`                                                                                                                                                                                                                   | none                                                     |
 | `workflow`        | `path`, `sha`, `builder_id`                                                                                                                                                                                                                                                 | none                                                     |
 | `runtime`         | `runner`, `node_version`, `npm_version`                                                                                                                                                                                                                                     | none                                                     |
-| `package`         | `directory`, `workspace_root`, `source_manifest`, `name`, `version`, `private`, `tarball_name`, `package_url`, `packed_name`, `packed_version`                                                                                                                              | `publish_config_raw`, `packed_files`, `consumer_surface` |
+| `package`         | `directory`, `workspace_root`, `source_manifest`, `name`, `version`, `private`, `repository`, `tarball_name`, `package_url`, `packed_name`, `packed_version`                                                                                                                | `publish_config_raw`, `packed_files`, `consumer_surface` |
 | `package_manager` | `name`, `version`, `selection_source`, `selection_manifest`, `selection_manifest_path`, `selection_lockfile_path`, `root`                                                                                                                                                   | `ignored_lockfile_paths`, `yarn_install_mode`            |
 | `publish`         | `input_registry_url`, `input_dist_tag`, `input_access`, `publish_config`, `resolved_registry_url`, `resolved_dist_tag`, `publish_access_option`, `effective_access`, `trusted_publishing`, `provenance_file`, `package_identity_preexisting`, `package_version_preexisting` | `custom_registry_support`                                |
 | `release`         | `ref`, `version_tag`                                                                                                                                                                                                                                                        | none                                                     |
@@ -397,6 +398,18 @@ Type and nullability rules:
 - `package.name`, `package.version`, and `package.private` must come from the validated source
   manifest.
 - `package.private` must be `false`.
+- `package.repository` must be the normalized canonical repository identity produced from the source
+  manifest `repository` value by the accepted forms and normalization rules in the
+  [build and pack specification](js-ts-npm-build-pack.md#repository-identity-validation). Its value
+  must be exactly `https://github.com/<lowercase-owner>/<lowercase-repository>`.
+- `package.repository`, `source.repository`, and the observed caller repository identity must be
+  byte-for-byte equal after the required canonical normalization. A missing, malformed, or unequal
+  repository identity fails before signing with
+  `windlass.verify.error.package-repository-identity-mismatch`.
+- The closed `package` object must not include the raw source-manifest `repository` spelling or any
+  other raw package metadata. Raw, non-trust package metadata belongs only in the
+  `diagnostic_metadata.package_manifest` report surface defined by the
+  [verification policy and fixtures](verification-policy-and-fixtures.md#producer-diagnostic-metadata-extension).
 - `package.tarball_name` must equal the basename of the pack-produced tarball and must not be
   treated as the npm provenance subject name.
 - `package.package_url` must be the registry package-version URL reconstructed from
@@ -524,6 +537,129 @@ Rejected examples include `git@github.com:WindlassTech/Example.git`,
 Producer-side verification must reject the bundle before publish when `source.repository` is
 missing, cannot be canonicalized by these rules, or differs from the observed caller repository
 identity after case-insensitive GitHub owner/repository comparison.
+
+The normalized `package.repository` value must use this same canonical form and must be exactly
+equal to `source.repository` and the observed caller repository identity. The profile must reject a
+missing, malformed, or mismatched member before signing with
+`windlass.verify.error.package-repository-identity-mismatch`.
+
+Valid complete-schema repository identity example:
+
+```json
+{
+  "source": {
+    "repository": "https://github.com/example/project",
+    "ref": "refs/tags/v1.2.3",
+    "revision": "0123456789abcdef0123456789abcdef01234567",
+    "event_name": "push",
+    "ref_type": "tag"
+  },
+  "workflow": {
+    "path": ".github/workflows/js-ts-npm-package-slsa3.yml",
+    "sha": "0123456789abcdef0123456789abcdef01234567",
+    "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@0123456789abcdef0123456789abcdef01234567"
+  },
+  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.0.0", "npm_version": "11.5.1" },
+  "package": {
+    "directory": ".",
+    "workspace_root": null,
+    "source_manifest": "package.json",
+    "name": "@windlass/slsa-builder",
+    "version": "1.2.3",
+    "private": false,
+    "repository": "https://github.com/example/project",
+    "tarball_name": "windlass-slsa-builder-1.2.3.tgz",
+    "package_url": "https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3",
+    "packed_name": "@windlass/slsa-builder",
+    "packed_version": "1.2.3"
+  },
+  "package_manager": {
+    "name": "pnpm",
+    "version": "10.0.0",
+    "selection_source": "packageManager",
+    "selection_manifest": "package.json",
+    "selection_manifest_path": "package.json",
+    "selection_lockfile_path": null,
+    "root": "."
+  },
+  "publish": {
+    "input_registry_url": null,
+    "input_dist_tag": null,
+    "input_access": null,
+    "publish_config": null,
+    "resolved_registry_url": "https://registry.npmjs.org/",
+    "resolved_dist_tag": "latest",
+    "publish_access_option": null,
+    "effective_access": "existing-package-access",
+    "trusted_publishing": true,
+    "provenance_file": true,
+    "package_identity_preexisting": true,
+    "package_version_preexisting": false
+  },
+  "release": { "ref": "refs/tags/v1.2.3", "version_tag": "v1.2.3" },
+  "build": { "script_present": true, "script_result": "executed" }
+}
+```
+
+Invalid complete-schema repository identity example, which fails before signing with
+`windlass.verify.error.package-repository-identity-mismatch` because `package.repository` differs
+from the normalized source and observed caller identity:
+
+```json
+{
+  "source": {
+    "repository": "https://github.com/example/project",
+    "ref": "refs/tags/v1.2.3",
+    "revision": "0123456789abcdef0123456789abcdef01234567",
+    "event_name": "push",
+    "ref_type": "tag"
+  },
+  "workflow": {
+    "path": ".github/workflows/js-ts-npm-package-slsa3.yml",
+    "sha": "0123456789abcdef0123456789abcdef01234567",
+    "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@0123456789abcdef0123456789abcdef01234567"
+  },
+  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.0.0", "npm_version": "11.5.1" },
+  "package": {
+    "directory": ".",
+    "workspace_root": null,
+    "source_manifest": "package.json",
+    "name": "@windlass/slsa-builder",
+    "version": "1.2.3",
+    "private": false,
+    "repository": "https://github.com/example/other-project",
+    "tarball_name": "windlass-slsa-builder-1.2.3.tgz",
+    "package_url": "https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3",
+    "packed_name": "@windlass/slsa-builder",
+    "packed_version": "1.2.3"
+  },
+  "package_manager": {
+    "name": "pnpm",
+    "version": "10.0.0",
+    "selection_source": "packageManager",
+    "selection_manifest": "package.json",
+    "selection_manifest_path": "package.json",
+    "selection_lockfile_path": null,
+    "root": "."
+  },
+  "publish": {
+    "input_registry_url": null,
+    "input_dist_tag": null,
+    "input_access": null,
+    "publish_config": null,
+    "resolved_registry_url": "https://registry.npmjs.org/",
+    "resolved_dist_tag": "latest",
+    "publish_access_option": null,
+    "effective_access": "existing-package-access",
+    "trusted_publishing": true,
+    "provenance_file": true,
+    "package_identity_preexisting": true,
+    "package_version_preexisting": false
+  },
+  "release": { "ref": "refs/tags/v1.2.3", "version_tag": "v1.2.3" },
+  "build": { "script_present": true, "script_result": "executed" }
+}
+```
 
 ### Release ref equality
 
@@ -702,17 +838,17 @@ caller repository and release ref.
 The npm producer verifier must bind the semantic identity fields from the common SLSA provenance
 contract to the npm profile values as follows:
 
-| Semantic field             | Required npm producer value                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| OIDC issuer                | GitHub Actions.                                                                                                           |
-| Signer workflow repository | `windlasstech/slsa-builder`.                                                                                              |
-| Signer workflow path       | `.github/workflows/js-ts-npm-package-slsa3.yml`.                                                                          |
-| Signer workflow SHA        | Full commit SHA from `externalParameters.workflow.sha` and the SHA suffix of `runDetails.builder.id`.                     |
-| Signer workflow ref        | Must not be a branch, tag, pull request ref, or short SHA when the tool exposes it separately from the full workflow SHA. |
-| Source repository          | Canonical GitHub source repository URL from `externalParameters.source.repository` and the trusted producer policy.       |
-| Source ref                 | Full release tag ref from `externalParameters.source.ref` and `externalParameters.release.ref`.                           |
-| Source revision            | Full 40-character lowercase commit SHA from `externalParameters.source.revision` and the trusted producer policy.         |
-| Predicate type             | `https://slsa.dev/provenance/v1`.                                                                                         |
+| Semantic field             | Required npm producer value                                                                                                                                                |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OIDC issuer                | GitHub Actions.                                                                                                                                                            |
+| Signer workflow repository | `windlasstech/slsa-builder`.                                                                                                                                               |
+| Signer workflow path       | `.github/workflows/js-ts-npm-package-slsa3.yml`.                                                                                                                           |
+| Signer workflow SHA        | Full commit SHA from `externalParameters.workflow.sha` and the SHA suffix of `runDetails.builder.id`.                                                                      |
+| Signer workflow ref        | Must not be a branch, tag, pull request ref, or short SHA when the tool exposes it separately from the full workflow SHA.                                                  |
+| Source repository          | Canonical GitHub source repository URL exactly equal to `externalParameters.package.repository`, `externalParameters.source.repository`, and the observed caller identity. |
+| Source ref                 | Full release tag ref from `externalParameters.source.ref` and `externalParameters.release.ref`.                                                                            |
+| Source revision            | Full 40-character lowercase commit SHA from `externalParameters.source.revision` and the trusted producer policy.                                                          |
+| Predicate type             | `https://slsa.dev/provenance/v1`.                                                                                                                                          |
 
 When a verification tool exposes both reusable-workflow identity claims and caller-workflow/source
 claims, the reusable-workflow claims must satisfy the signer workflow rows above and the caller
@@ -721,6 +857,11 @@ the trusted Windlass workflow identity is correct but the caller source reposito
 source revision differs from the signed `externalParameters`, and it must also reject a bundle when
 the caller source identity is correct but the signer workflow path or SHA is not the trusted
 Windlass reusable workflow identity.
+
+The producer verifier must also reject the bundle before publish with
+`windlass.verify.error.package-repository-identity-mismatch` when normalized
+`externalParameters.package.repository`, `externalParameters.source.repository`, and the observed
+caller repository identity are not exactly equal.
 
 The npm verifier must use the common signer identity fallback and conflict rules from
 [SLSA provenance v1](slsa-provenance-v1.md#signer-identity-verification-inputs). All signer,
@@ -749,8 +890,10 @@ publish.
   exact byte sequence emitted by the `actions/attest` custom-mode invocation, parses as the expected
   Sigstore bundle, and contains an extracted Statement matching the Windlass-verified signing
   inputs. Missing files, raw Statement files, reserialized bundle files, GitHub attestation storage
-  locator files, digest mismatches, Statement mismatches, or npm CLI rejection of the external
-  provenance file must fail closed before registry mutation.
+  locator files, digest mismatches, and Statement mismatches must fail closed before registry
+  mutation. For a non-npmjs registry, rejection of the exact external provenance file fails at the
+  publish boundary with `windlass.verify.error.custom-registry-provenance-submission-rejected`; the
+  diagnostic report must state whether publication could have committed.
 - Before running `npm publish` to `https://registry.npmjs.org/`, the profile must check whether
   npmjs already has the package identity and package version. If the package identity does not
   already exist, the workflow must fail clearly before attempting registry mutation because first
@@ -777,8 +920,12 @@ publish.
   diagnostic limitation, not a Windlass-guaranteed pre-publish gate. A check that requires
   `NPM_TOKEN`, `NODE_AUTH_TOKEN`, OTP, publish credentials, unsigned provenance, npm automatic
   provenance fallback, or any other weakening of the production contract must fail before registry
-  mutation. The custom registry still must complete tokenless publish with the external provenance
-  bundle; otherwise `npm publish` fails and the workflow must fail.
+  mutation with `windlass.verify.error.custom-registry-token-required` when the condition is a token
+  or OTP requirement, or with `windlass.verify.error.custom-registry-provenance-weakened` when it
+  weakens exact external bundle submission. The custom registry still must complete tokenless
+  publish with the external provenance bundle; otherwise tokenless authentication rejection fails at
+  the authentication or publish boundary with
+  `windlass.verify.error.custom-registry-tokenless-auth-failed`.
 
 The minimum non-npmjs publish contract is the same external provenance contract as npmjs, minus
 Windlass-guaranteed registry metadata semantics. The profile may proceed only when `npm publish` can
@@ -789,6 +936,12 @@ before registry mutation if the registry or npm CLI path requires token credenti
 registry-specific secret material, unsigned provenance, npm automatic provenance, omission of the
 Windlass bundle, rewriting or re-signing of the bundle, or silently dropping a non-empty
 caller-supplied `access` value in order to publish.
+
+If a custom registry rejects a caller-supplied non-empty `access` option during the tokenless
+publish flow without proving that a token or OTP is required, the publish must fail at the publish
+boundary with `windlass.verify.error.custom-registry-access-option-rejected`. The accepted publish
+flow has not committed; the diagnostic report must state whether any registry mutation could
+nevertheless have committed.
 
 > [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
 > milestone. The behavior in this section remains the eventual contract but is deferred:
@@ -899,8 +1052,17 @@ preflight metadata checks are recorded as `null` values in `externalParameters`;
 reported as Windlass-guaranteed registry support and are not by themselves workflow failures.
 Metadata or linkage checks that require publish credentials, token fallback, unsigned provenance,
 npm automatic provenance, or omission of the external provenance bundle are hard failures. A custom
-registry still must accept tokenless publish with the external provenance bundle; otherwise
-`npm publish` fails and the workflow must fail.
+registry still must accept tokenless publish with the exact external provenance bundle; otherwise
+the authentication or publish-boundary failure is
+`windlass.verify.error.custom-registry-tokenless-auth-failed` or
+`windlass.verify.error.custom-registry-provenance-submission-rejected`, as applicable.
+
+After a non-npmjs publish attempt, missing required linkage metadata fails post-publication with
+`windlass.verify.error.custom-registry-linkage-metadata-absent`. Absent, malformed, incompatible, or
+mismatched digest semantics fail post-publication with
+`windlass.verify.error.custom-registry-digest-semantics-mismatch`. Each diagnostic report must state
+that publication may already have committed. These are fail-clearly observations, not successful
+custom-registry conformance.
 
 Consumer verifiers must preserve this distinction. A non-npmjs provenance bundle with
 `publish.custom_registry_support: "unsupported-but-not-blocked"` and `null` preflight fields can be
@@ -949,7 +1111,9 @@ Before `npm publish`, the `publish` job must verify:
 6. The `subject[0].digest.sha512` matches the tarball bytes.
 7. The `subject[0].digest.sha256` matches the tarball bytes.
 8. The `subject[0].name` matches the expected npm Package URL.
-9. The `externalParameters` match the expected schema and values, including `package.tarball_name`.
+9. The `externalParameters` match the expected schema and values, including `package.tarball_name`
+   and exact equality among normalized `package.repository`, `source.repository`, and the observed
+   caller repository identity.
 10. The emitted Statement matches the subject inputs, predicate type, and predicate that Windlass
     verified before invoking `actions/attest`.
 
@@ -971,6 +1135,9 @@ The `publish` job must fail before `npm publish` when:
 - Emitted Statement mismatch after `actions/attest` construction.
 - Unexpected or mismatched `externalParameters`.
 - Source identity mismatch.
+- `package.repository` is missing, malformed, or differs from `source.repository` or the observed
+  caller repository identity. The job emits
+  `windlass.verify.error.package-repository-identity-mismatch`.
 - Package identity mismatch.
 - Package identity does not already exist on npmjs when publishing to `https://registry.npmjs.org/`.
 - Package version already exists on npmjs for a new `github.run_id` when publishing to
@@ -985,6 +1152,16 @@ verification reaches `foreign-conflict` or `indeterminate`. This is a partial-pu
 the package version may already exist in the registry, and the workflow must report the final state
 and integrity evidence instead of retrying with weaker publication or provenance behavior.
 
+For a non-npmjs registry, the job must fail at the authentication or publish boundary when tokenless
+authentication fails, the registry rejects the exact external provenance file, or the registry
+rejects a caller-supplied non-empty `access` option without proving a token or OTP requirement. The
+access-option rejection uses `windlass.verify.error.custom-registry-access-option-rejected`; the
+report must state that the accepted publish flow has not committed and whether any mutation could
+have committed. The job must fail post-publication when linkage metadata is absent or digest
+semantics are absent, malformed, incompatible, or mismatched. Each post-publication failure must
+report that publication may already have committed and must not retry with a token, automatic
+provenance, unsigned provenance, or an altered bundle.
+
 The profile must not fall back to:
 
 - npm automatic provenance.
@@ -995,7 +1172,7 @@ The profile must not fall back to:
 
 ## TDD and fixtures
 
-- Positive fixture: accepted signed bundle leading to successful `npm publish`.
+- Positive fixture: accepted signed bundle leading to successful npmjs `npm publish`.
 - Positive convergence fixture: a retry attempt within the same `github.run_id` observes an existing
   version, polls `dist.integrity`, proves an exact sha512 SRI match, classifies
   `committed-as-expected`, and continues without another publish call. The same result is valid when
@@ -1007,7 +1184,19 @@ The profile must not fall back to:
   trusted publisher caller identity mismatch, emitted Statement mismatch, npmjs post-publish
   metadata mismatch, tarball-filename npm subject, missing `sha512`, missing `sha256`, `sha512` or
   `sha256` digest mismatch, multiple subjects, raw Statement used as the provenance file, and npm
-  automatic provenance fallback attempt.
+  automatic provenance fallback attempt, package repository identity missing, malformed, or
+  mismatched after normalization (`package-repository-identity-mismatch`), custom registry token or
+  OTP requirement before mutation (`custom-registry-token-required`), weakened external provenance
+  before mutation (`custom-registry-provenance-weakened`), tokenless authentication failure at the
+  authentication or publish boundary (`custom-registry-tokenless-auth-failed`), exact external
+  provenance-file rejection at publish with commit status reported
+  (`custom-registry-provenance-submission-rejected`), missing linkage metadata after publication
+  (`custom-registry-linkage-metadata-absent`), and absent, malformed, incompatible, or mismatched
+  digest semantics after publication with possible committed publication reported
+  (`custom-registry-digest-semantics-mismatch`), and custom-registry rejection of a caller-supplied
+  non-empty `access` option without token or OTP proof, with ambiguous cause and possible mutation
+  status reported (`custom-registry-access-option-rejected`) as defined by the central fixture
+  contract.
 - Rejected convergence fixture: a same-`github.run_id` retry observes a well-formed but unequal
   `dist.integrity`, classifies `foreign-conflict`, and fails without adopting or republishing the
   version.
@@ -1015,3 +1204,5 @@ The profile must not fall back to:
   `cancel-in-progress: false`; a queued contender revalidates at segment entry; and a key containing
   `github.workflow` is rejected as a self-cancellation hazard.
 - A fixture proving that the `publish` job cannot publish without the signed bundle.
+- Successful registry-conformance fixtures use `https://registry.npmjs.org/` only. Synthetic custom
+  registry fixtures cover warning and fail-clearly behavior only.
