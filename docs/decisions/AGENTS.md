@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0067`.
+`0068`.
 
 ## STRUCTURE
 
@@ -25,11 +25,12 @@ docs/decisions/
 ├── 0065-use-closed-status-grammar-with-separate-relations-field.md
 ├── 0066-serialize-release-mutations-with-job-class-concurrency.md
 ├── 0067-converge-repeated-runs-within-run-identity.md
+├── 0068-bind-verification-to-immutable-builder-and-source-identities.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0067`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0068`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -48,6 +49,7 @@ groupings.
 | ADR lifecycle metadata        | `0065`                         | Closed status grammar and relations field.                      |
 | Release run ownership         | `0066`                         | Job-class concurrency and mutation segment serialization.       |
 | Repeated run recovery         | `0067`                         | Run-identity convergence, outcome states, binding proofs.       |
+| Verifier identity binding     | `0068`                         | Immutable builder/source identities for verification.           |
 
 ## CONVENTIONS
 

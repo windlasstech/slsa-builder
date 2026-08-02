@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0067`까지입니다.
+`0068`까지입니다.
 
 | 범위      | 주제                               | 설명                                                       |
 | --------- | ---------------------------------- | ---------------------------------------------------------- |
@@ -49,6 +49,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0065      | ADR 생애주기 메타데이터            | 닫힌 status 문법과 relations 필드.                         |
 | 0066      | 릴리즈 mutation 런 소유권          | 잡 클래스 concurrency와 직렬화된 mutation segment.         |
 | 0067      | 반복 run 수렴                      | Run-identity 멱등성, 결과 상태, binding 증명.              |
+| 0068      | 검증자 신원 바인딩                 | 검증을 위한 불변 builder 및 source 신원.                   |
 
 ## ADR status와 relations
 
@@ -175,6 +176,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0065 | Use a closed status grammar and a separate relations field         | 프로세스; 런타임 명세 불필요                                                                            |
 | 0066 | Serialize release mutations with job-class concurrency             | GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy                   |
 | 0067 | Converge repeated runs within run identity                         | Release manifest, GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy |
+| 0068 | Bind verification to immutable builder and source identities       | Verification policy, release manifest, JS/TS npm provenance and publish                                 |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
