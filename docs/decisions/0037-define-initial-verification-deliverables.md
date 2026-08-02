@@ -10,6 +10,11 @@ relations:
     scope:
       "the identity binding depth of the documented verifier policy and the producer publish gate;
       ADR 0068 pins the required bindings"
+  - type: amended-by
+    target: ADR-0069
+    scope:
+      "the transparency log, timestamping, and trust root requirements of the documented verifier
+      policy and the producer publish gate"
 ---
 
 # Define Initial Verification Deliverables

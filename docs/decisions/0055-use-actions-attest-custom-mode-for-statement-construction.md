@@ -7,6 +7,8 @@ decision-makers: Yunseo Kim
 relations:
   - type: see-also
     target: ADR-0068
+  - type: see-also
+    target: ADR-0069
 ---
 
 # Use actions/attest Custom Mode for Statement Construction
