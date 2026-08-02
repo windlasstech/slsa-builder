@@ -84,8 +84,7 @@ are decided by the follow-up ADR 0069.
 - Standard binding: exact issuer, signer workflow ref, signer workflow SHA, source repository name,
   ref, and SHA, GitHub-hosted runners only.
 - Maximal binding: standard binding plus immutable numeric source repository and owner IDs and the
-  Run Invocation URI, with expectations carried by the release manifest and explicit verifier
-  policy.
+  Run Invocation URI, with expectations carried by the explicit verifier policy.
 
 ## Decision Outcome
 
@@ -113,10 +112,13 @@ following bindings, failing closed on any mismatch, absence, or malformed value:
 6. **Runner trust**: only GitHub-hosted runner identities are accepted; self-hosted runner
    provenance is rejected in the production path.
 
-The signed release manifest and the explicit verifier policy carry the expected values, including
-the numeric IDs, so that ADR 0062's policy intersection operates over immutable keys rather than
-names. A caller learns its own repository and owner IDs through the GitHub API and supplies them as
-policy input; the architecture specifications define the exact schema fields.
+The explicit verifier policy, or another independently configured verifier-expectation source,
+carries the expected values, including the numeric IDs, so that ADR 0062's policy intersection
+operates over immutable keys rather than names. The signed release manifest carries no
+caller-specific source identity: ADR 0062 closes its schema version 1, and the manifest signer has
+no authority to decide which caller repository is canonical for a downstream package. A caller
+learns its own repository and owner IDs through the GitHub API and supplies them as policy input;
+the architecture specifications define the exact policy schema fields.
 
 Because every identity value comes from the GitHub OIDC token or the Fulcio certificate, no binding
 depends on caller-controlled context, job outputs, or workflow inputs.
@@ -147,8 +149,8 @@ fields belong to the architecture specifications.
   entire ambiguity class (name change between manifest issuance and verification).
 - Bad, because off-the-shelf commands do not cover the numeric ID checks; the project must document
   and fixture-test custom post-processing until the Go verifier exists.
-- Bad, because the release manifest and verifier policy schemas grow numeric ID fields, and callers
-  must learn and supply their repository and owner IDs — a documentation and validation cost.
+- Bad, because verifier policy schemas grow numeric ID fields, and callers must learn and supply
+  their repository and owner IDs — a documentation and validation cost.
 - Neutral, because `gh attestation verify` remains useful but insufficient alone; reference commands
   must show the complete procedure rather than implying one command is enough.
 
@@ -157,16 +159,15 @@ fields belong to the architecture specifications.
 This decision is confirmed when:
 
 - architecture specifications define the required bindings, the exact certificate extension OIDs and
-  claim sources, the expected-value schema fields for the release manifest and explicit verifier
-  policy, and the failure behavior for each binding, tracing to this ADR;
+  claim sources, the expected-value schema fields for the explicit verifier policy, and the failure
+  behavior for each binding, tracing to this ADR;
 - the producer publish gate implements every binding fail-closed before registry mutation;
 - verification documentation provides the complete procedure, including the numeric ID checks, and
   explicitly forbids `github.workflow_sha` as builder identity;
 - fixtures demonstrate acceptance of a fully bound bundle and rejection for: wrong issuer, wrong
   signer workflow path, wrong signer SHA, name-matching but ID-mismatched source repository, missing
   numeric IDs, missing or malformed Run Invocation URI, and self-hosted runner identity;
-- release manifest and verifier policy examples show numeric repository and owner IDs as
-  expectations.
+- verifier policy examples show numeric repository and owner IDs as expectations.
 
 ## Pros and Cons of the Options
 
