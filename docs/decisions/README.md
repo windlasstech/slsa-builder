@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0068`.
+sequence currently runs from `0000` through `0069`.
 
 | Range     | Topic                                       | Notes                                                            |
 | --------- | ------------------------------------------- | ---------------------------------------------------------------- |
@@ -51,6 +51,7 @@ sequence currently runs from `0000` through `0068`.
 | 0066      | Release mutation run ownership              | Job-class concurrency and serialized mutation segment.           |
 | 0067      | Repeated run convergence                    | Run-identity idempotency, outcome states, binding proofs.        |
 | 0068      | Verifier identity binding                   | Immutable builder and source identities for verification.        |
+| 0069      | Transparency and trust root policy          | Rekor inclusion, offline verification, trust root governance.    |
 
 ## ADR status and relations
 
@@ -180,6 +181,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0066 | Serialize release mutations with job-class concurrency             | GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy                   |
 | 0067 | Converge repeated runs within run identity                         | Release manifest, GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy |
 | 0068 | Bind verification to immutable builder and source identities       | Verification policy, release manifest, JS/TS npm provenance and publish                                 |
+| 0069 | Require Rekor transparency and govern the Sigstore trust root      | Verification policy, common provenance, release manifest                                                |
 
 ### Superseded or deprecated ADRs (historical only)
 
