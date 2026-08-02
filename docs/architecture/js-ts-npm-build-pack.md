@@ -54,6 +54,46 @@ input.
   - a workspace package reachable from the nearest workspace root discovered by the rules below; or
   - a standalone package in that directory when no workspace root claims it.
 
+### Path normalization and comparison
+
+In accordance with ADR 0023's requirement that `package-directory` identify one exact
+repository-root-relative package directory, package and workspace paths use this canonicalization:
+
+1. `package-directory` must use `/` separators and be normalized lexically by collapsing repeated
+   separators, removing `.` segments (including a leading `./`), and removing trailing separators;
+   the repository root canonicalizes to `.`. An absolute path, backslash separator, `..` segment, or
+   value that is empty after normalization must fail before workspace discovery.
+2. The repository root and normalized package directory must then be resolved to real paths,
+   following every symbolic link, before containment checks, relative-path derivation, equality
+   comparison, or workspace-pattern matching. A broken or cyclic link, an unresolvable component, or
+   a resolved path outside the real repository root must fail before reading package metadata.
+3. Every caller-supplied literal path segment must match the corresponding directory entry with an
+   exact, case-sensitive UTF-8 byte comparison, and every literal workspace-pattern segment must use
+   the same comparison. A case mismatch must fail package resolution even on a case-insensitive
+   filesystem; it must not be corrected or accepted from filesystem lookup results.
+4. Directory identity and workspace membership must compare the repository-root-relative real path,
+   not the pre-resolution lexical spelling. Real-path comparison prevents a symbolic-link alias from
+   bypassing repository containment or naming a different package; if the selected real directory
+   cannot be matched unambiguously, the profile must fail before install with a package-resolution
+   error.
+
+Valid matching examples:
+
+- With actual directory `pkg/a`, `package-directory: ./pkg//a/` canonicalizes to `pkg/a` and selects
+  that directory.
+- With in-repository symbolic link `linked-a` pointing to `packages/a`,
+  `package-directory: linked-a` resolves to canonical package path `packages/a` and pattern
+  `packages/*` matches that real path.
+
+Invalid matching examples:
+
+- A symbolic link `linked-a` whose target is outside the real repository root fails containment
+  before package metadata is read.
+- With actual directory `packages/a`, `package-directory: Packages/A` fails the exact-case check
+  even on a case-insensitive filesystem.
+- A broken symbolic link or a case-variant literal pattern such as `Packages/*` does not match
+  `packages/a`; package resolution fails when that mismatch prevents an unambiguous selection.
+
 ### Workspace root discovery
 
 The profile discovers workspace context by starting at the resolved package directory and walking
