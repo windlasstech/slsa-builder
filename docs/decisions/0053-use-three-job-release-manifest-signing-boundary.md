@@ -4,6 +4,9 @@ nav_order: 53
 status: accepted
 date: 12026-07-07
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0067
 ---
 
 # Use a Three-Job Release Manifest Signing Boundary

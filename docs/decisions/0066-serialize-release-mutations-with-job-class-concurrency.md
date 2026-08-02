@@ -11,6 +11,8 @@ relations:
     target: ADR-0058
   - type: see-also
     target: ADR-0060
+  - type: see-also
+    target: ADR-0067
 ---
 
 # Serialize Release Mutations with Job-Class Concurrency

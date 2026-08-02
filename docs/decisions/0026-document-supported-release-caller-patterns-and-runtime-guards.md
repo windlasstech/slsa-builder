@@ -10,6 +10,11 @@ relations:
     scope: "the tag-ref caller examples; the supported caller trigger patterns remain in force"
   - type: see-also
     target: ADR-0066
+  - type: amended-by
+    target: ADR-0067
+    scope:
+      "the rerun-versus-new-release semantics that ADR 0026 delegated to the architecture
+      specification; ADR 0067 decides them at ADR level"
 ---
 
 # Document Supported Release Caller Patterns and Runtime Guards

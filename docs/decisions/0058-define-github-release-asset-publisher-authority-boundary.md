@@ -7,6 +7,8 @@ decision-makers: Yunseo Kim
 relations:
   - type: see-also
     target: ADR-0066
+  - type: see-also
+    target: ADR-0067
 ---
 
 # Define the GitHub Release Asset Publisher Authority Boundary
