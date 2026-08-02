@@ -7,7 +7,8 @@ This document defines the machine-verifiable identity of `slsa-builder` workflow
   [0031](../decisions/0031-use-sigstore-signed-in-toto-release-manifest.md),
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0049](../decisions/0049-separate-artifact-production-from-github-release-asset-publication.md),
-  [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md)
+  [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
+  [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [Release manifest](release-manifest.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md)
@@ -68,6 +69,43 @@ https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package
 - `https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@main`
 - `https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@v1`
 - `https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@e40a91e`
+
+### Runtime identity acquisition and pin validation
+
+This section specifies the runtime claim sources required by ADRs
+[0028](../decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md) and
+[0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md).
+
+The called reusable workflow must obtain its own full 40-hex commit SHA from the GitHub-issued OIDC
+token's `job_workflow_sha` claim. GitHub resolves this value and signs it into the token, so it is
+authoritative and caller-unforgeable even when the caller used a tag. If `job_workflow_sha` is
+missing, malformed, or not exactly 40 hexadecimal characters, the workflow must terminate before
+constructing or signing provenance.
+
+The job that reads the OIDC token must have `id-token: write`. Without that permission, token
+acquisition fails, and the job must terminate before constructing or signing provenance rather than
+falling back to any workflow context or caller input.
+
+The called workflow must not use `github.workflow_sha` for builder identity. In a called reusable
+workflow, that context value contains the **caller's** workflow SHA, not the callee's SHA. Selecting
+it as the builder SHA is a fatal identity error, and the workflow must terminate before constructing
+or signing provenance.
+
+Production pin-form enforcement is separate from resolved identity acquisition. The called workflow
+must validate that the OIDC token's `job_workflow_ref` claim ends with `@` followed by exactly 40
+hexadecimal characters (`@[0-9a-fA-F]{40}$`) and that this suffix equals `job_workflow_sha`. A
+missing claim, a branch, tag, short SHA, malformed suffix, or mismatch must reject the production
+invocation before provenance is constructed or signed.
+
+The same token carries the source repository's numeric `repository_id` and `repository_owner_id`
+claims. ADR 0068 verification uses these platform-signed values as the authoritative immutable
+source identifiers; repository and owner names are display-only. A missing, malformed, or mismatched
+numeric identifier is an identity verification failure.
+
+> [!NOTE] The 12026-08-02 live spike confirmed this behavior. Runs `30745570800` (SHA pin) and
+> `30745572730` (tag pin) both returned the resolved callee SHA through `job_workflow_sha`; observed
+> callee commits included `1f4ebdc3…` and `b30c14d8…`. The spike also confirmed that
+> `github.workflow_sha` exposed the caller SHA.
 
 ## `buildType` URI format
 
@@ -203,5 +241,8 @@ A verifier must reject provenance when:
 - Golden fixtures for `builder.id` and `buildType` for each accepted profile.
 - Rejected fixtures for branch refs, moving tags, short SHAs, and removed GitHub Release asset
   production `buildType`.
+- Runtime identity fixtures that accept matching 40-hex `job_workflow_sha` and `job_workflow_ref`
+  claims and reject missing OIDC permission, caller `github.workflow_sha` substitution, non-SHA
+  `job_workflow_ref` suffixes, claim mismatches, and missing or malformed numeric repository IDs.
 - A fixture that proves the release manifest correctly maps a release version to the expected
   `builder.id` and `buildType`.
