@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0066`.
+sequence currently runs from `0000` through `0067`.
 
 | Range     | Topic                                       | Notes                                                            |
 | --------- | ------------------------------------------- | ---------------------------------------------------------------- |
@@ -49,6 +49,7 @@ sequence currently runs from `0000` through `0066`.
 | 0064      | npm provenance subject compatibility        | npm PURL subject with SHA-512 and SHA-256 tarball digests.       |
 | 0065      | ADR lifecycle metadata                      | Closed status grammar and relations field.                       |
 | 0066      | Release mutation run ownership              | Job-class concurrency and serialized mutation segment.           |
+| 0067      | Repeated run convergence                    | Run-identity idempotency, outcome states, binding proofs.        |
 
 ## ADR status and relations
 
@@ -114,68 +115,69 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 
 ### Accepted ADRs
 
-| ADR  | Decision                                                           | Spec mapping                                                                                 |
-| ---- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| 0000 | Use Markdown Architectural Decision Records                        | Process; no runtime spec needed                                                              |
-| 0001 | Start slsa-builder as a clean repository                           | Foundation; no runtime spec needed                                                           |
-| 0002 | Extensible trusted reusable workflow foundation                    | Core profile contract, SLSA provenance, verification policy                                  |
-| 0003 | Thin core with profile-owned reusable workflows                    | Core profile contract, SLSA provenance, verification policy                                  |
-| 0004 | Go as primary implementation language                              | Core profile contract                                                                        |
-| 0005 | Dedicated linter toolchain                                         | Tooling-only                                                                                 |
-| 0006 | golangci-lint as Go linter runner                                  | Tooling-only                                                                                 |
-| 0007 | ShellCheck for shell glue                                          | Tooling-only                                                                                 |
-| 0008 | Dedicated formatters                                               | Tooling-only                                                                                 |
-| 0009 | Node.js as development tool runtime                                | Tooling-only; core contract notes trusted logic boundary                                     |
-| 0010 | pnpm for Node.js development tooling                               | Tooling-only                                                                                 |
-| 0011 | Lefthook for local git hook orchestration                          | Tooling-only                                                                                 |
-| 0012 | mise as unified development-tool runtime                           | Tooling-only                                                                                 |
-| 0013 | Scope initial JS/TS profile to npm packages                        | JS/TS npm profile, composition spec                                                          |
-| 0014 | Support npm, pnpm, and Yarn for initial build stages               | JS/TS npm build and pack                                                                     |
-| 0015 | Manifest-first package manager selection                           | JS/TS npm build and pack                                                                     |
-| 0016 | Corepack for pnpm and Yarn build stages                            | JS/TS npm build and pack                                                                     |
-| 0017 | Explicit package manager version enforcement                       | JS/TS npm build and pack                                                                     |
-| 0018 | Publish one JS/TS package per profile run                          | JS/TS npm profile, build and pack                                                            |
-| 0019 | Validate package metadata through packed artifacts                 | JS/TS npm build and pack                                                                     |
-| 0022 | `js-ts-npm-package-slsa3.yml` workflow entrypoint                  | JS/TS npm profile                                                                            |
-| 0023 | `package-directory` as required package selector                   | JS/TS npm profile, build and pack                                                            |
-| 0024 | OIDC trusted publishing without publish secrets                    | JS/TS npm profile, provenance and publish                                                    |
-| 0025 | Return package identity and tarball digest outputs                 | JS/TS npm provenance and publish                                                             |
-| 0026 | Document supported release caller patterns and runtime guards      | JS/TS npm profile                                                                            |
-| 0027 | GitHub-Hosted Ubuntu 24.04 and Node.js 24 runtime                  | JS/TS npm profile, build and pack                                                            |
-| 0028 | SHA-pinned reusable workflow builder identity                      | Identity and build types, common provenance, release manifest, verification policy           |
-| 0029 | Windlass-generated SLSA provenance for npm publish                 | Common provenance, JS/TS npm provenance and publish, verification policy                     |
-| 0030 | Accept registry URL while guaranteeing only npmjs semantics        | JS/TS npm profile, provenance and publish, verification policy                               |
-| 0031 | Sigstore-signed in-toto release manifest                           | Identity and build types, release manifest                                                   |
-| 0032 | Constrain manual dispatch releases to version tags                 | JS/TS npm profile                                                                            |
-| 0033 | Run build script only when declared                                | JS/TS npm build and pack                                                                     |
-| 0034 | Do not support private dependency credentials                      | JS/TS npm profile                                                                            |
-| 0035 | `actions/attest` as initial Sigstore signing adapter               | Core profile contract, common provenance, JS/TS npm provenance and publish, release manifest |
-| 0036 | Three-job digest-verified publish graph                            | JS/TS npm provenance and publish, verification policy                                        |
-| 0037 | Define initial verification deliverables                           | Verification policy and fixtures                                                             |
-| 0039 | Scope release asset profile to one asset per run                   | GitHub Release asset publisher                                                               |
-| 0042 | Use acquired domains for buildType URIs                            | Core profile contract, identity and build types                                              |
-| 0043 | Upload release assets to existing releases                         | GitHub Release asset publisher                                                               |
-| 0045 | Use release asset name as SLSA subject name                        | GitHub Release asset publisher                                                               |
-| 0046 | Keep checksums and SBOMs out of subject digest                     | GitHub Release asset publisher                                                               |
-| 0048 | Make linked artifacts storage records explicit opt-in              | GitHub Release asset publisher                                                               |
-| 0049 | Separate artifact production from GitHub Release asset publication | Identity and build types, GitHub Release asset publisher, verification policy                |
-| 0050 | Define producer-to-publisher handoff contract                      | GitHub Release asset publisher, verification policy                                          |
-| 0051 | Distribute producer provenance with release assets                 | GitHub Release asset publisher, verification policy                                          |
-| 0052 | Compose npm package tarball producer with release asset publisher  | Composition spec, verification policy                                                        |
-| 0053 | Three-job release manifest signing boundary                        | Release manifest                                                                             |
-| 0054 | Use `slsa-builder.dev` release manifest predicate URI              | Release manifest, verification policy                                                        |
-| 0055 | `actions/attest` custom mode for Statement construction            | Common provenance, JS/TS npm provenance and publish                                          |
-| 0056 | Treat non-selected lockfiles as stale diagnostics                  | JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy              |
-| 0057 | Provide public npm release-asset mode                              | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher           |
-| 0058 | Define GitHub Release asset publisher authority boundary           | GitHub Release asset publisher, composition spec, verification policy                        |
-| 0059 | Define public npm release-asset mode interface                     | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher           |
-| 0060 | Unify npm profile public entrypoint with release-asset mode        | JS/TS npm profile, composition spec, verification policy                                     |
-| 0061 | Reject duplicate JSON members in signed SLSA Statements            | Common provenance, JS/TS npm provenance and publish, verification policy                     |
-| 0062 | Intersect trusted producer policies                                | Release manifest, GitHub Release asset publisher, verification policy                        |
-| 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                     |
-| 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests              | Common provenance, JS/TS npm specs, composition and publisher specs, verification policy     |
-| 0065 | Use a closed status grammar and a separate relations field         | Process; no runtime spec needed                                                              |
-| 0066 | Serialize release mutations with job-class concurrency             | GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy        |
+| ADR  | Decision                                                           | Spec mapping                                                                                            |
+| ---- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| 0000 | Use Markdown Architectural Decision Records                        | Process; no runtime spec needed                                                                         |
+| 0001 | Start slsa-builder as a clean repository                           | Foundation; no runtime spec needed                                                                      |
+| 0002 | Extensible trusted reusable workflow foundation                    | Core profile contract, SLSA provenance, verification policy                                             |
+| 0003 | Thin core with profile-owned reusable workflows                    | Core profile contract, SLSA provenance, verification policy                                             |
+| 0004 | Go as primary implementation language                              | Core profile contract                                                                                   |
+| 0005 | Dedicated linter toolchain                                         | Tooling-only                                                                                            |
+| 0006 | golangci-lint as Go linter runner                                  | Tooling-only                                                                                            |
+| 0007 | ShellCheck for shell glue                                          | Tooling-only                                                                                            |
+| 0008 | Dedicated formatters                                               | Tooling-only                                                                                            |
+| 0009 | Node.js as development tool runtime                                | Tooling-only; core contract notes trusted logic boundary                                                |
+| 0010 | pnpm for Node.js development tooling                               | Tooling-only                                                                                            |
+| 0011 | Lefthook for local git hook orchestration                          | Tooling-only                                                                                            |
+| 0012 | mise as unified development-tool runtime                           | Tooling-only                                                                                            |
+| 0013 | Scope initial JS/TS profile to npm packages                        | JS/TS npm profile, composition spec                                                                     |
+| 0014 | Support npm, pnpm, and Yarn for initial build stages               | JS/TS npm build and pack                                                                                |
+| 0015 | Manifest-first package manager selection                           | JS/TS npm build and pack                                                                                |
+| 0016 | Corepack for pnpm and Yarn build stages                            | JS/TS npm build and pack                                                                                |
+| 0017 | Explicit package manager version enforcement                       | JS/TS npm build and pack                                                                                |
+| 0018 | Publish one JS/TS package per profile run                          | JS/TS npm profile, build and pack                                                                       |
+| 0019 | Validate package metadata through packed artifacts                 | JS/TS npm build and pack                                                                                |
+| 0022 | `js-ts-npm-package-slsa3.yml` workflow entrypoint                  | JS/TS npm profile                                                                                       |
+| 0023 | `package-directory` as required package selector                   | JS/TS npm profile, build and pack                                                                       |
+| 0024 | OIDC trusted publishing without publish secrets                    | JS/TS npm profile, provenance and publish                                                               |
+| 0025 | Return package identity and tarball digest outputs                 | JS/TS npm provenance and publish                                                                        |
+| 0026 | Document supported release caller patterns and runtime guards      | JS/TS npm profile                                                                                       |
+| 0027 | GitHub-Hosted Ubuntu 24.04 and Node.js 24 runtime                  | JS/TS npm profile, build and pack                                                                       |
+| 0028 | SHA-pinned reusable workflow builder identity                      | Identity and build types, common provenance, release manifest, verification policy                      |
+| 0029 | Windlass-generated SLSA provenance for npm publish                 | Common provenance, JS/TS npm provenance and publish, verification policy                                |
+| 0030 | Accept registry URL while guaranteeing only npmjs semantics        | JS/TS npm profile, provenance and publish, verification policy                                          |
+| 0031 | Sigstore-signed in-toto release manifest                           | Identity and build types, release manifest                                                              |
+| 0032 | Constrain manual dispatch releases to version tags                 | JS/TS npm profile                                                                                       |
+| 0033 | Run build script only when declared                                | JS/TS npm build and pack                                                                                |
+| 0034 | Do not support private dependency credentials                      | JS/TS npm profile                                                                                       |
+| 0035 | `actions/attest` as initial Sigstore signing adapter               | Core profile contract, common provenance, JS/TS npm provenance and publish, release manifest            |
+| 0036 | Three-job digest-verified publish graph                            | JS/TS npm provenance and publish, verification policy                                                   |
+| 0037 | Define initial verification deliverables                           | Verification policy and fixtures                                                                        |
+| 0039 | Scope release asset profile to one asset per run                   | GitHub Release asset publisher                                                                          |
+| 0042 | Use acquired domains for buildType URIs                            | Core profile contract, identity and build types                                                         |
+| 0043 | Upload release assets to existing releases                         | GitHub Release asset publisher                                                                          |
+| 0045 | Use release asset name as SLSA subject name                        | GitHub Release asset publisher                                                                          |
+| 0046 | Keep checksums and SBOMs out of subject digest                     | GitHub Release asset publisher                                                                          |
+| 0048 | Make linked artifacts storage records explicit opt-in              | GitHub Release asset publisher                                                                          |
+| 0049 | Separate artifact production from GitHub Release asset publication | Identity and build types, GitHub Release asset publisher, verification policy                           |
+| 0050 | Define producer-to-publisher handoff contract                      | GitHub Release asset publisher, verification policy                                                     |
+| 0051 | Distribute producer provenance with release assets                 | GitHub Release asset publisher, verification policy                                                     |
+| 0052 | Compose npm package tarball producer with release asset publisher  | Composition spec, verification policy                                                                   |
+| 0053 | Three-job release manifest signing boundary                        | Release manifest                                                                                        |
+| 0054 | Use `slsa-builder.dev` release manifest predicate URI              | Release manifest, verification policy                                                                   |
+| 0055 | `actions/attest` custom mode for Statement construction            | Common provenance, JS/TS npm provenance and publish                                                     |
+| 0056 | Treat non-selected lockfiles as stale diagnostics                  | JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy                         |
+| 0057 | Provide public npm release-asset mode                              | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher                      |
+| 0058 | Define GitHub Release asset publisher authority boundary           | GitHub Release asset publisher, composition spec, verification policy                                   |
+| 0059 | Define public npm release-asset mode interface                     | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher                      |
+| 0060 | Unify npm profile public entrypoint with release-asset mode        | JS/TS npm profile, composition spec, verification policy                                                |
+| 0061 | Reject duplicate JSON members in signed SLSA Statements            | Common provenance, JS/TS npm provenance and publish, verification policy                                |
+| 0062 | Intersect trusted producer policies                                | Release manifest, GitHub Release asset publisher, verification policy                                   |
+| 0063 | Limit Yarn support to Berry v4 with Corepack metadata              | JS/TS npm build and pack                                                                                |
+| 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests              | Common provenance, JS/TS npm specs, composition and publisher specs, verification policy                |
+| 0065 | Use a closed status grammar and a separate relations field         | Process; no runtime spec needed                                                                         |
+| 0066 | Serialize release mutations with job-class concurrency             | GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy                   |
+| 0067 | Converge repeated runs within run identity                         | Release manifest, GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy |
 
 ### Superseded or deprecated ADRs (historical only)
 
