@@ -99,6 +99,13 @@ production use.
 | `provenance-sidecar`       | string  | unset   | Sidecar policy; omitted or `required` for production release-asset mode.   |
 | `linked-artifact-metadata` | boolean | `false` | Enables linked artifact storage metadata after release asset upload.       |
 
+The public contract has exactly eight inputs: the required `package-directory` input and the seven
+optional inputs in this table. Their complete signed representation is defined by the
+[eight-input completeness mapping](js-ts-npm-provenance-publish.md#eight-input-completeness-mapping)
+in the provenance and publish spec. The workflow must reject an unknown public input through GitHub
+Actions schema validation before it starts; it must not add a second representation for any listed
+input.
+
 The workflow must not define GitHub Actions `workflow_call` defaults for `registry-url`, `dist-tag`,
 `access`, `release-tag`, or `provenance-sidecar`. An omitted string input is represented as unset
 until the profile's intent resolution step. This keeps caller-supplied values distinguishable from
@@ -160,6 +167,27 @@ publish attempt unless a separately proved failure condition below applies.
   When `true`, the workflow derives the publisher `linked-artifact-settings` object from the caller
   repository, effective release tag, release download URL prefix, and package version; callers do
   not supply the publisher's internal JSON settings directly.
+- The signed `distribution` group normalizes the four distribution inputs without duplicating their
+  raw values. In npm-only mode, it is exactly `distribution.release_asset_mode: false`,
+  `distribution.release_tag_supplied: false`, `distribution.provenance_sidecar: null`, and
+  `distribution.linked_artifact_metadata: false`. In release-asset mode, it records the actual
+  `release-asset-mode` boolean, whether a non-empty `release-tag` was supplied,
+  `distribution.provenance_sidecar: "required"`, and the actual `linked-artifact-metadata` boolean.
+  A candidate provenance statement that cannot produce this closed normalized group must fail before
+  signing with `windlass.verify.error.release-asset-mode-schema-error`.
+- The raw `release-tag` input must not appear in `distribution` or another signed field. Its
+  suppliedness is represented only by `distribution.release_tag_supplied`; its effective identity
+  remains in the signed release fields defined by the provenance and publish spec. A statement that
+  duplicates the raw `release-tag` must fail before signing with
+  `windlass.verify.error.release-asset-mode-schema-error`.
+- Omitted and explicit `required` `provenance-sidecar` inputs normalize identically to
+  `distribution.provenance_sidecar: "required"` in release-asset mode. A statement that preserves
+  their spelling distinction, or assigns another normalized value, must fail before signing with
+  `windlass.verify.error.release-asset-mode-schema-error`.
+- The signed mapping keeps `package-directory`, `registry-url`, `dist-tag`, and `access` in their
+  established signed locations. They must not be duplicated in `distribution`, `caller`, or another
+  new field; a duplicate must fail before signing with
+  `windlass.verify.error.unexpected-external-parameters`.
 - `publish_access_option` is the exact value passed to `npm publish --access`; it is `public`,
   `restricted`, or `null` when the option is omitted.
 - `effective_access` records the Windlass publish intent used for diagnostics and verification. When
@@ -297,10 +325,14 @@ trusted publisher workflow. npm validates the calling workflow identity for reus
 publishing, while Windlass provenance separately records and verifies the SHA-pinned reusable
 workflow builder identity.
 
-This npmjs.com trusted publisher configuration is registry-side publish authorization policy, not a
-SLSA `externalParameters` field. The profile must document it as caller setup and enforce it through
-the producer-side publish gate, but consumer-side SLSA provenance verification is not required to
-reconstruct or re-verify the npmjs.com trusted publisher settings from the signed provenance bundle.
+Remote npm trusted publisher settings remain registry-side publish authorization configuration and
+are not signed. The profile must document and enforce that configuration as caller setup through the
+producer-side publish gate; a configuration failure must stop before registry mutation. The observed
+caller workflow filename that npm uses for trusted-publisher authorization is verifier-relevant and
+is signed as `caller.workflow_filename`. Callers must not supply a workflow filename as a workflow
+input. The profile observes the filename from the trusted publishing authorization context rather
+than trusting caller-supplied text. Missing or conflicting filename capture must fail before signing
+and registry mutation with `windlass.verify.error.trusted-publisher-mismatch`.
 
 The production profile must fail before registry mutation when the caller job cannot provide an OIDC
 token to the called workflow, when npm trusted publishing is not configured for the caller
@@ -610,6 +642,9 @@ The workflow must fail before any registry mutation when:
 - The caller job cannot provide OIDC credentials to the called reusable workflow.
 - npm trusted publisher configuration does not match the caller repository and caller workflow
   filename.
+- The observed caller workflow filename is unavailable or conflicts across trusted-publisher
+  authorization evidence. This must fail with `windlass.verify.error.trusted-publisher-mismatch`
+  before signing and registry mutation.
 - Explicit workflow inputs conflict with source `publishConfig` fields.
 - `publishConfig.provenance` disables provenance or `publishConfig.directory` redirects the package
   root.
@@ -668,6 +703,12 @@ release target, weakening provenance verification, or using a custom token.
   and emits release asset locator outputs.
 - Positive fixture: valid release-asset mode run with linked artifact metadata enabled and separated
   metadata permissions.
+- Positive fixture: all eight public inputs map exactly once to the signed locations in the
+  provenance spec's eight-input completeness mapping, including the normalized `distribution` group
+  and observed `caller.workflow_filename`.
+- Positive fixture: release-asset mode with omitted `provenance-sidecar` and the otherwise identical
+  mode with `provenance-sidecar: required` both produce
+  `distribution.provenance_sidecar: "required"`.
 - Rejected fixtures: wrong trigger, mismatched tag/version, missing `package.json`, arbitrary
   command input, npm token secret, private package, private dependency requirement, `publishConfig`
   conflict, unsupported `publishConfig.directory`, disabled provenance metadata, producer-side
@@ -690,6 +731,13 @@ release target, weakening provenance verification, or using a custom token.
   handoff substitution, internal job permission-boundary violation, immutable target with either
   expected asset absent before `npm publish` (`release-target-immutable`), and a complete immutable
   target that cannot perform same-`run_id` read-only convergence (`release-target-immutable`).
+- Rejected fixtures: a raw `release-tag` duplicated in the signed `distribution` group
+  (`release-asset-mode-schema-error`); `package-directory`, `registry-url`, `dist-tag`, or `access`
+  duplicated outside its established signed location (`unexpected-external-parameters`); distinct
+  normalized values for omitted versus explicit `required` `provenance-sidecar`
+  (`release-asset-mode-schema-error`); unavailable or conflicting observed caller workflow filename
+  (`trusted-publisher-mismatch`); and a caller-supplied workflow-filename input. The last fixture
+  must fail reusable-workflow schema validation, proving that no ninth public input exists.
 - A YAML review checklist that a human can apply to the workflow file.
 - A YAML review checklist proving that `.github/workflows/js-ts-npm-package-slsa3.yml` is the only
   public npm entrypoint and that release-asset mode does not expose internal handoff mechanics as

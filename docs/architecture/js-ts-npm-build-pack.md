@@ -15,7 +15,8 @@ installs dependencies, runs build scripts, packs the artifact, and validates pac
   [0033](../decisions/0033-run-build-script-only-when-declared.md),
   [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
   [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md),
-  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md), and
+  [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md)
 - Related specs: [JS/TS npm package profile](js-ts-npm-package-profile.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Core profile contract](core-profile-contract.md)
@@ -351,10 +352,15 @@ warn about those ignored lockfiles and record their repository-root-relative pat
 but reviewers and verifiers must not treat their presence as a package-manager conflict or as an
 input to the dependency graph used by the selected package manager's frozen install command.
 
-The selected lockfile path and digest feed the JS/TS npm `resolvedDependencies` lockfile descriptor
-defined in the provenance and publish spec. `externalParameters.package_manager` records how the
-package manager was selected; `resolvedDependencies[0]` records the selected lockfile bytes that
-constrained the dependency graph. Stale non-selected lockfiles may be copied into both
+The selected lockfile path and digest feed the name-keyed `lockfile` descriptor defined in the
+[provenance and publish specification](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema).
+`externalParameters.package_manager` records how the package manager was selected. The selected
+manager name and exact effective version select the unordered dependency set by descriptor `name`:
+npm emits `lockfile` and `runner-image`, while pnpm and Yarn each additionally emit exactly one
+`package-manager-distribution`. The profile must not select, create, or validate a descriptor by
+array position. A missing, duplicate, unexpected, or manager-incompatible descriptor must stop
+before signing with the descriptor diagnostic defined in the provenance and publish specification.
+Stale non-selected lockfiles may be copied into both
 `externalParameters.package_manager.ignored_lockfile_paths` and the lockfile descriptor annotations
 as diagnostics, but they must not become separate dependency descriptors or selected graph inputs.
 
@@ -368,6 +374,81 @@ as diagnostics, but they must not become separate dependency descriptors or sele
   profile must fail before install if Yarn would run from an ambient global installation, Corepack
   Known Good Release fallback, `devEngines.packageManager` alone, a version range, or `yarn.lock`
   without top-level exact `packageManager` metadata.
+
+### Corepack distribution capture
+
+ADR 0070 records the distribution that supplied the package manager executed by the build. Before
+Corepack acquires pnpm or Yarn, the profile must know the selected manager's exact version from the
+package-manager selection result. If that version is unavailable, non-exact, or differs from the
+executed manager, the profile must stop before predicate construction with
+`windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`.
+
+During that exact-version acquisition, the profile must capture the actual Corepack distribution URL
+that supplied the executed manager. It must create the name-keyed `package-manager-distribution`
+descriptor only for pnpm or Yarn, with `package_manager`, `package_manager_version`, and
+`acquisition_source: "corepack"` annotations. The captured URL, selected manager, and executed
+manager must agree. Missing capture evidence stops before predicate construction with
+`windlass.verify.error.input-unavailable` and exit code `2`; a captured disagreement or malformed
+descriptor stops with `windlass.verify.error.resolved-dependencies-package-manager-distribution` and
+exit code `1`.
+
+- For pnpm, the profile must obtain the SHA-512 `dist.integrity` value from authenticated registry
+  metadata for the actual Corepack distribution, decode the `sha512-<base64>` SRI value to bytes,
+  and encode those bytes as exactly 128 lowercase hexadecimal characters in `digest.sha512`. Its
+  `digest_authority` annotation must be `registry-integrity`. Missing, non-SHA-512, undecodable, or
+  nonmatching registry integrity evidence stops before predicate construction with
+  `windlass.verify.error.input-unavailable` and exit code `2`; a captured wrong-authority or
+  malformed descriptor stops with
+  `windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`.
+- For Yarn, the profile must calculate SHA-512 over the actual bytes downloaded by Corepack for the
+  executed distribution and encode the result as exactly 128 lowercase hexadecimal characters in
+  `digest.sha512`. Its `digest_authority` annotation must be `download-hash`. Unavailable downloaded
+  bytes or hash evidence stops before predicate construction with
+  `windlass.verify.error.input-unavailable` and exit code `2`; a captured wrong authority, wrong
+  version, or malformed descriptor stops with
+  `windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`.
+
+The Corepack path must not use a Known Good Release fallback, an ambient pnpm or ambient Yarn
+installation, or a registry override that changes the ADR-selected acquisition path. Each condition
+must stop before predicate construction with
+`windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`. The
+profile must not replace missing capture evidence with a guessed distribution URL or a manifest
+hash. That condition must stop before predicate construction with
+`windlass.verify.error.input-unavailable` and exit code `2`.
+
+## Runner image capture
+
+ADR 0070 records the GitHub-hosted runner image that supplied the Node.js runtime. At build time,
+the profile must observe `ImageOS`, `ImageVersion`, and the exact output of `node --version`. It
+must read `/imagegeneration/imagedata.json` verbatim as a JSON array and select the entry whose
+`group` is `Runner Image`. That entry's `detail` must contain `Image: <label>`,
+`Version: <full-version>`, `Included Software: <url>`, and `Image Release: <url>` lines. If the file
+is unavailable or malformed, the group or detail lines are unavailable or malformed, the image label
+is inconsistent with `$ImageOS`, `Version` differs from `$ImageVersion`, or the Included Software
+URL is absent or empty, the profile must stop before predicate construction with
+`windlass.verify.error.input-unavailable` and exit code `2`.
+
+The canonical name-keyed `runner-image` descriptor `uri` must be the non-empty Included Software URL
+read verbatim from that file. Its annotations must be `image_os: $ImageOS`,
+`image_version: $ImageVersion`, and `node_version` equal to the exact observed `node --version`
+output. The profile must not derive, reconstruct, or rewrite an undocumented runner URL from
+`ImageOS`, `ImageVersion`, or another source. A captured malformed runner descriptor, including a
+digest member or a mismatch with these observations, must stop before predicate construction with
+`windlass.verify.error.resolved-dependencies-runner-image` and exit code `1`.
+
+No network validation of the Included Software URL is required. If GitHub removes or reshapes the
+file, producers fail closed before signing with `windlass.verify.error.input-unavailable` and exit
+code `2`; they must not emit guessed provenance.
+
+## Capture timing and signing boundary
+
+The profile must fix the selected manager, exact executed version, Corepack distribution evidence,
+runner observations, and named dependency descriptors before candidate predicate construction and
+before signing. If any required evidence becomes unavailable before predicate construction, the
+profile must stop with `windlass.verify.error.input-unavailable` and exit code `2`. It must not
+construct, sign, or publish a predicate after a capture failure. If evidence is captured but
+contradicts the selected manager or version, or produces malformed descriptor values, the profile
+must stop with the corresponding narrow descriptor diagnostic and exit code `1`.
 
 ## Yarn install mode
 
@@ -585,6 +666,17 @@ The profile must fail before packing when:
 - Yarn is selected from any source other than top-level `packageManager`, or the exact Yarn version
   is lower than `4.0.0`.
 - Lockfile is missing for npm `npm ci`, pnpm `--frozen-lockfile`, or Yarn `--immutable`.
+- Required package-manager distribution or runner-image capture evidence is unavailable before
+  predicate construction. The profile emits `windlass.verify.error.input-unavailable`, exits `2`,
+  and does not sign.
+- Captured package-manager distribution evidence has the wrong authority or version, contradicts the
+  selected manager, uses a Known Good Release fallback, uses an ambient manager, changes the
+  Corepack acquisition path through a registry override, or produces a malformed descriptor. The
+  profile emits `windlass.verify.error.resolved-dependencies-package-manager-distribution`, exits
+  `1`, and does not sign.
+- Captured runner-image evidence has a malformed descriptor, carries a digest, or disagrees with the
+  observed runner values. The profile emits
+  `windlass.verify.error.resolved-dependencies-runner-image`, exits `1`, and does not sign.
 - `repository` is missing, malformed, unsupported, or normalizes to an identity different from the
   observed caller repository. The profile emits `package-repository-identity-mismatch` and stops
   before install, build, or pack.
@@ -617,3 +709,16 @@ The profile must fail before packing when:
   entering SLSA `internalParameters` or `externalParameters`.
 - Workspace package using root package-manager metadata and root lockfile.
 - Corepack exact version enforcement failure.
+- Successful npm capture emits only name-keyed `lockfile` and `runner-image` descriptors; successful
+  pnpm capture emits its registry-integrity package-manager distribution; successful Yarn capture
+  emits its download-hash package-manager distribution.
+- Unavailable package-manager distribution capture, unavailable runner-image file or Included
+  Software URL, and unavailable required runner observations each emit
+  `windlass.verify.error.input-unavailable`, exit `2`, and stop before signing.
+- Wrong pnpm or Yarn digest authority, wrong captured manager version, Known Good Release fallback,
+  ambient pnpm or Yarn, and a registry override that changes the Corepack acquisition path each emit
+  `windlass.verify.error.resolved-dependencies-package-manager-distribution`, exit `1`, and stop
+  before signing.
+- A reconstructed or guessed runner URL, a runner URL missing from the `Runner Image` detail, and
+  runner label, version, Node.js version, or descriptor-shape mismatches each stop before signing
+  with their specified runner-image or input-unavailable diagnostic and expected exit code.

@@ -22,7 +22,10 @@ the package to an npm registry through a three-job digest-verified graph.
   [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
   [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
   [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
-  [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md)
+  [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md),
+  [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
+  and
+  [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -314,6 +317,15 @@ fields must be rejected by producer-side verification and by strict consumer pol
     "ref": "refs/tags/v1.2.3",
     "version_tag": "v1.2.3"
   },
+  "distribution": {
+    "release_asset_mode": true,
+    "release_tag_supplied": true,
+    "provenance_sidecar": "required",
+    "linked_artifact_metadata": true
+  },
+  "caller": {
+    "workflow_filename": "release.yml"
+  },
   "build": {
     "script_present": true,
     "script_result": "executed"
@@ -324,9 +336,9 @@ fields must be rejected by producer-side verification and by strict consumer pol
 ### Closed schema rules
 
 The `externalParameters` value is a closed JSON object. The required top-level members are exactly
-`source`, `workflow`, `runtime`, `package`, `package_manager`, `publish`, `release`, and `build`. No
-other top-level members are allowed. JSON objects in this schema must not contain duplicate member
-names; duplicate member names are rejected before semantic validation.
+`source`, `workflow`, `runtime`, `package`, `package_manager`, `publish`, `release`, `distribution`,
+`caller`, and `build`. No other top-level members are allowed. JSON objects in this schema must not
+contain duplicate member names; duplicate member names are rejected before semantic validation.
 
 Required nested members are exactly the fields shown in the example above, with the optional fields
 listed below as the only allowed additions:
@@ -340,6 +352,8 @@ listed below as the only allowed additions:
 | `package_manager` | `name`, `version`, `selection_source`, `selection_manifest`, `selection_manifest_path`, `selection_lockfile_path`, `root`                                                                                                                                                   | `ignored_lockfile_paths`, `yarn_install_mode`            |
 | `publish`         | `input_registry_url`, `input_dist_tag`, `input_access`, `publish_config`, `resolved_registry_url`, `resolved_dist_tag`, `publish_access_option`, `effective_access`, `trusted_publishing`, `provenance_file`, `package_identity_preexisting`, `package_version_preexisting` | `custom_registry_support`                                |
 | `release`         | `ref`, `version_tag`                                                                                                                                                                                                                                                        | none                                                     |
+| `distribution`    | `release_asset_mode`, `release_tag_supplied`, `provenance_sidecar`, `linked_artifact_metadata`                                                                                                                                                                              | none                                                     |
+| `caller`          | `workflow_filename`                                                                                                                                                                                                                                                         | none                                                     |
 | `build`           | `script_present`, `script_result`                                                                                                                                                                                                                                           | none                                                     |
 
 Type and nullability rules:
@@ -348,6 +362,10 @@ Type and nullability rules:
   unless explicitly defined as boolean, object, array, or `null` below.
 - `package.private`, `publish.trusted_publishing`, `publish.provenance_file`, and
   `build.script_present` are JSON booleans.
+- `distribution.release_asset_mode`, `distribution.release_tag_supplied`, and
+  `distribution.linked_artifact_metadata` are JSON booleans.
+- `distribution.provenance_sidecar` is either `null` in npm-only mode or exactly `"required"` after
+  release-mode normalization.
 - `publish.package_identity_preexisting` and `publish.package_version_preexisting` are JSON booleans
   for `https://registry.npmjs.org/`. For non-npmjs registries, either field may be `null` when the
   unsupported-but-not-blocked registry does not expose a tokenless metadata check that can prove the
@@ -495,9 +513,46 @@ Type and nullability rules:
 - `release.ref` must equal the release ref accepted by runtime guards and must be byte-for-byte
   equal to `source.ref` after both values are represented as full Git refs.
 - `release.version_tag` must be the tag name without `refs/tags/`.
+- `distribution.release_asset_mode` records the accepted `release-asset-mode` boolean.
+- `distribution.release_tag_supplied` records whether the caller supplied a non-empty `release-tag`;
+  it does not duplicate that raw input. The effective release identity remains in `release.ref` and
+  `release.version_tag`.
+- `distribution.provenance_sidecar` must be `null` in npm-only mode and `"required"` in release
+  mode. Omitted and explicitly `required` public inputs normalize to the same signed value.
+- `distribution.linked_artifact_metadata` records the accepted `linked-artifact-metadata` boolean.
+- `caller.workflow_filename` must be the normalized caller workflow filename observed for the run
+  and used by npm trusted-publisher authorization. It is not a ninth public workflow input. If the
+  producer cannot observe it before candidate predicate construction, the run fails with
+  `windlass.verify.error.trusted-publisher-mismatch` before signing; a signed value that differs
+  from the trusted-publisher identity fails producer-side and consumer-side verification with the
+  same diagnostic.
 - `build.script_present` records whether `scripts.build` existed in the source manifest.
 - `build.script_result` must be `executed` when `scripts.build` ran and `skipped-absent` when the
   build step was an explicit no-op.
+
+The public workflow's eight inputs have exactly these signed locations:
+
+| Public input               | Signed location                                                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `package-directory`        | `package.directory`                                                                                                        |
+| `registry-url`             | `publish.input_registry_url`                                                                                               |
+| `dist-tag`                 | `publish.input_dist_tag`                                                                                                   |
+| `access`                   | `publish.input_access`                                                                                                     |
+| `release-asset-mode`       | `distribution.release_asset_mode`                                                                                          |
+| `release-tag`              | suppliedness in `distribution.release_tag_supplied`; effective identity remains in `release.ref` and `release.version_tag` |
+| `provenance-sidecar`       | `distribution.provenance_sidecar`                                                                                          |
+| `linked-artifact-metadata` | `distribution.linked_artifact_metadata`                                                                                    |
+
+The completeness mapping intentionally excludes four duplications. The profile must not duplicate
+the raw `release-tag` input, duplicate caller repository identity already held in
+`source.repository`, sign the remote npm trusted-publisher configuration object, or preserve the
+omitted-versus-`required` `provenance-sidecar` spelling after both forms normalize to the same
+policy. The observed caller filename relevant to the run is nevertheless signed at
+`caller.workflow_filename`. A missing or unknown `distribution` or `caller` member, a raw release
+tag copied into `distribution`, or another duplicate representation fails with
+`windlass.verify.error.unexpected-external-parameters`; disagreement between normalized distribution
+values and the accepted public mode inputs fails with
+`windlass.verify.error.release-asset-mode-schema-error`.
 
 ### Canonical source repository URL
 
@@ -597,6 +652,13 @@ Valid complete-schema repository identity example:
     "package_version_preexisting": false
   },
   "release": { "ref": "refs/tags/v1.2.3", "version_tag": "v1.2.3" },
+  "distribution": {
+    "release_asset_mode": false,
+    "release_tag_supplied": false,
+    "provenance_sidecar": null,
+    "linked_artifact_metadata": false
+  },
+  "caller": { "workflow_filename": "release.yml" },
   "build": { "script_present": true, "script_result": "executed" }
 }
 ```
@@ -657,6 +719,13 @@ from the normalized source and observed caller identity:
     "package_version_preexisting": false
   },
   "release": { "ref": "refs/tags/v1.2.3", "version_tag": "v1.2.3" },
+  "distribution": {
+    "release_asset_mode": false,
+    "release_tag_supplied": false,
+    "provenance_sidecar": null,
+    "linked_artifact_metadata": false
+  },
+  "caller": { "workflow_filename": "release.yml" },
   "build": { "script_present": true, "script_result": "executed" }
 }
 ```
@@ -694,39 +763,40 @@ an unknown field is present.
 
 ## JS/TS npm `resolvedDependencies` schema
 
-The JS/TS npm package profile must emit exactly one `resolvedDependencies` entry for the selected
-lockfile that constrained the release install. The entry is a SLSA v1 `ResourceDescriptor` with this
-closed shape:
+The JS/TS npm package profile emits an unordered, name-keyed set of closed SLSA v1
+`ResourceDescriptor` values. A verifier selects descriptors by `name`, never by array position. The
+complete cardinality is:
+
+- npm: exactly one `lockfile` and exactly one `runner-image`;
+- pnpm or Yarn: exactly one `lockfile`, exactly one `package-manager-distribution`, and exactly one
+  `runner-image`.
+
+An unknown descriptor name, generated transitive-package entry, or other non-enumerated extra fails
+with `windlass.verify.error.resolved-dependencies-unexpected-entry`. A known descriptor's missing,
+duplicate, malformed, or mismatched form fails with that descriptor's narrower diagnostic below.
+
+### Lockfile descriptor
+
+The selected lockfile that constrained the release install has this unchanged closed shape:
 
 ```json
-[
-  {
-    "name": "lockfile",
-    "uri": "git+https://github.com/example/project@0123456789abcdef0123456789abcdef01234567#pnpm-lock.yaml",
-    "digest": {
-      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    },
-    "annotations": {
-      "package_manager": "pnpm",
-      "package_manager_root": ".",
-      "selection_source": "packageManager",
-      "selection_manifest_path": "package.json",
-      "selection_lockfile_path": "pnpm-lock.yaml",
-      "stale_non_selected_lockfiles": []
-    }
+{
+  "name": "lockfile",
+  "uri": "git+https://github.com/example/project@0123456789abcdef0123456789abcdef01234567#pnpm-lock.yaml",
+  "digest": {
+    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "annotations": {
+    "package_manager": "pnpm",
+    "package_manager_root": ".",
+    "selection_source": "packageManager",
+    "selection_manifest_path": "package.json",
+    "selection_lockfile_path": "pnpm-lock.yaml",
+    "stale_non_selected_lockfiles": []
   }
-]
+}
 ```
 
-The initial profile does not emit one `resolvedDependencies` entry per installed transitive package.
-The selected lockfile descriptor is the verifier-relevant dependency graph input. Consumer-side
-verifiers must not require a generated dependency list for the initial profile, and producer-side
-verification must reject unexpected `resolvedDependencies` entries or unknown annotation members
-under strict policy.
-
-Required descriptor rules:
-
-- `resolvedDependencies` must contain exactly one entry named `lockfile`.
 - `uri` must be
   `git+<externalParameters.source.repository>@<externalParameters.source.revision>#<selection_lockfile_path>`.
 - The URI fragment must be the repository-root-relative selected lockfile path. It must not be
@@ -748,15 +818,190 @@ Required descriptor rules:
   and is empty otherwise.
 
 For manifest-selected npm, pnpm, and Yarn releases, `externalParameters.package_manager` records the
-manifest source that selected the package manager while `resolvedDependencies[0]` records the
+manifest source that selected the package manager while the descriptor named `lockfile` records the
 selected lockfile path and digest. For lockfile-inferred npm releases, both
-`externalParameters.package_manager.selection_lockfile_path` and
-`resolvedDependencies[0].annotations.selection_lockfile_path` identify `package-lock.json`.
+`externalParameters.package_manager.selection_lockfile_path` and the named lockfile descriptor's
+`annotations.selection_lockfile_path` identify `package-lock.json`.
 
 The profile must fail before signing when the selected lockfile descriptor is missing, has the wrong
 digest, points to a non-selected or stale lockfile, contains extra entries, contains unknown
 annotation members, omits stale lockfile diagnostics that were recorded in `externalParameters`, or
-treats stale non-selected lockfiles as selected dependency graph inputs.
+treats stale non-selected lockfiles as selected dependency graph inputs. The primary diagnostic
+category is `resolved-dependencies-lockfile`, severity `error`, exit code `1`.
+
+This focused invalid lockfile example fails with that diagnostic because the selected digest is not
+64 lowercase hexadecimal characters:
+
+```json
+{
+  "name": "lockfile",
+  "uri": "git+https://github.com/example/project@0123456789abcdef0123456789abcdef01234567#pnpm-lock.yaml",
+  "digest": { "sha256": "not-a-sha256" },
+  "annotations": {
+    "package_manager": "pnpm",
+    "package_manager_root": ".",
+    "selection_source": "packageManager",
+    "selection_manifest_path": "package.json",
+    "selection_lockfile_path": "pnpm-lock.yaml",
+    "stale_non_selected_lockfiles": []
+  }
+}
+```
+
+### Package-manager distribution descriptor
+
+This descriptor is required exactly once when pnpm or Yarn is selected and is forbidden when npm is
+selected. It has exactly `name`, `uri`, `digest`, and `annotations`; its only digest member is
+`sha512`, exactly 128 lowercase hexadecimal characters. Its annotations contain exactly
+`digest_authority`, `package_manager`, `package_manager_version`, and `acquisition_source`.
+`package_manager` and `package_manager_version` must equal `externalParameters.package_manager.name`
+and `externalParameters.package_manager.version`, and `acquisition_source` is exactly `"corepack"`.
+
+For pnpm, `uri` is the actual distribution URL used by Corepack and `digest_authority` is exactly
+`"registry-integrity"`. The producer authenticates registry `dist.integrity`, requires its
+`sha512-<base64>` SRI form, decodes the base64 digest to bytes, and hex-encodes those bytes as
+`digest.sha512`; it must not store the SRI wrapper. A valid pnpm descriptor is:
+
+```json
+{
+  "name": "package-manager-distribution",
+  "uri": "https://registry.npmjs.org/pnpm/-/pnpm-10.0.0.tgz",
+  "digest": {
+    "sha512": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "annotations": {
+    "digest_authority": "registry-integrity",
+    "package_manager": "pnpm",
+    "package_manager_version": "10.0.0",
+    "acquisition_source": "corepack"
+  }
+}
+```
+
+For Yarn, `uri` is the actual distribution URL used by Corepack and `digest_authority` is exactly
+`"download-hash"`. The producer computes SHA-512 over the downloaded distribution bytes and
+hex-encodes that digest as `digest.sha512`. A valid Yarn descriptor is:
+
+```json
+{
+  "name": "package-manager-distribution",
+  "uri": "https://repo.yarnpkg.com/4.5.0/packages/yarnpkg-cli/bin/yarn.js",
+  "digest": {
+    "sha512": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+  },
+  "annotations": {
+    "digest_authority": "download-hash",
+    "package_manager": "yarn",
+    "package_manager_version": "4.5.0",
+    "acquisition_source": "corepack"
+  }
+}
+```
+
+This focused wrong-authority example is invalid because pnpm cannot use `download-hash`:
+
+```json
+{
+  "name": "package-manager-distribution",
+  "uri": "https://registry.npmjs.org/pnpm/-/pnpm-10.0.0.tgz",
+  "digest": {
+    "sha512": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "annotations": {
+    "digest_authority": "download-hash",
+    "package_manager": "pnpm",
+    "package_manager_version": "10.0.0",
+    "acquisition_source": "corepack"
+  }
+}
+```
+
+This focused npm-selected fragment is invalid because npm must not emit a package-manager
+distribution:
+
+```json
+{
+  "selected_package_manager": "npm",
+  "resolved_dependency": {
+    "name": "package-manager-distribution",
+    "uri": "https://registry.npmjs.org/pnpm/-/pnpm-10.0.0.tgz",
+    "digest": {
+      "sha512": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    "annotations": {
+      "digest_authority": "registry-integrity",
+      "package_manager": "pnpm",
+      "package_manager_version": "10.0.0",
+      "acquisition_source": "corepack"
+    }
+  }
+}
+```
+
+This is a rejected fixture fragment, not permission to define an npm distribution shape. Wrong
+authority, npm presence, pnpm/Yarn absence, duplication, malformed SHA-512, unknown members, or
+disagreement with the selected manager or version fails with
+`windlass.verify.error.resolved-dependencies-package-manager-distribution`, severity `error`, exit
+code `1`.
+
+Before candidate predicate construction, the producer must have the actual Corepack distribution URL
+and the applicable authenticated digest evidence. Unavailable evidence fails with
+`windlass.verify.error.input-unavailable`, severity `error`, exit code `2`; the producer must not
+use Known Good Release fallback, an ambient manager, a hash pin, or a guessed distribution URL.
+
+### Runner-image descriptor
+
+Every manager selection requires exactly one `runner-image` descriptor with exactly `name`, `uri`,
+and `annotations`. A `digest` member is prohibited. `uri` is the non-empty `Included Software`
+software-report URL read verbatim from the `Runner Image` entry in
+`/imagegeneration/imagedata.json`; it must never be derived, reconstructed, or rewritten from image
+labels or versions. The annotations contain exactly `image_os`, `image_version`, and `node_version`:
+the observed `$ImageOS`, the observed `$ImageVersion`, and the exact observed `node --version`
+output. A valid descriptor is:
+
+```json
+{
+  "name": "runner-image",
+  "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+  "annotations": {
+    "image_os": "ubuntu24",
+    "image_version": "20260801.1.0",
+    "node_version": "v24.0.0"
+  }
+}
+```
+
+Before candidate predicate construction, the producer must prove that the file exists and parses as
+the documented JSON array, that its `Runner Image` detail contains `Image`, `Version`, and a
+non-empty `Included Software` URL, that `Version` equals `$ImageVersion`, and that `Image` is
+consistent with `$ImageOS`. Unavailable capture evidence fails before signing with
+`windlass.verify.error.input-unavailable`, severity `error`, exit code `2`; the producer must not
+guess a URI or validate it over the network.
+
+This invalid descriptor carries a prohibited digest:
+
+```json
+{
+  "name": "runner-image",
+  "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+  "digest": {
+    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "annotations": {
+    "image_os": "ubuntu24",
+    "image_version": "20260801.1.0",
+    "node_version": "v24.0.0"
+  }
+}
+```
+
+A missing, duplicate, malformed, digest-bearing, unknown-member, or observed-value-mismatched runner
+descriptor fails with `windlass.verify.error.resolved-dependencies-runner-image`, severity `error`,
+exit code `1`.
+
+The initial profile does not emit one dependency descriptor per installed transitive package. The
+enumerated name-keyed set above is complete; producer-side and consumer-side verification must apply
+the same manager-dependent cardinality.
 
 ## Digest semantics
 
@@ -777,6 +1022,87 @@ The profile generates its own SLSA provenance v1 predicate and subject inputs. I
 npm's automatic provenance feature and does not use `actions/attest` default provenance mode.
 Windlass owns the verifier-relevant contents of the emitted Statement: subject, `predicateType`,
 `buildType`, `externalParameters`, `builder.id`, and profile-defined predicate fields.
+
+For this profile, `runDetails.builder.version` is the closed common-spec shape. Lowercase `nodejs`
+is required and equals the exact observed `node --version` output. Lowercase `corepack` is required
+and equals the exact observed Corepack version when Corepack supplied pnpm or Yarn, and it is absent
+when npm is selected directly. npm, runner-image identity, ranges, tags, aliases, and unknown keys
+are forbidden. These are valid direct-npm and Corepack shapes:
+
+```json
+{
+  "version": {
+    "nodejs": "v24.0.0"
+  }
+}
+```
+
+```json
+{
+  "version": {
+    "nodejs": "v24.0.0",
+    "corepack": "0.34.0"
+  }
+}
+```
+
+Missing `nodejs`, conditional `corepack` absence or presence, an unknown key, or disagreement with
+the observed versions fails candidate-predicate validation with
+`windlass.verify.error.builder-version-mismatch`, severity `error`, exit code `1`, before signing.
+For example, the following npm-selected shape is invalid because `corepack` must be absent:
+
+```json
+{
+  "selected_package_manager": "npm",
+  "version": {
+    "nodejs": "v24.0.0",
+    "corepack": "0.34.0"
+  }
+}
+```
+
+`runDetails.builder.builderDependencies` contains exactly one closed signing-adapter descriptor. Its
+full SHA is the actual pinned `actions/attest` action revision used by the signing step, and the
+same 40-character lowercase SHA must appear in both the URI suffix and `digest.gitCommit`:
+
+```json
+[
+  {
+    "uri": "git+https://github.com/actions/attest@0123456789abcdef0123456789abcdef01234567",
+    "digest": {
+      "gitCommit": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "annotations": {
+      "role": "signing-adapter"
+    }
+  }
+]
+```
+
+The profile must not add build-job actions or any other builder dependency. A missing or additional
+descriptor, malformed or unequal SHA, URI/action-revision disagreement, unknown member, or role
+other than `"signing-adapter"` fails candidate-predicate validation with
+`windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity `error`, exit code
+`1`, before signing. The package-manager CLI version remains in
+`externalParameters.package_manager`; runner-image identity remains in the descriptor named
+`runner-image`.
+
+This focused invalid descriptor fails with that diagnostic because the URI and digest revisions do
+not agree:
+
+```json
+[
+  {
+    "uri": "git+https://github.com/actions/attest@0123456789abcdef0123456789abcdef01234567",
+    "digest": {
+      "gitCommit": "89abcdef0123456789abcdef0123456789abcdef"
+    },
+    "annotations": {
+      "role": "signing-adapter"
+    }
+  }
+]
+```
 
 ## `actions/attest` signing adapter
 
@@ -799,18 +1125,27 @@ slsa-provenance-predicate.json
 This file is an adapter input only. It must not be uploaded, published, or redistributed as the
 provenance bundle.
 
+Before invoking the adapter, the producer must validate the complete candidate predicate against the
+common SLSA and npm-profile closed schemas and expected captured values. This pre-sign gate includes
+the closed external-parameter groups, manager-dependent enumerated dependency set,
+`builder.version`, and sole signing-adapter builder dependency. Missing capture evidence fails with
+`windlass.verify.error.input-unavailable` and exit code `2`; a constructed candidate that violates a
+closed shape or expected value fails with the field's central diagnostic and exit code `1`. Either
+result stops before signing.
+
 The adapter constructs the in-toto Statement, signs it as a Sigstore-backed bundle, emits the bundle
 file named `<package-tarball-name>.intoto.jsonl`, and may also upload the attestation to GitHub
 artifact attestation storage. The adapter must not be invoked in default provenance mode for the
 production npm profile and must not be documented as accepting a complete in-toto Statement input.
 
-The producer-side verification gate must extract the emitted Statement from the signed bundle and
-reject the bundle before publish if the Statement does not match the verified signing inputs. It
-must also reject adapter drift when the bundle file is missing, the emitted bundle basename differs
-from `<package-tarball-name>.intoto.jsonl`, the bundle cannot be parsed as a Sigstore bundle, the
-bundle contains a raw Statement instead of the expected signed bundle structure, or the extracted
-Statement uses unexpected `_type`, subject, `predicateType`, predicate, `builder.id`, `buildType`,
-or `externalParameters` values.
+After signing, the producer-side verification gate must extract the emitted Statement from the
+signed bundle and reject the bundle before publish if the Statement does not match the pre-sign
+validated candidate predicate and verified subject inputs. It must also reject adapter drift when
+the bundle file is missing, the emitted bundle basename differs from
+`<package-tarball-name>.intoto.jsonl`, the bundle cannot be parsed as a Sigstore bundle, the bundle
+contains a raw Statement instead of the expected signed bundle structure, or the extracted Statement
+uses unexpected `_type`, subject, `predicateType`, predicate, `builder.id`, `buildType`, or
+`externalParameters` values.
 
 GitHub artifact attestation storage, when used, is an additional native locator. It is not a
 substitute for the signed bundle bytes required by `npm publish --provenance-file`, same-run
@@ -1019,14 +1354,15 @@ failed rather than silently claim convergence.
   the called workflow can obtain the OIDC token required by npm trusted publishing.
 - npm trusted publisher configuration must identify the caller repository and caller workflow
   filename, not `windlasstech/slsa-builder` or `.github/workflows/js-ts-npm-package-slsa3.yml`.
-- The npm trusted publisher configuration is registry-side authorization policy. It is a required
-  producer-side publish precondition, but it is not part of the closed SLSA `externalParameters`
-  schema and is not a consumer-side Windlass provenance verification field.
+- The remote npm trusted publisher configuration object remains registry-side authorization policy
+  and is not signed. The observed normalized caller workflow filename relevant to the run is signed
+  as `externalParameters.caller.workflow_filename`; producer-side and consumer-side verification
+  must compare it with the trusted-publisher identity.
 - No npm token, OTP, or other long-lived publish secret is used.
 - The registry URL must support OIDC trusted publishing.
 - A missing caller OIDC permission, npm trusted publisher mismatch, or unavailable caller workflow
-  identity must fail before `npm publish`; the profile must not fall back to publish credentials or
-  npm automatic provenance.
+  identity must fail before `npm publish` with `windlass.verify.error.trusted-publisher-mismatch`;
+  the profile must not fall back to publish credentials or npm automatic provenance.
 
 ## Registry metadata checks
 
@@ -1101,7 +1437,11 @@ composition API.
 
 ## Producer-side verification gate
 
-Before `npm publish`, the `publish` job must verify:
+Before invoking `actions/attest`, the producer must validate the candidate predicate as specified in
+the signing-adapter section. It must not sign a candidate that fails capture, closed-schema,
+cardinality, cross-field, or expected-value validation.
+
+After signing and before `npm publish`, the `publish` job must verify:
 
 1. The bundle signature is valid.
 2. The signer identity is trusted.
@@ -1113,9 +1453,16 @@ Before `npm publish`, the `publish` job must verify:
 8. The `subject[0].name` matches the expected npm Package URL.
 9. The `externalParameters` match the expected schema and values, including `package.tarball_name`
    and exact equality among normalized `package.repository`, `source.repository`, and the observed
-   caller repository identity.
-10. The emitted Statement matches the subject inputs, predicate type, and predicate that Windlass
-    verified before invoking `actions/attest`.
+   caller repository identity; the closed `distribution` and `caller` groups match the accepted
+   inputs and observed caller workflow filename.
+10. The name-keyed `resolvedDependencies` set has the exact manager-dependent cardinality and every
+    lockfile, package-manager distribution, and runner-image descriptor satisfies its closed shape.
+11. `builder.version` has the exact observed `nodejs` and conditional `corepack` shape.
+12. `builderDependencies` contains only the exact pinned signing-adapter descriptor whose URI,
+    `digest.gitCommit`, role, and actual action revision agree.
+13. The emitted Statement's predicate is byte-for-byte JSON-value equivalent to the complete
+    candidate predicate that Windlass validated before invoking `actions/attest`, and its Statement
+    envelope fields match the verified subject inputs and predicate type.
 
 If any check fails, the job must fail before registry mutation.
 
@@ -1134,6 +1481,34 @@ The `publish` job must fail before `npm publish` when:
 - Tarball-filename subject used for npm provenance.
 - Emitted Statement mismatch after `actions/attest` construction.
 - Unexpected or mismatched `externalParameters`.
+- Missing or unknown closed `distribution` or `caller` members. The primary diagnostic is
+  `windlass.verify.error.unexpected-external-parameters`, severity `error`, exit code `1`.
+- Signed normalized distribution values disagree with accepted public mode inputs. The primary
+  diagnostic is `windlass.verify.error.release-asset-mode-schema-error`, severity `error`, exit code
+  `1`.
+- The observed caller workflow filename is unavailable or mismatches trusted-publisher identity. The
+  primary diagnostic is `windlass.verify.error.trusted-publisher-mismatch`, severity `error`, exit
+  code `1`.
+- An unknown or non-enumerated dependency descriptor is present. The primary diagnostic is
+  `windlass.verify.error.resolved-dependencies-unexpected-entry`, severity `error`, exit code `1`.
+- The package-manager distribution is missing, duplicated, forbidden for npm, malformed, or
+  mismatched. The primary diagnostic is
+  `windlass.verify.error.resolved-dependencies-package-manager-distribution`, severity `error`, exit
+  code `1`.
+- The runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched. The
+  primary diagnostic is `windlass.verify.error.resolved-dependencies-runner-image`, severity
+  `error`, exit code `1`.
+- `builder.version` is missing, has an extra or conditionally wrong key, or differs from observed
+  versions. The primary diagnostic is `windlass.verify.error.builder-version-mismatch`, severity
+  `error`, exit code `1`.
+- The sole signing-adapter builder dependency is missing, extra, malformed, or inconsistent with the
+  pinned action revision. The primary diagnostic is
+  `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity `error`, exit code
+  `1`.
+- Required package-manager distribution or runner-image capture evidence is unavailable before
+  candidate predicate construction. The primary diagnostic is
+  `windlass.verify.error.input-unavailable`, severity `error`, exit code `2`; no predicate is
+  signed.
 - Source identity mismatch.
 - `package.repository` is missing, malformed, or differs from `source.repository` or the observed
   caller repository identity. The job emits
@@ -1173,6 +1548,18 @@ The profile must not fall back to:
 ## TDD and fixtures
 
 - Positive fixture: accepted signed bundle leading to successful npmjs `npm publish`.
+- `npm-external-parameters-distribution-caller-valid` proves the closed `distribution` and `caller`
+  groups, all eight public-input representations, normalized sidecar policy, and observed caller
+  filename.
+- `npm-resolved-dependencies-npm-valid` proves npm emits the name-keyed lockfile and runner-image
+  set and no package-manager distribution. `npm-resolved-dependencies-pnpm-valid` proves one
+  registry-integrity pnpm distribution. `npm-resolved-dependencies-yarn-valid` proves one
+  download-hash Yarn distribution.
+- `npm-builder-version-direct-npm-valid` proves the `nodejs`-only builder version;
+  `npm-builder-version-corepack-valid` proves the `nodejs` plus `corepack` shape; and
+  `npm-builder-signing-adapter-valid` proves the sole pinned `actions/attest` descriptor.
+- Existing `npm-resolved-lockfile-valid` and `npm-resolved-lockfile-stale-valid` fixtures continue
+  to prove the unchanged lockfile descriptor within the manager-dependent set.
 - Positive convergence fixture: a retry attempt within the same `github.run_id` observes an existing
   version, polls `dist.integrity`, proves an exact sha512 SRI match, classifies
   `committed-as-expected`, and continues without another publish call. The same result is valid when
@@ -1197,6 +1584,20 @@ The profile must not fall back to:
   non-empty `access` option without token or OTP proof, with ambiguous cause and possible mutation
   status reported (`custom-registry-access-option-rejected`) as defined by the central fixture
   contract.
+- Focused rejected mutations must cover npm emitting `package-manager-distribution`; pnpm or Yarn
+  omitting or duplicating it; pnpm using `download-hash`; Yarn using `registry-integrity`; manager
+  or version disagreement; malformed non-hex SHA-512; runner absence, duplication, unknown member,
+  or prohibited digest; unknown dependency names and generated transitive-package entries; missing
+  or unknown `distribution`/`caller` members; raw release-tag duplication; normalized distribution
+  disagreement; and unavailable or mismatched caller filename. Their expected primary IDs are the
+  corresponding central diagnostics listed in Failure behavior.
+- Builder rejected mutations must cover missing `nodejs`, absent conditional `corepack`, `corepack`
+  present for npm, an unknown version key, missing or extra signing adapters, URI/digest/action SHA
+  disagreement, and a wrong role. Their expected primary IDs are `builder-version-mismatch` or
+  `builder-dependencies-signing-adapter-mismatch` as applicable.
+- Candidate-predicate fixtures must prove capture unavailability exits `2` with `input-unavailable`,
+  malformed constructed candidates exit `1` with the narrow field diagnostic, no failing candidate
+  reaches signing, and post-sign comparison rejects any adapter-altered predicate before publish.
 - Rejected convergence fixture: a same-`github.run_id` retry observes a well-formed but unequal
   `dist.integrity`, classifies `foreign-conflict`, and fails without adopting or republishing the
   version.
