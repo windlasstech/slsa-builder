@@ -46,12 +46,14 @@
 모든 ADR은 명세에 대응되거나, 개발 도구 전용 혹은 대체됨(superseded), 폐기됨(deprecated) 등으로
 분류됩니다. 대체되거나 폐기된 ADR은 과거 맥락일 뿐 새로운 명세나 구현을 주도해서는 안 됩니다.
 
-| ADR  | 결정                                                          | 명세 매핑                                                                                                                                       |
-| ---- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0066 | Serialize release mutations with job-class concurrency        | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, JS/TS npm package profile, verification policy and fixtures |
-| 0067 | Converge repeated runs within run identity                    | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                            |
-| 0068 | Bind verification to immutable builder and source identities  | Verification policy and fixtures, identity and build types, JS/TS npm provenance and publish, release manifest                                  |
-| 0069 | Require Rekor transparency and govern the Sigstore trust root | Verification policy and fixtures, SLSA provenance v1, release manifest                                                                          |
+| ADR  | 결정                                                                          | 명세 매핑                                                                                                                                       |
+| ---- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0066 | Serialize release mutations with job-class concurrency                        | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, JS/TS npm package profile, verification policy and fixtures |
+| 0067 | Converge repeated runs within run identity                                    | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                            |
+| 0068 | Bind verification to immutable builder and source identities                  | Verification policy and fixtures, identity and build types, JS/TS npm provenance and publish, release manifest                                  |
+| 0069 | Require Rekor transparency and govern the Sigstore trust root                 | Verification policy and fixtures, SLSA provenance v1, release manifest                                                                          |
+| 0070 | Record package manager distributions and runner image in resolvedDependencies | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                |
+| 0071 | Activate builder.version and builderDependencies for platform components      | SLSA provenance v1, verification policy and fixtures                                                                                            |
 
 자세한 ADR 추적성 표는 [`../decisions/README.ko.md`](../decisions/README.ko.md#adr-추적성)를
 참조하세요.

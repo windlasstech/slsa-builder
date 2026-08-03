@@ -47,12 +47,14 @@ Every ADR is either mapped to a spec, marked as tooling-only, or marked as super
 etc. Superseded or deprecated ADRs are historical context and must not drive new specification or
 implementation work.
 
-| ADR  | Decision                                                      | Spec mapping                                                                                                                                    |
-| ---- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0066 | Serialize release mutations with job-class concurrency        | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, JS/TS npm package profile, verification policy and fixtures |
-| 0067 | Converge repeated runs within run identity                    | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                            |
-| 0068 | Bind verification to immutable builder and source identities  | Verification policy and fixtures, identity and build types, JS/TS npm provenance and publish, release manifest                                  |
-| 0069 | Require Rekor transparency and govern the Sigstore trust root | Verification policy and fixtures, SLSA provenance v1, release manifest                                                                          |
+| ADR  | Decision                                                                      | Spec mapping                                                                                                                                    |
+| ---- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0066 | Serialize release mutations with job-class concurrency                        | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, JS/TS npm package profile, verification policy and fixtures |
+| 0067 | Converge repeated runs within run identity                                    | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                            |
+| 0068 | Bind verification to immutable builder and source identities                  | Verification policy and fixtures, identity and build types, JS/TS npm provenance and publish, release manifest                                  |
+| 0069 | Require Rekor transparency and govern the Sigstore trust root                 | Verification policy and fixtures, SLSA provenance v1, release manifest                                                                          |
+| 0070 | Record package manager distributions and runner image in resolvedDependencies | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                |
+| 0071 | Activate builder.version and builderDependencies for platform components      | SLSA provenance v1, verification policy and fixtures                                                                                            |
 
 See [`../decisions/README.md`](../decisions/README.md#adr-traceability) for the canonical detailed
 ADR traceability tables.
