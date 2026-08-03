@@ -484,6 +484,16 @@ distribution value that disagrees with accepted public mode inputs fails with
 `windlass.verify.error.release-asset-mode-schema-error`; an unavailable or mismatched observed
 caller workflow filename fails with `windlass.verify.error.trusted-publisher-mismatch`.
 
+The closed `distribution` object has exactly `release_asset_mode`, `release_tag_supplied`,
+`provenance_sidecar`, and `linked_artifact_metadata`. The first, second, and fourth members are
+booleans; `provenance_sidecar` is `null` in npm-only mode and exactly `"required"` in release-asset
+mode. `release_tag_supplied` records suppliedness only; the effective tag remains in `release.ref`
+and `release.version_tag`. The closed `caller` object has exactly `workflow_filename`, the
+normalized observed caller workflow filename. A raw release tag in `distribution`, a sidecar value
+preserving omitted-versus-`required` spelling, or another distribution normalization disagreement
+fails with `windlass.verify.error.release-asset-mode-schema-error`; a missing or unknown group
+member fails with `windlass.verify.error.unexpected-external-parameters`.
+
 `internalParameters` must be exactly the empty object `{}`. A non-object or any member fails with
 `windlass.verify.error.unexpected-internal-parameters`.
 
@@ -1315,7 +1325,7 @@ follow the diagnostics ordering rules.
 | Adapter URI, digest, or action revision disagrees                               | `builder-dependencies-signing-adapter-mismatch`      |
 | Adapter `role` annotation is wrong                                              | `builder-dependencies-signing-adapter-mismatch`      |
 | `distribution` or `caller` member is missing or unknown                         | `unexpected-external-parameters`                     |
-| Raw release tag is duplicated into `distribution`                               | `unexpected-external-parameters`                     |
+| Raw release tag is duplicated into `distribution`                               | `release-asset-mode-schema-error`                    |
 | Observed caller filename is unavailable or mismatched                           | `trusted-publisher-mismatch`                         |
 | `internalParameters` is nonempty                                                | `unexpected-internal-parameters`                     |
 | Invocation URI is malformed or differs from OID `.21`                           | `run-invocation-uri-invalid`                         |
@@ -1455,14 +1465,17 @@ Accepted fixtures must cover manifest-selected npm with `package-lock.json`, man
 with `pnpm-lock.yaml`, manifest-selected Yarn Berry v4+ from top-level `packageManager` with
 `yarn.lock`, and lockfile-inferred npm with `package-lock.json`. Accepted stale-lockfile fixtures
 must record stale non-selected lockfiles in both
-`externalParameters.package_manager.ignored_lockfile_paths` and
-`resolvedDependencies[0].annotations.stale_non_selected_lockfiles` while keeping the selected
-lockfile descriptor as the only dependency graph input. Rejected fixtures must cover a missing
-descriptor, extra descriptor entries, full dependency-list entries, digest mismatch, URI source or
-revision mismatch, fragment path outside the repository, descriptor path that names a stale or
-non-selected lockfile, missing stale-lockfile diagnostics, unknown annotation members, and treating
-a stale non-selected lockfile as the selected dependency graph input. These failures use
-`resolved-dependencies-lockfile` unless a narrower package-manager or workspace category applies.
+`externalParameters.package_manager.ignored_lockfile_paths` and the `lockfile` descriptor's
+`annotations.stale_non_selected_lockfiles` while keeping the selected lockfile descriptor as the
+only dependency graph input. These existing lockfile fixtures run within the enumerated name-keyed
+set: npm has `lockfile` plus `runner-image`; pnpm and Yarn also have one
+`package-manager-distribution`. Rejected fixtures must cover a missing descriptor, extra descriptor
+entries, full dependency-list entries, digest mismatch, URI source or revision mismatch, fragment
+path outside the repository, descriptor path that names a stale or non-selected lockfile, missing
+stale-lockfile diagnostics, unknown annotation members, and treating a stale non-selected lockfile
+as the selected dependency graph input. These failures use `resolved-dependencies-lockfile`; unknown
+extra entries use `resolved-dependencies-unexpected-entry`; known package-manager distribution and
+runner-image defects use their respective narrow diagnostics.
 
 The public npm release-asset mode fixture set must prove that
 `.github/workflows/js-ts-npm-package-slsa3.yml` has one public npm entrypoint with two modes.
@@ -1681,6 +1694,32 @@ Rejected fixtures must cover branch refs, pull request refs, short tag inputs, n
 missing target releases, signer workflow path mismatches, signer workflow ref mismatches, and any
 caller-controlled input that changes `release_version`, workflow SHAs, `builder.id`, `buildType`, or
 predicate type.
+
+### v1 provenance completion traceability matrix
+
+Each row names one primary diagnostic. The normative sources define the shape; this verifier policy
+defines the accepted and rejected fixture contracts.
+
+| Requirement                    | Normative section                                                                                                  | Accepted fixture                                    | Rejected fixture                                                    | Primary diagnostic                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
+| npm dependency set             | [npm dependency schema](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema)                      | `npm-resolved-dependencies-npm-valid`               | npm emits a manager distribution                                    | `resolved-dependencies-package-manager-distribution` |
+| pnpm distribution              | [Package-manager distribution descriptor](js-ts-npm-provenance-publish.md#package-manager-distribution-descriptor) | `npm-resolved-dependencies-pnpm-valid`              | pnpm distribution missing or uses `download-hash`                   | `resolved-dependencies-package-manager-distribution` |
+| Yarn distribution              | [Package-manager distribution descriptor](js-ts-npm-provenance-publish.md#package-manager-distribution-descriptor) | `npm-resolved-dependencies-yarn-valid`              | Yarn distribution missing or uses `registry-integrity`              | `resolved-dependencies-package-manager-distribution` |
+| Unknown dependency             | [npm dependency schema](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema)                      | `npm-resolved-dependencies-npm-valid`               | generated transitive or unknown entry                               | `resolved-dependencies-unexpected-entry`             |
+| Runner image                   | [Runner-image descriptor](js-ts-npm-provenance-publish.md#runner-image-descriptor)                                 | `npm-resolved-dependencies-npm-valid`               | runner absent, digest-bearing, or mismatched                        | `resolved-dependencies-runner-image`                 |
+| Capture availability           | [Runner image capture](js-ts-npm-build-pack.md#runner-image-capture)                                               | `npm-resolved-dependencies-npm-valid`               | runner or manager capture unavailable before predicate construction | `input-unavailable`                                  |
+| Distribution and caller groups | [Closed schema rules](js-ts-npm-provenance-publish.md#closed-schema-rules)                                         | `npm-external-parameters-distribution-caller-valid` | missing or unknown group member                                     | `unexpected-external-parameters`                     |
+| Mode normalization             | [Optional input rules](js-ts-npm-package-profile.md#optional-input-rules)                                          | `npm-external-parameters-distribution-caller-valid` | normalized distribution disagrees with public mode input            | `release-asset-mode-schema-error`                    |
+| Caller filename                | [Caller trusted publishing requirements](js-ts-npm-package-profile.md#caller-trusted-publishing-requirements)      | `npm-external-parameters-distribution-caller-valid` | observed filename unavailable or mismatched                         | `trusted-publisher-mismatch`                         |
+| Empty internal parameters      | [internalParameters](slsa-provenance-v1.md#internalparameters)                                                     | `npm-internal-parameters-empty-valid`               | non-object or nonempty value                                        | `unexpected-internal-parameters`                     |
+| Builder direct-npm version     | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-version-direct-npm-valid`              | missing `nodejs` or npm-only `corepack`                             | `builder-version-mismatch`                           |
+| Builder Corepack version       | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-version-corepack-valid`                | missing conditional `corepack` or observed mismatch                 | `builder-version-mismatch`                           |
+| Signing adapter                | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-signing-adapter-valid`                 | missing, extra, wrong-role, or revision-inconsistent adapter        | `builder-dependencies-signing-adapter-mismatch`      |
+| Invocation identity            | [metadata](slsa-provenance-v1.md#metadata)                                                                         | `npm-invocation-id-certificate-uri-valid`           | malformed URI or OID `.21` inequality                               | `run-invocation-uri-invalid`                         |
+| Online trust root              | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-online-tuf-valid`                       | TUF failure followed by pin fallback                                | `ungoverned-trust-root`                              |
+| Offline network isolation      | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-offline-pinned-valid`                   | offline network attempt                                             | `verification-network-call`                          |
+| Offline pin freshness          | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-offline-pinned-valid`                   | offline stale pin                                                   | `stale-pinned-trust-root`                            |
+| Invocation mode                | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-online-tuf-valid`                       | mode absent, conflicting, or root-shape-inconsistent                | `verification-mode-invalid`                          |
 
 ## Future standalone verifier decision boundary
 
