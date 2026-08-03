@@ -223,9 +223,11 @@ diagnostics in profile-defined descriptor annotations and are not selected depen
   descriptors, are rejected with
   `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.
 
-The npm CLI version remains only in `externalParameters.package_manager`. The runner image version
-remains only in the named `runner-image` descriptor. A duplicated or forbidden builder value is
-rejected with `windlass.verify.error.builder-version-mismatch`.
+The npm CLI version is already recorded by the npm profile in
+`externalParameters.runtime.npm_version` and, for npm-selected runs, as
+`externalParameters.package_manager.version`, so `builder.version` must not add an npm key. The
+runner image version remains only in the named `runner-image` descriptor. A duplicated or forbidden
+builder value is rejected with `windlass.verify.error.builder-version-mismatch`.
 
 Valid direct-npm version shape:
 
@@ -239,10 +241,16 @@ Valid Corepack version shape:
 { "version": { "nodejs": "v24.0.0", "corepack": "0.29.4" } }
 ```
 
-Invalid, because npm is forbidden and Corepack is not required for a direct npm selection:
+Invalid, because npm is forbidden:
 
 ```json
-{ "version": { "nodejs": "v24", "npm": "11.0.0", "corepack": "0.29.4" } }
+{ "version": { "nodejs": "v24.0.0", "npm": "11.0.0" } }
+```
+
+Invalid, because `nodejs` is not an exact observed version string:
+
+```json
+{ "version": { "nodejs": "v24" } }
 ```
 
 Valid signing-adapter dependency:

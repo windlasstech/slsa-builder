@@ -114,7 +114,15 @@ Valid invocation and root-shape examples are:
 ```json
 {
   "verification_mode": "offline",
-  "trust_root": { "mode": "pinned", "instance": "sigstore-public-good" }
+  "trust_root": {
+    "mode": "pinned",
+    "instance": "sigstore-public-good",
+    "path": "trusted_root.json",
+    "sha256": "7c222fb2927d828af22f592134e8932480637c0d3f9c2072e82716801567e69f",
+    "tuf_repository": "https://tuf-repo-cdn.sigstore.dev",
+    "revalidated_at": "2026-08-01T00:00:00Z",
+    "refresh_before": "2026-08-08T00:00:00Z"
+  }
 }
 ```
 
@@ -795,9 +803,10 @@ slsa-verifier verify-artifact \
 `--source-uri` is the package source repository recorded in `externalParameters.source.repository`.
 `--builder-id` is the SHA-pinned Windlass reusable workflow identity from `runDetails.builder.id`.
 This command may verify the SLSA provenance structure but may not enforce all Windlass-specific
-policy checks such as strict `externalParameters` and release manifest mapping. npm trusted
-publisher caller identity is a producer-side registry authorization precondition rather than a
-consumer-side SLSA provenance verification field.
+policy checks such as strict `externalParameters` and release manifest mapping. The remote npm
+trusted-publisher configuration object is a producer-side registry authorization precondition, but
+the signed `caller.workflow_filename` is a consumer-verified provenance field enforced under the npm
+package verification policy.
 
 ## Fixture taxonomy
 
@@ -1063,8 +1072,9 @@ fixture harness with `windlass.verify.error.diagnostics-contract-invalid`.
 | `2`       | Invocation failure | `result` is `fail`; required local input is unreadable, an option/policy document is unusable, or the verifier cannot execute the requested check. |
 
 Exit code `2` does not mean the artifact failed a completed cryptographic check; it means no valid
-acceptance decision was produced and the report contains `windlass.verify.error.input-unavailable`
-or `windlass.verify.error.verifier-execution-failure` as its primary diagnostic. Producer-side
+acceptance decision was produced and the report contains `windlass.verify.error.input-unavailable`,
+`windlass.verify.error.verifier-execution-failure`, or
+`windlass.verify.error.verification-mode-invalid` as its primary diagnostic. Producer-side
 publication gates treat both `1` and `2` as fatal and stop before mutation. Consumer automation
 treats both as non-acceptance. Warnings are non-fatal only with exit code `0`, remain structurally
 distinguishable through `severity: "warning"`, and must not hide, replace, or lower the exit status

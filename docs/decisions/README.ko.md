@@ -181,7 +181,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0068 | Bind verification to immutable builder and source identities                  | Verification policy, identity and build types, release manifest, JS/TS npm provenance and publish                                  |
 | 0069 | Require Rekor transparency and govern the Sigstore trust root                 | Verification policy, common provenance, release manifest                                                                           |
 | 0070 | Record package manager distributions and runner image in resolvedDependencies | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                   |
-| 0071 | Activate builder.version and builderDependencies for platform components      | SLSA provenance v1, verification policy and fixtures                                                                               |
+| 0071 | Activate builder.version and builderDependencies for platform components      | SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                             |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

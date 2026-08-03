@@ -558,8 +558,8 @@ A manual dispatch release must satisfy all of the following:
   `windlass.verify.error.custom-registry-token-required`. The profile must not add a token, OTP, or
   secret fallback.
 - A detected requirement for npm automatic provenance, unsigned provenance, omission of the exact
-  Windlass bundle, bundle rewriting, or dropping caller-supplied `--access` intent fails before
-  publish with `windlass.verify.error.custom-registry-provenance-weakened`.
+  Windlass bundle, or bundle rewriting fails before publish with
+  `windlass.verify.error.custom-registry-provenance-weakened`.
 - A tokenless authentication rejection fails at the authentication or publish boundary with
   `windlass.verify.error.custom-registry-tokenless-auth-failed`.
 - Rejection of the exact external provenance file during publish fails at the publish boundary with

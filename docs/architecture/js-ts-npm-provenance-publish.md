@@ -548,11 +548,50 @@ the raw `release-tag` input, duplicate caller repository identity already held i
 `source.repository`, sign the remote npm trusted-publisher configuration object, or preserve the
 omitted-versus-`required` `provenance-sidecar` spelling after both forms normalize to the same
 policy. The observed caller filename relevant to the run is nevertheless signed at
-`caller.workflow_filename`. A missing or unknown `distribution` or `caller` member, a raw release
-tag copied into `distribution`, or another duplicate representation fails with
-`windlass.verify.error.unexpected-external-parameters`; disagreement between normalized distribution
-values and the accepted public mode inputs fails with
-`windlass.verify.error.release-asset-mode-schema-error`.
+`caller.workflow_filename`. A missing or unknown `distribution` or `caller` member, or another
+duplicate representation fails with `windlass.verify.error.unexpected-external-parameters`; a raw
+release tag copied into `distribution`, or disagreement between normalized distribution values and
+the accepted public mode inputs, fails with `windlass.verify.error.release-asset-mode-schema-error`.
+
+The following focused invalid `distribution` object omits `linked_artifact_metadata` and fails with
+`windlass.verify.error.unexpected-external-parameters`:
+
+```json
+{
+  "distribution": {
+    "release_asset_mode": false,
+    "release_tag_supplied": false,
+    "provenance_sidecar": null
+  }
+}
+```
+
+The following focused invalid `caller` object has an unknown member and fails with
+`windlass.verify.error.unexpected-external-parameters`:
+
+```json
+{
+  "caller": {
+    "workflow_filename": "release.yml",
+    "workflow_path": ".github/workflows/release.yml"
+  }
+}
+```
+
+The following focused invalid `distribution` object copies the raw release tag and fails with
+`windlass.verify.error.release-asset-mode-schema-error`:
+
+```json
+{
+  "distribution": {
+    "release_asset_mode": true,
+    "release_tag_supplied": true,
+    "provenance_sidecar": "required",
+    "linked_artifact_metadata": false,
+    "release_tag": "v1.2.3"
+  }
+}
+```
 
 ### Canonical source repository URL
 
@@ -1083,9 +1122,10 @@ The profile must not add build-job actions or any other builder dependency. A mi
 descriptor, malformed or unequal SHA, URI/action-revision disagreement, unknown member, or role
 other than `"signing-adapter"` fails candidate-predicate validation with
 `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity `error`, exit code
-`1`, before signing. The package-manager CLI version remains in
-`externalParameters.package_manager`; runner-image identity remains in the descriptor named
-`runner-image`.
+`1`, before signing. The npm CLI version is already recorded by the npm profile in
+`externalParameters.runtime.npm_version` and, for npm-selected runs, as
+`externalParameters.package_manager.version`, so `builder.version` must not add an npm key.
+Runner-image identity remains in the descriptor named `runner-image`.
 
 This focused invalid descriptor fails with that diagnostic because the URI and digest revisions do
 not agree:
@@ -1128,10 +1168,12 @@ provenance bundle.
 Before invoking the adapter, the producer must validate the complete candidate predicate against the
 common SLSA and npm-profile closed schemas and expected captured values. This pre-sign gate includes
 the closed external-parameter groups, manager-dependent enumerated dependency set,
-`builder.version`, and sole signing-adapter builder dependency. Missing capture evidence fails with
-`windlass.verify.error.input-unavailable` and exit code `2`; a constructed candidate that violates a
-closed shape or expected value fails with the field's central diagnostic and exit code `1`. Either
-result stops before signing.
+`builder.version`, and sole signing-adapter builder dependency. Missing package-manager-distribution
+or runner-image capture evidence fails with `windlass.verify.error.input-unavailable` and exit code
+`2`; an unobservable caller workflow filename fails with
+`windlass.verify.error.trusted-publisher-mismatch` as specified in the field rules; a constructed
+candidate that violates a closed shape or expected value fails with the field's central diagnostic
+and exit code `1`. Each result stops before signing.
 
 The adapter constructs the in-toto Statement, signs it as a Sigstore-backed bundle, emits the bundle
 file named `<package-tarball-name>.intoto.jsonl`, and may also upload the attestation to GitHub
