@@ -7,6 +7,8 @@ decision-makers: Yunseo Kim
 relations:
   - type: see-also
     target: ADR-0069
+  - type: see-also
+    target: ADR-0071
 ---
 
 # Use actions/attest as the Initial Sigstore Signing Adapter

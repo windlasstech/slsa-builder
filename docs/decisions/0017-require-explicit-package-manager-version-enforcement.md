@@ -4,6 +4,9 @@ nav_order: 17
 status: accepted
 date: 12026-06-28
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0070
 ---
 
 # Require Explicit Package Manager Version Enforcement

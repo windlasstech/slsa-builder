@@ -9,6 +9,8 @@ relations:
     target: ADR-0068
   - type: see-also
     target: ADR-0069
+  - type: see-also
+    target: ADR-0071
 ---
 
 # Use actions/attest Custom Mode for Statement Construction
