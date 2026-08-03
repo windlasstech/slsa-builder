@@ -14,7 +14,10 @@ common contract.
   [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
   [0061](../decisions/0061-reject-duplicate-json-members-in-signed-slsa-statements.md),
   [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
-  [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md)
+  [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md),
+  [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
+  and
+  [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
@@ -62,16 +65,33 @@ following shape:
       "buildType": "<canonical buildType URI>",
       "externalParameters": {},
       "internalParameters": {},
-      "resolvedDependencies": []
+      "resolvedDependencies": [
+        { "name": "lockfile" },
+        {
+          "name": "runner-image",
+          "uri": "<platform-provided Included Software URL>",
+          "annotations": {
+            "image_os": "<ImageOS>",
+            "image_version": "<ImageVersion>",
+            "node_version": "<exact node --version output>"
+          }
+        }
+      ]
     },
     "runDetails": {
       "builder": {
         "id": "<full GitHub reusable workflow URI with SHA>",
-        "version": null,
-        "builderDependencies": []
+        "version": { "nodejs": "v24.0.0" },
+        "builderDependencies": [
+          {
+            "uri": "git+https://github.com/actions/attest@<full-sha>",
+            "digest": { "gitCommit": "<full-sha>" },
+            "annotations": { "role": "signing-adapter" }
+          }
+        ]
       },
       "metadata": {
-        "invocationId": "<github.run_id>.<github.run_attempt>",
+        "invocationId": "https://github.com/<owner>/<repo>/actions/runs/<run-id>/attempts/<attempt-number>",
         "startedOn": "<RFC 3339 UTC timestamp at whole-second precision>",
         "finishedOn": "<RFC 3339 UTC timestamp at whole-second precision>"
       }
@@ -150,34 +170,117 @@ fallback schema and must not be used to accept fields omitted by the profile sch
 
 ## `internalParameters`
 
-`internalParameters` may contain non-verifier-relevant metadata that does not affect trust
-decisions. If a field affects trust, it must be in `externalParameters`.
+`internalParameters` must be exactly the empty object `{}`. It must not be absent, non-object, or
+contain a member. A violation is rejected with
+`windlass.verify.error.unexpected-internal-parameters`.
+
+Valid:
+
+```json
+{ "internalParameters": {} }
+```
+
+Invalid, because it contains a member:
+
+```json
+{ "internalParameters": { "debug": true } }
+```
+
+Raw package metadata that is not trust input belongs only in `diagnostic_metadata.package_manifest`,
+not in `internalParameters`. A producer that places it in `internalParameters` is rejected with
+`windlass.verify.error.unexpected-internal-parameters`.
 
 ## `resolvedDependencies`
 
-The profile may record resolved dependencies when they are available and verifier-relevant. The
-common contract does not define a fallback `resolvedDependencies` schema; each profile must define
-the complete shape it emits and the strict matching policy for that shape.
+Each profile must define its complete, unordered, name-keyed `resolvedDependencies` shape and strict
+matching policy. The common contract defines no fallback schema. A profile that emits an unknown or
+non-enumerated dependency is rejected with
+`windlass.verify.error.resolved-dependencies-unexpected-entry`.
 
-For the initial JS/TS npm profile, `resolvedDependencies` records the selected lockfile descriptor
-that constrained the release install. It does not enumerate every installed package version as a
-separate `ResourceDescriptor`. The selected lockfile is the verifier-relevant dependency graph
-input; package versions are represented by the lockfile bytes and digest rather than by a generated
-transitive dependency list. Non-selected supported lockfiles may appear only as stale diagnostics in
-the profile-defined descriptor annotations and must not be treated as selected dependency graph
-inputs.
+The initial JS/TS npm profile enumerates `lockfile` and `runner-image`; pnpm and Yarn additionally
+enumerate `package-manager-distribution`. Its descriptor shapes and conditional cardinalities are
+defined by
+[JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema).
+That profile does not enumerate every installed package as a separate `ResourceDescriptor`. The
+selected lockfile is the verifier-relevant dependency graph input, and package versions are
+represented by its bytes and digest. Non-selected supported lockfiles may appear only as stale
+diagnostics in profile-defined descriptor annotations and are not selected dependency graph inputs.
 
 ## `runDetails`
 
 ### `builder`
 
 - `id`: full GitHub reusable workflow URI with SHA.
-- `version`: reserved for future use; must be `null` in the initial profile.
-- `builderDependencies`: reserved for future use; must be an empty array in the initial profile.
+- `version`: a closed object containing required lowercase `nodejs` and conditional lowercase
+  `corepack`. Values are exact observed version strings, not ranges, tags, or aliases. `corepack` is
+  present only when Corepack supplied the selected package manager. `npm`, `runner-image`, and every
+  other key are forbidden. Missing or extra keys, incorrect conditional `corepack` presence, or an
+  observed-version mismatch is rejected with `windlass.verify.error.builder-version-mismatch`.
+- `builderDependencies`: exactly one signing-adapter descriptor. Its `uri` is
+  `git+https://github.com/actions/attest@<full-sha>`, its only digest member is
+  `gitCommit: <same-full-sha>`, and its only annotation is `role: "signing-adapter"`. Missing,
+  extra, malformed, wrong-role, or revision-inconsistent descriptors, including build-job action
+  descriptors, are rejected with
+  `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.
+
+The npm CLI version remains only in `externalParameters.package_manager`. The runner image version
+remains only in the named `runner-image` descriptor. A duplicated or forbidden builder value is
+rejected with `windlass.verify.error.builder-version-mismatch`.
+
+Valid direct-npm version shape:
+
+```json
+{ "version": { "nodejs": "v24.0.0" } }
+```
+
+Valid Corepack version shape:
+
+```json
+{ "version": { "nodejs": "v24.0.0", "corepack": "0.29.4" } }
+```
+
+Invalid, because npm is forbidden and Corepack is not required for a direct npm selection:
+
+```json
+{ "version": { "nodejs": "v24", "npm": "11.0.0", "corepack": "0.29.4" } }
+```
+
+Valid signing-adapter dependency:
+
+```json
+{
+  "builderDependencies": [
+    {
+      "uri": "git+https://github.com/actions/attest@0123456789abcdef0123456789abcdef01234567",
+      "digest": { "gitCommit": "0123456789abcdef0123456789abcdef01234567" },
+      "annotations": { "role": "signing-adapter" }
+    }
+  ]
+}
+```
+
+Invalid, because the digest revision differs from the URI revision:
+
+```json
+{
+  "builderDependencies": [
+    {
+      "uri": "git+https://github.com/actions/attest@0123456789abcdef0123456789abcdef01234567",
+      "digest": { "gitCommit": "89abcdef0123456789abcdef0123456789abcdef" },
+      "annotations": { "role": "signing-adapter" }
+    }
+  ]
+}
+```
 
 ### `metadata`
 
-- `invocationId`: `<github.run_id>.<github.run_attempt>`.
+- `invocationId`: exactly
+  `https://github.com/<owner>/<repo>/actions/runs/<run-id>/attempts/<attempt-number>`, where the
+  owner and repository identify the source repository and the final components are positive base-10
+  integers. It must be byte-for-byte equal to authenticated Fulcio OID `1.3.6.1.4.1.57264.1.21`. A
+  malformed, absent, or unequal value is rejected with
+  `windlass.verify.error.run-invocation-uri-invalid`.
 - `startedOn`: build start timestamp.
 - `finishedOn`: build completion timestamp.
 
@@ -203,6 +306,20 @@ Invalid examples include `2026-08-02T12:00:00.123Z` (fractional precision),
 `2026-08-02T12:00:00+00:00` (not the canonical `Z` form), and `12026-08-02T12:00:00Z` (Holocene
 year). A pair with `startedOn: 2026-08-02T12:00:10Z` and `finishedOn: 2026-08-02T12:00:04Z` is also
 invalid because its negative interval exceeds the five-second clock-skew tolerance.
+
+Valid invocation ID:
+
+```json
+{
+  "invocationId": "https://github.com/example/acme-widget/actions/runs/123456789/attempts/2"
+}
+```
+
+Invalid, because the attempt is not represented as the run-attempt URI:
+
+```json
+{ "invocationId": "123456789.2" }
+```
 
 ## Signing adapter role
 
@@ -359,26 +476,33 @@ succeeds.
 
 A verifier must reject provenance if any of the following are true:
 
-| Condition                                                                                         | Rejection reason                  |
-| ------------------------------------------------------------------------------------------------- | --------------------------------- |
-| `_type` is not `https://in-toto.io/Statement/v1`                                                  | Wrong statement type              |
-| `predicateType` is not `https://slsa.dev/provenance/v1`                                           | Wrong predicate type              |
-| Signature is missing or invalid                                                                   | Signature mismatch                |
-| Signer identity is not trusted                                                                    | Signer mismatch                   |
-| Any JSON object in the signed Statement payload contains duplicate member names after unescaping  | Duplicate JSON member error       |
-| Any security-relevant bundle or DSSE JSON object contains duplicate member names after unescaping | Duplicate JSON member error       |
-| `builder.id` uses a branch, tag, or short SHA                                                     | Builder identity policy violation |
-| `buildType` is not in the canonical namespace                                                     | Build type policy violation       |
-| `externalParameters` is incomplete                                                                | Incomplete parameters             |
-| `externalParameters` contains unexpected fields                                                   | Strict matching violation         |
-| `subject` contains zero or multiple entries                                                       | Subject cardinality error         |
-| `subject[0].digest.sha256` is missing                                                             | Missing required digest           |
-| `subject[0].name` does not match the profile rule                                                 | Subject name mismatch             |
-| Digest encoding is not lowercase hex                                                              | Digest encoding error             |
-| Sidecar, SBOM, or checksum is in `subject[0].digest`                                              | Subject digest scope error        |
-| `startedOn` or `finishedOn` is not canonical whole-second UTC RFC 3339                            | Timestamp format error            |
-| `finishedOn` precedes `startedOn` by more than five seconds                                       | Timestamp ordering error          |
-| Emitted Statement differs from validated signing inputs                                           | Statement assembly mismatch       |
+| Condition                                                                                         | Rejection reason                                                           |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `_type` is not `https://in-toto.io/Statement/v1`                                                  | Wrong statement type                                                       |
+| `predicateType` is not `https://slsa.dev/provenance/v1`                                           | Wrong predicate type                                                       |
+| Signature is missing or invalid                                                                   | Signature mismatch                                                         |
+| Signer identity is not trusted                                                                    | Signer mismatch                                                            |
+| Any JSON object in the signed Statement payload contains duplicate member names after unescaping  | Duplicate JSON member error                                                |
+| Any security-relevant bundle or DSSE JSON object contains duplicate member names after unescaping | Duplicate JSON member error                                                |
+| `builder.id` uses a branch, tag, or short SHA                                                     | Builder identity policy violation                                          |
+| `buildType` is not in the canonical namespace                                                     | Build type policy violation                                                |
+| `externalParameters` is incomplete                                                                | Incomplete parameters                                                      |
+| `externalParameters` contains unexpected fields                                                   | Strict matching violation                                                  |
+| `internalParameters` is absent, non-object, or nonempty                                           | `windlass.verify.error.unexpected-internal-parameters`                     |
+| A profile emits an unknown or non-enumerated dependency                                           | `windlass.verify.error.resolved-dependencies-unexpected-entry`             |
+| A package-manager-distribution descriptor is missing, duplicated, forbidden, or malformed         | `windlass.verify.error.resolved-dependencies-package-manager-distribution` |
+| A runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched        | `windlass.verify.error.resolved-dependencies-runner-image`                 |
+| `builder.version` has an invalid key, conditional shape, or observed version                      | `windlass.verify.error.builder-version-mismatch`                           |
+| `builderDependencies` lacks exactly one valid signing adapter                                     | `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      |
+| `metadata.invocationId` is malformed or differs from Fulcio OID `.21`                             | `windlass.verify.error.run-invocation-uri-invalid`                         |
+| `subject` contains zero or multiple entries                                                       | Subject cardinality error                                                  |
+| `subject[0].digest.sha256` is missing                                                             | Missing required digest                                                    |
+| `subject[0].name` does not match the profile rule                                                 | Subject name mismatch                                                      |
+| Digest encoding is not lowercase hex                                                              | Digest encoding error                                                      |
+| Sidecar, SBOM, or checksum is in `subject[0].digest`                                              | Subject digest scope error                                                 |
+| `startedOn` or `finishedOn` is not canonical whole-second UTC RFC 3339                            | Timestamp format error                                                     |
+| `finishedOn` precedes `startedOn` by more than five seconds                                       | Timestamp ordering error                                                   |
+| Emitted Statement differs from validated signing inputs                                           | Statement assembly mismatch                                                |
 
 ## Failure behavior
 
@@ -399,3 +523,17 @@ error category from the rejection matrix above.
   negative-skew timestamps.
 - A fixture proving that the signing adapter payload matches the Statement implied by the
   Windlass-verified subject inputs, predicate type, and predicate.
+- Accepted fixtures `npm-internal-parameters-empty-valid`, `npm-builder-version-direct-npm-valid`,
+  `npm-builder-version-corepack-valid`, `npm-builder-signing-adapter-valid`, and
+  `npm-invocation-id-certificate-uri-valid` prove exactly empty `internalParameters`, both
+  `builder.version` shapes, the one signing-adapter dependency, and the run-attempt invocation URI
+  equal to Fulcio OID `.21`.
+- Rejected fixtures for nonempty or non-object `internalParameters`, missing or extra builder
+  version keys, invalid package-manager-distribution or runner-image descriptors, an invalid
+  signing-adapter descriptor, and malformed or certificate-unequal invocation IDs. They use
+  `windlass.verify.error.unexpected-internal-parameters`,
+  `windlass.verify.error.resolved-dependencies-package-manager-distribution`,
+  `windlass.verify.error.resolved-dependencies-runner-image`,
+  `windlass.verify.error.builder-version-mismatch`,
+  `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, and
+  `windlass.verify.error.run-invocation-uri-invalid`, respectively.
