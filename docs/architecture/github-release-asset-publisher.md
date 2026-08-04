@@ -22,7 +22,8 @@ ecosystem-produced artifacts, not a source-to-artifact builder.
   [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
   [0072](../decisions/0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md),
   [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
-  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -137,15 +138,22 @@ Permission validation has two distinct layers:
 
 1. A static YAML conformance check runs at lint time against the caller workflow file. It must
    verify that the calling job declares the selected path's required permissions and no forbidden
-   permissions; a nonconforming caller file fails lint and is not an eligible release caller.
-2. Runtime verification cannot inspect a permission map: GitHub exposes no context containing the
-   caller's effective permissions after caller and callee reductions. The publisher must therefore
-   verify runtime authority by probing actual API behavior for the selected path; an HTTP `403` is
-   the permission-failure signal and fails the run without further mutation. Other API or transport
-   failures retain their own category and must not be mislabeled as permission failures; if a
-   mutating request may already have been submitted when the result becomes ambiguous, the publisher
-   performs ADR 0067 read-back and fails as `indeterminate` unless that classification proves
-   another outcome.
+   permissions; a nonconforming caller file fails lint and is not an eligible release caller. This
+   is the only pre-mutation permission check.
+2. Runtime authority uses ADR 0076 tier-2 first-mutation classification. No side-effect-free
+   write-capability probe exists on GitHub: spike-verified, the repository `permissions` API field
+   returns all-false under both `contents: write` and `contents: read` job permissions, and no API
+   exposes job-effective `GITHUB_TOKEN` permissions (spike repository `yunseo-kim/slsa-spike-tmp` at
+   commit `50b7cbe`, run 30935100751). Therefore, the first mutating call is the runtime authority
+   check. A definitive HTTP `403` or `401` response must fail the run with
+   `windlass.verify.error.mutation-permission-denied`, without read-back or further mutation,
+   because the definitive rejection proves no mutation occurred. Other API or transport failures
+   must retain their own categories and must not be mislabeled as permission failures; a failure to
+   do so fails conformance. If a mutating request may already have been submitted when its result is
+   ambiguous, the publisher must perform ADR 0067 read-back and fail as `indeterminate` unless that
+   classification proves another outcome. The primary-upload case uses
+   `windlass.verify.error.publisher-indeterminate-primary-upload` when the classification remains
+   unresolved.
 
 ### Mutation-class concurrency
 
@@ -642,9 +650,11 @@ lookup once immediately and then every 5 seconds, stopping after 24 total observ
 seconds from the first request, whichever occurs first. It may finish early only when it can
 classify `committed-as-expected` or `foreign-conflict`. At the bound, a stable empty candidate set
 is `absent`; an unreadable record, incomplete identity data, repeated API or transport failure, or
-contradictory observations is `indeterminate`. An HTTP `403` is the runtime permission-failure
-signal; the final metadata state is `indeterminate`, and the run must report both that signal and
-the observed API evidence.
+contradictory observations is `indeterminate`. A definitive HTTP `403` or `401` response to the
+first metadata create call must fail with `windlass.verify.error.mutation-permission-denied`, with
+no read-back or further metadata mutation, because the rejection proves no metadata mutation
+occurred. Other API or transport failures retain their own categories and must not be reported as
+permission failures.
 
 The always-run status report must include `linked-artifact-metadata` when enabled, with its final
 ADR 0067 outcome, the expected record identity, and any returned record locator. `created` reports
@@ -927,8 +937,10 @@ current field is `primary-artifact-name`.
 - Rejected fixtures: missing provenance, wrong subject name, missing final-asset binding, digest
   mismatch, stale `artifact-artifact-name` handoff field, duplicate asset name, non-existent
   release, raw artifact bypass, pre-existing deterministic sidecar name, primary upload failure
-  after sidecar upload, indeterminate sidecar upload, malformed JSON input for complex handoff
-  fields, excessive job permissions, and attempted re-signing of producer provenance.
+  after sidecar upload, indeterminate sidecar upload, ambiguous primary upload that remains
+  unresolved after ADR 0067 read-back and fails with
+  `windlass.verify.error.publisher-indeterminate-primary-upload`, malformed JSON input for complex
+  handoff fields, excessive job permissions, and attempted re-signing of producer provenance.
 - Producer-policy fixtures accept only
   `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1` with its signer, SHA-based
   `builder.id`, npm PURL, SHA-512 plus SHA-256, tarball-name, canonical source/ref, and closed npm
@@ -960,9 +972,13 @@ current field is `primary-artifact-name`.
   custody unproven unless it has a matching asset-ID receipt. Additional rejection fixtures cover an
   unreadable digest reaching `indeterminate`, a new `run_id` encountering matching pre-existing
   content, and deletion of a `starter` asset not proven to belong to the same run.
-- Permission fixtures distinguish static caller-YAML lint failures from runtime API probes: missing
-  or excessive declared permissions fail lint, while an API `403` fails without further mutation as
-  the runtime permission signal.
+- Permission fixtures distinguish static caller-YAML lint failures, the only pre-mutation permission
+  check, from first-mutation classification: missing or excessive declared permissions fail lint; a
+  definitive `403` on the first mutating call fails with
+  `windlass.verify.error.mutation-permission-denied`, without read-back or further mutation; and an
+  ambiguous upload result requires ADR 0067 read-back and fails with
+  `windlass.verify.error.publisher-indeterminate-primary-upload` when classification remains
+  unresolved.
 - Linked artifact metadata fixtures prove that the distinct metadata surface is outside the
   release-upload mutation segment, uses `run_id` as its idempotency key, and requires an exact
   complete-record-identity match for same-run convergence. They accept one same-`run_id` matching
