@@ -600,6 +600,57 @@ are unset. When enabled and successful, `linked-artifact-result` is `created` an
 expose at least one stable linked artifact metadata locator through `linked-artifact-url` or
 `linked-artifact-id`; when the metadata API returns both, both outputs must be set.
 
+### Linked artifact metadata convergence
+
+Linked artifact metadata is a distinct remote surface under ADR 0074. It is not part of the
+`release-upload` job's release-asset mutation segment and must not claim that the sidecar-first pair
+gate, release-asset concurrency group, or GitHub Release asset `digest` field serializes or proves
+the metadata record. The metadata job may start only after the primary and sidecar are complete, but
+its record-creation step is independently governed by ADRs 0066 and 0067.
+
+**Idempotency-key choice:** the metadata record's idempotency key is `github.run_id`. This applies
+the ADR 0067 run-identity rule uniformly to this distinct mutation step. The API has no specified
+record field that can carry or prove that run identity, so the binding proof is the retry-attempt
+gate plus equality of the complete expected record identity below. The publisher must not infer
+same-run ownership from a record ID, URL, timestamp, actor, or existence alone.
+
+The metadata record identity is the exact tuple of `github_repository`, `name`, `digest`, `version`,
+`artifact_url`, `registry_url`, and `repository` from the mapping above, after the required input
+canonicalization. Before a create call and after an ambiguous create response, the publisher must
+look up every metadata record in the target `github_repository` with the expected `name` and
+`version`, then compare each candidate with that complete tuple. It must not treat a match on only
+name, digest, version, URL, ID, or any proper subset as a duplicate or binding proof.
+
+For enabled metadata, the metadata job must classify the record into exactly one ADR 0067 outcome
+state before its first create call and after every ambiguous create call:
+
+- `committed-as-expected`: only a retry attempt of the same `run_id` may use this state, and exactly
+  one readable remote record matches the complete expected record identity with no other candidate
+  record. The job treats the step as satisfied without another create call and sets
+  `linked-artifact-result` to `converged-as-expected`.
+- `absent`: no remote record matches the complete expected record identity, and no conflicting
+  candidate record is found, after the applicable lookup or bounded polling. The job may create the
+  record only in this state.
+- `foreign-conflict`: a record candidate exists but differs in any member of the expected record
+  identity, more than one matching record exists, or any metadata record exists for a new `run_id`.
+  The job must fail without creating, updating, deleting, or adopting a record.
+- `indeterminate`: the publisher cannot determine the candidate set or compare every required
+  identity member within the polling bound. The job must fail without another metadata mutation.
+
+After a create call, including one with an ambiguous response, the publisher must poll the metadata
+lookup once immediately and then every 5 seconds, stopping after 24 total observations or 120
+seconds from the first request, whichever occurs first. It may finish early only when it can
+classify `committed-as-expected` or `foreign-conflict`. At the bound, a stable empty candidate set
+is `absent`; an unreadable record, incomplete identity data, repeated API or transport failure, or
+contradictory observations is `indeterminate`. An HTTP `403` is the runtime permission-failure
+signal; the final metadata state is `indeterminate`, and the run must report both that signal and
+the observed API evidence.
+
+The always-run status report must include `linked-artifact-metadata` when enabled, with its final
+ADR 0067 outcome, the expected record identity, and any returned record locator. `created` reports
+`committed-as-expected` only after read-back proves exactly one matching record. A disabled metadata
+path reports `disabled` outside the four-state machine.
+
 ## Same-run convergence
 
 Per ADR 0067, `run_id` is the publisher idempotency key. Re-run failed jobs is the supported
@@ -811,7 +862,7 @@ indeterminate aggregate upload result.
 | `sidecar-digest`             | SHA-256 of the sidecar bundle as 64 lowercase hex characters.                                                           |
 | `native-provenance-locators` | Native producer locators.                                                                                               |
 | `upload-result`              | `completed`, `failed-before-upload`, `partial-sidecar-uploaded`, `foreign-conflict`, or `indeterminate-sidecar-upload`. |
-| `linked-artifact-result`     | `disabled`, `created`, or `failed-after-upload`.                                                                        |
+| `linked-artifact-result`     | `disabled`, `created`, `converged-as-expected`, or `failed-after-upload`.                                               |
 | `linked-artifact-url`        | Stable browser or API URL for the created linked artifact metadata record, or unset.                                    |
 | `linked-artifact-id`         | Stable API identifier for the created linked artifact metadata record, or unset.                                        |
 
@@ -821,11 +872,11 @@ including `partial-sidecar-uploaded` cases where the sidecar upload completed be
 failed. It must be unset when producer provenance retrieval or digest verification failed.
 
 `linked-artifact-url` and `linked-artifact-id` are set only when `linked-artifact-result` is
-`created` and the metadata API returned the corresponding locator. Both outputs must be unset when
-linked metadata is disabled, when metadata creation fails after upload, when the primary or sidecar
-upload did not complete, or when metadata creation was not attempted. They are publication locator
-outputs only and must not be used as substitutes for release asset digest verification or signed
-producer provenance.
+`created` or `converged-as-expected` and the metadata API returned the corresponding locator. Both
+outputs must be unset when linked metadata is disabled, when metadata creation fails after upload,
+when the primary or sidecar upload did not complete, or when metadata creation was not attempted.
+They are publication locator outputs only and must not be used as substitutes for release asset
+digest verification or signed producer provenance.
 
 ## Failure behavior
 
@@ -912,3 +963,10 @@ current field is `primary-artifact-name`.
 - Permission fixtures distinguish static caller-YAML lint failures from runtime API probes: missing
   or excessive declared permissions fail lint, while an API `403` fails without further mutation as
   the runtime permission signal.
+- Linked artifact metadata fixtures prove that the distinct metadata surface is outside the
+  release-upload mutation segment, uses `run_id` as its idempotency key, and requires an exact
+  complete-record-identity match for same-run convergence. They accept one same-`run_id` matching
+  record after the canonical 5-second, 24-observation, 120-second polling bound; reject a new
+  `run_id`, a partial tuple match, a differing tuple member, or duplicate matching records as
+  `foreign-conflict`; and reject unreadable, incomplete, contradictory, or polling-bound-exhausted
+  metadata observations as `indeterminate` without another metadata mutation.
