@@ -25,7 +25,9 @@ the package to an npm registry through a three-job digest-verified graph.
   [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md),
   [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
   and
-  [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md)
+  [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
+  [0073](../decisions/0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md),
+  and [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -103,11 +105,13 @@ same-run recovery qualification required by
 [ADR 0067](../decisions/0067-converge-repeated-runs-within-run-identity.md).
 
 The `publish` job is mutation-class. It must declare job-level concurrency with
-`cancel-in-progress: false`; omission or any other value is a conformance failure that must be
-detected before the workflow is accepted for release use. The `build` and `provenance-sign` jobs are
-PRE-mutation jobs and must use separate job-level groups with `cancel-in-progress: true` because
-they hold no registry mutation authority. Omission, a `false` value, or placement in the mutation
-group must cause static workflow conformance to reject the workflow before release use.
+`cancel-in-progress: false` and `queue: max`; omission or any other value is a conformance failure
+that must be detected before the workflow is accepted for release use. The `build` and
+`provenance-sign` jobs are PRE-mutation jobs and must use separate job-level groups with
+`cancel-in-progress: true` and no `queue` key because they hold no registry mutation authority.
+Omission, a `false` value, a `queue` key, or placement in the mutation group must cause static
+workflow conformance to reject the workflow before release use. `queue: max` combined with
+`cancel-in-progress: true` is a platform validation error and must be rejected statically.
 
 The exact mutation concurrency group is:
 
@@ -124,10 +128,10 @@ name and creates a self-cancellation trap. Detection of `github.workflow` in a k
 workflow before release execution.
 
 All mutation jobs participating in one public profile invocation use the same mutation group, with
-`cancel-in-progress: false`, so a contender waits rather than interrupts registry or release
-mutation. The platform default permits one running and one pending execution; a newer pending
-execution replaces the older pending execution. The replaced pending execution is cancelled and must
-report that it never entered the mutation segment.
+`cancel-in-progress: false` and `queue: max`, so a contender waits rather than interrupts registry
+or release mutation. The platform queues mutation-segment contenders in arrival order rather than
+replacing pending executions. Pre-mutation jobs retain `cancel-in-progress: true` with no `queue`
+key, so stale compute remains eligible for early cancellation.
 
 At entry to the serialized mutation segment, the `publish` job must revalidate the npmjs package
 identity precondition, classify the package-version state under the four-state convergence contract
@@ -1337,49 +1341,101 @@ not relax the requirement that the publish attempt submit the exact external pro
 ## npm publish same-run convergence
 
 This section is normative under
-[ADR 0067](../decisions/0067-converge-repeated-runs-within-run-identity.md) and preserves the
-serialized mutation segment from
+[ADR 0067](../decisions/0067-converge-repeated-runs-within-run-identity.md) and
+[ADR 0073](../decisions/0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md),
+and preserves the serialized mutation segment from
 [ADR 0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md).
-`github.run_id` is the idempotency key. Retry attempts within the same `github.run_id` may recognize
-an earlier attempt's commit only through the integrity binding below. A new `github.run_id` remains
-a new release intent and must fail closed on any pre-existing package version, even when its bytes
-match; accepting such state is a conformance failure and must terminate before registry mutation.
+`github.run_id` is the idempotency key. Only a retry attempt within the same `github.run_id` may
+recognize an earlier attempt's commit, and only when it passes both the `run_attempt` gate and the
+integrity-plus-attestation binding below. A new `github.run_id` is a new release intent and must
+fail closed on any pre-existing package version, even when its bytes match; accepting such state is
+a conformance failure and must terminate before registry mutation.
 
 The npm mutation step classifies registry state using exactly these four outcome-state names:
 
-- `committed-as-expected`: version metadata exists and its authoritative integrity binding equals
-  the expected packed tarball integrity for a retry within the same `github.run_id`;
+- `committed-as-expected`: a retry attempt within the same `github.run_id` observes version metadata
+  whose authoritative integrity binding equals the expected packed tarball integrity and a verified
+  published attestation that satisfies the required run-identity and subject binding;
 - `absent`: authoritative version metadata reports that the package version does not exist;
 - `foreign-conflict`: the version exists but its `dist.integrity` differs from the expected packed
-  tarball integrity, or it belongs to a different `github.run_id` release intent;
-- `indeterminate`: the registry state or binding cannot be established within the polling budget.
+  tarball integrity; no required attestation is visible after the polling bound; or a verified
+  attestation has a different run identity or a mismatched subject binding;
+- `indeterminate`: the registry state cannot be established within the polling bound, or the
+  attestation surface is unreadable, unverifiable, or contradictory within that bound.
 
-The expected binding is the packed tarball's SHA-512 SRI value. The `publish` job must poll the
-registry version metadata's `dist.integrity` and compare the complete normalized sha512 SRI value,
-not a prefix, tarball URL, filename, version string, or existence alone. A malformed or non-sha512
-`dist.integrity` is `indeterminate`; a well-formed unequal value is `foreign-conflict`. Either state
-must fail closed, naming the observed metadata and expected integrity without retrying publication.
+The expected binding is the packed tarball's SHA-512 SRI value plus the verified published
+attestation. The `publish` job must poll the registry version metadata's `dist.integrity` and
+compare the complete normalized sha512 SRI value, not a prefix, tarball URL, filename, version
+string, or existence alone. A malformed or non-sha512 `dist.integrity` is `indeterminate`; a
+well-formed unequal value is `foreign-conflict`. Either state must fail closed, naming the observed
+metadata and expected integrity without retrying publication.
+
+For the npmjs production path, the attestation read-back endpoint is exactly:
+
+```text
+GET https://registry.npmjs.org/-/npm/v1/attestations/{package-name}@{version}
+```
+
+Its successful response has this shape:
+
+```json
+{
+  "attestations": [
+    {
+      "predicateType": "https://slsa.dev/provenance/v1",
+      "bundle": {
+        "dsseEnvelope": {},
+        "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+        "verificationMaterial": {}
+      }
+    }
+  ]
+}
+```
+
+The `publish` job must select attestation elements by `predicateType`, never by array position. npm
+automatic GitHub Actions provenance uses `https://slsa.dev/provenance/v1`; the registry's own
+publish attestation uses `https://github.com/npm/attestation/tree/main/specs/publish/v0.1`. The
+custom `--provenance-file` bundle surfaces in this same collection because npm uploads it as a
+`*.sigstore` `_attachments` member. The job must select the `https://slsa.dev/provenance/v1` element
+or elements, verify each candidate under the full verification policy, including ADR 0068 signer and
+source identity binding, and accept only a candidate that meets the required run-identity and
+subject binding. It must not treat the registry publish-attestation predicate as the submitted
+Windlass provenance.
+
+The accepted candidate's verified Run Invocation URI must contain a run-id equal to the current
+`github.run_id`; its attempt component is ignored. Its signed subject must bind the ADR 0064 npm
+Package URL and the expected SHA-512 and SHA-256 tarball digests. A matching `dist.integrity` alone
+is never sufficient for same-run convergence.
 
 npm offers no read-after-write SLA, and observed metadata delays can be long. The explicit read-back
-budget is one immediate request followed by one request every 15 seconds until 15 minutes have
-elapsed from the first request. A transient not-found, missing `dist.integrity`, transport failure,
-or rate-limit response remains pending while budget remains. If no authoritative equality,
-inequality, or absence result is available when the 15-minute budget expires, the result degrades to
-`indeterminate` and the job must fail while reporting that publication may already have committed.
-Before the run's first publish call, an authoritative version-not-found response classifies as
-`absent`; after a publish call or ambiguous publish result, the same response remains pending
-because it may reflect replication lag. As the documented fallback within the same total budget, the
-job may download `dist.tarball` and compute its sha512 SRI locally; only exact equality with the
-expected SRI can establish `committed-as-expected`, and an unavailable or inconclusive fallback
-still ends as `indeterminate`.
+budget is pinned conservatively pending first-publish measurement: one immediate request followed by
+one request every 15 seconds until 15 minutes have elapsed from the first request. Each polling
+cycle must pair the packument version-existence check with the attestation endpoint check. The
+attestation endpoint returns `404 {"error":"Not found"}` both when a version has no provenance and
+when the version does not exist, so its 404 response alone cannot establish either attestation
+absence or version absence. A transient not-found, missing `dist.integrity`, missing attestation,
+transport failure, or rate-limit response remains pending while budget remains. If the packument
+confirms the version exists but no required attestation is visible when the budget expires, the
+result is `foreign-conflict`. If the version remains unconfirmed, or required metadata cannot be
+read or verified, the result is `indeterminate` and the job must fail while reporting that
+publication may already have committed. Before the run's first publish call, an authoritative
+packument version-not-found response classifies as `absent`; after a publish call or ambiguous
+publish result, the same response remains pending because it may reflect replication lag. As the
+documented fallback within the same total budget, the job may download `dist.tarball` and compute
+its sha512 SRI locally; only exact equality with the expected SRI plus the verified attestation
+binding can establish `committed-as-expected`, and an unavailable or inconclusive fallback still
+ends as `indeterminate`.
 
 On `absent`, the same run may invoke `npm publish` once. A successful call is not final until
 read-back reaches `committed-as-expected`; `foreign-conflict` or `indeterminate` after the call must
 fail as a possible partial publication and preserve the evidence. `EPUBLISHCONFLICT` is not an
 automatic failure for a retry attempt within the same `github.run_id`: it is a candidate for
-`committed-as-expected` pending the same `dist.integrity` equality check. An integrity mismatch
-after `EPUBLISHCONFLICT` must become `foreign-conflict`; exhaustion of the polling budget must
-become `indeterminate`. For a new `github.run_id`, `EPUBLISHCONFLICT` remains a hard
+`committed-as-expected` pending the same integrity-plus-attestation binding check. An integrity
+mismatch, missing attestation after the polling bound, or a verified foreign run identity or subject
+mismatch after `EPUBLISHCONFLICT` must become `foreign-conflict`; an unreadable or unverifiable
+attestation surface, contradictory observations, or an unconfirmed version at polling exhaustion
+must become `indeterminate`. For a new `github.run_id`, `EPUBLISHCONFLICT` remains a hard
 `foreign-conflict` failure and must never be adopted.
 
 Re-run failed jobs is the supported convergence surface. Re-run all jobs receives no broader
@@ -1414,13 +1470,21 @@ After publish to `https://registry.npmjs.org/`, the profile must verify that:
 - The registry package version metadata resolves to the same tarball name and package version.
 - The registry tarball integrity matches the expected SHA-512 or equivalent npm SRI value derived
   from the same tarball bytes.
-- The registry provenance linkage, when exposed by npmjs metadata or APIs used by the
-  implementation, refers to the submitted Windlass-generated provenance bundle.
+- The npmjs attestation endpoint for the exact package version exposes a verified
+  `https://slsa.dev/provenance/v1` attestation whose Run Invocation URI run-id equals the current
+  `github.run_id`, ignoring its attempt component, and whose signed subject binds the ADR 0064 npm
+  Package URL and expected SHA-512 and SHA-256 tarball digests.
 
 These checks run only after successful registry mutation and therefore are post-publish verification
-failures, not pre-publish gate failures. If an npmjs metadata check fails, the workflow must fail
-clearly, report that publication may have partially succeeded, and must not retry with token
-credentials, npm automatic provenance, or unsigned provenance.
+failures, not pre-publish gate failures. The attestations check must use the endpoint contract and
+paired packument existence check in
+[npm publish same-run convergence](#npm-publish-same-run-convergence). No visible required
+attestation after the polling bound, a verified foreign run identity, or a subject mismatch is
+`foreign-conflict`; an unreadable or unverifiable attestation surface is `indeterminate`. Each
+outcome is read-only and must not trigger a re-publish, attestation regeneration, or any other
+registry mutation. If an npmjs metadata check fails, the workflow must fail clearly, report that
+publication may have partially succeeded, and must not retry with token credentials, npm automatic
+provenance, or unsigned provenance.
 
 For a non-npmjs `publish.resolved_registry_url`, the profile records
 `publish.custom_registry_support: "unsupported-but-not-blocked"`. Pre-publish package existence
@@ -1560,8 +1624,11 @@ The `publish` job must fail before `npm publish` when:
 - Package version already exists on npmjs for a new `github.run_id` when publishing to
   `https://registry.npmjs.org/`.
 - Same-`github.run_id` registry state classifies as `foreign-conflict` or `indeterminate`.
-- Mutation concurrency is missing, permits in-progress cancellation, uses an invalid key component,
-  or includes `github.workflow`.
+- The required attestation is absent after the polling bound, has a foreign run identity or subject
+  mismatch, or its surface is unreadable or unverifiable.
+- Mutation concurrency is missing, permits in-progress cancellation, lacks `queue: max` on the
+  mutation job, uses an invalid key component, includes `github.workflow`, places a `queue` key on a
+  pre-mutation job, or combines `queue: max` with `cancel-in-progress: true`.
 - Runtime policy mismatch.
 
 The `publish` job must fail after `npm publish` when npmjs post-publish registry metadata
@@ -1603,9 +1670,11 @@ The profile must not fall back to:
 - Existing `npm-resolved-lockfile-valid` and `npm-resolved-lockfile-stale-valid` fixtures continue
   to prove the unchanged lockfile descriptor within the manager-dependent set.
 - Positive convergence fixture: a retry attempt within the same `github.run_id` observes an existing
-  version, polls `dist.integrity`, proves an exact sha512 SRI match, classifies
-  `committed-as-expected`, and continues without another publish call. The same result is valid when
-  the retry first receives `EPUBLISHCONFLICT` and then proves the integrity match.
+  version, pairs packument and attestation polling, proves an exact sha512 SRI match, verifies a
+  `https://slsa.dev/provenance/v1` attestation with the same Run Invocation URI run-id, ignoring its
+  attempt component, and proves its ADR 0064 PURL and SHA-512 and SHA-256 subject binding. It then
+  classifies `committed-as-expected` and continues without another publish call. The same result is
+  valid when the retry first receives `EPUBLISHCONFLICT` and then proves the full binding.
 - Rejected fixtures: digest mismatch, signature mismatch, signer mismatch, wrong `predicateType`,
   wrong `builder.id`, wrong `buildType`, unexpected `externalParameters`, package identity mismatch,
   unsupported initial package publication, package-manager selection path mismatch, runtime policy
@@ -1640,12 +1709,18 @@ The profile must not fall back to:
 - Candidate-predicate fixtures must prove capture unavailability exits `2` with `input-unavailable`,
   malformed constructed candidates exit `1` with the narrow field diagnostic, no failing candidate
   reaches signing, and post-sign comparison rejects any adapter-altered predicate before publish.
-- Rejected convergence fixture: a same-`github.run_id` retry observes a well-formed but unequal
-  `dist.integrity`, classifies `foreign-conflict`, and fails without adopting or republishing the
-  version.
+- Rejected convergence fixtures: a same-`github.run_id` retry observes a well-formed but unequal
+  `dist.integrity`; an existing packument version has no required attestation after the polling
+  bound; and a verified required attestation has a different run-id or a mismatched subject. Each
+  classifies `foreign-conflict` and fails without adopting or republishing the version. An
+  unreadable, unverifiable, or contradictory attestation surface classifies `indeterminate`. A 404
+  response from the attestation endpoint alone cannot classify version or attestation absence and
+  must be paired with the packument result.
 - Concurrency fixtures: the npm publish job uses the release-intent mutation group with
-  `cancel-in-progress: false`; a queued contender revalidates at segment entry; and a key containing
-  `github.workflow` is rejected as a self-cancellation hazard.
+  `cancel-in-progress: false` and `queue: max`; pre-mutation jobs use `cancel-in-progress: true`
+  with no `queue` key; a queued contender revalidates at segment entry; and keys containing
+  `github.workflow`, a mutation job without `queue: max`, a pre-mutation job with `queue`, or
+  `queue: max` combined with `cancel-in-progress: true` are rejected statically.
 - A fixture proving that the `publish` job cannot publish without the signed bundle.
 - Successful registry-conformance fixtures use `https://registry.npmjs.org/` only. Synthetic custom
   registry fixtures cover warning and fail-clearly behavior only.
