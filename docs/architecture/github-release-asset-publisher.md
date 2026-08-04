@@ -19,7 +19,10 @@ ecosystem-produced artifacts, not a source-to-artifact builder.
   [0062](../decisions/0062-intersect-trusted-producer-policies.md),
   [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
   [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
-  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md)
+  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
+  [0072](../decisions/0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md),
+  [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -151,10 +154,11 @@ job-level concurrency with `cancel-in-progress: true`; a workflow that omits tha
 it to `false`, or places one of these jobs in the mutation concurrency group must fail static
 workflow conformance before release use.
 
-Per ADR 0066, every job that uploads the primary release asset or provenance sidecar is a
-mutation-class job. Each such job must declare job-level concurrency with
-`cancel-in-progress: false`; a missing declaration or `true` value fails static workflow conformance
-because the job could be interrupted while holding release mutation authority.
+Per ADRs 0074 and 0075, exactly one `release-upload` mutation-class job uploads both release assets:
+first the provenance sidecar, then the primary asset. It must declare job-level concurrency with
+`cancel-in-progress: false` and `queue: max`; a missing declaration, a `true` value, a queue value
+other than `max`, or a second release-asset upload job fails static workflow conformance.
+Pre-mutation jobs must declare `cancel-in-progress: true` with no `queue` key.
 
 The exact mutation concurrency group is:
 
@@ -166,25 +170,23 @@ The key is composed only from the literal namespace plus `github.repository` and
 It must fail static workflow conformance if it uses any other context. In particular, a key must not
 contain `github.workflow`: inside a called reusable workflow that value resolves to the caller's
 workflow name, creating a self-cancellation trap in which the caller and callee can collide. The npm
-publish job, all release-asset upload jobs, and the manifest publish job for one caller repository
-and release source ref use this one shared mutation key.
+publish job, the one release-upload job, and the manifest publish job for one caller repository and
+release source ref use this one shared mutation key.
 
-The release-asset mutation segment begins when the first job with release upload authority enters
-the concurrency group and ends only after the primary and sidecar upload calls have completed or
-been classified. At segment entry, before its first mutating call, each upload job must re-read and
-revalidate the target repository and release ref, release existence, expected primary and sidecar
-digests, and the absence or same-run convergence classification of both target asset names. A failed
-or indeterminate revalidation fails before mutation with the corresponding evidence; checks
-completed before queueing are never sufficient after the job enters the segment.
+The release-asset mutation segment is the one release-upload job's occupancy of this concurrency
+group. It begins when that job enters the group and ends when the job completes. At segment entry,
+before the sidecar upload, the release-upload job must re-read and revalidate the target repository
+and release ref, release existence, expected primary and sidecar digests, and the absence or
+same-run convergence classification of both target asset names. A failed or indeterminate
+revalidation fails before mutation with the corresponding evidence. Checks completed before queueing
+are never sufficient after the job enters the segment.
 
-GitHub's repository-scoped pending semantics are part of the caller contract: one execution may be
-running and one may be pending for a group, and a new arrival replaces the pending execution. A
-caller must therefore expect an older pending release intent to be cancelled without entering the
-mutation segment, must not assume FIFO execution, and must use the surviving run's report to
-determine the result; treating every dispatched run as guaranteed to execute is an invalid caller
-configuration and may leave that caller without the expected release result. Caller-side
-whole-invocation serialization is an optional compute-saving optimization, never a substitute for
-the publisher's mutation-class declaration.
+On github.com, `queue: max` keeps up to one hundred pending mutation segment contenders in arrival
+order behind the running segment. A queued contender must wait, then either converge when it is a
+retry of the committing `run_id` or fail closed with its classified remote state. The platform
+rejects arrivals beyond that pending limit. Caller-side whole-invocation serialization is an
+optional compute-saving optimization, never a substitute for the publisher's mutation-class
+declaration.
 
 ## One-primary-asset unit
 
@@ -204,8 +206,9 @@ The publisher may upload to a draft or prerelease target only if the release alr
 publisher does not change the draft or prerelease status. Draft state does not weaken the immutable
 target rule: when `immutable` is true and either required asset is absent, the publisher fails
 before mutation with `windlass.verify.error.release-target-immutable`. When `immutable` is true and
-both assets are complete, digest-proven, and bound to the same `run_id`, the publisher may perform
-only read-only same-run convergence. It must not upload, delete, replace, or create linked metadata.
+both assets are complete and satisfy the same-run pair gate in
+[Same-run convergence](#same-run-convergence), the publisher may perform only read-only same-run
+convergence. It must not upload, delete, replace, or create linked metadata.
 
 ## Duplicate asset behavior
 
@@ -218,14 +221,17 @@ clobber an existing asset; the sole deletion exception is the same-run `starter`
 [Same-run convergence](#same-run-convergence), and any other attempted deletion fails the run before
 the delete call.
 
-A retry with the same `run_id` may converge on an existing primary asset or sidecar only after the
-publisher proves the binding required by ADR 0067. Existence alone is not proof. A same-run retry
-that cannot prove the binding fails as `foreign-conflict` or `indeterminate` as specified below and
+A retry with the same `run_id` may converge on a pre-existing primary asset only through the
+five-condition pair gate in [Same-run convergence](#same-run-convergence). A sidecar-present,
+primary-absent state may continue by uploading the primary after that gate proves the sidecar is
+this run's expected provenance. A primary-present, sidecar-absent state is definitionally foreign
+and must fail as `foreign-conflict`. Existence alone is not proof. A same-run retry that cannot
+prove the required binding fails as `foreign-conflict` or `indeterminate` as specified below and
 must not upload, overwrite, or adopt the existing asset; violating that prohibition fails the run
 and leaves all existing assets unchanged.
 
 If the preflight duplicate check passes but a later GitHub API race or upload failure prevents the
-sidecar from being uploaded after the primary asset succeeds, the run enters the aggregate partial
+primary asset from being uploaded after the sidecar succeeds, the run enters the aggregate partial
 failure condition described below. That condition is for post-preflight API or transport failures,
 not for known duplicate names.
 
@@ -603,20 +609,23 @@ mutation step remains subject to the same-`run_id` rules below. A new `run_id` r
 for any pre-existing primary asset or sidecar, even when its bytes match, and fails as
 `foreign-conflict` without mutation.
 
-Before every upload segment, the publisher must re-read the target's `draft` and `immutable` state.
-If `immutable` is true and either required asset is `absent`, `foreign-conflict`, or
-`indeterminate`, it must fail before mutation with `windlass.verify.error.release-target-immutable`.
-If `immutable` is true, both assets are `committed-as-expected`, and both bindings prove the same
-`run_id`, the publisher may finish only as read-only convergence. No upload, deletion, retry, or
-linked artifact metadata mutation is permitted. A mutable or draft target continues through the
-normal convergence rules below.
+At the start of the one release-upload job, inside its mutation segment, the publisher must re-read
+the target's `draft` and `immutable` state. If `immutable` is true and either required asset is
+`absent`, `foreign-conflict`, or `indeterminate`, it must fail before mutation with
+`windlass.verify.error.release-target-immutable`. If `immutable` is true and both assets satisfy the
+same-run pair gate below, the publisher may finish only as read-only convergence. The primary
+asset's remote binding proves content integrity, not a `run_id`; GitHub Release asset fields cannot
+prove publication-event custody. No upload, deletion, retry, or linked artifact metadata mutation is
+permitted. A mutable or draft target continues through the normal convergence rules below.
 
 Before a release-asset mutation and after any mutating call with an ambiguous response, the
 publisher must classify each of the primary asset and sidecar independently into exactly one ADR
 0067 outcome state; inability to produce one of these states fails the run as `indeterminate`:
 
 - `committed-as-expected`: the remote asset exists and its authoritative SHA-256 digest equals the
-  expected digest for this `run_id`.
+  local expected value. This classification is available only after the `run_attempt` gate permits
+  same-`run_id` convergence, with that value recovered from prior-attempt carry-over or recomputed
+  from the exact verified handoff bytes.
 - `absent`: the remote asset does not exist after the applicable lookup or bounded post-call
   polling.
 - `foreign-conflict`: the remote asset exists but has a different digest, or any asset with that
@@ -624,12 +633,26 @@ publisher must classify each of the primary asset and sidecar independently into
 - `indeterminate`: the publisher cannot determine presence or authoritative digest equality within
   the polling bounds.
 
-For a same-`run_id` retry, the publisher must upload only an `absent` asset, treat
-`committed-as-expected` as satisfied without another upload, and fail closed without mutation on
-`foreign-conflict` or `indeterminate`, naming the state and remote evidence. If expected digest
-evidence cannot be recovered from prior-attempt outputs and artifacts, the publisher must recompute
-it from the exact verified handoff bytes; failure of both paths classifies the step as
-`indeterminate` and fails the run without adoption.
+For a same-`run_id` retry, the publisher must recover each local expected value from prior-attempt
+outputs or artifacts when available, or recompute it from the exact verified handoff bytes. Failure
+of both paths classifies the step as `indeterminate` and fails the run without adoption. It must
+then apply the following pair gate before treating a pre-existing primary as
+`committed-as-expected`:
+
+1. The remote sidecar's authoritative GitHub `digest` equals the expected bundle digest.
+2. The sidecar verifies under the full verification policy, including signer and source identity
+   binding required by ADR 0068.
+3. The sidecar's verified Fulcio Run Invocation URI has a run-id equal to `github.run_id`; the
+   attempt component is ignored, so an earlier `run_attempt` is acceptable.
+4. The sidecar's signed subject and producer fields bind the expected primary asset name and digest.
+5. The remote primary asset's authoritative GitHub `digest` equals that bound digest.
+
+Only when all five conditions hold may the retry classify the pre-existing primary as
+`committed-as-expected`, reporting that the release slot contains expected provenance-covered bytes
+without attributing the upload to this run. A sidecar-present, primary-absent state that satisfies
+conditions 1 through 4 may continue by uploading the primary. A primary-present, sidecar-absent
+state is `foreign-conflict`. The workflow uploads only an `absent` asset and fails closed without
+mutation on `foreign-conflict` or `indeterminate`, naming the state and remote evidence.
 
 ### Release asset digest binding and polling
 
@@ -659,11 +682,12 @@ but cannot by itself change an `indeterminate` ADR 0067 outcome into `committed-
 ### Sole deletion exception
 
 The publisher must never delete a release asset except when all of the following are proven: the
-asset has GitHub state `starter`, its API asset ID was returned to this same `run_id` by the failed
-upload or recovered from that run's prior-attempt outputs, and its target release and asset name
-match the current mutation step. When all conditions hold, the run may delete only that own-run
-`starter` asset and retry the upload. If any condition is absent or indeterminate, deletion is
-forbidden and the run fails without deleting, overwriting, or replacing the asset.
+asset has GitHub state `starter`; it was left by this same run's own failed upload; its API asset ID
+was returned to this `run_id` by that failed upload or recovered from this run's prior-attempt
+outputs; and its target release and asset name match the current mutation step. This is the sole
+deletion exception. When all conditions hold, the run may delete only that own-run `starter` asset
+and retry the upload. If any condition is absent or indeterminate, deletion is forbidden and the run
+fails without deleting, overwriting, or replacing the asset.
 
 ### Always-run status report
 
@@ -683,27 +707,35 @@ outcome-state names:
   "steps": {
     "primary-asset": {
       "outcome": "committed-as-expected",
+      "publication_evidence": "converged-as-verified-pair-custody-unproven",
       "digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "asset_url": "https://github.com/example/project/releases/download/v1.2.3/package.tgz"
     },
     "provenance-sidecar": {
-      "outcome": "absent",
-      "digest": null,
-      "asset_url": null
+      "outcome": "committed-as-expected",
+      "publication_evidence": "uploaded-with-confirmed-receipt",
+      "digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "asset_url": "https://github.com/example/project/releases/download/v1.2.3/package.tgz.intoto.jsonl"
     }
   }
 }
 ```
 
-A report with another outcome spelling, a changed `run_id`, no final classification for either
-mutation step, or evidence that contradicts its classification is invalid; the reporting job must
-reject it, fail the workflow, and leave the report unavailable as a successful diagnostic.
+A successful `committed-as-expected` step must include exactly one `publication_evidence` substate:
+`uploaded-with-confirmed-receipt`, `converged-from-prior-receipt`, or
+`converged-as-verified-pair-custody-unproven`. The first two require the matching server-assigned
+asset-ID receipt, either from this attempt or a prior attempt. The third requires the five-condition
+pair gate and must not assert that this run performed the upload. A report with another outcome or
+substate spelling, a changed `run_id`, no final classification for either mutation step, evidence
+that contradicts its classification, or a custody assertion without a matching asset-ID receipt is
+invalid; the reporting job must reject it, fail the workflow, and leave the report unavailable as a
+successful diagnostic.
 
 ## Partial failure behavior
 
-If the primary asset upload succeeds but the sidecar upload fails, the workflow must fail clearly
-without deleting, replacing, or clobbering the primary asset. The failure output must make the
-aggregate partial condition explicit so operators can use same-`run_id` convergence or reconcile the
+If the sidecar upload succeeds but the primary asset upload fails, the workflow must fail clearly
+without deleting, replacing, or clobbering the sidecar. The failure output must make the aggregate
+partial condition explicit so operators can use same-`run_id` convergence or reconcile the
 incomplete release asset according to repository policy.
 
 An immutable target never enters this partial-failure path. Its target state is read before upload,
@@ -712,32 +744,31 @@ and any incomplete required asset set fails before mutation with
 may converge, read-only.
 
 If the GitHub API request or network transport returns an ambiguous result after the publisher
-starts uploading the primary asset, the workflow must not assume either success or failure. It must
-perform a same-run target release lookup for the primary asset name and computed digest. When that
-lookup can prove that no primary asset exists, the result remains `failed-before-upload`. When it
-proves that the primary asset exists with the expected digest but the sidecar was not uploaded, the
-result is `partial-primary-uploaded`. When the lookup cannot determine whether the primary asset was
-committed or finds an asset with the expected name but an unknown digest, the result is
-`indeterminate-primary-upload`, the mutation outcome is `indeterminate`, and the workflow fails
-without uploading the sidecar or linked artifact metadata. A mismatched authoritative digest is
-`foreign-conflict`, fails the workflow without further mutation, and sets aggregate `upload-result`
-to `foreign-conflict`.
+starts uploading the sidecar, the workflow must not assume either success or failure. It must
+perform a same-run target release lookup for the sidecar name and computed digest. When that lookup
+can prove that no sidecar exists, the result remains `failed-before-upload`. When it proves that the
+sidecar exists with the expected digest and the primary was not uploaded, the result is
+`partial-sidecar-uploaded`. When the lookup cannot determine whether the sidecar was committed or
+finds a sidecar with an unknown digest, the result is `indeterminate-sidecar-upload`, the mutation
+outcome is `indeterminate`, and the workflow fails without uploading the primary or linked artifact
+metadata. A mismatched authoritative digest is `foreign-conflict`, fails the workflow without
+further mutation, and sets aggregate `upload-result` to `foreign-conflict`.
 
 ADR 0067 amends the earlier same-run target lookup rule that permitted an authenticated download and
 local hash as the binding fallback. The lookup must now prove remote asset digest equality through
 the bounded GitHub Release asset `digest` polling contract above; failure to obtain that proof is
 `indeterminate`, fails the workflow, and maps to aggregate `upload-result`
-`indeterminate-primary-upload`. Asset IDs, browser URLs, filenames, sizes, content types, release
+`indeterminate-sidecar-upload`. Asset IDs, browser URLs, filenames, sizes, content types, release
 notes, logs, native provenance locators, downloaded bytes, and local hashes are not authoritative
 remote binding proof.
 
-When the lookup proves that the same-name primary asset exists with the expected SHA-256, the
-publisher may classify the aggregate upload result from the sidecar result:
-`partial-primary-uploaded` when the sidecar is absent after sidecar upload failed, and `completed`
-only when both primary and sidecar assets are present with their expected digests. When the lookup
-proves that no same-name primary asset exists after an upload attempt that failed before any remote
-commit was possible, the result is `failed-before-upload`. A same-name asset with an unknown,
-mismatched, or unreadable digest is never treated as a successful upload by this run.
+When the lookup proves that the same-name sidecar exists with the expected SHA-256, the publisher
+may classify the aggregate upload result from the primary result: `partial-sidecar-uploaded` when
+the primary is absent after primary upload failed, and `completed` only when both primary and
+sidecar assets are present with their expected digests. When the lookup proves that no same-name
+sidecar exists after an upload attempt that failed before any remote commit was possible, the result
+is `failed-before-upload`. A same-name asset with an unknown, mismatched, or unreadable digest is
+never treated as a successful upload by this run.
 
 ADR 0067 amends, rather than removes, the original blanket rerun failure rule. Reruns are not
 allowed to overwrite or repair release assets silently: a new `run_id` that observes the primary
@@ -750,23 +781,22 @@ outside the publisher before starting another run.
 The observable aggregate upload result is reported through `upload-result`. These compatibility
 values summarize the pair of mutation-step results and are not ADR 0067 outcome-state names:
 
-- `completed`: primary asset and sidecar upload both succeeded.
+- `completed`: sidecar and primary asset upload both succeeded.
 - `failed-before-upload`: validation, verification, duplicate preflight, or target lookup failed
-  before the primary asset was uploaded.
-- `partial-primary-uploaded`: the primary asset upload succeeded, but sidecar upload failed.
+  before the sidecar was uploaded.
+- `partial-sidecar-uploaded`: the sidecar upload succeeded, but primary asset upload failed.
 - `foreign-conflict`: authoritative remote content or cross-run ownership conflicts with this run.
-- `indeterminate-primary-upload`: the publisher cannot prove whether the primary asset upload
-  committed, or cannot prove that the remote asset with the target name has the expected digest.
+- `indeterminate-sidecar-upload`: the publisher cannot prove whether the sidecar upload committed,
+  or cannot prove that the remote asset with the target name has the expected digest.
 
-When `upload-result` is `partial-primary-uploaded`, the workflow fails, primary asset outputs such
-as `asset-name`, `asset-url`, and `asset-sha256` must be set when GitHub returned them,
-`sidecar-name` must be the deterministic sidecar name, `sidecar-digest` must be set to the verified
-producer bundle SHA-256 when the sidecar bytes were already verified, and `sidecar-url` must be
-unset. When `upload-result` is `foreign-conflict` or `indeterminate-primary-upload`, release asset
-locator outputs must be unset unless GitHub returned a locator for an asset whose digest was
-verified in the same run. A duplicate primary asset or duplicate deterministic sidecar detected for
-a new `run_id` during preflight has outcome `foreign-conflict` and aggregate result
-`failed-before-upload`; it is not a partial or indeterminate aggregate upload result.
+When `upload-result` is `partial-sidecar-uploaded`, the workflow fails, `sidecar-name`,
+`sidecar-digest`, and `sidecar-url` must be set when GitHub returned them, `asset-name` must be the
+final asset name, and primary asset locator outputs must be unset. When `upload-result` is
+`foreign-conflict` or `indeterminate-sidecar-upload`, release asset locator outputs must be unset
+unless GitHub returned a locator for an asset whose digest was verified in the same run. A duplicate
+primary asset or duplicate deterministic sidecar detected for a new `run_id` during preflight has
+outcome `foreign-conflict` and aggregate result `failed-before-upload`; it is not a partial or
+indeterminate aggregate upload result.
 
 ## Outputs
 
@@ -780,15 +810,15 @@ a new `run_id` during preflight has outcome `foreign-conflict` and aggregate res
 | `sidecar-url`                | Browser URL of the sidecar.                                                                                             |
 | `sidecar-digest`             | SHA-256 of the sidecar bundle as 64 lowercase hex characters.                                                           |
 | `native-provenance-locators` | Native producer locators.                                                                                               |
-| `upload-result`              | `completed`, `failed-before-upload`, `partial-primary-uploaded`, `foreign-conflict`, or `indeterminate-primary-upload`. |
+| `upload-result`              | `completed`, `failed-before-upload`, `partial-sidecar-uploaded`, `foreign-conflict`, or `indeterminate-sidecar-upload`. |
 | `linked-artifact-result`     | `disabled`, `created`, or `failed-after-upload`.                                                                        |
 | `linked-artifact-url`        | Stable browser or API URL for the created linked artifact metadata record, or unset.                                    |
 | `linked-artifact-id`         | Stable API identifier for the created linked artifact metadata record, or unset.                                        |
 
 `sidecar-digest` must equal `producer-provenance-sha256` and the SHA-256 digest of the exact bundle
 bytes redistributed as the sidecar. It is set when the bundle bytes were retrieved and verified,
-including `partial-primary-uploaded` cases where the sidecar upload failed after bundle
-verification. It must be unset when producer provenance retrieval or digest verification failed.
+including `partial-sidecar-uploaded` cases where the sidecar upload completed before primary upload
+failed. It must be unset when producer provenance retrieval or digest verification failed.
 
 `linked-artifact-url` and `linked-artifact-id` are set only when `linked-artifact-result` is
 `created` and the metadata API returned the corresponding locator. Both outputs must be unset when
@@ -799,7 +829,7 @@ producer provenance.
 
 ## Failure behavior
 
-The publisher must fail before primary asset or sidecar upload when:
+The publisher must fail before sidecar or primary asset upload when:
 
 - The artifact bytes cannot be retrieved.
 - The handoff uses the stale `artifact-artifact-name` field or omits `primary-artifact-name`.
@@ -831,7 +861,7 @@ The publisher must fail before primary asset or sidecar upload when:
   `artifact-metadata: write` or has prohibited signing or release mutation authority.
 - The caller grants release mutation, signing, package publication, or linked metadata permissions
   to a job that must not hold that authority.
-- The publisher cannot determine whether a started primary upload committed remotely.
+- The publisher cannot determine whether a started sidecar or primary upload committed remotely.
 
 The publisher must not expose any option to bypass upstream provenance verification in the
 production path.
@@ -845,8 +875,8 @@ current field is `primary-artifact-name`.
   sidecar.
 - Rejected fixtures: missing provenance, wrong subject name, missing final-asset binding, digest
   mismatch, stale `artifact-artifact-name` handoff field, duplicate asset name, non-existent
-  release, raw artifact bypass, pre-existing deterministic sidecar name, sidecar upload failure
-  after primary upload, indeterminate primary upload, malformed JSON input for complex handoff
+  release, raw artifact bypass, pre-existing deterministic sidecar name, primary upload failure
+  after sidecar upload, indeterminate sidecar upload, malformed JSON input for complex handoff
   fields, excessive job permissions, and attempted re-signing of producer provenance.
 - Producer-policy fixtures accept only
   `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1` with its signer, SHA-based
@@ -862,19 +892,23 @@ current field is `primary-artifact-name`.
   target repository, custom token, raw artifact, overwrite, or bypass inputs.
 - A YAML review checklist proving the publisher does not combine signing, release mutation, package
   publication, or linked artifact metadata authorities.
-- ADR 0066 race fixtures: two runs for the same repository and `github.ref_name` share the exact
-  mutation group; the first enters the mutation segment and commits, while the second waits,
-  revalidates at segment entry, and fails on the committed remote state. A three-arrival fixture
-  proves one running plus one pending execution and that the newest arrival replaces the older
-  pending run. A pre-mutation fixture proves a newer run cancels stale cancellation-safe work with
-  `cancel-in-progress: true`. A static rejection fixture covers `github.workflow` in the mutation
-  group key and another covers `cancel-in-progress: true` on an upload job.
-- ADR 0067 convergence fixtures: a valid re-run-failed-jobs attempt with the same `run_id` observes
-  the expected remote `digest` and converges as `committed-as-expected` without another upload. An
-  invalid fixture with foreign bytes returns `foreign-conflict`, fails without upload or deletion,
-  and reports the mismatched remote digest. Additional rejection fixtures cover an unreadable digest
-  reaching `indeterminate`, a new `run_id` encountering matching pre-existing content, and deletion
-  of a `starter` asset not proven to belong to the same run.
+- ADR 0074 static conformance rejects a workflow graph that splits sidecar and primary mutations on
+  the same Release asset surface across jobs. A topology fixture proves the one release-upload job
+  executes sidecar-first, then primary, with revalidation at the start of that job's segment.
+- ADR 0075 static conformance requires `queue: max` with `cancel-in-progress: false` on the
+  release-upload job and rejects `queue: max` with `cancel-in-progress: true` as a platform
+  validation error. It also rejects a `queue` key on a pre-mutation job. A three-arrival fixture
+  proves all mutation contenders wait in arrival order without cancellation; a pre-mutation fixture
+  proves a newer run cancels stale cancellation-safe work with `cancel-in-progress: true`.
+- ADR 0072 convergence fixtures prove each five-condition pair-gate requirement, including a Run
+  Invocation URI comparison that ignores the attempt component. They accept a same-`run_id`
+  sidecar-present, primary-absent retry that uploads the primary, reject a primary-present,
+  sidecar-absent state as `foreign-conflict`, and reject wrong digest, signer, source identity,
+  run-id, subject name, or primary binding without mutation. A valid re-run-failed-jobs attempt with
+  the same `run_id` converges as `committed-as-expected` without another primary upload and reports
+  custody unproven unless it has a matching asset-ID receipt. Additional rejection fixtures cover an
+  unreadable digest reaching `indeterminate`, a new `run_id` encountering matching pre-existing
+  content, and deletion of a `starter` asset not proven to belong to the same run.
 - Permission fixtures distinguish static caller-YAML lint failures from runtime API probes: missing
   or excessive declared permissions fail lint, while an API `403` fails without further mutation as
   the runtime permission signal.
