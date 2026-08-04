@@ -15,7 +15,9 @@ three-job signing boundary that produces and publishes the manifest.
   [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
   [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
   [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md),
-  [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md)
+  [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md),
+  [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [Core profile contract](core-profile-contract.md)
 
@@ -639,20 +641,31 @@ inputs.
   - signing credentials
   - authority to create or modify signed metadata
 
+The manifest JSON and signed bundle are mutations of the same release manifest surface. They must
+remain in this single `manifest-upload` job, which ADR 0053 already establishes and ADR 0074
+ratifies as this surface's single mutation segment. Splitting either asset upload into another job
+fails static conformance.
+
 `manifest-upload` must use `manifest-sign` as its only trusted handoff source. It must not consume a
 direct `manifest-generate` handoff, reconstruct artifact names from release version strings, or use
 release notes, logs, local files, or caller inputs as substitutes for the `manifest-sign` outputs.
 It may download the same GitHub Actions artifact originally uploaded by `manifest-generate` only
 through the artifact handle re-exported by `manifest-sign`.
 
-### Manifest publication concurrency (ADR 0066)
+### Manifest publication concurrency (ADRs 0066, 0074, and 0075)
 
-`manifest-upload` is the manifest-publish job and belongs to the mutation segment defined by
-ADR 0066. It must declare job-level concurrency with `cancel-in-progress: false`; a workflow lacking
-that declaration fails conformance review and must not be used for production manifest publication.
-The concurrency mechanism must therefore queue a contender instead of cancelling a manifest
-publication in flight; a configuration that can cancel the running mutation job fails conformance
-review and is not a valid production workflow.
+`manifest-upload` is the manifest-publish job and the complete single-job mutation segment for the
+release manifest surface. The segment is this job's occupancy of the mutation concurrency group,
+from entry until completion. It must declare job-level concurrency with `cancel-in-progress: false`
+and `queue: max`; a workflow lacking either declaration fails conformance review and must not be
+used for production manifest publication. The concurrency mechanism serializes same-surface manifest
+writers and queues contenders without cancelling a manifest publication in flight.
+
+`manifest-generate` and `manifest-sign` remain PRE-mutation jobs. They must declare
+`cancel-in-progress: true` and no `queue` key. A `queue: max` declaration combined with
+`cancel-in-progress: true` is a platform validation error and fails static conformance. Static
+conformance must also reject a workflow graph that splits the manifest JSON and bundle mutations
+across jobs.
 
 The concurrency group represents one release intent and is shared by mutation jobs for that intent.
 The exact mutation concurrency group is:
@@ -670,6 +683,21 @@ The group key must never include `github.workflow`; a workflow that includes it 
 review and must not publish. In a called reusable workflow that value resolves to the caller's
 workflow name, so using it can collide with caller-level concurrency and trigger the
 self-cancellation trap that ADR 0066 forbids.
+
+### Cross-surface ordering and safety (ADR 0067)
+
+Manifest publication has no whole-run atomicity guarantee with npm publication or release asset
+upload. Per-surface serialization applies only while the corresponding mutation job occupies the
+shared concurrency group. Any required ordering relative to npm publication or release asset upload
+must be enforced by the ADR 0067 classification machine at the manifest mutation boundary, never by
+silently adopting observed state.
+
+Before relying on cross-surface state, `manifest-upload` must classify it as
+`committed-as-expected`, `absent`, `foreign-conflict`, or `indeterminate`. It may continue only when
+the applicable ordering precondition is `committed-as-expected` or `absent` as the specific rule
+requires. It must fail closed, without another manifest mutation, on `foreign-conflict` or
+`indeterminate`. Verification and operator-facing results must describe per-surface serialization
+and fail-closed detection, not an atomic release transaction.
 
 After acquiring the mutation group and before its first release lookup or upload that can mutate
 remote state, `manifest-upload` must revalidate the release tag and target release, including its
@@ -972,8 +1000,13 @@ The release manifest workflow must fail before any mutation when:
 - The upload job has prohibited signing authority, including `id-token: write`,
   `attestations: write`, signing credentials, or permission to regenerate signed manifest contents.
 - The manifest-publish job lacks mutation-class concurrency with `cancel-in-progress: false`, uses a
-  prohibited group component such as `github.workflow`, or does not revalidate preconditions after
-  entering the mutation segment.
+  prohibited group component such as `github.workflow`, lacks `queue: max`, or does not revalidate
+  preconditions after entering the mutation segment.
+- A PRE-mutation job declares `queue: max`, a job combines `queue: max` with
+  `cancel-in-progress: true`, or the workflow graph splits manifest JSON and bundle mutations across
+  jobs.
+- A cross-surface ordering precondition for npm publication or release asset upload classifies as
+  `foreign-conflict` or `indeterminate`, or cannot be classified without silently adopting state.
 
 ## TDD and fixtures
 
@@ -989,10 +1022,15 @@ The release manifest workflow must fail before any mutation when:
 - Comparator fixtures containing the valid order `["Alpha", "Zulu", "alpha", "éclair"]` and the
   rejected order `["Alpha", "alpha", "Zulu", "éclair"]`, proving code-point order without locale,
   case-folding, or Unicode normalization.
-- An ADR 0066 concurrency fixture with two runs for the same repository and ref: the first
-  manifest-publish job remains running without cancellation, the second waits on the shared mutation
-  group, and the second revalidates at segment entry and fails closed on the first run's committed
-  state.
+- An ADR 0066, ADR 0074, and ADR 0075 concurrency fixture with two runs for the same repository and
+  ref: `manifest-upload` is the only job that mutates either manifest asset, declares the shared
+  mutation group with `cancel-in-progress: false` and `queue: max`, remains running without
+  cancellation, and the second job waits, revalidates at segment entry, and fails closed on the
+  first run's committed state. The fixture rejects a split manifest JSON/bundle graph, a missing
+  `queue: max` declaration, and `queue: max` combined with `cancel-in-progress: true`.
+- A cross-surface ordering fixture in which observed npm publication or release asset state is
+  classified as `committed-as-expected`, `absent`, `foreign-conflict`, or `indeterminate`, proving
+  that the latter two states fail without manifest mutation or silent adoption.
 - A valid ADR 0067 convergence fixture in which a later attempt of the same `run_id` generates a
   candidate differing only in `generated_at`, obtains equal RFC 8785 JCS bytes after removing
   exactly that field, verifies the existing bundle's same-run binding, and adopts the first commit's
