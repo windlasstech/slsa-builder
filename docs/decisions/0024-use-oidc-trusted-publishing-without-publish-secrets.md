@@ -4,6 +4,9 @@ nav_order: 24
 status: accepted
 date: 12026-07-01
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0073
 ---
 
 # Use OIDC Trusted Publishing Without Publish Secrets

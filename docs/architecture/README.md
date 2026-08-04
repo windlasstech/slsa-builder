@@ -56,6 +56,7 @@ implementation work.
 | 0070 | Record package manager distributions and runner image in resolvedDependencies | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                |
 | 0071 | Activate builder.version and builderDependencies for platform components      | SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                          |
 | 0072 | Use sidecar-first pair binding for release asset run ownership                | GitHub Release asset publisher, npm-to-release-asset composition, verification policy and fixtures                                              |
+| 0073 | Require published-attestation run identity for npm same-run convergence       | JS/TS npm provenance and publish, verification policy and fixtures                                                                              |
 
 See [`../decisions/README.md`](../decisions/README.md#adr-traceability) for the canonical detailed
 ADR traceability tables.

@@ -20,6 +20,8 @@ relations:
     target: ADR-0062
   - type: see-also
     target: ADR-0069
+  - type: see-also
+    target: ADR-0073
 ---
 
 # Bind Verification to Immutable Builder and Source Identities

@@ -22,6 +22,12 @@ relations:
       "the release-asset digest-only binding proof and the never-silently-adopt and
       singular-committer clauses as applied to unsigned release asset publication events; all other
       ADR 0067 semantics remain in force"
+  - type: amended-by
+    target: ADR-0073
+    scope:
+      "the npm publish step binding proof: expected `dist.integrity` equality remains necessary but
+      is no longer sufficient; same-run convergence additionally requires a published attestation
+      whose verified run identity equals the current run_id"
 ---
 
 # Converge Repeated Runs Within Run Identity
