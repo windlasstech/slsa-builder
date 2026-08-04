@@ -20,7 +20,8 @@ tarball producer feeding the GitHub Release asset publisher.
   [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
   [0072](../decisions/0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md),
   [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
-  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Composed workflow internal handoff](composed-workflow-internal-handoff.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
@@ -128,6 +129,30 @@ build/pack/sign/handoff
   -> npm publish or same-run npm convergence
   -> publisher upload or same-run read-only convergence
 ```
+
+### Caller-facing tiered failure guarantee
+
+For this composed path, callers receive the tiered guarantee defined by ADR 0076. The npm profile
+and publisher specifications own the detailed operation rules and their fixtures.
+
+**Tier 1, fails before any registry or release mutation.** Static YAML conformance failures, absent
+OIDC capability (`ACTIONS_ID_TOKEN_REQUEST_TOKEN` is absent, producing
+`windlass.verify.error.oidc-capability-unavailable`), and npm trusted-publisher configuration
+failures caught by the early OIDC exchange stop the composition before mutation. An exchange 401 or
+404 produces `windlass.verify.error.trusted-publisher-mismatch`; a 5xx response or malformed
+exchange surface produces `windlass.verify.error.npm-oidc-exchange-indeterminate` and fails as
+`indeterminate`. The caller workflow filename observation also fails before mutation: a conflict
+between the OIDC `workflow_ref` claim and caller-scoped `github.workflow_ref` produces
+`windlass.verify.error.trusted-publisher-mismatch`. The existing handoff-derived target-state gate
+also remains Tier 1: an immutable target produces `windlass.verify.error.release-target-immutable`,
+and a `foreign-conflict` or `indeterminate` release-asset classification blocks `npm publish`.
+
+**Tier 2, classified at the first mutation.** GitHub `contents: write` runtime authority has no
+side-effect-free probe. A definitive 403 or 401 from the first mutating call produces
+`windlass.verify.error.mutation-permission-denied` and makes no read-back request. An ambiguous
+mutating result follows ADR 0067 read-back and fails as `indeterminate` unless it proves another
+outcome. Residual npm publish-time authorization failures (`E404` or `ENEEDAUTH`) produce
+`windlass.verify.error.trusted-publisher-mismatch`, not raw npm diagnostics.
 
 Each remote surface's mutations must live in exactly one job per run. The npm registry, GitHub
 Release assets, and release-manifest surface are distinct surfaces. The composition must not split
