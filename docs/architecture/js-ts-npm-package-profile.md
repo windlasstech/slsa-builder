@@ -19,7 +19,8 @@ profile.
   [0060](../decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md),
   [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
   [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
-  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md)
+  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -364,7 +365,7 @@ the workflow must fail before metadata publication. If the workflow's internal j
 authorities that must remain separate, implementation review and YAML fixtures must reject the
 workflow even when GitHub would allow the permission set.
 
-### Job-class concurrency (ADR 0066)
+### Job-class concurrency (ADRs 0066 and 0075)
 
 The build, pack, and producer signing jobs in this profile are PRE-mutation jobs. Each of these jobs
 must declare job-level concurrency with `cancel-in-progress: true`; a workflow that omits that
@@ -404,6 +405,13 @@ release-mutation-${{ github.repository }}-${{ github.ref_name }}
 The mutation key must not include `github.workflow` or any other component; a workflow that uses a
 different mutation key must fail the YAML review gate. PRE-mutation groups retain their job-specific
 namespaces so jobs within one run do not contend with one another.
+
+Each mutation concurrency group queues contenders in arrival order. A queued run waits instead of
+being silently replaced by a later pending run. When it enters the mutation segment, a retry of the
+same `run_id` may converge on the committed remote state; a run with a different `run_id` must fail
+closed as `foreign-conflict`, identifying that committed remote state. Caller-side whole-invocation
+serialization, such as a caller-declared top-level concurrency block, remains an optional
+caller-owned optimization that can save duplicate compute. The reusable workflow never relies on it.
 
 ### Outputs
 
