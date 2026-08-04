@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0073`.
+`0074`.
 
 ## STRUCTURE
 
@@ -31,11 +31,12 @@ docs/decisions/
 ├── 0071-activate-builder-version-and-builderdependencies-for-platform-components.md
 ├── 0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md
 ├── 0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md
+├── 0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0073`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0074`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -56,6 +57,7 @@ groupings.
 | Repeated run recovery         | `0067`                         | Run-identity convergence, outcome states, binding proofs.                    |
 | Release asset run ownership   | `0072`                         | Sidecar-first pair binding and custody non-attribution.                      |
 | npm run-ownership proof       | `0073`                         | Published-attestation run identity for same-run convergence.                 |
+| Mutation segment atomicity    | `0074`                         | Single-job segments and detection-based cross-run safety.                    |
 | Verifier identity binding     | `0068`                         | Immutable builder/source identities for verification.                        |
 | Transparency and trust root   | `0069`                         | Rekor inclusion, offline verification, trust root governance.                |
 | Build-environment recording   | `0070`, `0071`                 | Toolchain distributions, runner image, builder.version, builderDependencies. |

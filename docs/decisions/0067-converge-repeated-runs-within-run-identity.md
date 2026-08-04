@@ -28,6 +28,8 @@ relations:
       "the npm publish step binding proof: expected `dist.integrity` equality remains necessary but
       is no longer sufficient; same-run convergence additionally requires a published attestation
       whose verified run identity equals the current run_id"
+  - type: see-also
+    target: ADR-0074
 ---
 
 # Converge Repeated Runs Within Run Identity

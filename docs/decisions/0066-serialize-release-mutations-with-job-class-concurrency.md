@@ -18,6 +18,12 @@ relations:
     scope:
       "intra-segment mutation ordering: within the release mutation segment, the provenance sidecar
       upload must precede the primary asset upload"
+  - type: partially-superseded-by
+    target: ADR-0074
+    scope:
+      "the multi-job mutation segment definition and the strict single-writer prevention wording;
+      the concurrency group key, cancel-in-progress: false, and the job-class permission model
+      remain in force"
 ---
 
 # Serialize Release Mutations with Job-Class Concurrency

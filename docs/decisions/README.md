@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0073`.
+sequence currently runs from `0000` through `0074`.
 
 | Range     | Topic                                       | Notes                                                            |
 | --------- | ------------------------------------------- | ---------------------------------------------------------------- |
@@ -55,6 +55,7 @@ sequence currently runs from `0000` through `0073`.
 | 0070–0071 | Provenance build-environment recording      | Package-manager distributions, runner image, builder fields.     |
 | 0072      | Release asset run ownership binding         | Sidecar-first pair binding and custody non-attribution.          |
 | 0073      | npm same-run attestation binding            | Published-attestation run identity required for npm convergence. |
+| 0074      | Mutation segment atomicity                  | Single-job segments and detection-based cross-run safety.        |
 
 ## ADR status and relations
 
@@ -189,6 +190,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0071 | Activate builder.version and builderDependencies for platform components      | SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                             |
 | 0072 | Use sidecar-first pair binding for release asset run ownership                | GitHub Release asset publisher, npm-to-release-asset composition, verification policy and fixtures                                 |
 | 0073 | Require published-attestation run identity for npm same-run convergence       | JS/TS npm provenance and publish, verification policy and fixtures                                                                 |
+| 0074 | Use single-job mutation segments with detection-based cross-run safety        | GitHub Release asset publisher, release manifest, npm-to-release-asset composition, verification policy and fixtures               |
 
 ### Superseded or deprecated ADRs (historical only)
 

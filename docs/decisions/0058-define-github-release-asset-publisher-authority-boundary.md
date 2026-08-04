@@ -9,6 +9,11 @@ relations:
     target: ADR-0066
   - type: see-also
     target: ADR-0067
+  - type: amended-by
+    target: ADR-0074
+    scope:
+      "the publisher mutation topology: all release asset uploads for one run live in exactly one
+      upload job per remote surface"
 ---
 
 # Define the GitHub Release Asset Publisher Authority Boundary
