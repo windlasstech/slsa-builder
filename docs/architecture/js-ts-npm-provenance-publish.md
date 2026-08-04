@@ -55,13 +55,27 @@ the package to an npm registry through a three-job digest-verified graph.
 - GitHub Release asset upload (publisher spec).
 - Consumer verifier implementation (verification policy spec).
 
-## Three-job publish graph
+## Job graph
 
-The npm profile uses three jobs:
+In npm-only mode, the profile uses exactly these three jobs:
 
 ```text
 build -> provenance-sign -> publish
 ```
+
+In release-asset mode, the complete same-run graph is:
+
+```text
+build -> provenance-sign -> composition-map -> publish -> release-upload
+```
+
+`composition-map` is the read-only composition mapping and release-state preflight job defined by
+the [composed workflow internal handoff](composed-workflow-internal-handoff.md) and
+[npm-to-release-asset composition](npm-to-release-asset-composition.md). `release-upload` is the
+single GitHub Release asset mutation-segment job. It uploads or converges on the provenance sidecar
+and tarball only after `publish` succeeds or reaches same-run read-only convergence. No mode may add
+an edge that permits `publish` before `provenance-sign`, `composition-map` before `provenance-sign`,
+or `release-upload` before `publish`.
 
 ### `build`
 
@@ -69,6 +83,8 @@ build -> provenance-sign -> publish
 - Produces the npm package tarball and metadata.
 - Uploads the tarball as a workflow artifact.
 - Exposes the tarball name, SHA-256, and SHA-512 to downstream jobs.
+- Uploads the build metadata artifact and exposes its artifact name and SHA-256 to `provenance-sign`
+  through internal same-run job outputs.
 - Must not have signing or publish permissions.
 
 ### `provenance-sign`
@@ -184,6 +200,62 @@ mutation. If an implementation derives an SRI string from the local tarball byte
 it must treat that value as a local diagnostic equivalent of the SHA-512 digest, not as registry
 evidence.
 
+## Build metadata handoff
+
+The tarball artifact remains exactly one `.tgz` file. Build metadata must therefore travel in a
+separate same-run GitHub Actions artifact, not in the tarball artifact or as a public
+`workflow_call` output. The metadata artifact pattern is required because the composed-workflow
+internal handoff contract reserves internal job outputs for producer-owned artifact names and
+digests, then requires consumers to verify the named one-file artifact before reading its contents.
+Job outputs alone are not an acceptable metadata transport.
+
+The build job must upload this deterministic artifact:
+
+```text
+js-ts-npm-build-metadata-<github.run_id>-<github.run_attempt>
+```
+
+It must contain exactly one file named `build-metadata.json`. The build job must compute the SHA-256
+of those file bytes and expose both the artifact name and digest through internal same-run job
+outputs. `provenance-sign` must retrieve the named artifact from the same workflow run, require the
+one-file shape and filename, recompute the SHA-256, and fail before signing if either output is
+missing, malformed, or differs from the computed value. These outputs must not be exposed as public
+workflow outputs.
+
+`build-metadata.json` is a closed JSON object with this required shape:
+
+```json
+{
+  "schema_version": "1",
+  "primary_artifact": {
+    "artifact_name": "js-ts-npm-package-tarball-123456789-1",
+    "payload_file_name": "windlass-slsa-builder-1.2.3.tgz",
+    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "sha512": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "external_parameters": {},
+  "resolved_dependencies": []
+}
+```
+
+All four top-level members are required. `schema_version` is the string `"1"`.
+`primary_artifact.artifact_name` is the deterministic tarball artifact name, and
+`primary_artifact.payload_file_name` is the tarball basename. `primary_artifact.sha256` and
+`primary_artifact.sha512` are respectively 64 and 128 lowercase hexadecimal digests of that one
+tarball's bytes. `external_parameters` is the complete closed object specified in
+[JS/TS npm `externalParameters` schema](#jsts-npm-externalparameters-schema), with every required
+member present and only that schema's permitted optional members. `resolved_dependencies` is the
+complete array of closed ResourceDescriptor values specified in
+[JS/TS npm `resolvedDependencies` schema](#jsts-npm-resolveddependencies-schema).
+
+`provenance-sign` must construct its candidate predicate only from the verified metadata object, the
+verified downloaded tarball, and signing-job observations required by this specification. It must
+reject duplicate JSON members, unknown members at every closed-schema level, malformed types, or
+disagreement among the metadata artifact, tarball handoff, downloaded tarball, and signing-job
+observations before signing. The metadata artifact must not contain a provenance bundle, signed
+Statement, registry state, release-state preflight result, credential, token, or remote publication
+result.
+
 ## Provenance bundle handoff
 
 The `provenance-sign` job uploads the signed bundle as a workflow artifact with this deterministic
@@ -255,6 +327,22 @@ not the basename of the pack-produced tarball path, or does not end in `.tgz`.
 The profile must fail before signing when it cannot derive an npm Package URL subject from the
 validated package name and version, when the derived subject is empty or malformed, or when the
 subject differs from the npm Package URL that npm CLI will validate for the package being published.
+
+The normative derivation is `pkg:npm/` followed by the package name and version in Package URL form.
+For an unscoped package, it is `pkg:npm/<encoded-name>@<encoded-version>`. For a scoped package
+`@<scope>/<name>`, it is `pkg:npm/%40<encoded-scope>/<encoded-name>@<encoded-version>`. Each
+`encoded-*` value percent-encodes every UTF-8 byte outside RFC 3986 unreserved characters `A-Z`,
+`a-z`, `0-9`, `-`, `.`, `_`, and `~`, using uppercase hexadecimal. The slash between a scoped
+package's scope and name is structural and is not encoded. The literal scope marker `@` is encoded
+as `%40`.
+
+For example, validated `@windlass/slsa-builder` version `1.2.3` derives
+`pkg:npm/%40windlass/slsa-builder@1.2.3`. The producer must derive this value before signing and
+must verify that it exactly equals the Package URL accepted by the npm CLI version recorded in
+`externalParameters.runtime.npm_version`. A compatibility fixture is required for every supported
+npm CLI version and must cover both scoped and unscoped names. Any CLI-version variance from this
+derivation is a production conformance failure until this specification and its compatibility
+fixtures are updated; an implementation must not silently delegate the subject value to the CLI.
 
 ## JS/TS npm `externalParameters` schema
 
@@ -1261,8 +1349,19 @@ publish.
 
 ## `npm publish --provenance-file`
 
-- The `publish` job must use `npm publish --provenance-file=<bundle-path>` to publish the tarball
-  with the Windlass-generated provenance.
+- The `publish` job must invoke exactly this argv, in this order, with the optional final argument
+  present only when `publish.publish_access_option` is non-null:
+
+  ```text
+  npm publish <tarball-path> --provenance-file=<bundle-path> --registry=<resolved-registry-url> --tag=<resolved-dist-tag> [--access=<publish-access-option>]
+  ```
+
+  `<tarball-path>` must identify the downloaded tarball whose SHA-256 and SHA-512 match the verified
+  tarball handoff. `<resolved-registry-url>`, `<resolved-dist-tag>`, and `<publish-access-option>`
+  must equal the corresponding signed `externalParameters.publish` values. No other `npm publish`
+  argument is permitted, including `--provenance`, `--dry-run`, a package directory, or a registry,
+  tag, access, or provenance override supplied through npm configuration or the environment.
+
 - The `<bundle-path>` must point to the downloaded `<package-tarball-name>.intoto.jsonl` file whose
   SHA-256 digest matched the provenance-bundle handoff. The profile must submit that file unchanged.
 - The profile must not use npm's automatic provenance generation.
@@ -1566,9 +1665,11 @@ After signing and before `npm publish`, the `publish` job must verify:
 11. `builder.version` has the exact observed `nodejs` and conditional `corepack` shape.
 12. `builderDependencies` contains only the exact pinned signing-adapter descriptor whose URI,
     `digest.gitCommit`, role, and actual action revision agree.
-13. The emitted Statement's predicate is byte-for-byte JSON-value equivalent to the complete
-    candidate predicate that Windlass validated before invoking `actions/attest`, and its Statement
-    envelope fields match the verified subject inputs and predicate type.
+13. The emitted Statement's predicate is structurally equal to the complete candidate predicate that
+    Windlass validated before invoking `actions/attest`, and its Statement envelope fields match the
+    verified subject inputs and predicate type. Where this comparison or an associated digest
+    requires canonical JSON bytes, it must apply the RFC 8785 JCS rule in
+    [Canonical JSON serialization](verification-policy-and-fixtures.md#canonical-json-serialization).
 
 If any check fails, the job must fail before registry mutation.
 
