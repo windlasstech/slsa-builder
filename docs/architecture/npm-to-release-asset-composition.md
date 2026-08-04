@@ -17,7 +17,10 @@ tarball producer feeding the GitHub Release asset publisher.
   [0062](../decisions/0062-intersect-trusted-producer-policies.md),
   [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
   [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
-  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md)
+  [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
+  [0072](../decisions/0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md),
+  [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Composed workflow internal handoff](composed-workflow-internal-handoff.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
@@ -126,6 +129,21 @@ build/pack/sign/handoff
   -> publisher upload or same-run read-only convergence
 ```
 
+Each remote surface's mutations must live in exactly one job per run. The npm registry, GitHub
+Release assets, and release-manifest surface are distinct surfaces. The composition must not split
+mutations for any one surface across jobs, and it must not claim whole-run atomicity. Every ordering
+rule that crosses a surface boundary, including the npm publish before release-asset upload rule,
+must rely on the ADR 0067 classification machine. Per-surface concurrency prevents concurrent
+writers within its shared group. Cross-surface and out-of-band interference is detected by
+classification and fails closed; it is not prevented by a whole-run transaction.
+
+Mutation-segment jobs use `queue: max` with `cancel-in-progress: false` on their ADR 0066
+concurrency groups. Contenders wait in first-in, first-out order by the time waiting started. When a
+queued run enters its segment, a retry of the same `run_id` either converges through its applicable
+binding proof or a fresh `run_id` fails closed, naming the committed remote state. Caller-side
+whole-invocation serialization remains an optional, caller-owned compute optimization. The callee
+must never rely on it for ordering, convergence, or safety.
+
 Before the release-state preflight, the mapping layer must verify the handoff and derive both
 expected release asset names and their SHA-256 digests from it: the tarball `final-asset-name` and
 `expected-sha256`, plus the deterministic sidecar name and `producer-provenance-sha256`. It must not
@@ -135,18 +153,38 @@ caller values.
 The read-only preflight must select the publisher's closed producer-policy registry from the
 verified `trusted_producer.build_type`, verify that the selected policy admits the handoff and
 producer provenance, and read the existing target release's `draft` and `immutable` state and both
-expected asset states. An absent or unknown selector fails before `npm publish` with
-`windlass.verify.error.unregistered-producer-build-type`. Handoff and caller values are constraints
-on the selected policy only. They cannot register, extend, replace, relax, union with, or override a
-producer policy.
+expected asset states using the sidecar-first pair classification below. An absent or unknown
+selector fails before `npm publish` with `windlass.verify.error.unregistered-producer-build-type`.
+Handoff and caller values are constraints on the selected policy only. They cannot register, extend,
+replace, relax, union with, or override a producer policy.
 
-If the target is immutable and either expected asset is absent, foreign, or indeterminate, the
+If either release-asset side classification is `foreign-conflict` or `indeterminate`, the workflow
+must fail before `npm publish`, including for a mutable target. It must name the classification and
+the conflicting remote evidence. This is the fail-closed consequence of ADR 0067, and ADR 0072 does
+not attribute a release-asset upload to the current run without the required pair evidence. If the
+target is immutable and either expected asset is absent, `foreign-conflict`, or `indeterminate`, the
 workflow must fail before `npm publish` with `windlass.verify.error.release-target-immutable`. An
 immutable complete target may proceed only when the npm publish step and every release mutation step
 can satisfy same-`run_id` read-only convergence. The preflight is fail-fast evidence only. It grants
 no release mutation authority, and the publisher must re-read and revalidate target state when its
 release mutation segment begins. It must never use the earlier preflight result as mutation
 authorization.
+
+The release-asset side classification is sidecar-first. It must classify the pair in this order:
+
+1. If neither asset exists, the release-asset side is `absent`.
+2. If the primary exists and the sidecar is absent, the release-asset side is `foreign-conflict`.
+   The protocol uploads the verified sidecar first, so it can never create this state.
+3. If the sidecar exists, it must first pass the sidecar conditions: its authoritative digest equals
+   the expected bundle digest, it verifies under the full policy, its verified Run Invocation URI
+   has the current `github.run_id` with any attempt component accepted, and its signed subject and
+   producer fields bind the expected primary name and digest. Failure to establish any condition is
+   `foreign-conflict` when the evidence is readable and disproves it, or `indeterminate` when the
+   required state cannot be established within the polling bound.
+4. A same-`run_id` verified sidecar with an absent primary permits the primary upload. A primary is
+   `committed-as-expected` only if that verified sidecar also binds the remote primary's
+   authoritative digest. This is the ADR 0072 pair gate. Any pre-existing asset observed by a new
+   `run_id` is `foreign-conflict`, even when its bytes match.
 
 If a future release process needs to connect separately invoked reusable workflows through public
 outputs, that is a new composition contract and must be specified separately.
@@ -285,9 +323,12 @@ convergence proof cannot be established. When revalidation classifies both exist
 complete same-`run_id` set satisfying read-only convergence, their presence is the expected
 convergence state, not a duplicate failure, and the publisher must finish without mutation. An
 immutable target with an incomplete asset set must fail with
-`windlass.verify.error.release-target-immutable` without upload. A sidecar upload failure after
-primary asset upload is a partial failure only when this qualified duplicate preflight permits the
-primary upload and a later upload/API failure occurs.
+`windlass.verify.error.release-target-immutable` without upload. A sidecar upload failure is a
+partial failure before any primary upload occurs. The release-upload job must upload and
+digest-verify the sidecar before starting the primary upload. After a verified sidecar, an
+interrupted or ambiguous primary upload is resolved only through the sidecar-first pair gate; the
+success report may state that expected provenance-covered bytes are present, but must not claim that
+the current run performed the upload without a matching receipt.
 
 ## npm-specific fields as producer metadata
 
@@ -401,6 +442,8 @@ The following must be rejected by the publisher:
   policy selector (`unregistered-producer-build-type`).
 - An immutable target with either expected handoff-derived asset absent, foreign, or indeterminate
   before `npm publish` (`release-target-immutable`).
+- A mutable target whose release-asset side is `foreign-conflict` or `indeterminate` before
+  `npm publish`; the workflow must fail closed with the classification and remote evidence.
 - A stale preflight observation presented as authority for publisher mutation.
 - Any handoff or caller attempt to register, widen, or override a producer policy.
 - Any attempt to use npm-specific fields to bypass the generic handoff contract.
@@ -432,20 +475,25 @@ The composition must fail when:
 - The read-only preflight finds an immutable target whose required handoff-derived asset set cannot
   complete same-`run_id` convergence. It must fail before `npm publish` with
   `windlass.verify.error.release-target-immutable`.
+- The read-only preflight finds a mutable target with a release-asset-side `foreign-conflict` or
+  `indeterminate` classification. It must fail before `npm publish`, naming the classification and
+  the remote evidence.
 - The verified `trusted_producer.build_type` is missing or unregistered. It must fail before
   `npm publish` with `windlass.verify.error.unregistered-producer-build-type`.
 - Publisher mutation-entry revalidation fails or differs from the earlier preflight. The publisher
   must fail before release mutation and must not reuse the stale preflight as authorization.
 - The primary asset name or deterministic sidecar name already exists on a mutable target without
   same-`run_id` convergence proof.
-- The primary asset upload succeeds but the sidecar upload fails.
+- The sidecar upload fails before the primary upload begins.
 
 ## TDD and fixtures
 
 - Positive fixture: npm tarball successfully composes with the publisher.
 - Rejected fixtures: raw tarball without provenance, npm Package URL subject mismatch, tarball
   filename binding mismatch, digest mismatch, npm-specific publisher coupling, pre-existing primary
-  or sidecar release asset name, a composed ordering that reaches `npm publish` before preflight, an
+  or sidecar release asset name classified through the sidecar-first pair rules, a lone primary
+  classified as `foreign-conflict`, a composed ordering that reaches `npm publish` before preflight,
+  a mutable-target `foreign-conflict` or `indeterminate` result that blocks `npm publish`, an
   unknown `buildType` (`unregistered-producer-build-type`), an immutable target with a partial asset
   set before `npm publish` (`release-target-immutable`), and a stale preflight result reused at
   publisher mutation entry.
