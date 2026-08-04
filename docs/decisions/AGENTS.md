@@ -33,11 +33,12 @@ docs/decisions/
 ├── 0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md
 ├── 0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md
 ├── 0075-queue-mutation-segment-contenders-with-queue-max.md
+├── 0076-use-observation-preflights-and-first-mutation-classification.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0075`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0076`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -60,6 +61,7 @@ groupings.
 | npm run-ownership proof       | `0073`                         | Published-attestation run identity for same-run convergence.                 |
 | Mutation segment atomicity    | `0074`                         | Single-job segments and detection-based cross-run safety.                    |
 | Mutation queue policy         | `0075`                         | `queue: max` FIFO waiting for mutation segment contenders.                   |
+| Preflight and classification  | `0076`                         | Observation preflights; first-mutation classification otherwise.             |
 | Verifier identity binding     | `0068`                         | Immutable builder/source identities for verification.                        |
 | Transparency and trust root   | `0069`                         | Rekor inclusion, offline verification, trust root governance.                |
 | Build-environment recording   | `0070`, `0071`                 | Toolchain distributions, runner image, builder.version, builderDependencies. |

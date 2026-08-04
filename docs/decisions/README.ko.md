@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0075`까지입니다.
+`0076`까지입니다.
 
 | 범위      | 주제                               | 설명                                                       |
 | --------- | ---------------------------------- | ---------------------------------------------------------- |
@@ -56,6 +56,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0073      | npm same-run attestation 바인딩    | npm 수렴에 published attestation run identity 필수화.      |
 | 0074      | Mutation segment 원자성            | 단일 job segment와 탐지 기반 cross-run 안전.               |
 | 0075      | Mutation 큐 정책                   | Mutation segment contender의 `queue: max` FIFO 대기.       |
+| 0076      | Preflight와 첫 mutation 분류       | 관측 preflight와 probe 부재 표면의 첫 mutation 분류.       |
 
 ## ADR status와 relations
 
@@ -190,6 +191,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0073 | Require published-attestation run identity for npm same-run convergence       | JS/TS npm provenance and publish, verification policy and fixtures                                                                 |
 | 0074 | Use single-job mutation segments with detection-based cross-run safety        | GitHub Release asset publisher, release manifest, npm-to-release-asset composition, verification policy and fixtures               |
 | 0075 | Queue mutation segment contenders with queue: max                             | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures               |
+| 0076 | Use observation preflights and first-mutation classification                  | GitHub Release asset publisher, JS/TS npm package profile, verification policy and fixtures                                        |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

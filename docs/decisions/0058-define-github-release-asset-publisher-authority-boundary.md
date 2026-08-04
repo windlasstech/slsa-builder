@@ -14,6 +14,12 @@ relations:
     scope:
       "the publisher mutation topology: all release asset uploads for one run live in exactly one
       upload job per remote surface"
+  - type: amended-by
+    target: ADR-0076
+    scope:
+      "the runtime permission-verification layer: no side-effect-free write-capability probe exists,
+      so the first mutating call is the runtime authority check, with HTTP 403 as the
+      permission-failure signal and ADR 0067 read-back on ambiguity"
 ---
 
 # Define the GitHub Release Asset Publisher Authority Boundary

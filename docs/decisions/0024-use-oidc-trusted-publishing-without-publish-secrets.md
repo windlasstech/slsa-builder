@@ -7,6 +7,13 @@ decision-makers: Yunseo Kim
 relations:
   - type: see-also
     target: ADR-0073
+  - type: amended-by
+    target: ADR-0076
+    scope:
+      "the pre-publication authorization guarantee: trusted-publishing misconfiguration is detected
+      before registry mutation by an early OIDC token exchange preflight; residual publish-time
+      authorization failures are classified, and the absolute must-stop-before-registry-mutation
+      wording is scoped to what the exchange and observation preflights can establish"
 ---
 
 # Use OIDC Trusted Publishing Without Publish Secrets

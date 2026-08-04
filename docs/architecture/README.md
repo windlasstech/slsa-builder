@@ -59,6 +59,7 @@ implementation work.
 | 0073 | Require published-attestation run identity for npm same-run convergence       | JS/TS npm provenance and publish, verification policy and fixtures                                                                              |
 | 0074 | Use single-job mutation segments with detection-based cross-run safety        | GitHub Release asset publisher, release manifest, npm-to-release-asset composition, verification policy and fixtures                            |
 | 0075 | Queue mutation segment contenders with queue: max                             | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                            |
+| 0076 | Use observation preflights and first-mutation classification                  | GitHub Release asset publisher, JS/TS npm package profile, verification policy and fixtures                                                     |
 
 See [`../decisions/README.md`](../decisions/README.md#adr-traceability) for the canonical detailed
 ADR traceability tables.

@@ -32,6 +32,8 @@ relations:
     target: ADR-0074
   - type: see-also
     target: ADR-0075
+  - type: see-also
+    target: ADR-0076
 ---
 
 # Converge Repeated Runs Within Run Identity

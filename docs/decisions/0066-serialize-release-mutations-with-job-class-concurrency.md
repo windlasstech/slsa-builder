@@ -31,6 +31,8 @@ relations:
       concurrency group key composition, the cancel-in-progress values for both job classes, the
       job-class permission model, and the prohibition of github.workflow in group keys remain in
       force"
+  - type: see-also
+    target: ADR-0076
 ---
 
 # Serialize Release Mutations with Job-Class Concurrency
