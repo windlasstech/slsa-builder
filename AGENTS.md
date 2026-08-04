@@ -1,8 +1,8 @@
 # PROJECT KNOWLEDGE BASE
 
-- **Generated:** 12026-07-07
-- **Commit:** e40a91e
-- **Branch:** docs/adr-npm-and-release-asset-profiles
+- **Generated:** 12026-08-05
+- **Commit:** b2a368f
+- **Branch:** docs/adr-traceability-and-architecture-specs
 
 ## OVERVIEW
 
@@ -16,6 +16,7 @@ the Go implementation tree has not been added yet.
 ├── AGENTS.md              # this file
 ├── README.md / README.ko.md
 ├── docs/decisions/        # architecture ADRs (see docs/decisions/AGENTS.md)
+├── docs/architecture/     # behavior specs (see docs/architecture/AGENTS.md)
 ├── .github/workflows/     # CI/CD workflows (see .github/workflows/AGENTS.md)
 ├── .golangci.yml          # Go format/lint policy
 ├── lefthook.yml           # git hooks
@@ -26,15 +27,16 @@ the Go implementation tree has not been added yet.
 
 ## WHERE TO LOOK
 
-| Task                    | Location                                                   | Notes                                    |
-| ----------------------- | ---------------------------------------------------------- | ---------------------------------------- |
-| Why a decision was made | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0076`. |
-| Bootstrap / dev setup   | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.         |
-| CI / workflow security  | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.       |
-| Lint/format policy      | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                     |
-| Git hooks / DCO         | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.       |
-| ADR relations check     | `.agents/skills/adr-relations-check/`                      | Status grammar + relations symmetry.     |
-| Dependency security     | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile. |
+| Task                     | Location                                                   | Notes                                             |
+| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------- |
+| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0076`.          |
+| Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`. |
+| Bootstrap / dev setup    | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.                  |
+| CI / workflow security   | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.                |
+| Lint/format policy       | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                              |
+| Git hooks / DCO          | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.                |
+| ADR relations check      | `.agents/skills/adr-relations-check/`                      | Status grammar + relations symmetry.              |
+| Dependency security      | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile.          |
 
 ## CONVENTIONS
 

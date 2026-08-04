@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0074`.
+`0076`.
 
 ## STRUCTURE
 
@@ -13,23 +13,7 @@ docs/decisions/
 ├── 0000-use-markdown-architectural-decision-records.md  # MADR template
 ├── 0001-start-slsa-builder-as-clean-repository.md
 ├── 0002-use-extensible-trusted-reusable-workflow-foundation.md
-├── ...                                                  # 0003–0061
-├── 0057-provide-composed-public-npm-release-asset-workflow.md
-├── 0058-define-github-release-asset-publisher-authority-boundary.md
-├── 0059-define-public-npm-release-composed-workflow-interface.md
-├── 0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md
-├── 0061-reject-duplicate-json-members-in-signed-slsa-statements.md
-├── 0062-intersect-trusted-producer-policies.md
-├── 0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md
-├── 0064-use-npm-purl-subject-with-sha512-and-sha256.md
-├── 0065-use-closed-status-grammar-with-separate-relations-field.md
-├── 0066-serialize-release-mutations-with-job-class-concurrency.md
-├── 0067-converge-repeated-runs-within-run-identity.md
-├── 0068-bind-verification-to-immutable-builder-and-source-identities.md
-├── 0069-require-rekor-transparency-and-govern-sigstore-trust-root.md
-├── 0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
-├── 0071-activate-builder-version-and-builderdependencies-for-platform-components.md
-├── 0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md
+├── ...                                                  # 0003–0072
 ├── 0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md
 ├── 0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md
 ├── 0075-queue-mutation-segment-contenders-with-queue-max.md
