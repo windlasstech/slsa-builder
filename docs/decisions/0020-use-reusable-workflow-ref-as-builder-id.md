@@ -4,6 +4,9 @@ nav_order: 20
 status: superseded by ADR-0028
 date: 12026-06-29
 decision-makers: Yunseo Kim
+relations:
+  - type: superseded-by
+    target: ADR-0028
 ---
 
 # Use Reusable Workflow References as `builder.id`

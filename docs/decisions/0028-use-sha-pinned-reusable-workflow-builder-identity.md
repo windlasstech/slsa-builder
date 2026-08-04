@@ -4,6 +4,21 @@ nav_order: 28
 status: accepted
 date: 12026-07-04
 decision-makers: Yunseo Kim
+relations:
+  - type: supersedes
+    target: ADR-0020
+  - type: partially-supersedes
+    target: ADR-0022
+    scope: "the tag-ref builder.id expectation and tag-ref caller examples"
+  - type: partially-supersedes
+    target: ADR-0026
+    scope: "the tag-ref caller examples"
+  - type: see-also
+    target: ADR-0068
+  - type: see-also
+    target: ADR-0070
+  - type: see-also
+    target: ADR-0071
 ---
 
 # Use SHA-Pinned Reusable Workflow Builder Identity

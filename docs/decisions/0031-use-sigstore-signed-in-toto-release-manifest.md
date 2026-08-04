@@ -4,6 +4,12 @@ nav_order: 31
 status: accepted
 date: 12026-07-05
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0054
+    scope:
+      "the release manifest predicate type URI example; the Sigstore-signed in-toto Statement
+      manifest decision remains in force"
 ---
 
 # Use Sigstore-Signed in-toto Release Manifest

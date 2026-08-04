@@ -4,6 +4,10 @@ nav_order: 45
 status: accepted
 date: 12026-07-07
 decision-makers: Yunseo Kim
+relations:
+  - type: amended-by
+    target: ADR-0049
+    scope: "interpreted as publication-profile rules rather than artifact-production rules"
 ---
 
 # Use the GitHub Release Asset Name as the SLSA Subject Name

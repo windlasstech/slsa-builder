@@ -4,6 +4,11 @@ nav_order: 2
 status: accepted
 date: 12026-06-23
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0003
+  - type: see-also
+    target: ADR-0013
 ---
 
 # Use an Extensible Trusted Reusable Workflow Foundation as the Initial SLSA Builder Architecture

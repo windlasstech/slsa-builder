@@ -4,6 +4,9 @@ nav_order: 7
 status: accepted
 date: 12026-06-23
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0005
 ---
 
 # Use ShellCheck for Shell Glue Linting

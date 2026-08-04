@@ -4,6 +4,19 @@ nav_order: 42
 status: accepted
 date: 12026-07-06
 decision-makers: Yunseo Kim
+relations:
+  - type: supersedes
+    target: ADR-0021
+  - type: supersedes
+    target: ADR-0041
+  - type: partially-supersedes
+    target: ADR-0029
+    scope: "the repository-path buildType URI value"
+  - type: partially-superseded-by
+    target: ADR-0049
+    scope:
+      "the concrete GitHub Release asset buildType value; the domain and URI namespace decision
+      remains in force"
 ---
 
 # Use Acquired Domains for `buildType` URIs: `buildtype.dev` as Identifier, `slsa-builder.dev` as Documentation Host

@@ -4,6 +4,11 @@ nav_order: 18
 status: accepted
 date: 12026-06-28
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0013
+  - type: see-also
+    target: ADR-0015
 ---
 
 # Publish One JS/TS Package per Profile Run

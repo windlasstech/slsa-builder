@@ -4,6 +4,22 @@ nav_order: 22
 status: accepted
 date: 12026-07-01
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0028
+    scope:
+      "the tag-ref builder.id expectation and tag-ref caller examples; the workflow filename
+      decision remains in force"
+  - type: amended-by
+    target: ADR-0057
+    scope:
+      "the selected public npm entrypoint also hosts the explicit GitHub Release asset publication
+      mode; the workflow filename decision remains in force"
+  - type: amended-by
+    target: ADR-0060
+    scope:
+      "the selected entrypoint is the single public npm profile API for both npm-only and
+      release-asset paths; the workflow filename decision remains in force"
 ---
 
 # Use `js-ts-npm-package-slsa3.yml` as the Initial JS/TS npm Package Workflow Entrypoint

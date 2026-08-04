@@ -4,6 +4,12 @@ nav_order: 14
 status: accepted
 date: 12026-06-28
 decision-makers: Yunseo Kim
+relations:
+  - type: amended-by
+    target: ADR-0063
+    scope:
+      "Yarn support is narrowed to Yarn Berry v4 or newer executed through Corepack packageManager
+      enforcement; the decision to support Yarn remains in force"
 ---
 
 # Support npm, pnpm, and Yarn for Initial JS/TS Build Stages

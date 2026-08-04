@@ -4,6 +4,9 @@ nav_order: 21
 status: superseded by ADR-0042
 date: 12026-06-29
 decision-makers: Yunseo Kim
+relations:
+  - type: superseded-by
+    target: ADR-0042
 ---
 
 # Use Profile-Specific `buildType` URIs

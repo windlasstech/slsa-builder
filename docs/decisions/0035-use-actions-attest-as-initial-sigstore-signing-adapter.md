@@ -4,6 +4,11 @@ nav_order: 35
 status: accepted
 date: 12026-07-06
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0069
+  - type: see-also
+    target: ADR-0071
 ---
 
 # Use actions/attest as the Initial Sigstore Signing Adapter

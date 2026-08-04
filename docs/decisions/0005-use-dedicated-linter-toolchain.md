@@ -4,6 +4,11 @@ nav_order: 5
 status: accepted
 date: 12026-06-23
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0006
+  - type: see-also
+    target: ADR-0007
 ---
 
 # Use a Dedicated Linter Toolchain Instead of a Universal Linter Bundle

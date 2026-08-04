@@ -4,6 +4,18 @@ nav_order: 15
 status: accepted
 date: 12026-06-28
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0056
+    scope:
+      "the blanket manifest-versus-lockfile conflict rule; non-selected supported lockfiles are
+      stale diagnostics when the selected manager and its required lockfile are present"
+  - type: partially-superseded-by
+    target: ADR-0063
+    scope:
+      "lockfile-based Yarn inference fallback; Yarn requires an explicit packageManager declaration"
+  - type: see-also
+    target: ADR-0018
 ---
 
 # Use Manifest-First Package Manager Selection

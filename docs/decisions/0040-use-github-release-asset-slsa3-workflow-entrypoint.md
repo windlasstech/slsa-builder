@@ -4,6 +4,9 @@ nav_order: 40
 status: superseded by ADR-0049
 date: 12026-07-06
 decision-makers: Yunseo Kim
+relations:
+  - type: superseded-by
+    target: ADR-0049
 ---
 
 # Use `github-release-asset-slsa3.yml` as the GitHub Release Asset Workflow Entrypoint
