@@ -631,6 +631,13 @@ in that decision and cannot establish `committed-as-expected`; a missing or unus
 fails as `indeterminate` with `windlass.verify.error.publisher-remote-digest-unproven` or a narrower
 diagnostic. This does not replace the consumer artifact-byte verification in item 9.
 
+For same-`run_id` convergence identity comparison (ADRs 0072 and 0073), the Run Invocation URI
+run-id component must equal the current run's `github.run_id` byte-for-byte, and the attempt
+component is ignored: an earlier attempt of the same run is the same run identity for convergence.
+This is a named exception to the byte-for-byte Run Invocation URI comparison in rule 5, scoped to
+same-run convergence verification only. Consumer artifact verification compares the full Run
+Invocation URI, including the attempt component, byte-for-byte.
+
 The publisher itself does not have a source-to-artifact `buildType` in the default path.
 
 ## Release manifest verification policy
@@ -883,6 +890,7 @@ and exits `2`; a fixture that proves its condition but emits another primary ID 
 | `windlass.verify.error.resolved-dependencies-runner-image`                 | The runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched.             |
 | `windlass.verify.error.builder-version-mismatch`                           | Closed `builder.version` keys or observed versions are invalid.                                           |
 | `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or revision-inconsistent.       |
+| `windlass.verify.error.mutation-queue-overflow`                            | GitHub rejects an arrival beyond 100 pending executions in one mutation concurrency group.                |
 
 Expanded ownership for existing IDs is fixed as follows: `run-invocation-uri-invalid` owns a
 malformed or missing URI and inequality between `metadata.invocationId` and Fulcio OID `.21`;
@@ -1244,6 +1252,7 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `resolved-dependencies-runner-image`                 | The runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched.          |
 | `builder-version-mismatch`                           | Closed `builder.version` keys or observed versions are invalid.                                        |
 | `builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or revision-inconsistent.    |
+| `mutation-queue-overflow`                            | GitHub rejects an arrival beyond 100 pending executions in one mutation concurrency group.             |
 | `prepublish-registry-metadata-required`              | Workflow required post-publish registry metadata before publish.                                       |
 | `release-version-semver-mismatch`                    | Release manifest version or tag is not valid SemVer 2.0.0.                                             |
 | `trusted-core-boundary-violation`                    | Trusted policy/provenance logic depends on profile ecosystem tooling.                                  |
@@ -1556,6 +1565,38 @@ without mutation even when the asset digest matches. Any fixture that cannot pro
 the four states fails as `indeterminate` with `publisher-indeterminate-primary-upload` or the
 narrower step diagnostic.
 
+The ADR 0072 and ADR 0073 convergence fixture set must include the following fixtures. Each fixture
+uses a re-run-failed-jobs attempt unless it explicitly names a fresh run. The Run Invocation URI
+comparison fixtures hold every component constant except the named run-id or attempt component.
+
+| Fixture name                                   | Surface   | Required observation and result                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `publisher-sidecar-first-crash-matrix`         | publisher | Exercise interruption after sidecar commit, during primary upload, after primary commit with a lost response, and after a confirmed response. The retry must read back the sidecar-first pair, recover the primary only when it is absent, and otherwise use the pair gate without overwrite or deletion.                                                     |
+| `publisher-sidecar-first-ordering`             | publisher | The consolidated release-upload job commits and digest-verifies the sidecar before it starts the primary upload. No workflow-produced trace may contain a primary-present, sidecar-absent state.                                                                                                                                                              |
+| `publisher-pair-gate-failures`                 | publisher | Independently fail each pair-gate condition: remote sidecar digest mismatch, full-policy sidecar verification failure, different Run Invocation URI run-id, signed primary name or digest binding mismatch, and remote primary digest mismatch. Each case is `foreign-conflict` or `indeterminate` as evidence requires, and performs no mutation.            |
+| `publisher-cross-run-identical-bytes-conflict` | publisher | A fresh `run_id` observes byte-identical pre-existing primary and sidecar assets. It must fail closed as `foreign-conflict`, not converge.                                                                                                                                                                                                                    |
+| `publisher-oob-identical-bytes-observation`    | publisher | Record that own-workflow and another-workflow byte-identical uploads have indistinguishable release-asset `digest`, size, name, state, content type, and bot uploader values. Record that no release-asset API field carries run identity, and that server IDs and timestamps do not bind an upload to a run. The fixture must not claim custody attribution. |
+| `publisher-convergence-report-honesty`         | publisher | Confirm that reports distinguish `uploaded-with-confirmed-receipt`, `converged-from-prior-receipt`, and `converged-as-verified-pair-custody-unproven`. A successful verified-pair report without a matching asset-ID receipt must not assert that the current run uploaded the asset.                                                                         |
+| `same-run-id-prior-attempt-convergence`        | npm       | A bundle signed by an earlier attempt with the same run-id converges. Its attempt component differs, its run-id component matches byte-for-byte, and its exact-version integrity, selected published attestation, npm Package URL, and tarball digest bindings all verify.                                                                                    |
+| `npm-attestation-404-version-existence`        | npm       | A `404 {"error":"Not found"}` from the attestation endpoint is paired with the packument exact-version existence check. An absent version is not treated as attestation absence; an existing version with no selected attestation after polling is `foreign-conflict`.                                                                                        |
+| `npm-attestation-selection-not-array-order`    | npm       | The desired custom `--provenance-file` or auto-provenance bundle is selected by `predicateType` from a reordered collection. A different predicate at the first array position must not affect the result.                                                                                                                                                    |
+
+The publisher topology and cross-run-safety fixture set must also include the ADR 0074 fixtures:
+
+| Fixture name                                            | Surface   | Required observation and result                                                                                                                                                                                                                                               |
+| ------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `publisher-contending-runs-foreign-conflict`            | publisher | Two runs contend for one release surface. After the first committed state becomes visible, the other run's next mutation step detects `foreign-conflict`, reports its remote evidence, and performs no mutation.                                                              |
+| `publisher-duplicate-asset-name-platform-rejection`     | publisher | A duplicate release-asset upload is rejected by the platform with the observed message `asset under the same name already exists`. The workflow maps the rejection through authoritative read-back to `foreign-conflict` or `indeterminate`, never to a successful overwrite. |
+| `publisher-consolidated-job-sidecar-first-upload-order` | publisher | The one release-upload job, not separate jobs, contains the sidecar upload and then the primary upload. Static conformance rejects any graph that splits these same-surface mutations across jobs.                                                                            |
+
+The mutation queue fixture set must include the ADR 0075 fixtures:
+
+| Fixture name                                          | Surface   | Required observation and result                                                                                                                                                                                                                                          |
+| ----------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `mutation-queue-three-rapid-same-intent-fifo`         | publisher | Three rapid same-intent dispatches enter a `queue: max` mutation group. All wait, none is cancelled, and their mutation jobs start in arrival order.                                                                                                                     |
+| `mutation-queue-rerun-preserves-convergence-position` | publisher | A re-run-failed-jobs attempt waits behind a running segment. A fresh run arrives afterward. The retry keeps its queue position, converges as `committed-as-expected`, and the fresh run then enters and fails closed as `foreign-conflict`.                              |
+| `mutation-queue-overflow-classification`              | publisher | More than 100 pending contenders cause the platform queue-overflow surface. The fixture records whether the platform exposes rejection or cancellation only after that behavior is pinned from documentation or a dedicated spike, then emits `mutation-queue-overflow`. |
+
 The standalone publisher immutable-target fixture set must accept a mutable or draft target. It must
 reject an immutable target with incomplete required assets using `release-target-immutable`, accept
 a complete, verified same-`run_id` asset set only as read-only convergence, and reject cross-run or
@@ -1563,9 +1604,9 @@ indeterminate immutable evidence with `release-target-immutable`. Each rejection
 upload.
 
 Partial and ambiguous publisher fixtures must express each step through those same four states. For
-example, a primary upload followed by a sidecar API or transport failure reports the primary as
-`committed-as-expected` after authoritative read-back and the sidecar as `absent`,
-`foreign-conflict`, or `indeterminate` according to its observed remote state; a sidecar state other
+example, a sidecar commit followed by a primary API or transport failure reports the sidecar as
+`committed-as-expected` after authoritative read-back and the primary as `absent`,
+`foreign-conflict`, or `indeterminate` according to its observed remote state. A primary state other
 than `committed-as-expected` fails with `sidecar-upload-partial-failure` or the narrower state
 diagnostic. An ambiguous primary upload reports `committed-as-expected` only after authoritative
 digest equality, `absent` after bounded authoritative absence, `foreign-conflict` after
