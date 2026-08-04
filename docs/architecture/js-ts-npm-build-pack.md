@@ -392,6 +392,24 @@ manager must agree. Missing capture evidence stops before predicate construction
 descriptor stops with `windlass.verify.error.resolved-dependencies-package-manager-distribution` and
 exit code `1`.
 
+The capture mechanism is Corepack's per-distribution metadata. After exact-version acquisition, the
+profile must read the `.corepack` file in the acquired distribution's cache directory
+(`v1/<manager>/<version>/` under the effective `COREPACK_HOME`). That file's `hash` field records
+the downloaded distribution's SHA-512 in hexadecimal; for npmjs-distributed managers, converting it
+to base64 must equal the registry packument's `dist.integrity` exactly. The file's locator (`name`
+and `reference`) determines the captured distribution URL — for pnpm on the default registry,
+`https://registry.npmjs.org/pnpm/-/pnpm-<version>.tgz`. The Corepack cache retains only the
+extracted distribution tree, and a `corepack prepare --output` artifact is a repack from that cache
+rather than the original distribution bytes, so neither cache contents nor repacked output may serve
+as distribution byte evidence; Yarn `download-hash` evidence must be computed over the acquisition
+download itself, not recovered from the cache afterward. The `.corepack` metadata file is a
+Corepack-internal surface whose documented stability is unverified; per the ADR 0067
+undocumented-behavior precedent, the profile must treat it as verified behavior to watch against
+upstream Corepack changes. An absent or malformed `.corepack` file is missing capture evidence and
+stops with `windlass.verify.error.input-unavailable` and exit code `2`; a hash or locator that
+disagrees with the selected manager and exact version is a captured disagreement and stops with
+`windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`.
+
 - For pnpm, the profile must obtain the SHA-512 `dist.integrity` value from authenticated registry
   metadata for the actual Corepack distribution, decode the `sha512-<base64>` SRI value to bytes,
   and encode those bytes as exactly 128 lowercase hexadecimal characters in `digest.sha512`. Its
