@@ -93,9 +93,11 @@ or signing provenance.
 
 Production pin-form enforcement is separate from resolved identity acquisition. The called workflow
 must validate that the OIDC token's `job_workflow_ref` claim ends with `@` followed by exactly 40
-hexadecimal characters (`@[0-9a-fA-F]{40}$`) and that this suffix equals `job_workflow_sha`. A
-missing claim, a branch, tag, short SHA, malformed suffix, or mismatch must reject the production
-invocation before provenance is constructed or signed.
+lowercase hexadecimal characters (`@[0-9a-f]{40}$`) and that this suffix equals `job_workflow_sha`.
+The
+[verifier policy's canonical SHA-casing rule](verification-policy-and-fixtures.md#verifier-policy-and-manifest-expectation-schemas)
+governs this validation. A missing claim, a branch, tag, short SHA, malformed suffix, or mismatch
+must reject the production invocation before provenance is constructed or signed.
 
 The same token carries the source repository's numeric `repository_id` and `repository_owner_id`
 claims. ADR 0068 verification uses these platform-signed values as the authoritative immutable
@@ -121,6 +123,10 @@ network endpoint.
 ```text
 https://buildtype.dev/windlass/slsa-builder/<profile-name>/v<major-version>
 ```
+
+`<profile-name>` is exactly one non-empty URI-safe segment. It must match `[A-Za-z0-9._~-]+`; `/`,
+percent-encoded sequences, and characters outside that set are invalid. This is the canonical
+`profile-name` definition for `buildType` URIs.
 
 ### Example
 
