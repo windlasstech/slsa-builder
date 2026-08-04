@@ -86,7 +86,8 @@ def main() -> int:
             continue
         ttext = targets[0].read_text(encoding="utf-8")
         for s, rev in lst:
-            if not re.search(rf'- type:\s*{re.escape(rev)}\s*\n\s*target:\s*"?ADR-{s}"?', ttext):
+            rev_pattern = rf'- type:\s*{re.escape(rev)}\s*\n\s*target:\s*"?ADR-{s}"?'
+            if not re.search(rev_pattern, ttext):
                 problems.append(f"ADR-{s} -> ADR-{t}: MISSING {rev}")
 
     summary = f"{len(files)} ADRs, {len(fwd)} edges"
