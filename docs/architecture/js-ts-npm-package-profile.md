@@ -122,17 +122,20 @@ input is non-empty.
 #### Optional input rules
 
 > [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
-> milestone. The behavior in this section remains the eventual contract but is deferred:
-> first-milestone conformance does not require it. Consistent with ADR 0030's "unsupported but not
-> blocked" stance, this deferral does not prohibit attempts; their results are outside
-> first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
-> requires a new ADR.
+> milestone. First-milestone conformance requires the profile to accept a syntactically valid
+> non-npmjs `registry-url` without treating its registry identity as a preflight failure. It does
+> not require a custom-registry publish attempt, successful publication, or custom-registry
+> post-publish verification. An implementation that offers a custom-registry attempt must follow
+> every custom-registry attempt rule in this contract. Consistent with ADR 0030's
+> "unsupported-but-not-blocked" stance, an implementation must not reject a URL solely because it is
+> non-npmjs. Promoting custom registries to supported, or blocking them, requires a new ADR.
 
-Custom registry diagnostics use the stable IDs defined by the
+For a custom-registry attempt, diagnostics use the stable IDs defined by the
 [verification policy and fixtures](verification-policy-and-fixtures.md#stable-diagnostic-ids). A
 non-npmjs registry URL is not itself a failed preflight condition. The profile may emit
 `windlass.verify.warning.custom-registry-preflight-inconclusive` when its best-effort tokenless
-metadata preflight cannot establish the requested state, then it must continue to the tokenless
+metadata preflight cannot establish the requested state. That warning must not itself block the
+attempt. Once an implementation starts a custom-registry attempt, it must continue to the tokenless
 publish attempt unless a separately proved failure condition below applies.
 
 - `registry-url` must be an absolute `https:` URL. The profile must normalize scheme and host to
@@ -444,12 +447,17 @@ public composition inputs. Internal handoff artifact names, handoff manifest nam
 digests, publisher `primary-artifact-name`, publisher `producer-provenance-artifact-name`, and
 publisher policy JSON are not public outputs of this workflow.
 
-In npm-only mode, all release-asset outputs must be unset except `release-upload-result`, which is
-`disabled`, and `linked-artifact-result`, which is `disabled`. In release-asset mode, successful
-primary and sidecar upload sets `release-upload-result` to `completed`, sets the primary asset and
-sidecar locator outputs, and sets `linked-artifact-result` according to the linked metadata setting.
-Partial and indeterminate release upload states follow the publisher output rules and must not be
-reported as successful publication.
+The release-asset outputs have the following truth table:
+
+| Condition                                               | `release-upload-result`        | Primary and sidecar locator outputs                    | `linked-artifact-result`                                                                  | Linked artifact locator outputs                                  |
+| ------------------------------------------------------- | ------------------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| npm-only mode                                           | `disabled`                     | Unset                                                  | `disabled`                                                                                | Unset                                                            |
+| Release-asset mode, primary and sidecar upload complete | `completed`                    | Set                                                    | `disabled` when linked metadata is disabled, otherwise `created` or `failed-after-upload` | Set only for `created` when the metadata API returns the locator |
+| Release-asset mode, upload does not complete            | A non-success publisher result | Set or unset only as specified by the publisher result | `disabled`                                                                                | Unset                                                            |
+
+A non-success publisher result includes `failed-before-upload`, `partial-primary-uploaded`,
+`foreign-conflict`, and `indeterminate-primary-upload`. It must not be reported as successful
+publication. `linked-artifact-result` is `disabled` whenever release asset upload does not complete.
 
 `linked-artifact-url` and `linked-artifact-id` mirror the standalone publisher locator outputs. They
 must be unset when `linked-artifact-result` is `disabled` or `failed-after-upload`, when release
@@ -472,9 +480,12 @@ metadata URL:
 https://registry.npmjs.org/<registry-escaped-package-name>/<version>
 ```
 
-The registry-escaped package name is the validated npm package name with URL percent-encoding for
-path-unsafe bytes. For scoped package names, the slash between scope and name is encoded as `%2F`.
-The version path segment is the validated package version.
+The registry-escaped package name is constructed from the UTF-8 bytes of the validated npm package
+name. The encoder leaves only RFC 3986 unreserved bytes unchanged: ASCII letters, digits, `-`, `.`,
+`_`, and `~`. It percent-encodes every other byte as `%` followed by two uppercase hexadecimal
+digits. It must not decode an existing percent sequence before encoding. Thus an unscoped name such
+as `left-pad` remains `left-pad`, while the `@` and slash in `@windlass/slsa-builder` become
+`%40windlass%2Fslsa-builder`. The version path segment is the validated package version.
 
 Canonical npmjs examples:
 
@@ -541,12 +552,9 @@ A manual dispatch release must satisfy all of the following:
 
 ## Registry URL support
 
-> [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
-> milestone. The behavior in this section remains the eventual contract but is deferred:
-> first-milestone conformance does not require it. Consistent with ADR 0030's "unsupported but not
-> blocked" stance, this deferral does not prohibit attempts; their results are outside
-> first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
-> requires a new ADR.
+> [!IMPORTANT] First-milestone custom-registry scope is defined in
+> [Optional input rules](#optional-input-rules). The rules below apply only when an implementation
+> offers a custom-registry attempt.
 
 - The profile accepts a `registry-url` input.
 - The profile guarantees only npmjs publish semantics.
