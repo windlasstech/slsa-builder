@@ -33,6 +33,7 @@ the Go implementation tree has not been added yet.
 | CI / workflow security  | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.       |
 | Lint/format policy      | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                     |
 | Git hooks / DCO         | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.       |
+| ADR relations check     | `.agents/skills/adr-relations-check/`                      | Status grammar + relations symmetry.     |
 | Dependency security     | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile. |
 
 ## CONVENTIONS
@@ -139,6 +140,23 @@ Do not implement before reading the specs.
 - **Always fetch the template content** and write the PR body to match it. Do not rely on
   `gh pr create` to auto-populate the template; if it does not, manually compose the body using the
   fetched template structure.
+
+## Standing items
+
+Deferred verification and watch items, to be resolved during the implementation phase. Each traces
+to the ADR whose confirmation criteria or scope produced it.
+
+- **npm attestation propagation polling bound** (ADR 0073 confirmation): the specification pins a
+  conservative publish-to-attestations-API polling bound; measure the real propagation delay at the
+  first dogfood publish and tighten the bound if warranted.
+- **Queue-overflow rejection surface** (ADR 0075): pin from documentation or a spike whether GitHub
+  rejects or cancels arrivals beyond the 100-pending `queue: max` limit; the
+  `windlass.verify.error.mutation-queue-overflow` diagnostic is registered, but the exact platform
+  surface remains unpinned.
+- **GHES parity watch** (ADR 0075): `queue: max` and artifact attestations are github.com-only;
+  watch GHES releases before making any GHES support claim.
+- **Early-exchange preflight dogfood** (ADR 0076 confirmation): the first dogfood publish must
+  empirically exercise the early npm OIDC exchange preflight and record the result against ADR 0076.
 
 <!-- CODEGRAPH_START -->
 
