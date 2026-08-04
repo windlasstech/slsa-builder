@@ -125,7 +125,7 @@ Must be exactly `https://slsa.dev/provenance/v1`. Any other value is rejected.
 
 ## Digest encoding
 
-- All digests in provenance use lowercase hex unless a profile explicitly defines another encoding.
+- All digests in provenance use lowercase hex without a prefix.
 - A profile may define an additional tool-boundary representation, such as `sha256:<hex>`, for
   handoff between jobs or external tools, but the provenance itself must use lowercase hex.
 - `sha512` may be recorded in the digest map when the profile requires it.
@@ -299,10 +299,12 @@ offset, fractional seconds, no timezone, or any other representation.
 
 Whole-second precision is required because SLSA v1 provenance uses these values as event times, and
 seconds preserve interoperable ordering without claiming subsecond accuracy that the build platform
-does not guarantee. Consumers accept `finishedOn` earlier than `startedOn` by at most five seconds
-as clock skew, report a clock-skew diagnostic, and treat the observed duration as zero; consumer
-verification must reject provenance with a negative interval greater than five seconds as a
-timestamp-ordering error.
+does not guarantee. When `finishedOn` precedes `startedOn` by one to five whole seconds, consumers
+must emit `windlass.verify.warning.timestamp-clock-skew`, treat the observed duration as zero, and
+otherwise continue verification. This warning is emitted only for that accepted negative interval;
+it has phase `verification`, exit code `0`, and `mutation_possible: false`. Consumer verification
+must reject provenance with a negative interval greater than five seconds as a timestamp-ordering
+error.
 
 These are technical protocol fields, so they must retain standard Gregorian RFC 3339 dates rather
 than the project's Holocene Era convention. A Holocene-formatted value, including a five-digit year
@@ -484,33 +486,33 @@ succeeds.
 
 A verifier must reject provenance if any of the following are true:
 
-| Condition                                                                                         | Rejection reason                                                           |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `_type` is not `https://in-toto.io/Statement/v1`                                                  | Wrong statement type                                                       |
-| `predicateType` is not `https://slsa.dev/provenance/v1`                                           | Wrong predicate type                                                       |
-| Signature is missing or invalid                                                                   | Signature mismatch                                                         |
-| Signer identity is not trusted                                                                    | Signer mismatch                                                            |
-| Any JSON object in the signed Statement payload contains duplicate member names after unescaping  | Duplicate JSON member error                                                |
-| Any security-relevant bundle or DSSE JSON object contains duplicate member names after unescaping | Duplicate JSON member error                                                |
-| `builder.id` uses a branch, tag, or short SHA                                                     | Builder identity policy violation                                          |
-| `buildType` is not in the canonical namespace                                                     | Build type policy violation                                                |
-| `externalParameters` is incomplete                                                                | Incomplete parameters                                                      |
-| `externalParameters` contains unexpected fields                                                   | Strict matching violation                                                  |
-| `internalParameters` is absent, non-object, or nonempty                                           | `windlass.verify.error.unexpected-internal-parameters`                     |
-| A profile emits an unknown or non-enumerated dependency                                           | `windlass.verify.error.resolved-dependencies-unexpected-entry`             |
-| A package-manager-distribution descriptor is missing, duplicated, forbidden, or malformed         | `windlass.verify.error.resolved-dependencies-package-manager-distribution` |
-| A runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched        | `windlass.verify.error.resolved-dependencies-runner-image`                 |
-| `builder.version` has an invalid key, conditional shape, or observed version                      | `windlass.verify.error.builder-version-mismatch`                           |
-| `builderDependencies` lacks exactly one valid signing adapter                                     | `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      |
-| `metadata.invocationId` is malformed or differs from Fulcio OID `.21`                             | `windlass.verify.error.run-invocation-uri-invalid`                         |
-| `subject` contains zero or multiple entries                                                       | Subject cardinality error                                                  |
-| `subject[0].digest.sha256` is missing                                                             | Missing required digest                                                    |
-| `subject[0].name` does not match the profile rule                                                 | Subject name mismatch                                                      |
-| Digest encoding is not lowercase hex                                                              | Digest encoding error                                                      |
-| Sidecar, SBOM, or checksum is in `subject[0].digest`                                              | Subject digest scope error                                                 |
-| `startedOn` or `finishedOn` is not canonical whole-second UTC RFC 3339                            | Timestamp format error                                                     |
-| `finishedOn` precedes `startedOn` by more than five seconds                                       | Timestamp ordering error                                                   |
-| Emitted Statement differs from validated signing inputs                                           | Statement assembly mismatch                                                |
+| Condition                                                                                         | Diagnostic ID                                                              | Phase        | Exit code | Mutation possible |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------ | --------- | ----------------- |
+| `_type` is not `https://in-toto.io/Statement/v1`                                                  | `windlass.verify.error.statement-type-invalid`                             | verification | `1`       | `false`           |
+| `predicateType` is not `https://slsa.dev/provenance/v1`                                           | `windlass.verify.error.predicate-type-invalid`                             | verification | `1`       | `false`           |
+| Signature is missing or invalid                                                                   | `windlass.verify.error.signature-invalid`                                  | verification | `1`       | `false`           |
+| Signer identity is not trusted                                                                    | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
+| Any JSON object in the signed Statement payload contains duplicate member names after unescaping  | `windlass.verify.error.duplicate-json-member`                              | policy       | `1`       | `false`           |
+| Any security-relevant bundle or DSSE JSON object contains duplicate member names after unescaping | `windlass.verify.error.duplicate-json-member`                              | policy       | `1`       | `false`           |
+| `builder.id` uses a branch, tag, or short SHA                                                     | `windlass.verify.error.builder-id-not-immutable`                           | verification | `1`       | `false`           |
+| `buildType` is not in the canonical namespace                                                     | `windlass.verify.error.build-type-not-canonical`                           | verification | `1`       | `false`           |
+| `externalParameters` is incomplete                                                                | `windlass.verify.error.external-parameters-incomplete`                     | verification | `1`       | `false`           |
+| `externalParameters` contains unexpected fields                                                   | `windlass.verify.error.external-parameters-unexpected`                     | verification | `1`       | `false`           |
+| `internalParameters` is absent, non-object, or nonempty                                           | `windlass.verify.error.unexpected-internal-parameters`                     | verification | `1`       | `false`           |
+| A profile emits an unknown or non-enumerated dependency                                           | `windlass.verify.error.resolved-dependencies-unexpected-entry`             | verification | `1`       | `false`           |
+| A package-manager-distribution descriptor is missing, duplicated, forbidden, or malformed         | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | verification | `1`       | `false`           |
+| A runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched        | `windlass.verify.error.resolved-dependencies-runner-image`                 | verification | `1`       | `false`           |
+| `builder.version` has an invalid key, conditional shape, or observed version                      | `windlass.verify.error.builder-version-mismatch`                           | verification | `1`       | `false`           |
+| `builderDependencies` lacks exactly one valid signing adapter                                     | `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      | verification | `1`       | `false`           |
+| `metadata.invocationId` is malformed or differs from Fulcio OID `.21`                             | `windlass.verify.error.run-invocation-uri-invalid`                         | verification | `1`       | `false`           |
+| `subject` contains zero or multiple entries                                                       | `windlass.verify.error.subject-cardinality-invalid`                        | verification | `1`       | `false`           |
+| `subject[0].digest.sha256` is missing                                                             | `windlass.verify.error.subject-sha256-missing`                             | verification | `1`       | `false`           |
+| `subject[0].name` does not match the profile rule                                                 | `windlass.verify.error.subject-name-mismatch`                              | verification | `1`       | `false`           |
+| Digest encoding is not lowercase hex                                                              | `windlass.verify.error.digest-encoding-invalid`                            | verification | `1`       | `false`           |
+| Sidecar, SBOM, or checksum is in `subject[0].digest`                                              | `windlass.verify.error.subject-digest-scope-invalid`                       | verification | `1`       | `false`           |
+| `startedOn` or `finishedOn` is not canonical whole-second UTC RFC 3339                            | `windlass.verify.error.timestamp-format-invalid`                           | verification | `1`       | `false`           |
+| `finishedOn` precedes `startedOn` by more than five seconds                                       | `windlass.verify.error.timestamp-ordering-invalid`                         | verification | `1`       | `false`           |
+| Emitted Statement differs from validated signing inputs                                           | `windlass.verify.error.statement-assembly-mismatch`                        | verification | `1`       | `false`           |
 
 ## Failure behavior
 
