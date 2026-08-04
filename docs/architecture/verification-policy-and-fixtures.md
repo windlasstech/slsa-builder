@@ -147,9 +147,9 @@ If any such override can affect root selection, verification fails with
 This section implements ADRs 0037, 0062, and 0068. These are verifier-input schemas, not a new
 standalone CLI interface. Both schemas are closed: an unknown member, a missing required member, a
 numeric identifier that does not match `^[1-9][0-9]*$`, or a SHA that is not 40 lowercase
-hexadecimal characters fails with `windlass.verify.error.policy-schema-invalid`. Identifiers are
-strings because GitHub identifiers are opaque decimal identifiers, not values on which a verifier
-performs arithmetic.
+hexadecimal characters fails with `windlass.verify.error.policy-schema-invalid` and exit code `1`.
+Identifiers are strings because GitHub identifiers are opaque decimal identifiers, not values on
+which a verifier performs arithmetic.
 
 The explicit verifier policy has this minimum identity and root shape:
 
@@ -178,18 +178,18 @@ The explicit verifier policy has this minimum identity and root shape:
 The explicit policy requires every member shown in the example. Its identity members have these
 closed constraints; a violation fails with `windlass.verify.error.policy-schema-invalid`:
 
-| Field                         | Required value form                                                                                      |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `schema_version`              | Exactly `"1"`.                                                                                           |
-| `source.repository_uri`       | Canonical `https://github.com/<owner>/<repository>` URI without userinfo, port, query, or fragment.      |
-| `source.repository_id`        | Positive decimal string matching `^[1-9][0-9]*$`; authoritative over the repository name.                |
-| `source.repository_owner_id`  | Positive decimal string matching `^[1-9][0-9]*$`; authoritative over the owner name.                     |
-| `source.digest`               | Full 40-character lowercase hexadecimal Git commit SHA.                                                  |
-| `source.ref`                  | Full `refs/tags/<tag-name>` ref.                                                                         |
-| `producer.workflow_path`      | Exact trusted `.github/workflows/<file>.yml` or `.yaml` path, with no traversal or extra path separator. |
-| `producer.workflow_sha`       | Full 40-character lowercase hexadecimal called-workflow SHA.                                             |
-| `producer.runner_environment` | Exactly `"github-hosted"`.                                                                               |
-| `trust_root`                  | Exactly one of the closed TUF or pinned-root shapes specified here.                                      |
+| Field                         | Required value form                                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `schema_version`              | Exactly `"1"`.                                                                                                          |
+| `source.repository_uri`       | Canonical `https://github.com/<lowercase-owner>/<lowercase-repository>` URI without userinfo, port, query, or fragment. |
+| `source.repository_id`        | Positive decimal string matching `^[1-9][0-9]*$`; authoritative over the repository name.                               |
+| `source.repository_owner_id`  | Positive decimal string matching `^[1-9][0-9]*$`; authoritative over the owner name.                                    |
+| `source.digest`               | Full 40-character lowercase hexadecimal Git commit SHA.                                                                 |
+| `source.ref`                  | Full `refs/tags/<tag-name>` ref.                                                                                        |
+| `producer.workflow_path`      | Exact trusted `.github/workflows/<file>.yml` or `.yaml` path, with no traversal or extra path separator.                |
+| `producer.workflow_sha`       | Full 40-character lowercase hexadecimal called-workflow SHA.                                                            |
+| `producer.runner_environment` | Exactly `"github-hosted"`.                                                                                              |
+| `trust_root`                  | Exactly one of the closed TUF or pinned-root shapes specified here.                                                     |
 
 For pinned-root operation, `trust_root` instead has this shape. The timestamps are technical JSON
 timestamps and therefore use the standard four-digit Gregorian year:
@@ -236,12 +236,21 @@ the release manifest signer as well as the selected producer mapping:
 }
 ```
 
-The release-manifest expectation requires every member shown above. Both numeric-ID fields match
+The release-manifest expectation requires every member shown above. Both repository URIs use the
+same lowercase canonical GitHub URI form as `source.repository_uri`; both numeric-ID fields match
 `^[1-9][0-9]*$`, both workflow paths are exact trusted paths, both workflow SHAs are full lowercase
 40-hex values, and `producer_profile.profile` is a non-empty policy-registered profile name. A
 missing numeric ID, a name in place of an ID, an unknown member, an unregistered profile, or a
-malformed path/SHA fails with `windlass.verify.error.policy-schema-invalid` before the manifest can
-contribute constraints.
+malformed URI, path, or SHA fails with `windlass.verify.error.policy-schema-invalid` before the
+manifest can contribute constraints.
+
+This lowercase GitHub URI rule is the canonical repository-URI casing rule for every policy,
+manifest expectation, signed source-repository field, and identity comparison in this specification.
+First, each URI is parsed and rejected unless it has the exact canonical lowercase form. Then,
+values that represent the same field are compared byte-for-byte. Numeric repository and owner IDs
+remain authoritative identity checks, but they do not permit a non-canonical URI spelling. The npm
+package verification comparison in item 11 applies this parse-then-byte-compare rule to its three
+source repository values.
 
 The signed release-manifest payload remains the closed schema defined by
 [Release manifest](release-manifest.md); the expectation object above does not add caller-specific
@@ -747,7 +756,7 @@ Run the steps in this order:
    identity, or input diagnostic rather than continuing to predicate checks.
 
 5. Parse `gh-verified.json` as untrusted machine-readable data and require a successful result for
-   the exact artifact digest and bundle supplied in step 3. Extract the leaf certificate from the
+   the exact artifact digest and bundle supplied in step 4. Extract the leaf certificate from the
    verified bundle, decode the URI SAN and the OIDs in the Fulcio table above, and emit those values
    into the post-processor's typed JSON model. Missing, duplicate, or malformed certificate values
    fail with `windlass.verify.error.signer-identity-claim-missing`.
@@ -817,7 +826,47 @@ package verification policy.
 
 ## Fixture taxonomy
 
-Every fixture must include:
+Every fixture manifest is one UTF-8 JSON object parsed with duplicate-member rejection. It has this
+closed schema; unknown members and values that fail this schema fail the fixture harness with
+`windlass.verify.error.diagnostics-contract-invalid`:
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "type",
+    "surface",
+    "artifact",
+    "provenance",
+    "release-manifest",
+    "expected-result",
+    "expected-failure-category",
+    "expected-primary-id",
+    "expected-secondary-ids",
+    "covered-requirement"
+  ],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "type": { "enum": ["accepted", "rejected"] },
+    "surface": { "enum": ["npm", "publisher", "composition", "release-manifest"] },
+    "artifact": { "type": "string", "minLength": 1 },
+    "provenance": { "type": "string", "minLength": 1 },
+    "release-manifest": { "type": ["string", "null"] },
+    "expected-result": { "enum": ["pass", "fail"] },
+    "expected-failure-category": { "type": ["string", "null"] },
+    "expected-primary-id": { "type": ["string", "null"] },
+    "expected-secondary-ids": { "type": "array", "items": { "type": "string" } },
+    "covered-requirement": { "type": "string", "minLength": 1 }
+  }
+}
+```
+
+An `accepted` fixture has `expected-result: "pass"`, `expected-failure-category: null`, and
+`expected-primary-id: null`. A `rejected` fixture has `expected-result: "fail"`, a registered
+non-null failure category, and its corresponding non-null canonical primary ID. Every fixture must
+include:
 
 | Field                       | Description                                                    |
 | --------------------------- | -------------------------------------------------------------- |
@@ -841,6 +890,57 @@ harnesses, and consumer implementations claiming conformance must apply this con
 that cannot represent it fails the fixture harness with
 `windlass.verify.error.diagnostics-contract-invalid`.
 
+### Shared diagnostic taxonomy
+
+This is the shared diagnostic taxonomy for all architecture specifications. New output IDs must use
+the canonical `windlass.verify.<severity>.<category>` shape. Existing bare kebab-case names remain
+stable fixture aliases for the corresponding canonical error ID: for example,
+`release-target-immutable` means `windlass.verify.error.release-target-immutable`. A new
+implementation must emit the canonical ID, while a fixture may use its registered bare alias in
+`expected-failure-category` only. Existing prefixed IDs and bare aliases must not be renamed.
+
+`phase` identifies the latest processing phase that must complete before the diagnostic can be
+emitted: `invocation` accepts local invocation inputs, `policy` parses and validates policy inputs,
+`verification` evaluates authenticated artifact evidence, `pre-mutation` checks a remote target
+before a write, and `mutation` performs or read-backs a remote write. `mutation_possible` is `true`
+when the failing step could already have mutated remote state, including an ambiguous mutating
+request that requires ADR 0067 read-back. It is not a claim that a mutation happened. A `false`
+value means the diagnostic is emitted before any remote mutation by that step. Implementations must
+treat `true` as requiring the applicable ADR 0067 state classification before the final report.
+
+Each comma-separated value in `diagnostic_id` is an independently registered diagnostic with the
+row's same phase, exit code, and mutation flag. The rejected-fixture category registry below
+registers every remaining canonical error alias not expanded here, with `verification`, exit code
+`1`, and `mutation_possible: false`, unless a more specific row below applies.
+
+| diagnostic_id                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | phase                           | exit_code            | mutation_possible    |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | -------------------- | -------------------- |
+| `windlass.verify.error.verification-mode-invalid`, `windlass.verify.error.input-unavailable`, `windlass.verify.error.verifier-execution-failure`                                                                                                                                                                                                                                                                                                                                       | invocation                      | `2`                  | `false`              |
+| `windlass.verify.error.policy-schema-invalid`, `windlass.verify.error.duplicate-json-member`, `windlass.verify.error.legacy-trust-root-override`                                                                                                                                                                                                                                                                                                                                       | policy                          | `1`                  | `false`              |
+| `windlass.verify.error.ungoverned-trust-root`, `windlass.verify.error.stale-pinned-trust-root`, `windlass.verify.error.verification-network-call`                                                                                                                                                                                                                                                                                                                                      | verification                    | `1`                  | `false`              |
+| `windlass.verify.error.run-invocation-uri-invalid`, `windlass.verify.error.diagnostics-contract-invalid`, `windlass.verify.error.release-manifest-mismatch`, `windlass.verify.error.trusted-producer-policy-conflict`                                                                                                                                                                                                                                                                  | verification                    | `1`                  | `false`              |
+| `windlass.verify.error.release-target-immutable`, `windlass.verify.error.handoff-schema-mismatch`, `windlass.verify.error.publisher-remote-digest-unproven`                                                                                                                                                                                                                                                                                                                            | pre-mutation                    | `1`                  | `false`              |
+| `windlass.verify.error.publisher-indeterminate-primary-upload`, `windlass.verify.error.mutation-queue-overflow`, `windlass.verify.error.manifest-partial-json-uploaded`, `windlass.verify.error.manifest-indeterminate-json-upload`, `windlass.verify.error.manifest-remote-digest-unproven`                                                                                                                                                                                           | mutation                        | `1`                  | `true`               |
+| `windlass.verify.error.sidecar-upload-partial-failure`, `windlass.verify.error.duplicate-release-asset`, `windlass.verify.error.duplicate-sidecar-asset`, `windlass.verify.error.registry-linkage-mismatch`, `windlass.verify.error.custom-registry-tokenless-auth-failed`, `windlass.verify.error.custom-registry-provenance-submission-rejected`, `windlass.verify.error.custom-registry-linkage-metadata-absent`, `windlass.verify.error.custom-registry-digest-semantics-mismatch` | mutation                        | `1`                  | `true`               |
+| `release-target-immutable`, `handoff-schema-mismatch`, `policy-schema-invalid`, `publisher-indeterminate-primary-upload`, `mutation-queue-overflow`, `run-invocation-uri-invalid`                                                                                                                                                                                                                                                                                                      | Alias of the canonical ID above | Same as canonical ID | Same as canonical ID |
+
+`policy-schema-invalid` is the sole diagnostic for a malformed or otherwise unusable explicit policy
+or manifest expectation. It is a completed policy-validation failure, not an invocation failure, and
+therefore always exits `1`. `verification failed` means a completed policy, cryptographic, identity,
+or artifact verification check rejected the supplied evidence and also exits `1`; it is distinct
+from unusable local invocation inputs, which use the exit-code-`2` invocation diagnostics above.
+
+### Canonical JSON serialization
+
+Where this specification requires canonical JSON bytes or an ordering key, it means RFC 8785 JSON
+Canonicalization Scheme (JCS) serialization of the parsed JSON value. Implementations must reject
+duplicate object members before parsing the value for JCS. Structural equality means recursive JSON
+value equality after that duplicate-member rejection and is not byte equality. A requirement for
+original byte equality applies only when it explicitly names the original serialized artifact or
+bundle bytes. In particular, implementations must use JCS, not the contradictory phrase
+"byte-for-byte JSON-value equivalent", for diagnostic ordering and for a signed JSON value's
+canonical digest contract.
+
 ### Stable diagnostic IDs
 
 Every diagnostic ID has the closed form `windlass.verify.<severity>.<category>`, where `<severity>`
@@ -853,11 +953,12 @@ dynamically construct a different ID for the same registered check; doing so fai
 
 The non-fatal warning IDs initially registered by this specification are:
 
-| Diagnostic ID                                                    | Meaning                                                                                |
-| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `windlass.verify.warning.stale-non-selected-lockfile`            | A supported but non-selected lockfile was recorded; verification remains valid.        |
-| `windlass.verify.warning.custom-registry-preflight-inconclusive` | Non-npmjs metadata preflight was inconclusive under the documented best-effort policy. |
-| `windlass.verify.warning.native-provenance-locator-missing`      | Optional native provenance locator is absent while the required sidecar verifies.      |
+| Diagnostic ID                                                    | Meaning                                                                                                    |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `windlass.verify.warning.stale-non-selected-lockfile`            | A supported but non-selected lockfile was recorded; verification remains valid.                            |
+| `windlass.verify.warning.custom-registry-preflight-inconclusive` | Non-npmjs metadata preflight was inconclusive under the documented best-effort policy.                     |
+| `windlass.verify.warning.native-provenance-locator-missing`      | Optional native provenance locator is absent while the required sidecar verifies.                          |
+| `windlass.verify.warning.timestamp-clock-skew`                   | `finishedOn` precedes `startedOn` by one to five whole seconds; verification continues with zero duration. |
 
 No identity, root, signature, transparency, signing-time, policy-intersection, Statement, or digest
 failure has a warning form. Emitting one of those failures as a warning fails the diagnostics
@@ -919,13 +1020,48 @@ closed shape:
 | `diagnostics`         | array of diagnostic objects | Deterministically ordered as specified below.                                             |
 | `diagnostic_metadata` | object, optional            | Closed non-trust metadata shape defined below.                                            |
 
-Each diagnostic object has required `id`, `severity`, `category`, `check`, and `message` string
-members. It may also have `field`, `expected`, `actual`, `policy_sources`, and `evidence` members.
-`expected` and `actual` are typed JSON values, not interpolated message fragments. `policy_sources`
-is an array containing only `explicit-policy`, `release-manifest`, `producer-expected-value`, or
-`digest-verified-handoff`. `evidence` contains only non-secret local identifiers such as an OID,
-bundle path, artifact digest, or certificate fingerprint. Unknown members, secret/token values, or
-an `actual` value copied from a secret fail with
+Each diagnostic object is a closed object with this normative schema. `expected` and `actual` are
+typed JSON values, not interpolated message fragments. `evidence` contains only non-secret local
+identifiers such as an OID, bundle path, artifact digest, or certificate fingerprint.
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "severity", "category", "check", "message"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^windlass\\.verify\\.(error|warning)\\.[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "severity": { "enum": ["error", "warning"] },
+    "category": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "check": { "type": "string", "minLength": 1 },
+    "message": { "type": "string", "minLength": 1 },
+    "field": { "type": "string", "minLength": 1 },
+    "expected": {},
+    "actual": {},
+    "policy_sources": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "explicit-policy",
+          "release-manifest",
+          "producer-expected-value",
+          "digest-verified-handoff"
+        ]
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+    }
+  }
+}
+```
+
+`id` must equal `windlass.verify.<severity>.<category>`. Unknown members, secret/token values, an
+`actual` value copied from a secret, or a schema violation fail with
 `windlass.verify.error.diagnostics-contract-invalid`.
 
 #### Producer diagnostic metadata extension
@@ -1063,21 +1199,21 @@ Checks and diagnostics use this precedence, from highest to lowest:
 8. warnings.
 
 Within a precedence level, diagnostics sort by `id`, then `field` (missing `field` sorts as the
-empty string), then canonical JSON serialization of `actual`. `primary_id` is the first ordered
-error. Implementations report every independently provable diagnostic that is safe to evaluate, but
-they must not derive secondary diagnostics from unauthenticated or ambiguously parsed content. A
-duplicate-member parse error therefore prevents semantic diagnostics for that JSON value; a failed
-manifest authentication prevents manifest-intersection diagnostics; and a missing certificate
-prevents extension mismatch diagnostics. Ordering or suppression contrary to these rules fails the
-fixture harness with `windlass.verify.error.diagnostics-contract-invalid`.
+empty string), then the RFC 8785 JCS canonical JSON serialization of `actual`. `primary_id` is the
+first ordered error. Implementations report every independently provable diagnostic that is safe to
+evaluate, but they must not derive secondary diagnostics from unauthenticated or ambiguously parsed
+content. A duplicate-member parse error therefore prevents semantic diagnostics for that JSON value;
+a failed manifest authentication prevents manifest-intersection diagnostics; and a missing
+certificate prevents extension mismatch diagnostics. Ordering or suppression contrary to these rules
+fails the fixture harness with `windlass.verify.error.diagnostics-contract-invalid`.
 
 ### Exit codes and warning behavior
 
-| Exit code | Class              | Required result and behavior                                                                                                                       |
-| --------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0`       | Verified           | `result` is `pass`; zero or more registered `warning` diagnostics may be present.                                                                  |
-| `1`       | Verification error | `result` is `fail`; at least one registered policy, cryptographic, identity, schema, artifact, or fixture-check error exists.                      |
-| `2`       | Invocation failure | `result` is `fail`; required local input is unreadable, an option/policy document is unusable, or the verifier cannot execute the requested check. |
+| Exit code | Class              | Required result and behavior                                                                                                             |
+| --------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`       | Verified           | `result` is `pass`; zero or more registered `warning` diagnostics may be present.                                                        |
+| `1`       | Verification error | `result` is `fail`; at least one registered policy, cryptographic, identity, schema, artifact, or fixture-check error exists.            |
+| `2`       | Invocation failure | `result` is `fail`; required local input is unreadable, invocation mode is unusable, or the verifier cannot execute the requested check. |
 
 Exit code `2` does not mean the artifact failed a completed cryptographic check; it means no valid
 acceptance decision was produced and the report contains `windlass.verify.error.input-unavailable`,
@@ -1611,17 +1747,22 @@ than `committed-as-expected` fails with `sidecar-upload-partial-failure` or the 
 diagnostic. An ambiguous primary upload reports `committed-as-expected` only after authoritative
 digest equality, `absent` after bounded authoritative absence, `foreign-conflict` after
 authoritative digest inequality, or `indeterminate` when presence or digest equality cannot be
-proved within the polling bound.
+proved within the publisher's
+[release-asset digest polling contract](github-release-asset-publisher.md#release-asset-digest-binding-and-polling):
+one immediate request, then every 5 seconds, with at most 24 observations and a 120-second cap from
+the first request.
 
 The publisher remote digest fixture set must prove that the GitHub Release asset `digest` field is
 the sole authoritative release-asset binding. Accepted fixtures must cover an exact
 `sha256:<64 lowercase hexadecimal characters>` match with `expected-sha256`. Rejected fixtures must
 cover a missing or unreadable `digest`, an unsupported or malformed algorithm/value, API or
-transport failure through the polling bound, contradictory observations, and a digest unequal to
-`expected-sha256`. An unequal authoritative digest reports `foreign-conflict`; inability to read a
-usable authoritative digest reports `indeterminate`. Downloaded bytes and a locally computed hash
-may appear only as diagnostic evidence and must not change either result to `committed-as-expected`;
-doing so fails the fixture with `publisher-remote-digest-unproven` or the narrower state diagnostic.
+transport failure through the publisher's
+[release-asset digest polling contract](github-release-asset-publisher.md#release-asset-digest-binding-and-polling),
+contradictory observations, and a digest unequal to `expected-sha256`. An unequal authoritative
+digest reports `foreign-conflict`; inability to read a usable authoritative digest reports
+`indeterminate`. Downloaded bytes and a locally computed hash may appear only as diagnostic evidence
+and must not change either result to `committed-as-expected`; doing so fails the fixture with
+`publisher-remote-digest-unproven` or the narrower state diagnostic.
 
 The publisher workflow schema fixture set must prove that the standalone publisher accepts only the
 declared producer-neutral `workflow_call.inputs`, accepts no secrets, rejects target repository,
