@@ -57,6 +57,7 @@
 | 0072 | Use sidecar-first pair binding for release asset run ownership                | GitHub Release asset publisher, npm-to-release-asset composition, verification policy and fixtures                                              |
 | 0073 | Require published-attestation run identity for npm same-run convergence       | JS/TS npm provenance and publish, verification policy and fixtures                                                                              |
 | 0074 | Use single-job mutation segments with detection-based cross-run safety        | GitHub Release asset publisher, release manifest, npm-to-release-asset composition, verification policy and fixtures                            |
+| 0075 | Queue mutation segment contenders with queue: max                             | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                            |
 
 자세한 ADR 추적성 표는 [`../decisions/README.ko.md`](../decisions/README.ko.md#adr-추적성)를
 참조하세요.

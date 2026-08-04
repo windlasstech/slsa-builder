@@ -24,6 +24,8 @@ relations:
     target: ADR-0073
   - type: see-also
     target: ADR-0074
+  - type: see-also
+    target: ADR-0075
 ---
 
 # Use Sidecar-First Pair Binding for Release Asset Run Ownership

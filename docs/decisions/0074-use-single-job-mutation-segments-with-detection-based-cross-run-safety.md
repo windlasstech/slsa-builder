@@ -20,6 +20,12 @@ relations:
     target: ADR-0067
   - type: see-also
     target: ADR-0072
+  - type: amended-by
+    target: ADR-0075
+    scope:
+      "the acknowledged liveness limitation: pending mutation jobs can no longer be starved or
+      silently evicted by later arrivals; the single-job segment topology and detection-based
+      cross-run safety are unchanged"
 ---
 
 # Use Single-Job Mutation Segments with Detection-Based Cross-Run Safety

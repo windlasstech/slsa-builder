@@ -24,6 +24,13 @@ relations:
       "the multi-job mutation segment definition and the strict single-writer prevention wording;
       the concurrency group key, cancel-in-progress: false, and the job-class permission model
       remain in force"
+  - type: partially-superseded-by
+    target: ADR-0075
+    scope:
+      "the platform-default pending policy clause and the initial rejection of queue: max; the
+      concurrency group key composition, the cancel-in-progress values for both job classes, the
+      job-class permission model, and the prohibition of github.workflow in group keys remain in
+      force"
 ---
 
 # Serialize Release Mutations with Job-Class Concurrency

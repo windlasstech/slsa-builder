@@ -30,6 +30,8 @@ relations:
       whose verified run identity equals the current run_id"
   - type: see-also
     target: ADR-0074
+  - type: see-also
+    target: ADR-0075
 ---
 
 # Converge Repeated Runs Within Run Identity
