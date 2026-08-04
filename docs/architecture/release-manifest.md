@@ -287,7 +287,7 @@ unknown top-level fields and unknown entry fields are invalid.
           },
           "build_type": {
             "type": "string",
-            "pattern": "^https://buildtype.dev/windlass/slsa-builder/.+/v[0-9]+$"
+            "pattern": "^https://buildtype.dev/windlass/slsa-builder/[A-Za-z0-9._~-]+/v[0-9]+$"
           }
         }
       }
@@ -316,6 +316,9 @@ not accept a release manifest only because it passes JSON Schema validation. Aft
 validation, the verifier must additionally check cross-field and policy constraints that JSON Schema
 cannot express here:
 
+- The `release_commit_sha`, every `workflow_sha`, and the SHA component of each `builder_id` follow
+  the canonical full lowercase Git commit SHA rule in
+  [Verification policy and fixtures](verification-policy-and-fixtures.md#verifier-policy-and-manifest-expectation-schemas).
 - `release_tag` must equal `refs/tags/v<release_version>`.
 - Each `producer_profiles[].builder_id` must equal
   `https://github.com/windlasstech/slsa-builder/<workflow_path>@<workflow_sha>`.
@@ -379,8 +382,8 @@ resulting SHA-256 digest with the Statement subject digest.
 - `release_version` must be a SemVer version string without the leading `v`.
 - `source_repository` must be `https://github.com/windlasstech/slsa-builder`.
 - `release_tag` must be `refs/tags/v<release_version>`.
-- `release_commit_sha` and all workflow SHA fields must be full 40-character lowercase Git commit
-  SHAs.
+- `release_commit_sha` and all workflow SHA fields must satisfy the canonical workflow-SHA rule in
+  [Verification policy and fixtures](verification-policy-and-fixtures.md#verifier-policy-and-manifest-expectation-schemas).
 - `generated_at` must match `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$` exactly.
   Verifiers may parse it with standard ISO 8601 timestamp parsers after this lexical validation.
   Verifiers must reject leap seconds, timezone offsets, subsecond precision, non-UTC timestamps, and
@@ -391,9 +394,10 @@ resulting SHA-256 digest with the Statement subject digest.
   `builder_id`, and `build_type`.
 - Each `producer_profiles[]` `builder_id` must be derived from its `workflow_path` and
   `workflow_sha`.
-- Each `producer_profiles[]` `build_type` must be a canonical producer `buildType` URI for the same
-  producer profile. The schema pattern only checks the URI family; the verifier policy must check
-  the profile-to-buildType mapping.
+- Each `producer_profiles[]` `build_type` must use the canonical single-segment `profile-name`
+  grammar in [Identity and build types](identity-and-buildtypes.md#canonical-uri-template) and be a
+  canonical producer `buildType` URI for the same producer profile. The schema pattern only checks
+  the URI family; the verifier policy must check the profile-to-buildType mapping.
 - Each `publisher_workflows[]` entry must include `publisher`, `workflow_path`, `workflow_sha`, and
   `role`.
 - The initial publisher `role` value is `verified-distributor`.
@@ -722,6 +726,11 @@ substitutes for this mutation-segment entry revalidation.
 
 ## Release upload behavior
 
+All release-asset read-backs in this section use the canonical
+[publisher release-asset digest polling contract](github-release-asset-publisher.md#release-asset-digest-binding-and-polling):
+one immediate request, then one every 5 seconds, stopping after 24 total observations or 120 seconds
+from the first request, whichever occurs first.
+
 - Upload targets an existing GitHub Release identified by the release tag.
 - If the release or tag does not exist, the upload job must fail.
 - The upload job must read the target's `draft` and `immutable` fields with both expected asset
@@ -737,9 +746,9 @@ substitutes for this mutation-segment entry revalidation.
 - If the plain JSON upload succeeds but the bundle upload fails, the job must fail clearly without
   deleting or clobbering the JSON. It must classify the bundle's remote state through the same pair
   procedure: a proven absent or mismatched bundle makes the pair `foreign-conflict`, while a bundle
-  state unresolved within the polling bound makes the pair `indeterminate`. The `foreign-conflict`
-  result reports `manifest-partial-json-uploaded`; the `indeterminate` result reports
-  `manifest-indeterminate-json-upload`.
+  state unresolved within the canonical publisher polling bound makes the pair `indeterminate`. The
+  `foreign-conflict` result reports `manifest-partial-json-uploaded`; the `indeterminate` result
+  reports `manifest-indeterminate-json-upload`.
 
 ### Outcome classification and same-run convergence (ADR 0067)
 
@@ -831,6 +840,42 @@ the missing report is never trusted as evidence of `absent` or success. The repo
 must not be accepted as trusted input by another run; a consumer that attempts to use it as a
 convergence binding must fail closed.
 
+The `manifest-report` payload is a closed JSON object with this schema:
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pair_outcome", "primary_id", "assets"],
+  "properties": {
+    "pair_outcome": {
+      "enum": ["committed-as-expected", "absent", "foreign-conflict", "indeterminate"]
+    },
+    "primary_id": { "type": ["string", "null"] },
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plain_manifest", "signed_bundle"],
+      "properties": {
+        "plain_manifest": {
+          "enum": ["digest-proven", "absent", "foreign-conflict", "indeterminate"]
+        },
+        "signed_bundle": {
+          "enum": ["digest-proven", "absent", "foreign-conflict", "indeterminate"]
+        }
+      }
+    }
+  }
+}
+```
+
+`assets.plain_manifest` represents `release-manifest-<version>.json`, and `assets.signed_bundle`
+represents `release-manifest-<version>.intoto.jsonl`. For `committed-as-expected` and `absent`,
+`primary_id` must be `null`. For `foreign-conflict` and `indeterminate`, it must be the applicable
+canonical diagnostic ID from the
+[shared diagnostic taxonomy](verification-policy-and-fixtures.md#shared-diagnostic-taxonomy). The
+two asset substates and `pair_outcome` must satisfy the deterministic pair-reduction rules above.
+
 A partial pair, including a plain manifest whose bundle upload failed, is not a verified
 publication. A committed plain JSON asset plus a proven absent or mismatched bundle is
 `foreign-conflict`; a committed plain JSON asset plus bundle evidence unresolved within the polling
@@ -846,9 +891,10 @@ Valid same-run read-only convergence reports one pair outcome:
 ```json
 {
   "pair_outcome": "committed-as-expected",
+  "primary_id": null,
   "assets": {
-    "release-manifest-1.2.3.json": "digest-proven",
-    "release-manifest-1.2.3.intoto.jsonl": "digest-proven"
+    "plain_manifest": "digest-proven",
+    "signed_bundle": "digest-proven"
   }
 }
 ```
@@ -861,8 +907,8 @@ partial-upload diagnostic, not a fifth outcome:
   "pair_outcome": "foreign-conflict",
   "primary_id": "windlass.verify.error.manifest-partial-json-uploaded",
   "assets": {
-    "release-manifest-1.2.3.json": "digest-proven",
-    "release-manifest-1.2.3.intoto.jsonl": "absent"
+    "plain_manifest": "digest-proven",
+    "signed_bundle": "absent"
   }
 }
 ```
