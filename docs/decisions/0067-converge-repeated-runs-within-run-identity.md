@@ -16,6 +16,12 @@ relations:
     target: ADR-0058
   - type: see-also
     target: ADR-0066
+  - type: partially-superseded-by
+    target: ADR-0072
+    scope:
+      "the release-asset digest-only binding proof and the never-silently-adopt and
+      singular-committer clauses as applied to unsigned release asset publication events; all other
+      ADR 0067 semantics remain in force"
 ---
 
 # Converge Repeated Runs Within Run Identity

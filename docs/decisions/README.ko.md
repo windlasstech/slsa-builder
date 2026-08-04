@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0071`까지입니다.
+`0072`까지입니다.
 
 | 범위      | 주제                               | 설명                                                       |
 | --------- | ---------------------------------- | ---------------------------------------------------------- |
@@ -52,6 +52,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0068      | 검증자 신원 바인딩                 | 검증을 위한 불변 builder 및 source 신원.                   |
 | 0069      | 투명성·trust root 정책             | Rekor inclusion, 오프라인 검증, trust root 거버넌스.       |
 | 0070–0071 | Provenance 빌드 환경 기록          | 패키지 매니저 배포본, runner image, builder 필드.          |
+| 0072      | 릴리즈 에셋 run 소유권 바인딩      | Sidecar-first pair 바인딩과 custody 비귀속 선언.           |
 
 ## ADR status와 relations
 
@@ -182,6 +183,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0069 | Require Rekor transparency and govern the Sigstore trust root                 | Verification policy, common provenance, release manifest                                                                           |
 | 0070 | Record package manager distributions and runner image in resolvedDependencies | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                   |
 | 0071 | Activate builder.version and builderDependencies for platform components      | SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                             |
+| 0072 | Use sidecar-first pair binding for release asset run ownership                | GitHub Release asset publisher, npm-to-release-asset composition, verification policy and fixtures                                 |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

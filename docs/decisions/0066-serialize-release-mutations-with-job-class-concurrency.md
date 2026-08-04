@@ -13,6 +13,11 @@ relations:
     target: ADR-0060
   - type: see-also
     target: ADR-0067
+  - type: amended-by
+    target: ADR-0072
+    scope:
+      "intra-segment mutation ordering: within the release mutation segment, the provenance sidecar
+      upload must precede the primary asset upload"
 ---
 
 # Serialize Release Mutations with Job-Class Concurrency

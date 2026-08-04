@@ -7,6 +7,8 @@ decision-makers: Yunseo Kim
 relations:
   - type: supersedes
     target: ADR-0047
+  - type: see-also
+    target: ADR-0072
 ---
 
 # Distribute Producer Provenance with GitHub Release Assets

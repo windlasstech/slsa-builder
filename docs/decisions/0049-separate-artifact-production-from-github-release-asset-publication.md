@@ -17,6 +17,8 @@ relations:
   - type: amends
     target: ADR-0045
     scope: "interpreted as publication-profile rules rather than artifact-production rules"
+  - type: see-also
+    target: ADR-0072
 ---
 
 # Separate Artifact Production from GitHub Release Asset Publication
