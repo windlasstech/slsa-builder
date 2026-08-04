@@ -131,6 +131,29 @@ unknown fields, including injected release-state or preflight-result fields, are
 }
 ```
 
+### Closed member enumeration
+
+The manifest and every object it contains are closed. A conforming manifest must contain exactly the
+required members and, where applicable, only the optional members enumerated below. Missing required
+members, `null` in place of a member value, and any unlisted member are invalid.
+
+| Object                                               | Required members                                                                                                          | Optional members                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Manifest root                                        | `schema_version`, `producer_profile`, `primary_artifact`, `producer_provenance`, `trusted_producer`, `subject`, `release` | `native_provenance_locators`, `linked_artifact_settings` |
+| `primary_artifact`                                   | `artifact_name`, `payload_file_name`, `sha256`                                                                            | None                                                     |
+| `producer_provenance`                                | `artifact_name`, `payload_file_name`, `sha256`                                                                            | None                                                     |
+| `trusted_producer`                                   | `builder_id`, `build_type`, `source_repository`, `source_revision`                                                        | None                                                     |
+| `subject`                                            | `name`, `sha512`, `sha256`                                                                                                | None                                                     |
+| `release`                                            | `tag`, `final_asset_name`                                                                                                 | None                                                     |
+| Each `native_provenance_locators` item               | `type`, `url`                                                                                                             | `digest`                                                 |
+| `linked_artifact_settings` when `enabled` is `false` | `enabled`                                                                                                                 | None                                                     |
+| `linked_artifact_settings` when `enabled` is `true`  | `enabled`, `version`, `repository`, `registry_url`                                                                        | None                                                     |
+
+`native_provenance_locators` must be an array, and `linked_artifact_settings` must be an object.
+Their values and the conditional `linked_artifact_settings` member rules must conform to the
+[publisher contract](github-release-asset-publisher.md#native-producer-provenance-locators) and its
+[linked artifact storage opt-in](github-release-asset-publisher.md#linked-artifact-storage-opt-in).
+
 ### Field rules
 
 - `schema_version` must be `"1"`.
@@ -208,6 +231,27 @@ then maps the manifest to publisher handoff inputs as follows:
 | `trusted_producer.source_revision`   | `source-revision`                   |
 | `native_provenance_locators`         | `native-provenance-locators`        |
 | `linked_artifact_settings`           | `linked-artifact-settings`          |
+
+### Complex-field `workflow_call` serialization
+
+When the composition mapping job passes a manifest array or object value through a `workflow_call`
+boundary, it must serialize that value as a UTF-8 JSON string. The receiving workflow must parse
+that string as JSON before applying the destination field schema. The mapping job must pass
+`native_provenance_locators` as the UTF-8 JSON string for the `native-provenance-locators` input and
+`linked_artifact_settings` as the UTF-8 JSON string for the `linked-artifact-settings` input. It
+must not pass a YAML sequence or mapping, a language-specific object representation, or a coerced
+scalar.
+
+This transport serialization preserves the JSON value across the `workflow_call` boundary. It does
+not by itself require canonical JSON bytes. When a downstream rule requires canonical JSON bytes, a
+canonical digest, or an ordering key for the transported value, the mapping and receiving workflows
+must reject duplicate object member names and use RFC 8785 JCS serialization as defined in the
+[canonical JSON serialization rule](verification-policy-and-fixtures.md#canonical-json-serialization).
+They must not treat arbitrary transport-string bytes as canonical bytes.
+
+Malformed JSON, duplicate object member names, a value with the wrong JSON type, or a value that
+violates the destination closed schema must fail before publisher invocation with
+`windlass.verify.error.handoff-schema-mismatch`.
 
 Before composed npm mutation, the mapping job uses the verified expected release asset names and
 digests, `trusted_producer.build_type`, and source identity from this mapping for the release-state
