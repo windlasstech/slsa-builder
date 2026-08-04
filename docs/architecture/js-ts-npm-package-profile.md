@@ -20,7 +20,8 @@ profile.
   [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
   [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
   [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
-  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -330,20 +331,43 @@ publishing, while Windlass provenance separately records and verifies the SHA-pi
 workflow builder identity.
 
 Remote npm trusted publisher settings remain registry-side publish authorization configuration and
-are not signed. The profile must document and enforce that configuration as caller setup through the
-producer-side publish gate; a configuration failure must stop before registry mutation. The observed
-caller workflow filename that npm uses for trusted-publisher authorization is verifier-relevant and
-is signed as `caller.workflow_filename`. Callers must not supply a workflow filename as a workflow
-input. The profile observes the filename from the trusted publishing authorization context rather
-than trusting caller-supplied text. Missing or conflicting filename capture must fail before signing
-and registry mutation with `windlass.verify.error.trusted-publisher-mismatch`.
+are not signed. Before signing and before any publish attempt, the publish job must perform the npm
+OIDC token exchange, `POST /-/npm/v1/oidc/token/exchange/package/{pkg}`. This early exchange
+validates the caller's OIDC token against the package's trusted publisher configuration and is not a
+registry mutation. It mints a short-lived publish token with a documented TTL of typically 1 hour,
+which covers the preflight-to-publish gap by a wide margin. A preflight-to-publish gap approaching
+that TTL must re-exchange or fail, not publish with an expired token.
 
-The production profile must fail before registry mutation when the caller job cannot provide an OIDC
-token to the called workflow, when npm trusted publishing is not configured for the caller
-repository and caller workflow filename, or when the caller repository/workflow identity observed by
-npm does not match the package's trusted publisher policy. The workflow must not recover from these
-failures by accepting `NPM_TOKEN`, `NODE_AUTH_TOKEN`, an OTP secret, or any other publish-capable
-credential.
+An exchange authentication or configuration failure observed as HTTP 401 or 404 must fail before
+registry mutation with `windlass.verify.error.trusted-publisher-mismatch`. An unreadable or erroring
+exchange surface, including a 5xx response or malformed response, must fail as `indeterminate` with
+`windlass.verify.error.npm-oidc-exchange-indeterminate`; its phase is pre-mutation because the
+exchange mutates nothing. Residual publish-time npm authorization failures, including npm's
+misleading `E404` and `ENEEDAUTH` diagnostics, must be mapped to
+`windlass.verify.error.trusted-publisher-mismatch` when they are an authorization rejection, rather
+than relayed raw.
+
+`npm trust list` and `GET /-/package/{pkg}/trust` require a registry token. They are optional
+configuration-observation steps only after a successful exchange, never the preflight. The profile
+must document and enforce trusted publisher configuration as caller setup through the early
+exchange: for trusted-publishing misconfiguration, a configuration failure must stop before registry
+mutation; for everything else, the classified first mutation is the honest bound.
+
+The observed caller workflow filename that npm uses for trusted-publisher authorization is
+verifier-relevant and is signed as `caller.workflow_filename`. Callers must not supply a workflow
+filename as a workflow input. The profile must read the OIDC token's `workflow_ref` claim, which is
+the caller workflow path whose final path segment is the filename npm validates, and cross-check it
+against the caller-scoped `github.workflow_ref` context. npm's reusable-workflow validation is
+caller-based, so `workflow_ref` is the same value npm checks. The `job_workflow_ref` claim
+identifies the reusable callee and must not be used for this match. Missing or conflicting filename
+capture must fail before signing and registry mutation with
+`windlass.verify.error.trusted-publisher-mismatch`.
+
+OIDC capability is a side-effect-free preflight. Without `id-token: write`, the
+`ACTIONS_ID_TOKEN_REQUEST_TOKEN` environment variable is absent. Its absence, or an id-token request
+failure, must fail before any mutation with `windlass.verify.error.oidc-capability-unavailable`. The
+workflow must not recover from these failures by accepting `NPM_TOKEN`, `NODE_AUTH_TOKEN`, an OTP
+secret, or any other publish-capable credential.
 
 ### Caller permissions by mode
 
@@ -362,11 +386,20 @@ called workflow must grant it only to the internal release upload job. Signing j
 release mutation authority, release upload jobs must not have signing or package publishing
 authority, and linked artifact metadata jobs must not have signing or release upload authority.
 
-If a caller enables release-asset mode without `contents: write`, the workflow must fail before
-release mutation. If a caller enables linked artifact metadata without `artifact-metadata: write`,
-the workflow must fail before metadata publication. If the workflow's internal jobs combine
-authorities that must remain separate, implementation review and YAML fixtures must reject the
-workflow even when GitHub would allow the permission set.
+Static YAML conformance must reject a caller that enables release-asset mode without
+`contents: write`, or enables linked artifact metadata without `artifact-metadata: write`, before
+release mutation or metadata publication. At runtime, GitHub provides no side-effect-free
+write-capability probe: a definitive HTTP 403 or 401 on the first mutating call is the
+classification boundary and must fail with `windlass.verify.error.mutation-permission-denied`,
+without read-back. If the workflow's internal jobs combine authorities that must remain separate,
+implementation review and YAML fixtures must reject the workflow even when GitHub would allow the
+permission set.
+
+For callers, the guarantee is tiered. Static YAML conformance, OIDC capability absence or token
+request failure, trusted-publisher misconfiguration detected by the early exchange, and a filename
+capture conflict fail before any mutation. GitHub `contents: write` runtime authority for
+release-asset mode and residual npm publish-time authorization failures are classified at their
+first mutation.
 
 ### Job-class concurrency (ADRs 0066 and 0075)
 
@@ -655,11 +688,17 @@ The workflow must fail before any registry mutation when:
 - The package manager selection is ambiguous or unsupported.
 - The runtime environment is not `ubuntu-24.04` with Node.js 24.
 - Private dependency credentials are required.
-- The caller job cannot provide OIDC credentials to the called reusable workflow.
-- npm trusted publisher configuration does not match the caller repository and caller workflow
-  filename.
+- `ACTIONS_ID_TOKEN_REQUEST_TOKEN` is absent, or an id-token request fails. This must fail with
+  `windlass.verify.error.oidc-capability-unavailable` before any mutation.
+- The early npm OIDC exchange returns HTTP 401 or 404 because trusted publisher configuration does
+  not match the caller repository and caller workflow filename. This must fail with
+  `windlass.verify.error.trusted-publisher-mismatch` before registry mutation.
+- The early npm OIDC exchange surface returns 5xx or a malformed response. This must fail as
+  `indeterminate` with `windlass.verify.error.npm-oidc-exchange-indeterminate` before registry
+  mutation.
 - The observed caller workflow filename is unavailable or conflicts across trusted-publisher
-  authorization evidence. This must fail with `windlass.verify.error.trusted-publisher-mismatch`
+  authorization evidence, including a mismatch between OIDC `workflow_ref` and
+  `github.workflow_ref`. This must fail with `windlass.verify.error.trusted-publisher-mismatch`
   before signing and registry mutation.
 - Explicit workflow inputs conflict with source `publishConfig` fields.
 - `publishConfig.provenance` disables provenance or `publishConfig.directory` redirects the package
@@ -676,7 +715,7 @@ The workflow must fail before any registry mutation when:
 - The selected package identity does not already exist on npmjs when publishing to
   `https://registry.npmjs.org/`.
 
-When `release-asset-mode` is `true`, the workflow must additionally fail before release mutation or
+When `release-asset-mode` is `true`, static YAML conformance must fail before release mutation or
 linked metadata publication when:
 
 - The caller job does not grant `contents: write` to the reusable workflow invocation.
@@ -707,6 +746,12 @@ linked metadata publication when:
   same-`run_id` read-only convergence. This must fail before `npm publish` with
   `windlass.verify.error.release-target-immutable`.
 
+At runtime, missing GitHub release-mutation or metadata authority is classified at the first
+mutating call. A definitive HTTP 403 or 401 must fail with
+`windlass.verify.error.mutation-permission-denied`, without read-back. A residual npm publish-time
+authorization rejection, including npm `E404` or `ENEEDAUTH`, must fail with
+`windlass.verify.error.trusted-publisher-mismatch`, not the raw npm diagnostic.
+
 If npm publish succeeds but release asset upload later fails, the workflow must report the mode as a
 partial release failure and must not retry by overwriting assets, deleting assets, changing the
 release target, weakening provenance verification, or using a custom token.
@@ -727,14 +772,17 @@ release target, weakening provenance verification, or using a custom token.
   `distribution.provenance_sidecar: "required"`.
 - Rejected fixtures: wrong trigger, mismatched tag/version, missing `package.json`, arbitrary
   command input, npm token secret, private package, private dependency requirement, `publishConfig`
-  conflict, unsupported `publishConfig.directory`, disabled provenance metadata, producer-side
-  missing caller OIDC permission, producer-side npm trusted publisher caller identity mismatch, and
-  unsupported registry behavior, a custom registry that requires token or OTP before mutation
-  (`custom-registry-token-required`), a detected weakened provenance path before mutation
-  (`custom-registry-provenance-weakened`), access-option rejection without token or OTP proof at the
-  publish boundary (`custom-registry-access-option-rejected`), tokenless authentication rejection at
-  the authentication boundary (`custom-registry-tokenless-auth-failed`), external provenance-file
-  rejection at publish with mutation-commit status reported
+  conflict, unsupported `publishConfig.directory`, disabled provenance metadata, absent
+  `ACTIONS_ID_TOKEN_REQUEST_TOKEN` (`oidc-capability-unavailable`), id-token request failure
+  (`oidc-capability-unavailable`), early npm OIDC exchange HTTP 401 or 404
+  (`trusted-publisher-mismatch`), early exchange 5xx or malformed response
+  (`npm-oidc-exchange-indeterminate`), residual npm `E404` or `ENEEDAUTH` authorization rejection
+  (`trusted-publisher-mismatch`), and unsupported registry behavior, a custom registry that requires
+  token or OTP before mutation (`custom-registry-token-required`), a detected weakened provenance
+  path before mutation (`custom-registry-provenance-weakened`), access-option rejection without
+  token or OTP proof at the publish boundary (`custom-registry-access-option-rejected`), tokenless
+  authentication rejection at the authentication boundary (`custom-registry-tokenless-auth-failed`),
+  external provenance-file rejection at publish with mutation-commit status reported
   (`custom-registry-provenance-submission-rejected`), absent linkage metadata after publish
   (`custom-registry-linkage-metadata-absent`), and incompatible digest semantics after publish with
   possible partial publication reported (`custom-registry-digest-semantics-mismatch`).
@@ -751,7 +799,8 @@ release target, weakening provenance verification, or using a custom token.
   (`release-asset-mode-schema-error`); `package-directory`, `registry-url`, `dist-tag`, or `access`
   duplicated outside its established signed location (`unexpected-external-parameters`); distinct
   normalized values for omitted versus explicit `required` `provenance-sidecar`
-  (`release-asset-mode-schema-error`); unavailable or conflicting observed caller workflow filename
+  (`release-asset-mode-schema-error`); unavailable or conflicting observed caller workflow filename,
+  including an OIDC `workflow_ref` and `github.workflow_ref` cross-check mismatch
   (`trusted-publisher-mismatch`); and a caller-supplied workflow-filename input. The last fixture
   must fail reusable-workflow schema validation, proving that no ninth public input exists.
 - A YAML review checklist that a human can apply to the workflow file.
