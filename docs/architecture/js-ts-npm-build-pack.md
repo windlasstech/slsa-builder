@@ -476,29 +476,41 @@ above; callers cannot override these commands.
 For a root package or standalone package where `package.directory` equals `package_manager.root`,
 the profile runs:
 
-| Step    | npm                         | pnpm                             | Yarn                         |
-| ------- | --------------------------- | -------------------------------- | ---------------------------- |
-| Install | `npm ci`                    | `pnpm install --frozen-lockfile` | `yarn install --immutable`   |
-| Build   | `npm run build` if declared | `pnpm run build` if declared     | `yarn run build` if declared |
-| Pack    | `npm pack`                  | `pnpm pack`                      | `yarn pack`                  |
+| Step    | npm                                                   | pnpm                                                   | Yarn                                    |
+| ------- | ----------------------------------------------------- | ------------------------------------------------------ | --------------------------------------- |
+| Install | `npm ci`                                              | `pnpm install --frozen-lockfile`                       | `yarn install --immutable`              |
+| Build   | `npm run build` if declared                           | `pnpm run build` if declared                           | `yarn run build` if declared            |
+| Pack    | `npm pack --pack-destination <pack-output-directory>` | `pnpm pack --pack-destination <pack-output-directory>` | `yarn pack --out <tarball-output-path>` |
 
 For a workspace package where `package.directory` differs from `package_manager.root`, the profile
 runs install from the workspace root, then targets the selected workspace package with these command
 templates:
 
-| Step    | npm                                                                 | pnpm                                                                    | Yarn                                                             |
-| ------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Install | `npm ci`                                                            | `pnpm install --frozen-lockfile`                                        | `yarn install --immutable`                                       |
-| Build   | `npm --workspace <package-directory> run build` if declared         | `pnpm --filter "{./<package-directory>}" run build` if declared         | `yarn workspace <package-name> run build` if declared            |
-| Pack    | `npm pack --workspace <package-directory> --pack-destination <dir>` | `pnpm --filter "{./<package-directory>}" pack --pack-destination <dir>` | `yarn workspace <package-name> pack --out <tarball-output-path>` |
+| Step    | npm                                                                                                                 | pnpm                                                                                                                    | Yarn                                                             |
+| ------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Install | `npm ci`                                                                                                            | `pnpm install --frozen-lockfile`                                                                                        | `yarn install --immutable`                                       |
+| Build   | `npm --workspace <package-manager-root-relative-package-directory> run build` if declared                           | `pnpm --filter "{./<package-manager-root-relative-package-directory>}" run build` if declared                           | `yarn workspace <package-name> run build` if declared            |
+| Pack    | `npm pack --workspace <package-manager-root-relative-package-directory> --pack-destination <pack-output-directory>` | `pnpm --filter "{./<package-manager-root-relative-package-directory>}" pack --pack-destination <pack-output-directory>` | `yarn workspace <package-name> pack --out <tarball-output-path>` |
 
 Command template variables have these meanings:
 
-- `<package-directory>` is the normalized repository-root-relative selected package directory.
+- `<package-directory>` is the normalized repository-root-relative selected package directory. It is
+  a specification value, not a command path argument when the package manager root is nested.
+- `<package-manager-root-relative-package-directory>` is the normalized selected package directory
+  relative to `package_manager.root`. The npm workspace path and pnpm path selector are resolved
+  from the package manager root because every command in this matrix starts there. For example, when
+  `package.directory` is `apps/web/packages/a` and `package_manager.root` is `apps/web`, both
+  arguments are `packages/a`, not `apps/web/packages/a`.
 - `<package-name>` is the selected package's validated `name` field from its source manifest.
-- `<dir>` is a trusted empty temporary directory created by the workflow for the pack output.
-- `<tarball-output-path>` is the exact expected tarball file path inside that trusted temporary
+- `<pack-output-directory>` is the absolute real path of a trusted empty temporary directory created
+  by the workflow for the pack output. npm and pnpm resolve `--pack-destination` from their command
+  context, while Yarn resolves `--out` from its selected workspace context. The absolute path makes
+  all three commands select the same directory without relying on a package-manager-specific working
   directory.
+- `<tarball-output-path>` is the absolute real path of the exact expected tarball inside
+  `<pack-output-directory>`. Yarn accepts no workspace path argument: `yarn workspace` selects only
+  by `<package-name>`, and its absolute `--out` path is therefore independent of both repository and
+  package-manager roots.
 
 ### Packed tarball name
 
@@ -654,34 +666,32 @@ is verifier-relevant, but this task does not assign it a provenance field.
 
 ## Failure behavior
 
-The profile must fail before packing when:
+The profile must emit the following diagnostic, phase, exit code, and mutation flag for each listed
+failure. These producer-side checks do not mutate remote state, so `mutation_possible` is always
+`false`. Bare names shown in the fixture column are stable fixture aliases only. Implementations
+must emit the canonical diagnostic ID.
 
-- `package.json` is missing or invalid.
-- `name` or `version` is missing.
-- `private` is `true`.
-- `package-directory` resolves outside the repository, is not a directory, or does not identify
-  exactly one selected package.
-- Package manager selection is ambiguous.
-- An exact package manager version cannot be determined for pnpm or Yarn.
-- Yarn is selected from any source other than top-level `packageManager`, or the exact Yarn version
-  is lower than `4.0.0`.
-- Lockfile is missing for npm `npm ci`, pnpm `--frozen-lockfile`, or Yarn `--immutable`.
-- Required package-manager distribution or runner-image capture evidence is unavailable before
-  predicate construction. The profile emits `windlass.verify.error.input-unavailable`, exits `2`,
-  and does not sign.
-- Captured package-manager distribution evidence has the wrong authority or version, contradicts the
-  selected manager, uses a Known Good Release fallback, uses an ambient manager, changes the
-  Corepack acquisition path through a registry override, or produces a malformed descriptor. The
-  profile emits `windlass.verify.error.resolved-dependencies-package-manager-distribution`, exits
-  `1`, and does not sign.
-- Captured runner-image evidence has a malformed descriptor, carries a digest, or disagrees with the
-  observed runner values. The profile emits
-  `windlass.verify.error.resolved-dependencies-runner-image`, exits `1`, and does not sign.
-- `repository` is missing, malformed, unsupported, or normalizes to an identity different from the
-  observed caller repository. The profile emits `package-repository-identity-mismatch` and stops
-  before install, build, or pack.
-- Source and packed `name`/`version` mismatch.
-- Pack command fails.
+| Failure condition                                                                                                                                                                                                                                                                  | Diagnostic ID                                                              | Stable fixture alias                                 | Phase        | Exit code | `mutation_possible` |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------- | ------------ | --------- | ------------------- |
+| The selected `package.json` is missing or invalid.                                                                                                                                                                                                                                 | `windlass.verify.error.package-manifest-invalid`                           | `package-manifest-invalid`                           | policy       | `1`       | `false`             |
+| The selected source manifest has no `name` or `version`.                                                                                                                                                                                                                           | `windlass.verify.error.package-metadata-required`                          | `package-metadata-required`                          | policy       | `1`       | `false`             |
+| The selected source manifest sets `private` to `true`.                                                                                                                                                                                                                             | `windlass.verify.error.package-private`                                    | `package-private`                                    | policy       | `1`       | `false`             |
+| `package-directory` resolves outside the repository, is not a directory, or does not identify exactly one selected package.                                                                                                                                                        | `windlass.verify.error.package-resolution-invalid`                         | `package-resolution-invalid`                         | policy       | `1`       | `false`             |
+| Package-manager selection is ambiguous or conflicting.                                                                                                                                                                                                                             | `windlass.verify.error.package-manager-conflict`                           | `package-manager-conflict`                           | policy       | `1`       | `false`             |
+| An exact package-manager version cannot be determined for pnpm or Yarn.                                                                                                                                                                                                            | `windlass.verify.error.package-manager-version-required`                   | `package-manager-version-required`                   | policy       | `1`       | `false`             |
+| Yarn is selected from a source other than top-level `packageManager`, or its exact version is lower than `4.0.0`.                                                                                                                                                                  | `windlass.verify.error.yarn-selection-invalid`                             | `yarn-selection-invalid`                             | policy       | `1`       | `false`             |
+| The selected manager's lockfile is missing for npm `npm ci`, pnpm `--frozen-lockfile`, or Yarn `--immutable`.                                                                                                                                                                      | `windlass.verify.error.required-lockfile-missing`                          | `required-lockfile-missing`                          | policy       | `1`       | `false`             |
+| Required package-manager distribution or runner-image capture evidence is unavailable before predicate construction.                                                                                                                                                               | `windlass.verify.error.input-unavailable`                                  | `input-unavailable`                                  | invocation   | `2`       | `false`             |
+| Captured package-manager distribution evidence has the wrong authority or version, contradicts the selected manager, uses a Known Good Release fallback or ambient manager, changes the Corepack acquisition path through a registry override, or produces a malformed descriptor. | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | `resolved-dependencies-package-manager-distribution` | verification | `1`       | `false`             |
+| Captured runner-image evidence has a malformed descriptor, carries a digest, or disagrees with the observed runner values.                                                                                                                                                         | `windlass.verify.error.resolved-dependencies-runner-image`                 | `resolved-dependencies-runner-image`                 | verification | `1`       | `false`             |
+| `repository` is missing, malformed, unsupported, or normalizes to an identity different from the observed caller repository.                                                                                                                                                       | `windlass.verify.error.package-repository-identity-mismatch`               | `package-repository-identity-mismatch`               | policy       | `1`       | `false`             |
+| Packed `name` or `version` differs from the selected source manifest.                                                                                                                                                                                                              | `windlass.verify.error.packed-package-metadata-mismatch`                   | `packed-package-metadata-mismatch`                   | verification | `1`       | `false`             |
+| The selected package manager's pack command fails, produces no file or more than one file, produces an unsafe basename, or produces a basename without a `.tgz` suffix.                                                                                                            | `windlass.verify.error.package-pack-failed`                                | `package-pack-failed`                                | verification | `1`       | `false`             |
+
+The package-repository-identity diagnostic stops before install, build, or pack. Every other policy
+failure stops before the command whose precondition it violates. A verification failure stops before
+signing or publishing. Exit code `2` identifies unusable locally required capture input; exit code
+`1` identifies a completed policy or verification rejection.
 
 ## TDD and fixtures
 
