@@ -1,0 +1,14 @@
+{
+  "name": "@windlass-fixtures/scoped",
+  "version": "1.0.0",
+  "description": "Root pnpm build-pack fixture",
+  "license": "Apache-2.0",
+  "repository": "github:windlasstech/slsa-builder",
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "files": [
+    "dist"
+  ]
+}

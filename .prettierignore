@@ -1,3 +1,5 @@
 # Byte-exact test fixtures: Prettier reformatting breaks digest/JCS byte assertions.
 testdata/**/*.json
 testdata/**/*.jsonl
+testdata/**/*.yaml
+testdata/**/*.yml

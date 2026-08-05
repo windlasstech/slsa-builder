@@ -1,0 +1,1 @@
+{"phase":"build-pack","package-directory":"testdata/npm/packages/rejected/lockfile-only-ambiguous","commands":{},"expected-primary-id":"windlass.verify.error.package-manager-conflict"}

@@ -1,0 +1,16 @@
+{
+  "phase": "build-pack",
+  "package-directory": "testdata/npm/packages/npm-root-valid",
+  "package-manager": {
+    "name": "npm",
+    "selection-source": "packageManager",
+    "selected-lockfile": "package-lock.json"
+  },
+  "commands": {
+    "install": ["npm", "ci"],
+    "build": ["npm", "run", "build"],
+    "pack": ["npm", "pack", "--pack-destination", "<pack-output-directory>"]
+  },
+  "expected-subject": "pkg:npm/windlass-fixture-unscoped@1.0.0",
+  "required-digests": ["sha512", "sha256"]
+}

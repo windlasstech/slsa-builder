@@ -1,0 +1,17 @@
+{
+  "name": "@windlass-fixtures/workspace-selected",
+  "version": "1.0.0",
+  "description": "Selected npm workspace fixture",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@github.com/windlasstech/slsa-builder.git",
+    "directory": "testdata/npm/packages/workspace-valid/packages/selected"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "files": [
+    "dist"
+  ]
+}

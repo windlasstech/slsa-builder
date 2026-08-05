@@ -1,0 +1,14 @@
+{
+  "name": "windlass-fixture-unscoped",
+  "version": "1.0.0",
+  "description": "Root npm build-pack fixture",
+  "license": "Apache-2.0",
+  "repository": "windlasstech/slsa-builder",
+  "packageManager": "npm@11.5.1",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "files": [
+    "dist"
+  ]
+}
