@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "non_production": true,
+  "observed_at": "2026-08-05T10:43:49Z",
+  "platform": "github.com",
+  "syntax": {
+    "scope": "job",
+    "group": "f03-platform-contract-${{ github.repository }}-${{ github.ref_name }}",
+    "cancel_in_progress": false,
+    "queue": "max",
+    "platform_syntax_accepted": true
+  },
+  "runtime_evidence": {
+    "repository": "yunseo-kim/slsa-builder-conformance",
+    "run_id": "30998561080",
+    "run_url": "https://github.com/yunseo-kim/slsa-builder-conformance/actions/runs/30998561080",
+    "job_id": "92281504942",
+    "job_name": "call-platform-contract-spike / observe-platform-contracts",
+    "job_started_at": "2026-08-05T10:43:28Z",
+    "job_materialized": true,
+    "job_reached_user_steps": true,
+    "overall_failure_unrelated_to_queue": true
+  },
+  "documented_behavior": {
+    "pending_capacity": 100,
+    "full_queue_surface": "additional jobs or workflow runs are canceled",
+    "processing_order": "FIFO by the time each job or run starts waiting",
+    "ghes_support_claimed": false,
+    "overflow_empirically_observed": false,
+    "overflow_spike_deferred_to": "L03"
+  },
+  "actionlint": {
+    "version": "1.7.12",
+    "syntax_accepted": false,
+    "diagnostic": "unexpected key \"queue\" for \"concurrency\" section. expected one of \"cancel-in-progress\", \"group\" [syntax-check]",
+    "upstream_tracking_issue": "https://github.com/rhysd/actionlint/issues/705"
+  },
+  "official_sources": [
+    "https://docs.github.com/actions/how-tos/writing-workflows/choosing-when-your-workflow-runs/control-the-concurrency-of-workflows-and-jobs",
+    "https://github.blog/changelog/2026-05-07-github-actions-concurrency-groups-now-allow-larger-queues/"
+  ]
+}

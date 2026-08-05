@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-08-05T11:50:18Z",
+  "runner": "ubuntu-24.04",
+  "node_version": "v24.18.0",
+  "npm_version": "11.16.0",
+  "minimum_provenance_file_version": "9.7.0",
+  "argv": [
+    "npm",
+    "publish",
+    "--dry-run",
+    "--provenance-file",
+    "attestation.json",
+    "evidence/fixture"
+  ],
+  "provenance_file_argument_form": "separate argv elements",
+  "dry_run_exit_status": 0,
+  "option_accepted": true,
+  "actual_publication_performed": false,
+  "token_environment_unset": true,
+  "configured_auth_key_count": 0,
+  "auth_fallback_signal_observed": false,
+  "token_fallback_used": false
+}

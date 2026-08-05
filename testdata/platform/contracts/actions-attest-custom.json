@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-08-05T11:50:17Z",
+  "mode": "custom",
+  "action": {
+    "version": "v4.2.2",
+    "sha": "1e69f48acb82d1966a394da916b4c1698aa569d6"
+  },
+  "deterministic_inputs": {
+    "subject_checksums_path": "evidence/subject.checksums.txt",
+    "predicate_type": "https://slsa-builder.dev/attestations/platform-contract-spike/v1",
+    "predicate_path": "evidence/predicate.json"
+  },
+  "output": {
+    "format": "JSON-serialized Sigstore bundle",
+    "media_type": "application/vnd.dev.sigstore.bundle.v0.3+json",
+    "first": {
+      "bundle_basename": "attestation.json",
+      "bundle_path_output_nonempty": true,
+      "bundle_path_absolute": true,
+      "bundle_path_existed_after_step": true,
+      "byte_length": 11197,
+      "sha256": "8d9e669ebd334064643255d98d905b7672f76d4076c1c961dec25388f6153f01",
+      "statement_sha256": "9001ce344da0302eff31750645ba5a38569f71065e8cbb75e3581aa2f92c0f13",
+      "attestation_id": "39020924",
+      "attestation_url": "https://github.com/yunseo-kim/slsa-builder-attest-spike/attestations/39020924"
+    },
+    "second": {
+      "bundle_basename": "attestation.json",
+      "bundle_path_output_nonempty": true,
+      "bundle_path_absolute": true,
+      "bundle_path_existed_after_step": true,
+      "byte_length": 10868,
+      "sha256": "14551f5600263f5c829c923519392e7883a486cfacd81e00a3125532ca64b2cb",
+      "statement_sha256": "9001ce344da0302eff31750645ba5a38569f71065e8cbb75e3581aa2f92c0f13",
+      "attestation_id": "39020928",
+      "attestation_url": "https://github.com/yunseo-kim/slsa-builder-attest-spike/attestations/39020928"
+    }
+  },
+  "byte_stability": {
+    "identical_invocation_bundle_bytes_equal": false,
+    "signed_statement_payload_bytes_equal": true
+  }
+}

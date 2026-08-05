@@ -1,0 +1,73 @@
+name: F03 Queue Max Probe
+
+# NON-PRODUCTION SPIKE: dispatch several runs to observe pending FIFO behavior.
+permissions: {}
+
+on:
+  workflow_dispatch:
+    inputs:
+      contender:
+        description: Dispatch-order label
+        required: true
+        type: string
+      hold_seconds:
+        description: Seconds to hold the single running queue slot
+        required: true
+        default: "30"
+        type: string
+
+jobs:
+  queue-contender:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    concurrency:
+      group: f03-queue-max-${{ github.repository }}
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Hold queue slot and record timing
+        env:
+          CONTENDER: ${{ inputs.contender }}
+          HOLD_SECONDS: ${{ inputs.hold_seconds }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          sleep "$HOLD_SECONDS"
+          finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          jq -n \
+            --arg contender "$CONTENDER" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg started_at "$started_at" \
+            --arg finished_at "$finished_at" \
+            --arg hold_seconds "$HOLD_SECONDS" \
+            '{
+              non_production: true,
+              contender: $contender,
+              run_id: $run_id,
+              run_attempt: $run_attempt,
+              started_at: $started_at,
+              finished_at: $finished_at,
+              hold_seconds: ($hold_seconds | tonumber),
+              queue: {
+                group: "f03-queue-max-${{ github.repository }}",
+                cancel_in_progress: false,
+                mode: "max"
+              }
+            }' > "evidence/queue-${CONTENDER}.json"
+
+      - name: Upload queue timing report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: queue-max-${{ inputs.contender }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30

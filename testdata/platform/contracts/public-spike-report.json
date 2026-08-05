@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "non_production": true,
+  "observed_at": "2026-08-05T11:50:24Z",
+  "repository": "yunseo-kim/slsa-builder-attest-spike",
+  "run_id": "31003035465",
+  "run_attempt": "1",
+  "run_url": "https://github.com/yunseo-kim/slsa-builder-attest-spike/actions/runs/31003035465",
+  "actions_attest_custom": {
+    "schema_version": 1,
+    "observed_at": "2026-08-05T11:50:17Z",
+    "mode": "custom",
+    "action": {
+      "version": "v4.2.2",
+      "sha": "1e69f48acb82d1966a394da916b4c1698aa569d6"
+    },
+    "deterministic_inputs": {
+      "subject_checksums_path": "evidence/subject.checksums.txt",
+      "predicate_type": "https://slsa-builder.dev/attestations/platform-contract-spike/v1",
+      "predicate_path": "evidence/predicate.json"
+    },
+    "output": {
+      "format": "JSON-serialized Sigstore bundle",
+      "media_type": "application/vnd.dev.sigstore.bundle.v0.3+json",
+      "first": {
+        "bundle_basename": "attestation.json",
+        "bundle_path_output_nonempty": true,
+        "bundle_path_absolute": true,
+        "bundle_path_existed_after_step": true,
+        "byte_length": 11197,
+        "sha256": "8d9e669ebd334064643255d98d905b7672f76d4076c1c961dec25388f6153f01",
+        "statement_sha256": "9001ce344da0302eff31750645ba5a38569f71065e8cbb75e3581aa2f92c0f13",
+        "attestation_id": "39020924",
+        "attestation_url": "https://github.com/yunseo-kim/slsa-builder-attest-spike/attestations/39020924"
+      },
+      "second": {
+        "bundle_basename": "attestation.json",
+        "bundle_path_output_nonempty": true,
+        "bundle_path_absolute": true,
+        "bundle_path_existed_after_step": true,
+        "byte_length": 10868,
+        "sha256": "14551f5600263f5c829c923519392e7883a486cfacd81e00a3125532ca64b2cb",
+        "statement_sha256": "9001ce344da0302eff31750645ba5a38569f71065e8cbb75e3581aa2f92c0f13",
+        "attestation_id": "39020928",
+        "attestation_url": "https://github.com/yunseo-kim/slsa-builder-attest-spike/attestations/39020928"
+      }
+    },
+    "byte_stability": {
+      "identical_invocation_bundle_bytes_equal": false,
+      "signed_statement_payload_bytes_equal": true
+    }
+  },
+  "npm_cli_provenance_file": {
+    "schema_version": 1,
+    "observed_at": "2026-08-05T11:50:18Z",
+    "runner": "ubuntu-24.04",
+    "node_version": "v24.18.0",
+    "npm_version": "11.16.0",
+    "minimum_provenance_file_version": "9.7.0",
+    "argv": [
+      "npm",
+      "publish",
+      "--dry-run",
+      "--provenance-file",
+      "attestation.json",
+      "evidence/fixture"
+    ],
+    "provenance_file_argument_form": "separate argv elements",
+    "dry_run_exit_status": 0,
+    "option_accepted": true,
+    "actual_publication_performed": false,
+    "token_environment_unset": true,
+    "configured_auth_key_count": 0,
+    "auth_fallback_signal_observed": false,
+    "token_fallback_used": false
+  },
+  "github_attestation_store": {
+    "schema_version": 1,
+    "observed_at": "2026-08-05T11:50:24Z",
+    "api_version": "2026-03-10",
+    "gh_version": "gh version 2.96.0 (2026-07-02)",
+    "repository_get_without_digest": {
+      "endpoint": "GET /repos/{owner}/{repo}/attestations",
+      "exit_status": 1,
+      "documented_as_create_only": true
+    },
+    "digest_lookup": {
+      "endpoint": "GET /repos/{owner}/{repo}/attestations/{subject_digest}",
+      "subject_digest": "sha256:3e8e393c7772243c2441a0e93e19ecd454622263516c408269198ac4fe8365a4",
+      "top_level_keys": ["attestations"],
+      "attestation_count": 2,
+      "element_keys": [["bundle_url", "initiator", "repository_id"]]
+    },
+    "cli": {
+      "list_subcommand_available": false,
+      "readback_command": "gh attestation download <subject-path> --repo <owner/repo>",
+      "downloaded_bundle_count": 2,
+      "verify_result_count": 2
+    },
+    "dedicated_unsigned_run_identity_field": false,
+    "run_identity_location": "inside each returned Sigstore bundle signing certificate"
+  },
+  "npm_attestation_readback": {
+    "schema_version": 1,
+    "observed_at": "2026-08-05T11:50:24Z",
+    "endpoint_template": "https://registry.npmjs.org/-/npm/v1/attestations/{package-name}@{version}",
+    "observed_package": "pacote@22.0.0",
+    "top_level_keys": ["attestations"],
+    "attestation_count": 2,
+    "attestation_element_keys": [["bundle", "predicateType", "signedAccessSignatureUrl"]],
+    "predicate_types": [
+      "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+      "https://slsa.dev/provenance/v1"
+    ],
+    "bundle_keys": [["dsseEnvelope", "mediaType", "verificationMaterial"]],
+    "bundle_media_types": [
+      "application/vnd.dev.sigstore.bundle+json;version=0.2",
+      "application/vnd.dev.sigstore.bundle.v0.3+json"
+    ],
+    "selection_rule": "select by predicateType, never array position",
+    "run_identity": {
+      "certificate_and_predicate_uri_equal": true,
+      "certificate_extension_name": "Run Invocation URI",
+      "certificate_extension_oid": "1.3.6.1.4.1.57264.1.21",
+      "certificate_uri": "https://github.com/npm/pacote/actions/runs/27573305150/attempts/1",
+      "repository": "npm/pacote",
+      "run_attempt": "1",
+      "run_id": "27573305150",
+      "run_id_match_location": "the decimal path component after /actions/runs/",
+      "signed_predicate_path": "predicate.runDetails.metadata.invocationId",
+      "signed_predicate_uri": "https://github.com/npm/pacote/actions/runs/27573305150/attempts/1"
+    }
+  }
+}
