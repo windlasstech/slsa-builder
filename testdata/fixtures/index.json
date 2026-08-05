@@ -1,0 +1,17 @@
+{
+  "fixtures": [
+    {
+      "name": "fixture-harness-schema-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/fixtures/data/fixture-harness-artifact.txt",
+      "provenance": "testdata/fixtures/data/fixture-harness-provenance.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ARCH-verification-policy-and-fixtures.fixture-manifest-schema"
+    }
+  ]
+}
