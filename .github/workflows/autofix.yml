@@ -67,4 +67,4 @@ jobs:
           GOBIN="$RUNNER_TEMP/bin" go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1
 
       - name: Check shell script formatting
-        run: shfmt --diff -i 2 -ci -bn .
+        run: git ls-files -z -- "*.sh" | xargs -0 shfmt --diff -i 2 -ci -bn
