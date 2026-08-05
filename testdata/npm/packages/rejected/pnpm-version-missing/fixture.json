@@ -1,0 +1,1 @@
+{"phase":"build-pack","package-directory":"testdata/npm/packages/rejected/pnpm-version-missing","commands":{},"expected-primary-id":"windlass.verify.error.package-manager-version-required"}

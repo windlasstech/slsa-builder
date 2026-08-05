@@ -1,0 +1,1 @@
+{"phase":"build-pack","package-directory":"testdata/npm/packages/rejected/selected-lockfile-missing","commands":{},"expected-primary-id":"windlass.verify.error.required-lockfile-missing"}

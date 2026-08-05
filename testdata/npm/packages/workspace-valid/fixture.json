@@ -1,0 +1,18 @@
+{
+  "phase": "build-pack",
+  "package-directory": "testdata/npm/packages/workspace-valid/packages/selected",
+  "package-manager-root": "testdata/npm/packages/workspace-valid",
+  "package-manager": {
+    "name": "npm",
+    "selection-source": "packageManager",
+    "selection-manifest": "testdata/npm/packages/workspace-valid/package.json",
+    "selected-lockfile": "testdata/npm/packages/workspace-valid/package-lock.json"
+  },
+  "commands": {
+    "install": ["npm", "ci"],
+    "build": ["npm", "--workspace", "packages/selected", "run", "build"],
+    "pack": ["npm", "pack", "--workspace", "packages/selected", "--pack-destination", "<pack-output-directory>"]
+  },
+  "expected-subject": "pkg:npm/%40windlass-fixtures/workspace-selected@1.0.0",
+  "required-digests": ["sha512", "sha256"]
+}

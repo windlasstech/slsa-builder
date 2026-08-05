@@ -1,0 +1,7 @@
+{
+  "name": "windlass-fixture-stale-yarn",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "repository": "windlasstech/slsa-builder",
+  "packageManager": "yarn@4.9.2"
+}

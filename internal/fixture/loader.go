@@ -148,6 +148,38 @@ func validateManifest(manifest Manifest) error {
 	return validateSecondaryIDs(manifest)
 }
 
+// Select returns fixtures matching the optional surface and phase filters.
+func Select(index Index, surface, phase string) (Index, error) {
+	if surface != "" && !validSurface(surface) {
+		return Index{}, fmt.Errorf("surface %q is not registered", surface)
+	}
+	if phase != "" && !validFixturePhase(phase) {
+		return Index{}, fmt.Errorf("phase %q is not registered", phase)
+	}
+
+	selected := Index{Fixtures: make([]Manifest, 0, len(index.Fixtures))}
+	for _, manifest := range index.Fixtures {
+		if surface != "" && manifest.Surface != surface {
+			continue
+		}
+		if phase != "" && !requirementMatchesPhase(manifest.CoveredRequirement, phase) {
+			continue
+		}
+		if surface != "" {
+			prefix := "testdata/" + surface + "/"
+			if !strings.HasPrefix(manifest.Artifact, prefix) || !strings.HasPrefix(manifest.Provenance, prefix) ||
+				(manifest.ReleaseManifest != nil && !strings.HasPrefix(*manifest.ReleaseManifest, prefix)) {
+				return Index{}, fmt.Errorf("fixture %q paths must stay under %s", manifest.Name, prefix)
+			}
+		}
+		selected.Fixtures = append(selected.Fixtures, manifest)
+	}
+	if len(selected.Fixtures) == 0 {
+		return Index{}, fmt.Errorf("no fixtures match surface %q and phase %q", surface, phase)
+	}
+	return selected, nil
+}
+
 func validSurface(surface string) bool {
 	switch surface {
 	case "npm", "publisher", "composition", "release-manifest":

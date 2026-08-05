@@ -1,0 +1,9 @@
+__metadata:
+  version: 8
+  cacheKey: 10c0
+
+"windlass-fixture-yarn@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "windlass-fixture-yarn@workspace:."
+  languageName: unknown
+  linkType: soft

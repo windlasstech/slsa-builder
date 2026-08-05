@@ -1,0 +1,7 @@
+{
+  "phase": "build-pack",
+  "package-directory": "testdata/npm/packages/stale-lockfiles/pnpm",
+  "package-manager": {"name": "pnpm", "version": "10.14.0", "selection-source": "packageManager", "selected-lockfile": "pnpm-lock.yaml"},
+  "ignored-lockfile-paths": ["testdata/npm/packages/stale-lockfiles/pnpm/package-lock.json"],
+  "commands": {"install": ["pnpm", "install", "--frozen-lockfile"], "build": [], "pack": ["pnpm", "pack", "--pack-destination", "<pack-output-directory>"]}
+}

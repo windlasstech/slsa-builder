@@ -1,0 +1,1 @@
+{"name":"windlass-fixture-yarn-devengines","version":"1.0.0","license":"Apache-2.0","repository":"windlasstech/slsa-builder","devEngines":{"packageManager":{"name":"yarn","version":"4.9.2","onFail":"error"}}}

@@ -1,0 +1,14 @@
+{
+  "name": "windlass-fixture-yarn",
+  "version": "1.0.0",
+  "description": "Root Yarn Berry build-pack fixture",
+  "license": "Apache-2.0",
+  "repository": "git+https://github.com/windlasstech/slsa-builder.git",
+  "packageManager": "yarn@4.9.2",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "files": [
+    "dist"
+  ]
+}

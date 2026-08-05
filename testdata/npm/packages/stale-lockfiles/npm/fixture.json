@@ -1,0 +1,7 @@
+{
+  "phase": "build-pack",
+  "package-directory": "testdata/npm/packages/stale-lockfiles/npm",
+  "package-manager": {"name": "npm", "selection-source": "packageManager", "selected-lockfile": "package-lock.json"},
+  "ignored-lockfile-paths": ["testdata/npm/packages/stale-lockfiles/npm/pnpm-lock.yaml"],
+  "commands": {"install": ["npm", "ci"], "build": [], "pack": ["npm", "pack", "--pack-destination", "<pack-output-directory>"]}
+}

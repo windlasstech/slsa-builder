@@ -1,0 +1,7 @@
+{
+  "phase": "build-pack",
+  "package-directory": "testdata/npm/packages/stale-lockfiles/yarn",
+  "package-manager": {"name": "yarn", "version": "4.9.2", "selection-source": "packageManager", "selected-lockfile": "yarn.lock", "install-mode": "immutable"},
+  "ignored-lockfile-paths": ["testdata/npm/packages/stale-lockfiles/yarn/package-lock.json"],
+  "commands": {"install": ["yarn", "install", "--immutable"], "build": [], "pack": ["yarn", "pack", "--out", "<tarball-output-path>"]}
+}

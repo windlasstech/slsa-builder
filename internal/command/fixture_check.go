@@ -32,6 +32,8 @@ func (fixtureCheckCommand) Execute(ctx context.Context, args []string, out io.Wr
 	flags := flag.NewFlagSet("fixture-check", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	indexPath := flags.String("index", "", "fixture index path")
+	surface := flags.String("surface", "", "fixture surface filter")
+	phase := flags.String("phase", "", "fixture phase filter")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			_, writeErr := fmt.Fprintln(out, "Usage: slsa-builder-internal fixture-check --index <path>")
@@ -46,7 +48,10 @@ func (fixtureCheckCommand) Execute(ctx context.Context, args []string, out io.Wr
 		return fmt.Errorf("unexpected positional arguments: %v", flags.Args())
 	}
 
-	_, err := fixture.Load(*indexPath)
+	index, err := fixture.Load(*indexPath)
+	if err == nil && (*surface != "" || *phase != "") {
+		_, err = fixture.Select(index, *surface, *phase)
+	}
 	if err == nil {
 		return writeDiagnostics(out, nil, nil)
 	}
