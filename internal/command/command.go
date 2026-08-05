@@ -4,6 +4,7 @@ package command
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -19,6 +20,12 @@ const ExitCodeVerificationFailure = 1
 const ExitCodeInvocationFailure = 2
 
 const verifierExecutionFailureID = "windlass.verify.error.verifier-execution-failure"
+
+// ErrVerificationFailure indicates that a command already emitted a completed policy-failure report.
+var ErrVerificationFailure = errors.New("verification failure reported")
+
+// ErrInvocationFailure indicates that a command already emitted an invocation-failure report.
+var ErrInvocationFailure = errors.New("invocation failure reported")
 
 // Command is an internal subcommand that can be registered with a Dispatcher.
 type Command interface {
@@ -64,6 +71,12 @@ func (d *Dispatcher) Dispatch(ctx context.Context, args []string, out io.Writer)
 	}
 
 	if err := selected.Execute(ctx, args[1:], out); err != nil {
+		if errors.Is(err, ErrVerificationFailure) {
+			return Result{ExitCode: ExitCodeVerificationFailure}
+		}
+		if errors.Is(err, ErrInvocationFailure) {
+			return Result{ExitCode: ExitCodeInvocationFailure}
+		}
 		if reportErr := writeInvocationReport(out, fmt.Sprintf("subcommand %q failed: %v", selected.Name(), err)); reportErr != nil {
 			return Result{ExitCode: ExitCodeInvocationFailure}
 		}
@@ -98,7 +111,8 @@ func writeUsage(out io.Writer, commands map[string]Command) error {
 	return nil
 }
 
-type diagnostic struct {
+// Diagnostic is one stable machine-readable report entry.
+type Diagnostic struct {
 	ID       string `json:"id"`
 	Severity string `json:"severity"`
 	Category string `json:"category"`
@@ -106,23 +120,29 @@ type diagnostic struct {
 	Message  string `json:"message"`
 }
 
-type invocationReport struct {
+// Report is the shared machine-readable command result.
+type Report struct {
 	SchemaVersion string       `json:"schema_version"`
 	Result        string       `json:"result"`
 	ExitCode      int          `json:"exit_code"`
-	PrimaryID     string       `json:"primary_id"`
+	PrimaryID     *string      `json:"primary_id"`
 	RunInvocation *string      `json:"run_invocation"`
-	Diagnostics   []diagnostic `json:"diagnostics"`
+	Diagnostics   []Diagnostic `json:"diagnostics"`
+}
+
+// WriteReport emits one JSON report object.
+func WriteReport(out io.Writer, report Report) error {
+	return json.NewEncoder(out).Encode(report)
 }
 
 // writeInvocationReport is the migration seam for internal/diagnostic (C03).
 func writeInvocationReport(out io.Writer, message string) error {
-	report := invocationReport{
+	report := Report{
 		SchemaVersion: "1",
 		Result:        "fail",
 		ExitCode:      ExitCodeInvocationFailure,
-		PrimaryID:     verifierExecutionFailureID,
-		Diagnostics: []diagnostic{{
+		PrimaryID:     stringPointer(verifierExecutionFailureID),
+		Diagnostics: []Diagnostic{{
 			ID:       verifierExecutionFailureID,
 			Severity: "error",
 			Category: "verifier-execution-failure",
@@ -131,5 +151,9 @@ func writeInvocationReport(out io.Writer, message string) error {
 		}},
 	}
 
-	return json.NewEncoder(out).Encode(report)
+	return WriteReport(out, report)
+}
+
+func stringPointer(value string) *string {
+	return &value
 }
