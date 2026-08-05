@@ -31,6 +31,8 @@ func buildRegistry() map[string]Definition {
 		"verification-mode-invalid", "input-unavailable", "verifier-execution-failure")
 	set(definitions, PhasePolicy, ExitCodePolicyFailure, false, 1,
 		"policy-schema-invalid", "duplicate-json-member", "legacy-trust-root-override",
+		// The npm producer failure matrix explicitly overrides the shared taxonomy default:
+		// docs/architecture/js-ts-npm-build-pack.md:694-701,705.
 		"package-manifest-invalid", "package-metadata-required", "package-private",
 		"package-resolution-invalid", "package-manager-conflict", "package-manager-version-required",
 		"yarn-selection-invalid", "required-lockfile-missing", "package-repository-identity-mismatch")
