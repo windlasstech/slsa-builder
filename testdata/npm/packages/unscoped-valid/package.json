@@ -1,0 +1,6 @@
+{
+  "name": "slsa-builder-attest-spike",
+  "version": "0.0.0",
+  "description": "Non-production F03 attestation contract fixture",
+  "license": "Apache-2.0"
+}

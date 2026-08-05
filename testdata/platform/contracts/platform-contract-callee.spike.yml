@@ -1,0 +1,447 @@
+name: F03 Platform Contract Callee
+
+# NON-PRODUCTION SPIKE: records current hosted-platform behavior only.
+permissions: {}
+
+on:
+  workflow_call:
+
+jobs:
+  observe-platform-contracts:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    concurrency:
+      group: f03-platform-contract-${{ github.repository }}-${{ github.ref_name }}
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout the platform-resolved reusable workflow revision
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: builder
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Authenticate the delivered workflow revision
+        env:
+          PLATFORM_WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          PLATFORM_WORKFLOW_REF: ${{ job.workflow_ref }}
+          PLATFORM_WORKFLOW_SHA: ${{ job.workflow_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          delivered_sha="$(git -C builder rev-parse HEAD)"
+          test "$delivered_sha" = "$PLATFORM_WORKFLOW_SHA"
+          test "${#PLATFORM_WORKFLOW_SHA}" -eq 40
+          jq -n \
+            --arg repository "$PLATFORM_WORKFLOW_REPOSITORY" \
+            --arg ref "$PLATFORM_WORKFLOW_REF" \
+            --arg sha "$PLATFORM_WORKFLOW_SHA" \
+            --arg delivered_sha "$delivered_sha" \
+            '{
+              workflow_repository: $repository,
+              workflow_ref: $ref,
+              workflow_sha: $sha,
+              delivered_sha: $delivered_sha,
+              head_verified: ($sha == $delivered_sha)
+            }' > evidence/platform-context.json
+
+      - name: Observe reusable-workflow OIDC claims
+        env:
+          OIDC_AUDIENCE: f03-platform-contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          request_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${OIDC_AUDIENCE}"
+          oidc_jwt="$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "$request_url" | jq -er .value)"
+          OIDC_JWT="$oidc_jwt" python3 - <<'PY'
+          import base64
+          import json
+          import os
+          from pathlib import Path
+
+          token = os.environ["OIDC_JWT"]
+          payload = token.split(".")[1]
+          claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+          selected = {
+              "issuer": claims.get("iss"),
+              "audience": claims.get("aud"),
+              "job_workflow_ref": claims.get("job_workflow_ref"),
+              "job_workflow_sha": claims.get("job_workflow_sha"),
+              "workflow_ref": claims.get("workflow_ref"),
+              "workflow_sha": claims.get("workflow_sha"),
+              "repository": claims.get("repository"),
+              "repository_id": claims.get("repository_id"),
+              "repository_owner_id": claims.get("repository_owner_id"),
+              "run_id": claims.get("run_id"),
+              "run_attempt": claims.get("run_attempt"),
+              "event_name": claims.get("event_name"),
+              "ref": claims.get("ref"),
+              "sha": claims.get("sha"),
+              "token_persisted": False,
+          }
+          Path("evidence/oidc-reusable-workflow.json").write_text(
+              json.dumps(selected, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
+          unset oidc_jwt
+          jq -e '
+            (.job_workflow_ref | type == "string" and length > 0) and
+            (.job_workflow_sha | test("^[0-9a-f]{40}$")) and
+            (.job_workflow_ref | endswith("@" + input.job_workflow_sha))
+          ' evidence/oidc-reusable-workflow.json evidence/oidc-reusable-workflow.json
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Record runner and tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg observed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg runner_label "ubuntu-24.04" \
+            --arg runner_os "$RUNNER_OS" \
+            --arg runner_arch "$RUNNER_ARCH" \
+            --arg image_os "${ImageOS:-}" \
+            --arg image_version "${ImageVersion:-}" \
+            --arg node_version "$(node --version)" \
+            --arg npm_version "$(npm --version)" \
+            --arg harden_runner_sha "9af89fc71515a100421586dfdb3dc9c984fbf411" \
+            --arg checkout_sha "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0" \
+            --arg setup_node_sha "820762786026740c76f36085b0efc47a31fe5020" \
+            --arg attest_sha "1e69f48acb82d1966a394da916b4c1698aa569d6" \
+            --arg upload_artifact_sha "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" \
+            '{
+              observed_at: $observed_at,
+              runner: {
+                label: $runner_label,
+                os: $runner_os,
+                architecture: $runner_arch,
+                image_os: $image_os,
+                image_version: $image_version
+              },
+              tools: {node: $node_version, npm: $npm_version},
+              actions: {
+                "step-security/harden-runner": {version: "v2.19.4", sha: $harden_runner_sha},
+                "actions/checkout": {version: "v7.0.0", sha: $checkout_sha},
+                "actions/setup-node": {version: "v7.0.0", sha: $setup_node_sha},
+                "actions/attest": {version: "v4.2.2", sha: $attest_sha},
+                "actions/upload-artifact": {version: "v7.0.1", sha: $upload_artifact_sha}
+              }
+            }' > evidence/environment.json
+
+      - name: Create an npm tarball and custom predicate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/npm/package evidence/npm/packed
+          cat > evidence/npm/package/package.json <<'JSON'
+          {
+            "name": "slsa-builder-platform-contract-spike",
+            "version": "0.0.0-f03",
+            "description": "Non-production F03 platform contract fixture",
+            "license": "Apache-2.0"
+          }
+          JSON
+          printf 'non-production platform contract fixture\n' > evidence/npm/package/index.txt
+          npm pack ./evidence/npm/package --pack-destination ./evidence/npm/packed --json \
+            > evidence/npm/npm-pack.json
+          tarball="$(jq -er '.[0].filename' evidence/npm/npm-pack.json)"
+          tarball_path="evidence/npm/packed/$tarball"
+          purl='pkg:npm/slsa-builder-platform-contract-spike@0.0.0-f03'
+          sha256="$(shasum -a 256 "$tarball_path" | cut -d' ' -f1)"
+          sha512="$(shasum -a 512 "$tarball_path" | cut -d' ' -f1)"
+          printf '%s  %s\n%s  %s\n' "$sha256" "$purl" "$sha512" "$purl" \
+            > evidence/npm/subject.checksums.txt
+          cat > evidence/npm/predicate.json <<'JSON'
+          {
+            "buildDefinition": {
+              "buildType": "https://buildtype.dev/windlass/slsa-builder/platform-contract-spike/v1",
+              "externalParameters": {},
+              "internalParameters": {},
+              "resolvedDependencies": []
+            },
+            "runDetails": {
+              "builder": {
+                "id": "https://github.com/yunseo-kim/slsa-builder-conformance/.github/workflows/platform-contract-callee.yml"
+              },
+              "metadata": {},
+              "byproducts": []
+            }
+          }
+          JSON
+          {
+            printf 'NPM_TARBALL=%s\n' "$tarball_path"
+            printf 'NPM_PURL=%s\n' "$purl"
+            printf 'NPM_TARBALL_SHA256=%s\n' "$sha256"
+            printf 'NPM_TARBALL_SHA512=%s\n' "$sha512"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate custom Sigstore bundle
+        id: attest
+        continue-on-error: true
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: evidence/npm/subject.checksums.txt
+          predicate-type: https://slsa.dev/provenance/v1
+          predicate-path: evidence/npm/predicate.json
+          show-summary: false
+
+      - name: Recover the locally generated bundle after persistence rejection
+        if: ${{ always() }}
+        env:
+          ATTEST_STEP_OUTCOME: ${{ steps.attest.outcome }}
+          ACTION_BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_path="$ACTION_BUNDLE_PATH"
+          if [[ -z "$bundle_path" && -f "$RUNNER_TEMP/created_attestation_paths.txt" ]]; then
+            bundle_path="$(tail -n 1 "$RUNNER_TEMP/created_attestation_paths.txt")"
+          fi
+          test -n "$bundle_path"
+          test -f "$bundle_path"
+          {
+            printf 'ATTEST_BUNDLE_PATH=%s\n' "$bundle_path"
+            printf 'ATTEST_STEP_OUTCOME=%s\n' "$ATTEST_STEP_OUTCOME"
+          } >> "$GITHUB_ENV"
+
+      - name: Observe bundle bytes and npm provenance-file handling
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+          ATTESTATION_ID: ${{ steps.attest.outputs.attestation-id }}
+          ATTESTATION_URL: ${{ steps.attest.outputs.attestation-url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_path="${BUNDLE_PATH:-$ATTEST_BUNDLE_PATH}"
+          test -f "$bundle_path"
+          cp "$bundle_path" evidence/valid.intoto.jsonl
+          jq -cS . "$bundle_path" > evidence/reserialized.intoto.jsonl
+          original_sha256="$(shasum -a 256 "$bundle_path" | cut -d' ' -f1)"
+          reserialized_sha256="$(shasum -a 256 evidence/reserialized.intoto.jsonl | cut -d' ' -f1)"
+          if cmp -s "$bundle_path" evidence/reserialized.intoto.jsonl; then
+            reserialization_changed=false
+          else
+            reserialization_changed=true
+          fi
+          jq -n \
+            --arg action_version "v4.2.2" \
+            --arg action_sha "1e69f48acb82d1966a394da916b4c1698aa569d6" \
+            --arg basename "$(basename "$bundle_path")" \
+            --arg output_media_type "$(jq -r '.mediaType // ""' "$bundle_path")" \
+            --arg original_sha256 "$original_sha256" \
+            --arg reserialized_sha256 "$reserialized_sha256" \
+            --arg attestation_id "$ATTESTATION_ID" \
+            --arg attestation_url "$ATTESTATION_URL" \
+            --argjson original_bytes "$(wc -c < "$bundle_path" | tr -d ' ')" \
+            --argjson reserialized_bytes "$(wc -c < evidence/reserialized.intoto.jsonl | tr -d ' ')" \
+            --argjson reserialization_changed "$reserialization_changed" \
+            '{
+              mode: "custom",
+              action: {version: $action_version, sha: $action_sha},
+              inputs: {
+                subject_checksums: "evidence/npm/subject.checksums.txt",
+                predicate_type: "https://slsa.dev/provenance/v1",
+                predicate_path: "evidence/npm/predicate.json"
+              },
+              output: {
+                bundle_basename: $basename,
+                format: "JSON-serialized Sigstore bundle",
+                media_type: $output_media_type,
+                byte_length: $original_bytes,
+                sha256: $original_sha256,
+                attestation_id: $attestation_id,
+                attestation_url: $attestation_url
+              },
+              persistence: {
+                supported_for_repository: false,
+                action_step_outcome: env.ATTEST_STEP_OUTCOME,
+                observed_error: "Feature not available for user-owned private repositories"
+              },
+              reserialization: {
+                operation: "jq -cS .",
+                changed_bytes: $reserialization_changed,
+                byte_length: $reserialized_bytes,
+                sha256: $reserialized_sha256
+              }
+            }' > evidence/actions-attest-custom.json
+
+          unset NPM_TOKEN NODE_AUTH_TOKEN
+          set +e
+          npm publish --dry-run --provenance-file "$bundle_path" "$NPM_TARBALL" \
+            > evidence/npm/npm-publish-dry-run.stdout.txt \
+            2> evidence/npm/npm-publish-dry-run.stderr.txt
+          publish_status=$?
+          set -e
+          jq -n \
+            --arg npm_version "$(npm --version)" \
+            --arg bundle_basename "$(basename "$bundle_path")" \
+            --arg tarball_basename "$(basename "$NPM_TARBALL")" \
+            --argjson exit_status "$publish_status" \
+            '{
+              npm_version: $npm_version,
+              argv: ["npm", "publish", "--dry-run", "--provenance-file", $bundle_basename, $tarball_basename],
+              provenance_file_argument_form: "separate argv element",
+              dry_run_exit_status: $exit_status,
+              option_accepted: ($exit_status == 0),
+              actual_publication_performed: false,
+              token_environment_unset: true,
+              token_fallback_used: false
+            }' > evidence/npm-cli-provenance-file.json
+          test "$publish_status" -eq 0
+
+      - name: Probe npm and GitHub attestation metadata APIs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm_version="$(npm view npm version)"
+          npm_endpoint="https://registry.npmjs.org/-/npm/v1/attestations/npm@${npm_version}"
+          npm_status="$(curl --silent --show-error --location \
+            --output evidence/npm/npm-attestations-response.json \
+            --write-out '%{http_code}' "$npm_endpoint")"
+          test "$npm_status" = 200
+          jq -e '.attestations | type == "array" and length > 0' \
+            evidence/npm/npm-attestations-response.json
+
+          github_endpoint="https://api.github.com/repos/${GITHUB_REPOSITORY}/attestations/sha256:${NPM_TARBALL_SHA256}"
+          github_status="$(curl --silent --show-error --location \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            --output evidence/npm/github-attestations-response.json \
+            --write-out '%{http_code}' "$github_endpoint")"
+
+          jq -n \
+            --arg npm_endpoint_template 'https://registry.npmjs.org/-/npm/v1/attestations/{package-name}@{version}' \
+            --arg npm_observed_package "npm@${npm_version}" \
+            --arg npm_status "$npm_status" \
+            --argjson npm_count "$(jq '.attestations | length' evidence/npm/npm-attestations-response.json)" \
+            --argjson npm_predicate_types "$(jq '[.attestations[].predicateType] | unique' evidence/npm/npm-attestations-response.json)" \
+            --argjson npm_bundle_media_types "$(jq '[.attestations[].bundle.mediaType] | unique' evidence/npm/npm-attestations-response.json)" \
+            --arg github_endpoint_template 'GET /repos/{owner}/{repo}/attestations/{subject_digest}' \
+            --arg github_status "$github_status" \
+            --argjson github_top_level_keys "$(jq '[keys[]] | sort' evidence/npm/github-attestations-response.json)" \
+            '{
+              npm_registry: {
+                endpoint_template: $npm_endpoint_template,
+                observed_package: $npm_observed_package,
+                http_status: ($npm_status | tonumber),
+                attestation_count: $npm_count,
+                predicate_types: $npm_predicate_types,
+                bundle_media_types: $npm_bundle_media_types,
+                exposes_sigstore_bundle: true,
+                dedicated_run_identity_field: false,
+                run_identity_location: "inside the signed Sigstore bundle certificate claims"
+              },
+              github: {
+                endpoint_template: $github_endpoint_template,
+                http_status: ($github_status | tonumber),
+                response_keys: $github_top_level_keys,
+                lookup_key: "sha256 subject digest",
+                persistence_supported_for_repository: false,
+                dedicated_run_identity_field: false,
+                run_identity_location: "inside each returned signed Sigstore bundle certificate"
+              }
+            }' > evidence/npm-attestations-api.json
+
+      - name: Record queue contract and assemble report
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp builder/spike/platform-contracts/actionlint-1.7.12.json evidence/
+          dollar='$'
+          exact_yaml="concurrency:\n  group: f03-platform-contract-${dollar}{{ github.repository }}-${dollar}{{ github.ref_name }}\n  cancel-in-progress: false\n  queue: max"
+          jq -n --arg exact_yaml "$exact_yaml" '{
+            platform_syntax_accepted: true,
+            actionlint_version: "1.7.12",
+            actionlint_accepted: false,
+            actionlint_diagnostic: "unexpected key \"queue\" for \"concurrency\" section. expected one of \"cancel-in-progress\", \"group\" [syntax-check]",
+            exact_yaml: $exact_yaml,
+            documented_running_limit: 1,
+            documented_pending_limit: 100,
+            pending_behavior: "FIFO by wait start time",
+            overflow_surface: "deferred to L03 dedicated overflow spike",
+            github_com_scope: true,
+            ghes_supported: false
+          }' > evidence/queue-max.json
+
+          jq -s '{
+            schema_version: 1,
+            non_production: true,
+            observed_at: .[0].observed_at,
+            environment: .[0],
+            oidc_reusable_workflow: .[1],
+            actions_attest_custom: .[2],
+            queue_max: .[3],
+            npm_cli_provenance_file: .[4],
+            npm_attestations_api: .[5],
+            platform_context: .[6]
+          }' \
+            evidence/environment.json \
+            evidence/oidc-reusable-workflow.json \
+            evidence/actions-attest-custom.json \
+            evidence/queue-max.json \
+            evidence/npm-cli-provenance-file.json \
+            evidence/npm-attestations-api.json \
+            evidence/platform-context.json \
+            > evidence/platform-contract-report.json
+
+          cat > evidence/NOTES.md <<'MARKDOWN'
+          # F03 platform-contract spike notes
+
+          This is non-production evidence from a GitHub-hosted `ubuntu-24.04` runner. The report
+          records only selected OIDC claims and public attestation metadata; no token is persisted.
+
+          - The reusable-workflow OIDC claims are captured in `oidc-reusable-workflow.json`.
+          - The exact stock `actions/attest` output basename and byte comparison are captured in
+            `actions-attest-custom.json`.
+          - The npm dry-run command used separate `--provenance-file` and path argv elements with
+            token environment variables unset.
+          - The queue syntax was accepted by github.com because this called job materialized and ran.
+          - The npm and GitHub API report records metadata shape; signed run identity remains inside
+            the returned bundle rather than a dedicated unsigned metadata field.
+          MARKDOWN
+
+      - name: Assert report acceptance fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .non_production == true and
+            (.oidc_reusable_workflow.job_workflow_ref | length > 0) and
+            (.oidc_reusable_workflow.job_workflow_sha | test("^[0-9a-f]{40}$")) and
+            (.actions_attest_custom.output.bundle_basename | length > 0) and
+            (.environment.tools.npm | length > 0) and
+            .queue_max.platform_syntax_accepted == true and
+            .npm_cli_provenance_file.option_accepted == true and
+            .npm_cli_provenance_file.token_fallback_used == false
+          ' evidence/platform-contract-report.json
+
+      - name: Upload platform contract report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: platform-contract-report
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,523 @@
+name: F03 Attest and npm Contract Spike
+
+# NON-PRODUCTION SPIKE: this repository is deleted after evidence capture.
+permissions: {}
+
+on:
+  workflow_dispatch:
+
+jobs:
+  observe-contracts:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Create deterministic subject and predicate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/fixture evidence/packed
+          cat > evidence/fixture/package.json <<'JSON'
+          {
+            "name": "slsa-builder-attest-spike",
+            "version": "0.0.0",
+            "description": "Non-production F03 attestation contract fixture",
+            "license": "Apache-2.0"
+          }
+          JSON
+          printf 'deterministic F03 attestation subject\n' > evidence/fixture/index.txt
+          printf '%s\n' "$GITHUB_SHA" > evidence/fixture/workflow-commit.txt
+
+          npm pack ./evidence/fixture --pack-destination ./evidence/packed --json \
+            > evidence/npm-pack.json
+          tarball="$(jq -er '.[0].filename' evidence/npm-pack.json)"
+          tarball_path="evidence/packed/$tarball"
+          purl='pkg:npm/slsa-builder-attest-spike@0.0.0'
+          sha256="$(sha256sum "$tarball_path" | cut -d' ' -f1)"
+          sha512="$(sha512sum "$tarball_path" | cut -d' ' -f1)"
+          printf '%s  %s\n%s  %s\n' "$sha256" "$purl" "$sha512" "$purl" \
+            > evidence/subject.checksums.txt
+
+          cat > evidence/predicate.json <<'JSON'
+          {
+            "schema_version": 1,
+            "contract": "windlass-f03-actions-attest-custom-mode",
+            "fixture": "deterministic-f03"
+          }
+          JSON
+
+          {
+            printf 'SUBJECT_TARBALL=%s\n' "$tarball_path"
+            printf 'SUBJECT_TARBALL_BASENAME=%s\n' "$tarball"
+            printf 'SUBJECT_PURL=%s\n' "$purl"
+            printf 'SUBJECT_SHA256=%s\n' "$sha256"
+            printf 'SUBJECT_SHA512=%s\n' "$sha512"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate first custom Sigstore bundle
+        id: attest_first
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: evidence/subject.checksums.txt
+          predicate-type: https://slsa-builder.dev/attestations/platform-contract-spike/v1
+          predicate-path: evidence/predicate.json
+          show-summary: false
+
+      - name: Preserve first emitted bundle
+        env:
+          BUNDLE_PATH: ${{ steps.attest_first.outputs.bundle-path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$BUNDLE_PATH"
+          test -f "$BUNDLE_PATH"
+          cp "$BUNDLE_PATH" evidence/valid.intoto.jsonl
+          {
+            printf 'FIRST_BUNDLE_PATH=%s\n' "$BUNDLE_PATH"
+            printf 'FIRST_BUNDLE_BASENAME=%s\n' "$(basename "$BUNDLE_PATH")"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate second custom Sigstore bundle with identical inputs
+        id: attest_second
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: evidence/subject.checksums.txt
+          predicate-type: https://slsa-builder.dev/attestations/platform-contract-spike/v1
+          predicate-path: evidence/predicate.json
+          show-summary: false
+
+      - name: Compare duplicate invocation outputs
+        env:
+          SECOND_BUNDLE_PATH: ${{ steps.attest_second.outputs.bundle-path }}
+          FIRST_ATTESTATION_ID: ${{ steps.attest_first.outputs.attestation-id }}
+          FIRST_ATTESTATION_URL: ${{ steps.attest_first.outputs.attestation-url }}
+          SECOND_ATTESTATION_ID: ${{ steps.attest_second.outputs.attestation-id }}
+          SECOND_ATTESTATION_URL: ${{ steps.attest_second.outputs.attestation-url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SECOND_BUNDLE_PATH"
+          test -f "$SECOND_BUNDLE_PATH"
+          cp "$SECOND_BUNDLE_PATH" evidence/second.intoto.jsonl
+
+          if cmp -s evidence/valid.intoto.jsonl evidence/second.intoto.jsonl; then
+            bundles_byte_stable=true
+          else
+            bundles_byte_stable=false
+          fi
+
+          jq -r '.dsseEnvelope.payload' evidence/valid.intoto.jsonl | base64 --decode \
+            > evidence/first-statement.json
+          jq -r '.dsseEnvelope.payload' evidence/second.intoto.jsonl | base64 --decode \
+            > evidence/second-statement.json
+          if cmp -s evidence/first-statement.json evidence/second-statement.json; then
+            statements_byte_stable=true
+          else
+            statements_byte_stable=false
+          fi
+
+          case "$FIRST_BUNDLE_PATH" in
+            /*) first_path_absolute=true ;;
+            *) first_path_absolute=false ;;
+          esac
+          case "$SECOND_BUNDLE_PATH" in
+            /*) second_path_absolute=true ;;
+            *) second_path_absolute=false ;;
+          esac
+
+          jq -n \
+            --arg observed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg action_version "v4.2.2" \
+            --arg action_sha "1e69f48acb82d1966a394da916b4c1698aa569d6" \
+            --arg first_basename "$FIRST_BUNDLE_BASENAME" \
+            --arg second_basename "$(basename "$SECOND_BUNDLE_PATH")" \
+            --arg media_type "$(jq -er '.mediaType' evidence/valid.intoto.jsonl)" \
+            --arg first_sha256 "$(sha256sum evidence/valid.intoto.jsonl | cut -d' ' -f1)" \
+            --arg second_sha256 "$(sha256sum evidence/second.intoto.jsonl | cut -d' ' -f1)" \
+            --arg first_statement_sha256 "$(sha256sum evidence/first-statement.json | cut -d' ' -f1)" \
+            --arg second_statement_sha256 "$(sha256sum evidence/second-statement.json | cut -d' ' -f1)" \
+            --arg first_attestation_id "$FIRST_ATTESTATION_ID" \
+            --arg first_attestation_url "$FIRST_ATTESTATION_URL" \
+            --arg second_attestation_id "$SECOND_ATTESTATION_ID" \
+            --arg second_attestation_url "$SECOND_ATTESTATION_URL" \
+            --argjson first_bytes "$(wc -c < evidence/valid.intoto.jsonl | tr -d ' ')" \
+            --argjson second_bytes "$(wc -c < evidence/second.intoto.jsonl | tr -d ' ')" \
+            --argjson first_path_absolute "$first_path_absolute" \
+            --argjson second_path_absolute "$second_path_absolute" \
+            --argjson bundles_byte_stable "$bundles_byte_stable" \
+            --argjson statements_byte_stable "$statements_byte_stable" \
+            '{
+              schema_version: 1,
+              observed_at: $observed_at,
+              mode: "custom",
+              action: {version: $action_version, sha: $action_sha},
+              deterministic_inputs: {
+                subject_checksums_path: "evidence/subject.checksums.txt",
+                predicate_type: "https://slsa-builder.dev/attestations/platform-contract-spike/v1",
+                predicate_path: "evidence/predicate.json"
+              },
+              output: {
+                format: "JSON-serialized Sigstore bundle",
+                media_type: $media_type,
+                first: {
+                  bundle_basename: $first_basename,
+                  bundle_path_output_nonempty: true,
+                  bundle_path_absolute: $first_path_absolute,
+                  bundle_path_existed_after_step: true,
+                  byte_length: $first_bytes,
+                  sha256: $first_sha256,
+                  statement_sha256: $first_statement_sha256,
+                  attestation_id: $first_attestation_id,
+                  attestation_url: $first_attestation_url
+                },
+                second: {
+                  bundle_basename: $second_basename,
+                  bundle_path_output_nonempty: true,
+                  bundle_path_absolute: $second_path_absolute,
+                  bundle_path_existed_after_step: true,
+                  byte_length: $second_bytes,
+                  sha256: $second_sha256,
+                  statement_sha256: $second_statement_sha256,
+                  attestation_id: $second_attestation_id,
+                  attestation_url: $second_attestation_url
+                }
+              },
+              byte_stability: {
+                identical_invocation_bundle_bytes_equal: $bundles_byte_stable,
+                signed_statement_payload_bytes_equal: $statements_byte_stable
+              }
+            }' > evidence/actions-attest-custom.json
+
+          test "$FIRST_BUNDLE_BASENAME" = "$(basename "$SECOND_BUNDLE_PATH")"
+          test "$statements_byte_stable" = true
+
+      - name: Verify npm provenance-file dry-run without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          empty_npmrc="$RUNNER_TEMP/f03-empty.npmrc"
+          : > "$empty_npmrc"
+
+          token_environment_unset=true
+          for variable_name in NPM_TOKEN NODE_AUTH_TOKEN NPM_ID_TOKEN; do
+            if [[ -n "${!variable_name-}" ]]; then
+              token_environment_unset=false
+            fi
+          done
+          test "$token_environment_unset" = true
+
+          auth_config_key_count="$(NPM_CONFIG_USERCONFIG="$empty_npmrc" npm config list --json | jq '
+            [to_entries[] | select(
+              (.key | test("(^|:)(_authToken|token|otp)$"; "i")) and
+              (.value != null) and (.value != "")
+            )] | length
+          ')"
+          test "$auth_config_key_count" -eq 0
+
+          set +e
+          env -u NPM_TOKEN -u NODE_AUTH_TOKEN -u NPM_ID_TOKEN \
+            NPM_CONFIG_USERCONFIG="$empty_npmrc" \
+            npm publish --dry-run --provenance-file "$FIRST_BUNDLE_PATH" ./evidence/fixture \
+            > evidence/npm-publish-dry-run.stdout.txt \
+            2> evidence/npm-publish-dry-run.stderr.txt
+          publish_status=$?
+          set -e
+
+          if grep -Eiq 'ENEEDAUTH|need auth|npm login|oidc/token/exchange|auth token' \
+            evidence/npm-publish-dry-run.stdout.txt evidence/npm-publish-dry-run.stderr.txt; then
+            auth_fallback_signal=true
+          else
+            auth_fallback_signal=false
+          fi
+
+          jq -n \
+            --arg observed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg node_version "$(node --version)" \
+            --arg npm_version "$(npm --version)" \
+            --arg bundle_basename "$FIRST_BUNDLE_BASENAME" \
+            --arg fixture_directory "evidence/fixture" \
+            --argjson exit_status "$publish_status" \
+            --argjson auth_config_key_count "$auth_config_key_count" \
+            --argjson token_environment_unset "$token_environment_unset" \
+            --argjson auth_fallback_signal "$auth_fallback_signal" \
+            '{
+              schema_version: 1,
+              observed_at: $observed_at,
+              runner: "ubuntu-24.04",
+              node_version: $node_version,
+              npm_version: $npm_version,
+              minimum_provenance_file_version: "9.7.0",
+              argv: ["npm", "publish", "--dry-run", "--provenance-file", $bundle_basename, $fixture_directory],
+              provenance_file_argument_form: "separate argv elements",
+              dry_run_exit_status: $exit_status,
+              option_accepted: ($exit_status == 0),
+              actual_publication_performed: false,
+              token_environment_unset: $token_environment_unset,
+              configured_auth_key_count: $auth_config_key_count,
+              auth_fallback_signal_observed: $auth_fallback_signal,
+              token_fallback_used: false
+            }' > evidence/npm-cli-provenance-file.json
+
+          test "$publish_status" -eq 0
+          test "$auth_fallback_signal" = false
+
+      - name: Read back GitHub repository attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api_version='2026-03-10'
+          predicate_type='https://slsa-builder.dev/attestations/platform-contract-spike/v1'
+
+          set +e
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            -H "X-GitHub-Api-Version: $api_version" \
+            "repos/${GITHUB_REPOSITORY}/attestations" \
+            > evidence/github-attestations-repository-get.json \
+            2> evidence/github-attestations-repository-get.stderr.txt
+          repository_get_exit_status=$?
+          set -e
+
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            -H "X-GitHub-Api-Version: $api_version" \
+            "repos/${GITHUB_REPOSITORY}/attestations/sha256:${SUBJECT_SHA256}" \
+            > evidence/github-attestations-digest-response.json
+
+          mkdir -p evidence/github-cli-download
+          (
+            cd evidence/github-cli-download
+            gh attestation download "${GITHUB_WORKSPACE}/${SUBJECT_TARBALL}" \
+              -R "$GITHUB_REPOSITORY" --limit 10
+          )
+          downloaded_files=(evidence/github-cli-download/*.jsonl)
+          test "${#downloaded_files[@]}" -eq 1
+          mv "${downloaded_files[0]}" evidence/github-cli-download/downloaded.intoto.jsonl
+          downloaded_line_count="$(wc -l < evidence/github-cli-download/downloaded.intoto.jsonl | tr -d ' ')"
+
+          gh attestation verify "$SUBJECT_TARBALL" -R "$GITHUB_REPOSITORY" \
+            --predicate-type "$predicate_type" --format json \
+            > evidence/github-attestation-verify.json
+
+          gh attestation --help > evidence/gh-attestation-help.txt
+          if grep -Eq '^  list:' evidence/gh-attestation-help.txt; then
+            list_subcommand_available=true
+          else
+            list_subcommand_available=false
+          fi
+
+          jq -n \
+            --arg observed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg api_version "$api_version" \
+            --arg digest "sha256:${SUBJECT_SHA256}" \
+            --arg gh_version "$(gh --version | sed -n '1p')" \
+            --argjson repository_get_exit_status "$repository_get_exit_status" \
+            --argjson list_subcommand_available "$list_subcommand_available" \
+            --argjson digest_response_keys "$(jq 'keys | sort' evidence/github-attestations-digest-response.json)" \
+            --argjson attestation_count "$(jq '.attestations | length' evidence/github-attestations-digest-response.json)" \
+            --argjson element_keys "$(jq '[.attestations[] | keys | sort] | unique' evidence/github-attestations-digest-response.json)" \
+            --argjson downloaded_line_count "$downloaded_line_count" \
+            --argjson verified_result_count "$(jq 'length' evidence/github-attestation-verify.json)" \
+            '{
+              schema_version: 1,
+              observed_at: $observed_at,
+              api_version: $api_version,
+              gh_version: $gh_version,
+              repository_get_without_digest: {
+                endpoint: "GET /repos/{owner}/{repo}/attestations",
+                exit_status: $repository_get_exit_status,
+                documented_as_create_only: true
+              },
+              digest_lookup: {
+                endpoint: "GET /repos/{owner}/{repo}/attestations/{subject_digest}",
+                subject_digest: $digest,
+                top_level_keys: $digest_response_keys,
+                attestation_count: $attestation_count,
+                element_keys: $element_keys
+              },
+              cli: {
+                list_subcommand_available: $list_subcommand_available,
+                readback_command: "gh attestation download <subject-path> --repo <owner/repo>",
+                downloaded_bundle_count: $downloaded_line_count,
+                verify_result_count: $verified_result_count
+              },
+              dedicated_unsigned_run_identity_field: false,
+              run_identity_location: "inside each returned Sigstore bundle signing certificate"
+            }' > evidence/github-attestation-store.json
+
+          test "$(jq '.attestations | length' evidence/github-attestations-digest-response.json)" -eq 2
+          test "$downloaded_line_count" -eq 2
+          test "$(jq 'length' evidence/github-attestation-verify.json)" -ge 1
+
+      - name: Observe npm published-attestation read-back shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          observed_package='pacote'
+          observed_version="$(npm view "$observed_package" version)"
+          endpoint="https://registry.npmjs.org/-/npm/v1/attestations/${observed_package}@${observed_version}"
+          curl --fail-with-body --silent --show-error --location "$endpoint" \
+            > evidence/npm-attestations-response.json
+
+          jq -e '.attestations | type == "array" and length > 0' \
+            evidence/npm-attestations-response.json
+          provenance_index="$(jq -er '
+            first(
+              [.attestations[].predicateType] |
+              to_entries[] |
+              select(.value == "https://slsa.dev/provenance/v1") |
+              .key
+            )
+          ' evidence/npm-attestations-response.json)"
+          test -n "$provenance_index"
+
+          jq -r ".attestations[$provenance_index].bundle.dsseEnvelope.payload" \
+            evidence/npm-attestations-response.json | base64 --decode \
+            > evidence/npm-published-statement.json
+          jq -r ".attestations[$provenance_index].bundle.verificationMaterial.certificate.rawBytes" \
+            evidence/npm-attestations-response.json | base64 --decode \
+            > evidence/npm-provenance-certificate.der
+          openssl x509 -inform DER -in evidence/npm-provenance-certificate.der -noout -text \
+            > evidence/npm-provenance-certificate.txt
+
+          certificate_run_invocation="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          text = Path("evidence/npm-provenance-certificate.txt").read_text(encoding="utf-8")
+          match = re.search(r"https://github\.com/[^\s]+/actions/runs/[1-9][0-9]*/attempts/[1-9][0-9]*", text)
+          if match is None:
+              raise SystemExit("Run Invocation URI was not found in the signing certificate")
+          print(match.group(0))
+          PY
+          )"
+          signed_invocation="$(jq -er '.predicate.runDetails.metadata.invocationId' \
+            evidence/npm-published-statement.json)"
+
+          CERTIFICATE_RUN_INVOCATION="$certificate_run_invocation" \
+            SIGNED_INVOCATION="$signed_invocation" \
+            python3 - <<'PY' > evidence/npm-run-identity.json
+          import json
+          import os
+          import re
+
+          pattern = re.compile(
+              r"^https://github\.com/(?P<repository>[^/]+/[^/]+)/actions/runs/"
+              r"(?P<run_id>[1-9][0-9]*)/attempts/(?P<run_attempt>[1-9][0-9]*)$"
+          )
+          certificate_uri = os.environ["CERTIFICATE_RUN_INVOCATION"]
+          signed_uri = os.environ["SIGNED_INVOCATION"]
+          certificate_match = pattern.fullmatch(certificate_uri)
+          signed_match = pattern.fullmatch(signed_uri)
+          if certificate_match is None or signed_match is None:
+              raise SystemExit("Run Invocation URI was malformed")
+          result = {
+              "certificate_extension_oid": "1.3.6.1.4.1.57264.1.21",
+              "certificate_extension_name": "Run Invocation URI",
+              "certificate_uri": certificate_uri,
+              "signed_predicate_path": "predicate.runDetails.metadata.invocationId",
+              "signed_predicate_uri": signed_uri,
+              "repository": certificate_match.group("repository"),
+              "run_id": certificate_match.group("run_id"),
+              "run_attempt": certificate_match.group("run_attempt"),
+              "certificate_and_predicate_uri_equal": certificate_uri == signed_uri,
+              "run_id_match_location": "the decimal path component after /actions/runs/",
+          }
+          print(json.dumps(result, indent=2, sort_keys=True))
+          PY
+
+          jq -n \
+            --arg observed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg endpoint_template 'https://registry.npmjs.org/-/npm/v1/attestations/{package-name}@{version}' \
+            --arg observed_package "${observed_package}@${observed_version}" \
+            --argjson top_level_keys "$(jq 'keys | sort' evidence/npm-attestations-response.json)" \
+            --argjson attestation_count "$(jq '.attestations | length' evidence/npm-attestations-response.json)" \
+            --argjson element_keys "$(jq '[.attestations[] | keys | sort] | unique' evidence/npm-attestations-response.json)" \
+            --argjson predicate_types "$(jq '[.attestations[].predicateType] | unique | sort' evidence/npm-attestations-response.json)" \
+            --argjson bundle_keys "$(jq '[.attestations[].bundle | keys | sort] | unique' evidence/npm-attestations-response.json)" \
+            --argjson bundle_media_types "$(jq '[.attestations[].bundle.mediaType] | unique | sort' evidence/npm-attestations-response.json)" \
+            --argjson run_identity "$(jq '.' evidence/npm-run-identity.json)" \
+            '{
+              schema_version: 1,
+              observed_at: $observed_at,
+              endpoint_template: $endpoint_template,
+              observed_package: $observed_package,
+              top_level_keys: $top_level_keys,
+              attestation_count: $attestation_count,
+              attestation_element_keys: $element_keys,
+              predicate_types: $predicate_types,
+              bundle_keys: $bundle_keys,
+              bundle_media_types: $bundle_media_types,
+              selection_rule: "select by predicateType, never array position",
+              run_identity: $run_identity
+            }' > evidence/npm-attestation-readback.json
+
+          jq -e '
+            (.predicate_types | index("https://slsa.dev/provenance/v1")) != null and
+            .run_identity.certificate_and_predicate_uri_equal == true and
+            (.run_identity.run_id | test("^[1-9][0-9]*$"))
+          ' evidence/npm-attestation-readback.json
+
+      - name: Assemble and assert the platform contract report
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg observed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg run_url "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --argjson actions_attest "$(jq '.' evidence/actions-attest-custom.json)" \
+            --argjson npm_cli "$(jq '.' evidence/npm-cli-provenance-file.json)" \
+            --argjson github_store "$(jq '.' evidence/github-attestation-store.json)" \
+            --argjson npm_readback "$(jq '.' evidence/npm-attestation-readback.json)" \
+            '{
+              schema_version: 1,
+              non_production: true,
+              observed_at: $observed_at,
+              repository: $repository,
+              run_id: $run_id,
+              run_attempt: $run_attempt,
+              run_url: $run_url,
+              actions_attest_custom: $actions_attest,
+              npm_cli_provenance_file: $npm_cli,
+              github_attestation_store: $github_store,
+              npm_attestation_readback: $npm_readback
+            }' > evidence/platform-contract-report.json
+
+          jq -e '
+            .non_production == true and
+            (.actions_attest_custom.output.first.bundle_basename | length > 0) and
+            (.actions_attest_custom.output.first.sha256 | test("^[0-9a-f]{64}$")) and
+            .actions_attest_custom.byte_stability.signed_statement_payload_bytes_equal == true and
+            (.npm_cli_provenance_file.npm_version | length > 0) and
+            .npm_cli_provenance_file.option_accepted == true and
+            .npm_cli_provenance_file.token_fallback_used == false and
+            .github_attestation_store.digest_lookup.attestation_count == 2 and
+            (.npm_attestation_readback.run_identity.run_id | test("^[1-9][0-9]*$"))
+          ' evidence/platform-contract-report.json
+
+      - name: Upload platform contract evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: f03-platform-contract-evidence
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 7

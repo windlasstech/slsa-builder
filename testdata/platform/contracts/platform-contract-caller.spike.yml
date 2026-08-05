@@ -1,0 +1,15 @@
+name: F03 Platform Contract Spike
+
+# NON-PRODUCTION SPIKE: the caller is pinned to one known callee commit.
+permissions: {}
+
+on:
+  workflow_dispatch:
+
+jobs:
+  call-platform-contract-spike:
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    uses: yunseo-kim/slsa-builder-conformance/.github/workflows/platform-contract-callee.yml@da168311ef70e08730978cbf3a29bd9b7569e1ad

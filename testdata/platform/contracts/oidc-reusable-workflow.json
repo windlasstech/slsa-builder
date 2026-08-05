@@ -1,0 +1,17 @@
+{
+  "audience": "f03-platform-contracts",
+  "event_name": "workflow_dispatch",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "job_workflow_ref": "yunseo-kim/slsa-builder-conformance/.github/workflows/platform-contract-callee.yml@f77aacf9a8c65c092a3590ac0bbe2ee54bb0ace1",
+  "job_workflow_sha": "f77aacf9a8c65c092a3590ac0bbe2ee54bb0ace1",
+  "ref": "refs/heads/main",
+  "repository": "yunseo-kim/slsa-builder-conformance",
+  "repository_id": "1323890605",
+  "repository_owner_id": "65203374",
+  "run_attempt": "1",
+  "run_id": "30998561080",
+  "sha": "f88eddbe957616872c4476d5b00fcfe9a8f87762",
+  "token_persisted": false,
+  "workflow_ref": "yunseo-kim/slsa-builder-conformance/.github/workflows/platform-contract-spike.yml@refs/heads/main",
+  "workflow_sha": "f88eddbe957616872c4476d5b00fcfe9a8f87762"
+}

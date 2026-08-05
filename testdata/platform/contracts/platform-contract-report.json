@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "result": "pass",
+  "non_production": true,
+  "observed_at": "2026-08-05T11:50:24Z",
+  "source_runs": {
+    "private_reusable_workflow": {
+      "run_id": "30998561080",
+      "purpose": "OIDC claims and queue syntax materialization",
+      "conclusion": "failure",
+      "failure_unrelated_to_recorded_contracts": true
+    },
+    "public_ephemeral_repository": {
+      "run_id": "31003035465",
+      "run_url": "https://github.com/yunseo-kim/slsa-builder-attest-spike/actions/runs/31003035465",
+      "purpose": "actions/attest, repository read-back, npm CLI, and npm metadata",
+      "conclusion": "success",
+      "repository_deleted_after_capture": false
+    }
+  },
+  "oidc": {
+    "job_workflow_ref": "yunseo-kim/slsa-builder-conformance/.github/workflows/platform-contract-callee.yml@f77aacf9a8c65c092a3590ac0bbe2ee54bb0ace1",
+    "job_workflow_sha": "f77aacf9a8c65c092a3590ac0bbe2ee54bb0ace1",
+    "job_workflow_ref_nonempty": true,
+    "job_workflow_sha_is_40_hex": true,
+    "token_persisted": false
+  },
+  "actions_attest": {
+    "mode": "custom",
+    "version": "v4.2.2",
+    "sha": "1e69f48acb82d1966a394da916b4c1698aa569d6",
+    "bundle_basename": "attestation.json",
+    "fixture_basename": "valid.intoto.jsonl",
+    "bundle_bytes_equal_for_identical_inputs": false,
+    "signed_statement_payload_bytes_equal_for_identical_inputs": true,
+    "repository_digest_readback_count": 2
+  },
+  "queue_max": {
+    "github_dot_com_syntax_accepted": true,
+    "documented_pending_capacity": 100,
+    "actionlint_version": "1.7.12",
+    "actionlint_syntax_accepted": false,
+    "ghes_support_claimed": false
+  },
+  "npm_cli": {
+    "runner": "ubuntu-24.04",
+    "node_version": "v24.18.0",
+    "npm_version": "11.16.0",
+    "minimum_provenance_file_version": "9.7.0",
+    "dry_run_exit_status": 0,
+    "provenance_file_option_accepted": true,
+    "token_fallback_used": false,
+    "actual_publication_performed": false
+  },
+  "npm_attestation_readback": {
+    "endpoint_template": "https://registry.npmjs.org/-/npm/v1/attestations/{package-name}@{version}",
+    "observed_package": "pacote@22.0.0",
+    "select_by_predicate_type": true,
+    "run_identity_certificate_oid": "1.3.6.1.4.1.57264.1.21",
+    "run_identity_signed_predicate_path": "predicate.runDetails.metadata.invocationId",
+    "certificate_and_predicate_uri_equal": true
+  },
+  "platform_caveats": {
+    "github_slsa_store_validation": "GitHub attestation storage semantically validates SLSA provenance and rejected an unsupported custom buildType while create-storage-record was enabled.",
+    "production_impact": "ADR 0055 makes GitHub attestation storage optional; Windlass production signing must not depend on storing a custom-buildType SLSA attestation in GitHub.",
+    "queue_overflow_runtime_surface": "Deferred to the isolated L03 overflow spike."
+  }
+}
