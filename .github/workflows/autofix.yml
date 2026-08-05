@@ -67,4 +67,10 @@ jobs:
           GOBIN="$RUNNER_TEMP/bin" go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1
 
       - name: Check shell script formatting
-        run: git ls-files -z -- "*.sh" | xargs -0 shfmt --diff -i 2 -ci -bn
+        # Empty input guard: xargs runs shfmt once with no files (reading an
+        # empty stdin) and returns 123 when the repo tracks no *.sh files.
+        run: |
+          files=$(git ls-files -- "*.sh")
+          if [ -n "$files" ]; then
+            echo "$files" | xargs shfmt --diff -i 2 -ci -bn
+          fi
