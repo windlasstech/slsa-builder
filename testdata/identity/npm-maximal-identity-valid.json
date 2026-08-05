@@ -1,0 +1,27 @@
+{
+  "claims": {
+    "iss": "https://token.actions.githubusercontent.com",
+    "job_workflow_ref": "windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@89abcdef0123456789abcdef0123456789abcdef",
+    "job_workflow_sha": "89abcdef0123456789abcdef0123456789abcdef",
+    "repository": "example/acme-widget",
+    "repository_id": "123456789",
+    "repository_owner_id": "9876543",
+    "sha": "0123456789abcdef0123456789abcdef01234567",
+    "ref": "refs/tags/v1.2.3",
+    "run_id": "30745570800",
+    "run_attempt": "2",
+    "runner_environment": "github-hosted"
+  },
+  "policy": {
+    "platform": "github.com",
+    "workflow_path": ".github/workflows/js-ts-npm-package-slsa3.yml",
+    "workflow_sha": "89abcdef0123456789abcdef0123456789abcdef",
+    "source_repository_uri": "https://github.com/example/acme-widget",
+    "source_repository_id": "123456789",
+    "source_repository_owner_id": "9876543",
+    "source_digest": "0123456789abcdef0123456789abcdef01234567",
+    "source_ref": "refs/tags/v1.2.3"
+  },
+  "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@89abcdef0123456789abcdef0123456789abcdef",
+  "run_invocation_uri": "https://github.com/example/acme-widget/actions/runs/30745570800/attempts/2"
+}

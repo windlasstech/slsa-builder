@@ -1,0 +1,5 @@
+{
+  "field": "iss",
+  "value": "https://token.actions.githubusercontent.com/",
+  "expected_diagnostic": "windlass.verify.error.issuer-mismatch"
+}
