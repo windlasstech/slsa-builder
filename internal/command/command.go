@@ -3,11 +3,12 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"sort"
+
+	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 )
 
 // ExitCodeSuccess indicates that the requested operation completed successfully.
@@ -18,8 +19,6 @@ const ExitCodeVerificationFailure = 1
 
 // ExitCodeInvocationFailure indicates that the requested operation could not be executed.
 const ExitCodeInvocationFailure = 2
-
-const verifierExecutionFailureID = "windlass.verify.error.verifier-execution-failure"
 
 // ErrVerificationFailure indicates that a command already emitted a completed policy-failure report.
 var ErrVerificationFailure = errors.New("verification failure reported")
@@ -77,7 +76,8 @@ func (d *Dispatcher) Dispatch(ctx context.Context, args []string, out io.Writer)
 		if errors.Is(err, ErrInvocationFailure) {
 			return Result{ExitCode: ExitCodeInvocationFailure}
 		}
-		if reportErr := writeInvocationReport(out, fmt.Sprintf("subcommand %q failed: %v", selected.Name(), err)); reportErr != nil {
+		message := RedactSecrets(fmt.Sprintf("subcommand %q failed: %v", selected.Name(), err))
+		if reportErr := writeInvocationReport(out, message); reportErr != nil {
 			return Result{ExitCode: ExitCodeInvocationFailure}
 		}
 		return Result{ExitCode: ExitCodeInvocationFailure}
@@ -111,49 +111,33 @@ func writeUsage(out io.Writer, commands map[string]Command) error {
 	return nil
 }
 
-// Diagnostic is one stable machine-readable report entry.
-type Diagnostic struct {
-	ID       string `json:"id"`
-	Severity string `json:"severity"`
-	Category string `json:"category"`
-	Check    string `json:"check"`
-	Message  string `json:"message"`
-}
+// Diagnostic is the shared closed diagnostic entry.
+type Diagnostic = diagnostic.Diagnostic
 
-// Report is the shared machine-readable command result.
-type Report struct {
-	SchemaVersion string       `json:"schema_version"`
-	Result        string       `json:"result"`
-	ExitCode      int          `json:"exit_code"`
-	PrimaryID     *string      `json:"primary_id"`
-	RunInvocation *string      `json:"run_invocation"`
-	Diagnostics   []Diagnostic `json:"diagnostics"`
-}
+// Report is the shared closed machine-readable command result.
+type Report = diagnostic.Report
 
 // WriteReport emits one JSON report object.
 func WriteReport(out io.Writer, report Report) error {
-	return json.NewEncoder(out).Encode(report)
-}
-
-// writeInvocationReport is the migration seam for internal/diagnostic (C03).
-func writeInvocationReport(out io.Writer, message string) error {
-	report := Report{
-		SchemaVersion: "1",
-		Result:        "fail",
-		ExitCode:      ExitCodeInvocationFailure,
-		PrimaryID:     stringPointer(verifierExecutionFailureID),
-		Diagnostics: []Diagnostic{{
-			ID:       verifierExecutionFailureID,
-			Severity: "error",
-			Category: "verifier-execution-failure",
-			Check:    "command.dispatch",
-			Message:  message,
-		}},
+	encoded, err := report.CanonicalJSON()
+	if err != nil {
+		return err
 	}
-
-	return WriteReport(out, report)
+	if _, err := out.Write(encoded); err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(out)
+	return err
 }
 
-func stringPointer(value string) *string {
-	return &value
+func writeInvocationReport(out io.Writer, message string) error {
+	entry, err := diagnostic.New(diagnostic.IDVerifierExecutionFailure, "command.dispatch", RedactSecrets(message))
+	if err != nil {
+		return err
+	}
+	report, err := diagnostic.Build(nil, []diagnostic.Diagnostic{entry}, nil)
+	if err != nil {
+		return err
+	}
+	return WriteReport(out, report)
 }

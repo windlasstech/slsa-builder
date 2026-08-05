@@ -56,7 +56,7 @@ func TestFixtureCheck(t *testing.T) {
 			if err := json.Unmarshal(output.Bytes(), &report); err != nil {
 				t.Fatalf("decode report: %v; output=%s", err, output.String())
 			}
-			if report.Result != test.wantResult {
+			if string(report.Result) != test.wantResult {
 				t.Errorf("result = %q, want %q", report.Result, test.wantResult)
 			}
 			if !equalOptionalString(report.PrimaryID, test.wantPrimaryID) {

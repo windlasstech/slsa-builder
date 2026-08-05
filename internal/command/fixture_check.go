@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/fixture"
 )
 
@@ -47,46 +48,36 @@ func (fixtureCheckCommand) Execute(ctx context.Context, args []string, out io.Wr
 
 	_, err := fixture.Load(*indexPath)
 	if err == nil {
-		return WriteReport(out, Report{
-			SchemaVersion: "1",
-			Result:        "pass",
-			ExitCode:      ExitCodeSuccess,
-			Diagnostics:   []Diagnostic{},
-		})
+		return writeDiagnostics(out, nil, nil)
 	}
 	if errors.Is(err, fixture.ErrInputUnavailable) {
-		if reportErr := WriteReport(out, Report{
-			SchemaVersion: "1",
-			Result:        "fail",
-			ExitCode:      ExitCodeInvocationFailure,
-			PrimaryID:     stringPointer(inputUnavailableID),
-			Diagnostics: []Diagnostic{{
-				ID:       inputUnavailableID,
-				Severity: "error",
-				Category: "input-unavailable",
-				Check:    "fixture.index",
-				Message:  err.Error(),
-			}},
-		}); reportErr != nil {
+		if reportErr := writeDiagnosticError(out, inputUnavailableID, "fixture.index", err.Error()); reportErr != nil {
 			return reportErr
 		}
 		return ErrInvocationFailure
 	}
 
-	if reportErr := WriteReport(out, Report{
-		SchemaVersion: "1",
-		Result:        "fail",
-		ExitCode:      ExitCodeVerificationFailure,
-		PrimaryID:     stringPointer(diagnosticsContractInvalidID),
-		Diagnostics: []Diagnostic{{
-			ID:       diagnosticsContractInvalidID,
-			Severity: "error",
-			Category: "diagnostics-contract-invalid",
-			Check:    "fixture.index",
-			Message:  err.Error(),
-		}},
-	}); reportErr != nil {
+	if reportErr := writeDiagnosticError(out, diagnosticsContractInvalidID, "fixture.index", err.Error()); reportErr != nil {
 		return reportErr
 	}
 	return ErrVerificationFailure
+}
+
+func writeDiagnosticError(out io.Writer, id, check, message string) error {
+	entry, err := diagnostic.New(id, check, RedactSecrets(message))
+	if err != nil {
+		return err
+	}
+	return writeDiagnostics(out, nil, []diagnostic.Diagnostic{entry})
+}
+
+func writeDiagnostics(out io.Writer, runInvocation *string, entries []diagnostic.Diagnostic) error {
+	if entries == nil {
+		entries = []diagnostic.Diagnostic{}
+	}
+	report, err := diagnostic.Build(runInvocation, entries, nil)
+	if err != nil {
+		return err
+	}
+	return WriteReport(out, report)
 }
