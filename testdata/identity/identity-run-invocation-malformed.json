@@ -1,0 +1,5 @@
+{
+  "field": "run_attempt",
+  "value": "0",
+  "expected_diagnostic": "windlass.verify.error.run-invocation-uri-invalid"
+}
