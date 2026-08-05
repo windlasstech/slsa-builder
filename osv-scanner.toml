@@ -1,0 +1,6 @@
+# Review by 2026-11-05: remove this exception if Sigstore no longer requires
+# golang.org/x/crypto/openpgp or the upstream advisory gains a fixed version.
+[[IgnoredVulns]]
+id = "GO-2026-5932"
+ignoreUntil = 2026-11-05
+reason = "govulncheck -test -show verbose reports GO-2026-5932 at module level only; go list -deps -test confirms no openpgp package enters this module's test closure"
