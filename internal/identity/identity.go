@@ -33,6 +33,7 @@ const (
 	IDBuilderIDNotImmutable             DiagnosticID = "windlass.verify.error.builder-id-not-immutable"
 	IDIssuerMismatch                    DiagnosticID = "windlass.verify.error.issuer-mismatch"
 	IDPackageRepositoryIdentityMismatch DiagnosticID = "windlass.verify.error.package-repository-identity-mismatch"
+	IDPolicySchemaInvalid               DiagnosticID = "windlass.verify.error.policy-schema-invalid"
 	IDRunInvocationURIInvalid           DiagnosticID = "windlass.verify.error.run-invocation-uri-invalid"
 	IDSelfHostedRunner                  DiagnosticID = "windlass.verify.error.self-hosted-runner"
 	IDSignerIdentityClaimMissing        DiagnosticID = "windlass.verify.error.signer-identity-claim-missing"
@@ -109,7 +110,7 @@ func repositoryCoordinates(raw string) (string, string, bool) {
 	}
 
 	parsed, err := url.Parse(raw)
-	if err != nil || parsed.Host == "" || parsed.Hostname() != githubHost || parsed.Port() != "" ||
+	if err != nil || parsed.Host == "" || !strings.EqualFold(parsed.Hostname(), githubHost) || parsed.Port() != "" ||
 		parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Opaque != "" {
 		return "", "", false
 	}
