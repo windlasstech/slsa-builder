@@ -10,6 +10,7 @@ import (
 func main() {
 	result := command.NewDispatcher(
 		command.NewFixtureCheckCommand(),
+		command.NewNPMProfileSelectCommand(),
 		command.NewVerifyHandoffCommand(),
 		command.NewVerifyAttestationCommand(),
 	).Dispatch(context.Background(), os.Args[1:], os.Stdout)
