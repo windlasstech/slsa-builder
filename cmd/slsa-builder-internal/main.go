@@ -8,6 +8,6 @@ import (
 )
 
 func main() {
-	result := command.NewDispatcher().Dispatch(context.Background(), os.Args[1:], os.Stdout)
+	result := command.NewDispatcher(command.NewFixtureCheckCommand()).Dispatch(context.Background(), os.Args[1:], os.Stdout)
 	os.Exit(result.ExitCode)
 }
