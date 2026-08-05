@@ -1,4 +1,8 @@
 // Package diagnostic implements the closed Windlass diagnostics and report contract.
+//
+// Evidence validation currently rejects known secret markers but does not define closed keys or
+// per-key formats. P03 and P04 must close those keys and formats before raw API responses flow into
+// Evidence.
 package diagnostic
 
 import (

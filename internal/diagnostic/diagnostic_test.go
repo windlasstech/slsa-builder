@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
 )
 
 func TestOrdering(t *testing.T) {
@@ -196,6 +198,30 @@ func TestClosedRegistryAndContractValidation(t *testing.T) {
 	}
 }
 
+func TestEvidenceCredentialShapeCurrentPolicy(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		evidence Evidence
+	}{
+		{name: "GitHub server token prefix", evidence: Evidence{"observed": "ghs_FAKE000000000000000000000000000000000"}},
+		{name: "JWT shape", evidence: Evidence{"observed": "eyJhbGciOiJub25lIn0.eyJzdWIiOiJmYWtlIn0.c2lnbmF0dXJl"}},
+		{name: "camel-case apiKey", evidence: Evidence{"apiKey": "fake-value"}},
+		{name: "scheme-relative userinfo URL", evidence: Evidence{"observed": "//fake-user:fake-pass@example.com/path"}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			diagnostic := mustDiagnostic(t, IDSignatureMismatch, "bundle.signature", "Signature mismatch.")
+			diagnostic.Evidence = test.evidence
+			if _, err := Build(nil, []Diagnostic{diagnostic}, nil); err != nil {
+				t.Fatalf("Build() rejected currently accepted Evidence shape: %v", err)
+			}
+		})
+	}
+}
+
 func TestCanonicalReportDeterminism(t *testing.T) {
 	t.Parallel()
 
@@ -249,7 +275,10 @@ func assertGolden(t *testing.T, report Report, name string) {
 	if err != nil {
 		t.Fatalf("CanonicalJSON() error = %v", err)
 	}
-	want = bytes.TrimSuffix(want, []byte("\n"))
+	want, err = jsoncanonicalizer.Transform(want)
+	if err != nil {
+		t.Fatalf("canonicalize golden %q: %v", name, err)
+	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("canonical report mismatch\ngot:  %s\nwant: %s", got, want)
 	}
