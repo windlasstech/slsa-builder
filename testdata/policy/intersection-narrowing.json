@@ -1,0 +1,1 @@
+{"baseline":{"source":"release-manifest","constraints":[{"field":"producer.workflow_sha","allowed":["0123456789abcdef0123456789abcdef01234567","89abcdef0123456789abcdef0123456789abcdef"]}]},"narrowing":{"source":"explicit-policy","constraints":[{"field":"producer.workflow_sha","allowed":["89abcdef0123456789abcdef0123456789abcdef"]}]},"expected_diagnostic":""}
