@@ -314,8 +314,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm_version="$(npm view npm version)"
-          npm_endpoint="https://registry.npmjs.org/-/npm/v1/attestations/npm@${npm_version}"
+          npm_observed_package='pacote@22.0.0'
+          npm_endpoint="https://registry.npmjs.org/-/npm/v1/attestations/${npm_observed_package}"
           npm_status="$(curl --silent --show-error --location \
             --output evidence/npm/npm-attestations-response.json \
             --write-out '%{http_code}' "$npm_endpoint")"
@@ -333,7 +333,7 @@ jobs:
 
           jq -n \
             --arg npm_endpoint_template 'https://registry.npmjs.org/-/npm/v1/attestations/{package-name}@{version}' \
-            --arg npm_observed_package "npm@${npm_version}" \
+            --arg npm_observed_package "$npm_observed_package" \
             --arg npm_status "$npm_status" \
             --argjson npm_count "$(jq '.attestations | length' evidence/npm/npm-attestations-response.json)" \
             --argjson npm_predicate_types "$(jq '[.attestations[].predicateType] | unique' evidence/npm/npm-attestations-response.json)" \

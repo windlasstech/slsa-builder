@@ -369,7 +369,7 @@ jobs:
         run: |
           set -euo pipefail
           observed_package='pacote'
-          observed_version="$(npm view "$observed_package" version)"
+          observed_version='22.0.0'
           endpoint="https://registry.npmjs.org/-/npm/v1/attestations/${observed_package}@${observed_version}"
           curl --fail-with-body --silent --show-error --location "$endpoint" \
             > evidence/npm-attestations-response.json

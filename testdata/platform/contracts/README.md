@@ -9,6 +9,14 @@ evidence combines reusable-workflow observations from the private conformance re
 successful run in a public, temporary repository. The temporary repository was used only because
 GitHub artifact attestation storage is unavailable to private repositories on the active plan.
 
+## Teardown status
+
+The evidence artifacts were downloaded and sanitized, but the public repository has not yet been
+deleted. The active GitHub CLI token lacks the `delete_repo` OAuth scope, and two device-flow
+authorization attempts timed out without approval. The repository remains temporary and must be
+deleted once that scope is granted. `platform-contract-report.json` records this state as
+`repository_deleted_after_capture: false`.
+
 ## Pinned outcomes
 
 - Reusable-workflow OIDC tokens contain nonempty `job_workflow_ref` and 40-hex `job_workflow_sha`
@@ -46,18 +54,18 @@ GitHub storage accepting a Windlass custom-buildType provenance record.
 
 ## Evidence map
 
-| File                            | Contract                                                    |
-| ------------------------------- | ----------------------------------------------------------- |
-| `platform-contract-report.json` | Acceptance summary and source-run split                     |
-| `oidc-reusable-workflow.json`   | Reusable-workflow OIDC claims                               |
-| `actions-attest-custom.json`    | Action pin, basename, bundle shape, and byte comparison     |
-| `valid.intoto.jsonl`            | Exact first bundle emitted by `actions/attest`              |
-| `github-attestation-store.json` | Digest REST and `gh` read-back shape                        |
-| `queue-max.json`                | github.com syntax acceptance and documented queue behavior  |
-| `actionlint-1.7.12.json`        | Current parser incompatibility                              |
-| `npm-cli-provenance-file.json`  | npm version, exact argv form, and no-token dry-run          |
-| `npm-attestation-readback.json` | npm endpoint shape and run-identity location                |
-| `*.spike.yml`                   | Non-production workflow copies used to produce the evidence |
+| File                            | Contract                                                            |
+| ------------------------------- | ------------------------------------------------------------------- |
+| `platform-contract-report.json` | Acceptance summary and source-run split                             |
+| `oidc-reusable-workflow.json`   | Reusable-workflow OIDC claims                                       |
+| `actions-attest-custom.json`    | Action pin, basename, bundle shape, and byte comparison             |
+| `valid.intoto.jsonl`            | Exact first bundle emitted by `actions/attest`                      |
+| `github-attestation-store.json` | Digest REST and `gh` read-back shape                                |
+| `queue-max.json`                | github.com syntax acceptance and documented queue behavior          |
+| `actionlint-1.7.12.json`        | Current parser incompatibility                                      |
+| `npm-cli-provenance-file.json`  | npm version, exact argv form, and no-token dry-run                  |
+| `npm-attestation-readback.json` | npm endpoint shape and run-identity location                        |
+| `*.spike.yml`                   | Non-production reproduction workflows with observed versions pinned |
 
 ## Official sources
 
