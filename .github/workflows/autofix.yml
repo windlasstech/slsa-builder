@@ -48,12 +48,19 @@ jobs:
           go-version: "1.26"
           cache: false
 
-      - name: Format Go with golangci-lint
+      # The golangci-lint action always prepends `run` to `args`, so it cannot
+      # invoke the v2 `fmt` subcommand. Install the pinned binary with the
+      # action, then run `fmt` directly.
+      - name: Install golangci-lint
         if: hashFiles('**/*.go') != ''
         uses: golangci/golangci-lint-action@db582008a42febd596419635a5abc9d9815daa9c # v9.2.1
         with:
           version: v2.12.2
-          args: fmt
+          install-only: true
+
+      - name: Format Go with golangci-lint
+        if: hashFiles('**/*.go') != ''
+        run: golangci-lint fmt
 
       - name: Install shfmt
         run: |
