@@ -1,0 +1,5 @@
+{
+  "field": "sha",
+  "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "expected_diagnostic": "windlass.verify.error.source-digest-mismatch"
+}

@@ -1,0 +1,5 @@
+{
+  "field": "job_workflow_sha",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "expected_diagnostic": "windlass.verify.error.signer-workflow-sha-mismatch"
+}

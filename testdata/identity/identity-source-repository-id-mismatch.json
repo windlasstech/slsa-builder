@@ -1,0 +1,5 @@
+{
+  "field": "repository_id",
+  "value": "555555555",
+  "expected_diagnostic": "windlass.verify.error.source-numeric-id-mismatch"
+}

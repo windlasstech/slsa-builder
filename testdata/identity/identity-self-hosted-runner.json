@@ -1,0 +1,5 @@
+{
+  "field": "runner_environment",
+  "value": "self-hosted",
+  "expected_diagnostic": "windlass.verify.error.self-hosted-runner"
+}
