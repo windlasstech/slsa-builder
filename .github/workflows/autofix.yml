@@ -1,4 +1,4 @@
-name: autofix.ci
+name: Format check
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   autofix:
-    name: Format with Prettier, golangci-lint, and shfmt
+    name: Check formatting with Prettier, golangci-lint, and shfmt
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -39,28 +39,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Format with Prettier
-        run: pnpm exec prettier --write "**/*.{md,yml,yaml,json,jsonc}"
+      - name: Check formatting with Prettier
+        run: pnpm exec prettier --check "**/*.{md,yml,yaml,json,jsonc}"
 
       - name: Set up Go
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          go-version: "1.26"
+          go-version: "1.26.5"
           cache: false
 
       # The golangci-lint action always prepends `run` to `args`, so it cannot
       # invoke the v2 `fmt` subcommand. Install the pinned binary with the
       # action, then run `fmt` directly.
       - name: Install golangci-lint
-        if: hashFiles('**/*.go') != ''
         uses: golangci/golangci-lint-action@db582008a42febd596419635a5abc9d9815daa9c # v9.2.1
         with:
           version: v2.12.2
           install-only: true
 
-      - name: Format Go with golangci-lint
-        if: hashFiles('**/*.go') != ''
-        run: golangci-lint fmt
+      - name: Check Go formatting with golangci-lint
+        run: golangci-lint fmt --diff
 
       - name: Install shfmt
         run: |
@@ -68,7 +66,5 @@ jobs:
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           GOBIN="$RUNNER_TEMP/bin" go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1
 
-      - name: Format shell scripts
-        run: shfmt -w -i 2 -ci -bn .
-
-      - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1.3.4
+      - name: Check shell script formatting
+        run: shfmt --diff -i 2 -ci -bn .
