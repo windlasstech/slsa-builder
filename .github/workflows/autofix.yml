@@ -45,7 +45,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          go-version: "1.26"
+          go-version: "1.26.5"
           cache: false
 
       # The golangci-lint action always prepends `run` to `args`, so it cannot
@@ -69,6 +69,12 @@ jobs:
           GOBIN="$RUNNER_TEMP/bin" go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1
 
       - name: Format shell scripts
-        run: shfmt -w -i 2 -ci -bn .
+        # Empty input guard: xargs runs shfmt once with no files (reading an
+        # empty stdin) and returns 123 when the repo tracks no *.sh files.
+        run: |
+          files=$(git ls-files -- "*.sh")
+          if [ -n "$files" ]; then
+            echo "$files" | xargs shfmt -w -i 2 -ci -bn
+          fi
 
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1.3.4
