@@ -1,0 +1,11 @@
+{
+  "artifact_name": "profile-payload-123456789-1",
+  "payload_file_name": "artifact.tar.gz",
+  "payload_kind": "primary-artifact",
+  "sha256": "8458d7a633b4cb9f781d4afbb11abc6be59f135c4b7798f7b9421e776683350e",
+  "files": {
+    "artifact.tar.gz": "trusted payload\n",
+    "unexpected.txt": "second file\n"
+  },
+  "expected_result": "fail"
+}

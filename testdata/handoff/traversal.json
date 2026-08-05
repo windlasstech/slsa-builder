@@ -1,0 +1,12 @@
+[
+  "../artifact.tar.gz",
+  "/tmp/artifact.tar.gz",
+  "directory/artifact.tar.gz",
+  "directory\\artifact.tar.gz",
+  "./artifact.tar.gz",
+  "artifact/../artifact.tar.gz",
+  "C:\\temp\\artifact.tar.gz",
+  ".",
+  "..",
+  "nul\u0000name"
+]
