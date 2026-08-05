@@ -1,0 +1,26 @@
+name: F01 Runtime Delivery Spike
+
+# NON-PRODUCTION SPIKE: the caller is pinned to one known callee commit.
+permissions: {}
+
+on:
+  workflow_dispatch:
+    inputs:
+      builder_sha:
+        description: Expected immutable called-workflow SHA
+        required: true
+        type: string
+      delivery_sha:
+        description: Optional tamper revision; defaults to builder_sha
+        required: false
+        type: string
+
+jobs:
+  call-runtime-delivery:
+    permissions:
+      contents: read
+      id-token: write
+    uses: yunseo-kim/slsa-builder-conformance/.github/workflows/runtime-delivery-callee.yml@e8cb8528dcd6a69bc9da93f6b5930a9aa5b09304
+    with:
+      builder_sha: ${{ inputs.builder_sha }}
+      delivery_sha: ${{ inputs.delivery_sha || inputs.builder_sha }}

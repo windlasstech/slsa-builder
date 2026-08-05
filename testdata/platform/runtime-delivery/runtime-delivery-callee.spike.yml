@@ -1,0 +1,115 @@
+name: F01 Runtime Delivery Callee
+
+# NON-PRODUCTION SPIKE: delivery_sha exists only to inject a tamper case.
+permissions: {}
+
+on:
+  workflow_call:
+    inputs:
+      builder_sha:
+        description: Expected immutable SHA of this called workflow
+        required: true
+        type: string
+      delivery_sha:
+        description: Spike-only source revision to deliver
+        required: true
+        type: string
+
+jobs:
+  prove-runtime-delivery:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout the explicitly delivered revision
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ inputs.delivery_sha }}
+          path: builder
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Authenticate delivered revision before Go execution
+        env:
+          REQUESTED_SHA: ${{ inputs.builder_sha }}
+          PLATFORM_WORKFLOW_SHA: ${{ job.workflow_sha }}
+          PLATFORM_WORKFLOW_REF: ${{ job.workflow_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          delivered_sha="$(git -C builder rev-parse HEAD)"
+
+          if [[ ! "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+             [[ "$REQUESTED_SHA" != "$PLATFORM_WORKFLOW_SHA" ]] ||
+             [[ "$delivered_sha" != "$PLATFORM_WORKFLOW_SHA" ]]; then
+            jq -n \
+              --arg requested_sha "$REQUESTED_SHA" \
+              --arg executed_sha "$delivered_sha" \
+              --arg platform_workflow_sha "$PLATFORM_WORKFLOW_SHA" \
+              --arg platform_workflow_ref "$PLATFORM_WORKFLOW_REF" \
+              '{
+                schema_version: 1,
+                result: "fail",
+                requested_sha: $requested_sha,
+                executed_sha: $executed_sha,
+                job_workflow_sha: null,
+                job_workflow_ref: null,
+                platform_workflow_sha: $platform_workflow_sha,
+                platform_workflow_ref: $platform_workflow_ref,
+                payload_executed: false,
+                failure_phase: "pre-execution",
+                failure_reason: "delivered revision does not match the platform-resolved called-workflow SHA"
+              }' > evidence/runtime-delivery-report.json
+            exit 1
+          fi
+
+          printf 'DELIVERED_SHA=%s\n' "$delivered_sha" >> "$GITHUB_ENV"
+
+      - name: Verify OIDC binding and execute trusted Go payload
+        env:
+          EXPECTED_SHA: ${{ inputs.builder_sha }}
+          EXPECTED_REPOSITORY: ${{ job.workflow_repository }}
+          EXPECTED_WORKFLOW_PATH: ${{ job.workflow_file_path }}
+          EXPECTED_WORKFLOW_REF: ${{ job.workflow_ref }}
+          PLATFORM_WORKFLOW_SHA: ${{ job.workflow_sha }}
+          OIDC_AUDIENCE: runtime-delivery-spike
+          PAYLOAD_MARKER: ${{ github.workspace }}/evidence/payload-executed
+          REPORT_PATH: ${{ github.workspace }}/evidence/runtime-delivery-report.json
+        working-directory: builder
+        shell: bash
+        run: go run ./spike/runtime-delivery/main.go
+
+      - name: Assert passing evidence
+        if: ${{ success() }}
+        env:
+          EXPECTED_SHA: ${{ inputs.builder_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            '.result == "pass" and
+             .requested_sha == $sha and
+             .executed_sha == $sha and
+             .job_workflow_sha == $sha and
+             .platform_workflow_sha == $sha and
+             .payload_executed == true' \
+            evidence/runtime-delivery-report.json
+          test -f evidence/payload-executed
+
+      - name: Upload runtime delivery report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runtime-delivery-report
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
