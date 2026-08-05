@@ -37,7 +37,7 @@ func TestVerifyOneFileHandoff(t *testing.T) {
 			directory := materialize(t, fixture.Files)
 			contract := contractFromFixture(t, fixture)
 
-			verifiedPath, err := handoff.VerifyOneFile(directory, contract)
+			verifiedPayload, err := handoff.VerifyOneFile(directory, contract)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("VerifyOneFile unexpectedly succeeded")
@@ -50,8 +50,8 @@ func TestVerifyOneFileHandoff(t *testing.T) {
 			if fixture.ExpectedResult != "pass" {
 				t.Fatalf("fixture expected_result = %q, want pass", fixture.ExpectedResult)
 			}
-			if filepath.Base(verifiedPath) != fixture.PayloadFileName {
-				t.Fatalf("verified payload = %q, want basename %q", verifiedPath, fixture.PayloadFileName)
+			if got := string(consumeVerifiedPayload(t, verifiedPayload)); got != fixture.Files[fixture.PayloadFileName] {
+				t.Fatalf("verified payload = %q, want %q", got, fixture.Files[fixture.PayloadFileName])
 			}
 
 			encoded, err := json.Marshal(contract)
@@ -62,6 +62,88 @@ func TestVerifyOneFileHandoff(t *testing.T) {
 			if string(encoded) != want {
 				t.Fatalf("handoff JSON = %s, want %s", encoded, want)
 			}
+		})
+	}
+}
+
+func TestVerifiedPayloadSurvivesPathReplacement(t *testing.T) {
+	directory := t.TempDir()
+	payloadPath := filepath.Join(directory, "payload.bin")
+	trustedPayload := []byte("trusted")
+	if err := os.WriteFile(payloadPath, trustedPayload, 0o600); err != nil {
+		t.Fatalf("write trusted payload: %v", err)
+	}
+
+	verifiedPayload, err := handoff.VerifyOneFile(
+		directory,
+		validContract("payload.bin", digest.SumSHA256(trustedPayload)),
+	)
+	if err != nil {
+		t.Fatalf("VerifyOneFile: %v", err)
+	}
+	if err := os.WriteFile(payloadPath, []byte("substituted"), 0o600); err != nil {
+		t.Fatalf("replace payload: %v", err)
+	}
+
+	if got := string(consumeVerifiedPayload(t, verifiedPayload)); got != string(trustedPayload) {
+		t.Fatalf("consumed payload = %q, want verified bytes %q", got, trustedPayload)
+	}
+}
+
+func TestRejectMissingDigestValueBeforeOpeningPayload(t *testing.T) {
+	encoded := []byte(`{
+  "transport":"github-actions-artifact",
+  "artifact_name":"artifact-1",
+  "payload_file_name":"payload.bin",
+  "payload_kind":"primary-artifact",
+  "digest":{"algorithm":"sha256"}
+}`)
+
+	var contract handoff.Handoff
+	err := json.Unmarshal(encoded, &contract)
+	if err == nil {
+		_, err = handoff.VerifyOneFile(filepath.Join(t.TempDir(), "must-not-open"), contract)
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("missing digest.value reached filesystem access: %v", err)
+	}
+	assertSchemaMismatch(t, err)
+}
+
+func TestRejectMalformedHandoffDigestWithSchemaDiagnostic(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+	}{
+		{
+			name:  "uppercase",
+			value: `"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"`,
+		},
+		{
+			name:  "short",
+			value: `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"`,
+		},
+		{
+			name:  "non-hex",
+			value: `"gaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"`,
+		},
+		{name: "null", value: `null`},
+		{name: "wrong type", value: `123`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			encoded := []byte(`{
+  "transport":"github-actions-artifact",
+  "artifact_name":"artifact-1",
+  "payload_file_name":"payload.bin",
+  "payload_kind":"primary-artifact",
+  "digest":{"algorithm":"sha256","value":` + tt.value + `}
+}`)
+
+			var contract handoff.Handoff
+			err := json.Unmarshal(encoded, &contract)
+			assertSchemaMismatch(t, err)
 		})
 	}
 }
@@ -143,5 +225,48 @@ func contractFromFixture(t *testing.T, fixture handoffFixture) handoff.Handoff {
 			Algorithm: handoff.AlgorithmSHA256,
 			Value:     expected,
 		},
+	}
+}
+
+func validContract(name string, expected digest.SHA256) handoff.Handoff {
+	return handoff.Handoff{
+		Transport:       handoff.TransportGitHubActionsArtifact,
+		ArtifactName:    "artifact-1",
+		PayloadFileName: name,
+		PayloadKind:     "primary-artifact",
+		Digest: handoff.Digest{
+			Algorithm: handoff.AlgorithmSHA256,
+			Value:     expected,
+		},
+	}
+}
+
+func consumeVerifiedPayload(t *testing.T, verifiedPayload any) []byte {
+	t.Helper()
+
+	switch value := verifiedPayload.(type) {
+	case []byte:
+		return value
+	case string:
+		payload, err := os.ReadFile(value)
+		if err != nil {
+			t.Fatalf("read verified payload path: %v", err)
+		}
+		return payload
+	default:
+		t.Fatalf("unsupported verified payload type %T", verifiedPayload)
+		return nil
+	}
+}
+
+func assertSchemaMismatch(t *testing.T, err error) {
+	t.Helper()
+
+	if err == nil {
+		t.Fatal("handoff JSON unexpectedly decoded")
+	}
+	want := handoff.DiagnosticID("windlass.verify.error.handoff-schema-mismatch")
+	if got := handoff.ErrorIDOf(err); got != want {
+		t.Fatalf("primary ID = %q, want %q (error: %v)", got, want, err)
 	}
 }

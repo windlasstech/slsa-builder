@@ -1,9 +1,14 @@
 // Package handoff verifies digest-bound, single-file GitHub Actions artifact handoffs.
+// A successful verification returns the exact payload bytes whose digest matched the contract;
+// callers never receive a mutable pathname as the verified object.
 package handoff
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -23,8 +28,12 @@ const (
 // DiagnosticID is a stable verification diagnostic identifier.
 type DiagnosticID string
 
-// DigestMismatchID is the primary diagnostic for recomputed digest mismatches.
-const DigestMismatchID DiagnosticID = "windlass.verify.error.digest-mismatch"
+const (
+	// DigestMismatchID is the primary diagnostic for recomputed digest mismatches.
+	DigestMismatchID DiagnosticID = "windlass.verify.error.digest-mismatch"
+	// HandoffSchemaMismatchID identifies missing or malformed core handoff fields.
+	HandoffSchemaMismatchID DiagnosticID = "windlass.verify.error.handoff-schema-mismatch"
+)
 
 // ErrDigestMismatch identifies payload bytes that differ from the expected digest.
 var ErrDigestMismatch = errors.New("handoff digest mismatch")
@@ -42,6 +51,51 @@ type Handoff struct {
 	PayloadFileName string `json:"payload_file_name"`
 	PayloadKind     string `json:"payload_kind"`
 	Digest          Digest `json:"digest"`
+}
+
+type digestJSON struct {
+	Algorithm *string        `json:"algorithm"`
+	Value     *digest.SHA256 `json:"value"`
+}
+
+type handoffJSON struct {
+	Transport       *string     `json:"transport"`
+	ArtifactName    *string     `json:"artifact_name"`
+	PayloadFileName *string     `json:"payload_file_name"`
+	PayloadKind     *string     `json:"payload_kind"`
+	Digest          *digestJSON `json:"digest"`
+}
+
+// UnmarshalJSON strictly decodes and validates every required core handoff field.
+func (contract *Handoff) UnmarshalJSON(encoded []byte) error {
+	var decodedJSON handoffJSON
+	decoder := json.NewDecoder(bytes.NewReader(encoded))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&decodedJSON); err != nil {
+		return schemaMismatchError(fmt.Errorf("decode handoff JSON: %w", err))
+	}
+	if decodedJSON.Transport == nil || decodedJSON.ArtifactName == nil ||
+		decodedJSON.PayloadFileName == nil || decodedJSON.PayloadKind == nil ||
+		decodedJSON.Digest == nil || decodedJSON.Digest.Algorithm == nil ||
+		decodedJSON.Digest.Value == nil {
+		return schemaMismatchError(errors.New("handoff JSON is missing a required core field"))
+	}
+
+	decoded := Handoff{
+		Transport:       *decodedJSON.Transport,
+		ArtifactName:    *decodedJSON.ArtifactName,
+		PayloadFileName: *decodedJSON.PayloadFileName,
+		PayloadKind:     *decodedJSON.PayloadKind,
+		Digest: Digest{
+			Algorithm: *decodedJSON.Digest.Algorithm,
+			Value:     *decodedJSON.Digest.Value,
+		},
+	}
+	if err := decoded.Validate(); err != nil {
+		return schemaMismatchError(fmt.Errorf("validate handoff JSON: %w", err))
+	}
+	*contract = decoded
+	return nil
 }
 
 // VerificationError carries the stable diagnostic ID for a handoff failure.
@@ -116,57 +170,61 @@ func (contract Handoff) Validate() error {
 	return nil
 }
 
-// VerifyOneFile validates a one-file artifact directory and recomputes its SHA-256 digest.
-func VerifyOneFile(directory string, contract Handoff) (string, error) {
+// VerifyOneFile validates a one-file artifact directory and returns its verified payload bytes.
+func VerifyOneFile(directory string, contract Handoff) ([]byte, error) {
 	if err := contract.Validate(); err != nil {
-		return "", fmt.Errorf("validate handoff: %w", err)
+		return nil, schemaMismatchError(fmt.Errorf("validate handoff: %w", err))
 	}
 
 	root, err := os.OpenRoot(directory)
 	if err != nil {
-		return "", fmt.Errorf("open artifact directory: %w", err)
+		return nil, fmt.Errorf("open artifact directory: %w", err)
 	}
 	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
-		return closeRoot(root, "", fmt.Errorf("read artifact directory: %w", err))
+		return nil, closeRoot(root, fmt.Errorf("read artifact directory: %w", err))
 	}
 	if len(entries) != 1 {
-		return closeRoot(root, "", fmt.Errorf("artifact directory contains %d entries, want exactly 1", len(entries)))
+		return nil, closeRoot(root, fmt.Errorf("artifact directory contains %d entries, want exactly 1", len(entries)))
 	}
 
 	entry := entries[0]
 	if entry.Name() != contract.PayloadFileName {
-		return closeRoot(root, "", fmt.Errorf("artifact payload file is %q, want %q", entry.Name(), contract.PayloadFileName))
+		return nil, closeRoot(root, fmt.Errorf("artifact payload file is %q, want %q", entry.Name(), contract.PayloadFileName))
 	}
 	info, err := root.Lstat(entry.Name())
 	if err != nil {
-		return closeRoot(root, "", fmt.Errorf("inspect artifact payload: %w", err))
+		return nil, closeRoot(root, fmt.Errorf("inspect artifact payload: %w", err))
 	}
 	if !info.Mode().IsRegular() {
-		return closeRoot(root, "", fmt.Errorf("artifact payload %q is not a regular file", entry.Name()))
+		return nil, closeRoot(root, fmt.Errorf("artifact payload %q is not a regular file", entry.Name()))
 	}
 
 	payload, err := root.Open(entry.Name())
 	if err != nil {
-		return closeRoot(root, "", fmt.Errorf("open artifact payload: %w", err))
+		return nil, closeRoot(root, fmt.Errorf("open artifact payload: %w", err))
 	}
-	if _, closeErr := closeRoot(root, "", nil); closeErr != nil {
+	if closeErr := closeRoot(root, nil); closeErr != nil {
 		if payloadCloseErr := payload.Close(); payloadCloseErr != nil {
-			return "", errors.Join(closeErr, fmt.Errorf("close artifact payload: %w", payloadCloseErr))
+			return nil, errors.Join(closeErr, fmt.Errorf("close artifact payload: %w", payloadCloseErr))
 		}
-		return "", closeErr
+		return nil, closeErr
 	}
 
-	actual, digestErr := digest.SumSHA256Reader(payload)
+	payloadBytes, readErr := io.ReadAll(payload)
 	payloadCloseErr := payload.Close()
-	if digestErr != nil {
-		return "", errors.Join(digestErr, wrapCloseError(payloadCloseErr, "close artifact payload"))
+	if readErr != nil {
+		return nil, errors.Join(
+			fmt.Errorf("read artifact payload: %w", readErr),
+			wrapCloseError(payloadCloseErr, "close artifact payload"),
+		)
 	}
 	if payloadCloseErr != nil {
-		return "", fmt.Errorf("close artifact payload: %w", payloadCloseErr)
+		return nil, fmt.Errorf("close artifact payload: %w", payloadCloseErr)
 	}
+	actual := digest.SumSHA256(payloadBytes)
 	if !actual.Equal(contract.Digest.Value) {
-		return "", &VerificationError{
+		return nil, &VerificationError{
 			PrimaryID: DigestMismatchID,
 			Err: fmt.Errorf(
 				"%w: payload %q computed %s, expected %s",
@@ -178,7 +236,7 @@ func VerifyOneFile(directory string, contract Handoff) (string, error) {
 		}
 	}
 
-	return filepath.Join(directory, entry.Name()), nil
+	return payloadBytes, nil
 }
 
 func validateArtifactName(name string) error {
@@ -205,11 +263,18 @@ func hasWindowsDrivePrefix(name string) bool {
 	return len(name) >= 2 && ((name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z')) && name[1] == ':'
 }
 
-func closeRoot(root *os.Root, value string, err error) (string, error) {
-	if closeErr := root.Close(); closeErr != nil {
-		return "", errors.Join(err, fmt.Errorf("close artifact directory: %w", closeErr))
+func schemaMismatchError(err error) error {
+	return &VerificationError{
+		PrimaryID: HandoffSchemaMismatchID,
+		Err:       fmt.Errorf("handoff schema mismatch: %w", err),
 	}
-	return value, err
+}
+
+func closeRoot(root *os.Root, err error) error {
+	if closeErr := root.Close(); closeErr != nil {
+		return errors.Join(err, fmt.Errorf("close artifact directory: %w", closeErr))
+	}
+	return err
 }
 
 func wrapCloseError(err error, operation string) error {
