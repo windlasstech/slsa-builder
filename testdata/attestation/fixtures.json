@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "source": {
+    "bundle": "../platform/contracts/valid.intoto.jsonl",
+    "expected_statement": "expected-statement.json",
+    "trusted_root": "trusted_root.json",
+    "bundle_origin": "F03 actions/attest v4.2.2 platform-contract evidence",
+    "trusted_root_origin": "sigstore-go v1.3.0 examples/trusted-root-public-good.json",
+    "trusted_root_license": "Apache-2.0",
+    "trusted_root_sha256": "4364d7724c04cc912ce2a6c45ed2610e8d8d1c4dc857fb500292738d4d9c8d2c"
+  },
+  "identity": {
+    "issuer": "https://token.actions.githubusercontent.com",
+    "signer_uri": "https://github.com/yunseo-kim/slsa-builder-attest-spike/.github/workflows/attest-npm-contract-spike.yml@refs/heads/main",
+    "workflow_sha": "b39d8bf04a5abe0e1a070d293edd199d0ac2133d",
+    "source_repository_uri": "https://github.com/yunseo-kim/slsa-builder-attest-spike",
+    "source_repository_id": "1323958651",
+    "source_repository_owner_id": "65203374",
+    "source_digest": "b39d8bf04a5abe0e1a070d293edd199d0ac2133d",
+    "source_ref": "refs/heads/main",
+    "runner_environment": "github-hosted",
+    "run_invocation_uri": "https://github.com/yunseo-kim/slsa-builder-attest-spike/actions/runs/31003035465/attempts/1"
+  },
+  "frozen_verification_time": "2026-08-05T11:55:17Z",
+  "refresh_before": "2026-08-12T00:00:00Z",
+  "mutations": {
+    "missing_sct": "remove-trusted-root-ctlogs",
+    "missing_rekor": "remove-bundle-tlog-entries",
+    "wrong_signer_identity": "replace-expected-source-repository-id",
+    "duplicate_json_member": "duplicate-bundle-media-type",
+    "statement_mismatch": "replace-expected-statement-subject"
+  }
+}
