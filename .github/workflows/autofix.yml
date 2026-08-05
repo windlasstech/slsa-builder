@@ -1,4 +1,4 @@
-name: Format check
+name: autofix.ci
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   autofix:
-    name: Check formatting with Prettier, golangci-lint, and shfmt
+    name: Format with Prettier, golangci-lint, and shfmt
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -39,8 +39,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check formatting with Prettier
-        run: pnpm exec prettier --check "**/*.{md,yml,yaml,json,jsonc}"
+      - name: Format with Prettier
+        run: pnpm exec prettier --write "**/*.{md,yml,yaml,json,jsonc}"
 
       - name: Set up Go
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
@@ -52,13 +52,15 @@ jobs:
       # invoke the v2 `fmt` subcommand. Install the pinned binary with the
       # action, then run `fmt` directly.
       - name: Install golangci-lint
+        if: hashFiles('**/*.go') != ''
         uses: golangci/golangci-lint-action@db582008a42febd596419635a5abc9d9815daa9c # v9.2.1
         with:
           version: v2.12.2
           install-only: true
 
-      - name: Check Go formatting with golangci-lint
-        run: golangci-lint fmt --diff
+      - name: Format Go with golangci-lint
+        if: hashFiles('**/*.go') != ''
+        run: golangci-lint fmt
 
       - name: Install shfmt
         run: |
@@ -66,11 +68,11 @@ jobs:
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           GOBIN="$RUNNER_TEMP/bin" go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1
 
-      - name: Check shell script formatting
+      - name: Format shell scripts
         # Empty input guard: xargs runs shfmt once with no files (reading an
         # empty stdin) and returns 123 when the repo tracks no *.sh files.
         run: |
           files=$(git ls-files -- "*.sh")
           if [ -n "$files" ]; then
-            echo "$files" | xargs shfmt --diff -i 2 -ci -bn
+            echo "$files" | xargs shfmt -w -i 2 -ci -bn
           fi
