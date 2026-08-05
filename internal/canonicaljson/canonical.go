@@ -15,9 +15,9 @@ func Canonicalize(data []byte) ([]byte, error) {
 
 	// The vetted reference transformer accepts an object or array at its root. Wrapping the complete
 	// strict value in an array preserves its JCS representation while supporting primitive roots.
-	wrapper := make([]byte, 0, len(data)+2)
-	wrapper = append(wrapper, '[')
-	wrapper = append(wrapper, data...)
+	// Build by append only: sizing the allocation with len(data)+2 trips CodeQL's
+	// go/allocation-size-overflow rule.
+	wrapper := append([]byte{'['}, data...)
 	wrapper = append(wrapper, ']')
 
 	canonical, err := jsoncanonicalizer.Transform(wrapper)
