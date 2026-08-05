@@ -53,6 +53,15 @@ func ValidateMaximalOIDCBinding(claims OIDCClaims, policy BindingPolicy) (Runtim
 	if err := validateBindingPolicy(policy); err != nil {
 		return RuntimeIdentity{}, err
 	}
+	if claims.Issuer == "" {
+		return RuntimeIdentity{}, missingIdentityClaim("iss")
+	}
+	if claims.JobWorkflowRef == "" {
+		return RuntimeIdentity{}, missingIdentityClaim("job_workflow_ref")
+	}
+	if claims.JobWorkflowSHA == "" {
+		return RuntimeIdentity{}, missingIdentityClaim("job_workflow_sha")
+	}
 	if claims.Issuer != trustedGitHubOIDCIssuer {
 		return RuntimeIdentity{}, validationError(IDIssuerMismatch, "iss", "issuer must exactly match the GitHub Actions issuer")
 	}
@@ -141,26 +150,40 @@ func ValidateHostedRunner(platform Platform, runnerEnvironment string) error {
 }
 
 func validateBindingPolicy(policy BindingPolicy) error {
+	if policy.Platform == "" {
+		return invalidBindingPolicy("platform", "policy platform is required")
+	}
 	if policy.Platform != PlatformGitHubDotCom {
 		return ValidateHostedRunner(policy.Platform, "")
 	}
 	if !validWorkflowPath(policy.WorkflowPath) {
-		return validationError(IDSignerWorkflowPathMismatch, "workflow_path", "policy workflow path is not canonical")
+		return invalidBindingPolicy("workflow_path", "policy workflow path is not canonical")
 	}
 	if !validFullSHA(policy.WorkflowSHA) {
-		return validationError(IDSignerWorkflowSHAMismatch, "workflow_sha", "policy workflow SHA is not a full lowercase SHA")
+		return invalidBindingPolicy("workflow_sha", "policy workflow SHA is not a full lowercase SHA")
 	}
 	if err := ValidateCanonicalRepositoryURI(policy.SourceRepositoryURI); err != nil {
-		return err
+		return invalidBindingPolicy("source.repository_uri", "policy repository URI is not canonical")
 	}
-	if !validPositiveDecimal(policy.SourceRepositoryID) || !validPositiveDecimal(policy.SourceRepositoryOwnerID) {
-		return validationError(IDSourceNumericIDMismatch, "source.repository_id", "policy numeric IDs must be positive decimal strings")
+	if !validPositiveDecimal(policy.SourceRepositoryID) {
+		return invalidBindingPolicy("source.repository_id", "policy numeric IDs must be positive decimal strings")
+	}
+	if !validPositiveDecimal(policy.SourceRepositoryOwnerID) {
+		return invalidBindingPolicy("source.repository_owner_id", "policy numeric IDs must be positive decimal strings")
 	}
 	if !validFullSHA(policy.SourceDigest) {
-		return validationError(IDSourceDigestMismatch, "source.digest", "policy source digest is not a full lowercase SHA")
+		return invalidBindingPolicy("source.digest", "policy source digest is not a full lowercase SHA")
 	}
 	if !validReleaseRef(policy.SourceRef) {
-		return validationError(IDSourceRefMismatch, "source.ref", "policy source ref is not a full release tag ref")
+		return invalidBindingPolicy("source.ref", "policy source ref is not a full release tag ref")
 	}
 	return nil
+}
+
+func invalidBindingPolicy(field, message string) error {
+	return validationError(IDPolicySchemaInvalid, field, "%s", message)
+}
+
+func missingIdentityClaim(field string) error {
+	return validationError(IDSignerIdentityClaimMissing, field, "required signer identity claim is absent")
 }
