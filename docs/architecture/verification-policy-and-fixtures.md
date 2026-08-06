@@ -14,7 +14,6 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
   [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md),
-  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
   [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),

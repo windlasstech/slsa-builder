@@ -6,7 +6,6 @@ trusted **core** and **profile-owned reusable workflows**.
 - Source ADRs: [0002](../decisions/0002-use-extensible-trusted-reusable-workflow-foundation.md),
   [0003](../decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md),
   [0004](../decisions/0004-use-go-as-primary-implementation-language.md),
-  [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md), and
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),

@@ -11,6 +11,10 @@ relations:
       "the repository-path buildType URI value; the Windlass-generated provenance decision remains
       in force"
   - type: see-also
+    target: ADR-0035
+  - type: see-also
+    target: ADR-0055
+  - type: see-also
     target: ADR-0068
   - type: see-also
     target: ADR-0070

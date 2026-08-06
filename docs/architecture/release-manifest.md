@@ -7,7 +7,6 @@ three-job signing boundary that produces and publishes the manifest.
 
 - Source ADRs: [0028](../decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md),
   [0031](../decisions/0031-use-sigstore-signed-in-toto-release-manifest.md),
-  [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
   [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md),

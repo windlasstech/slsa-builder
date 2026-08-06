@@ -8,6 +8,8 @@ relations:
   - type: superseded-by
     target: ADR-0077
   - type: see-also
+    target: ADR-0029
+  - type: see-also
     target: ADR-0069
   - type: see-also
     target: ADR-0071
