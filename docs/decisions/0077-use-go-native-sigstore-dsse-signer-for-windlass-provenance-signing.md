@@ -5,17 +5,10 @@ status: accepted
 date: 12026-08-06
 decision-makers: Yunseo Kim
 relations:
-  - type: partially-supersedes
+  - type: supersedes
     target: ADR-0035
-    scope:
-      "the selection of actions/attest as the Windlass signing adapter and its adapter-specific
-      permissions and storage guidance; signer-independent isolation and verifier requirements
-      remain"
-  - type: partially-supersedes
+  - type: supersedes
     target: ADR-0055
-    scope:
-      "actions/attest custom-mode Statement construction for Windlass signing; Windlass-owned
-      provenance semantics and post-sign payload verification remain"
   - type: partially-supersedes
     target: ADR-0071
     scope:
@@ -167,6 +160,9 @@ adapter and does not justify retaining `actions/attest` as a signer.
   5 release sidecar.
 - Good, because the isolated signing job and authenticated handoff preserve the organization's SLSA
   Build L3 target.
+- Good, because the builder identity is unchanged: the signer identity (GitHub Actions OIDC), bundle
+  format, `builder.id` meaning, and verifier expectations are identical to the superseded adapter
+  path, so ADR 0035's distinct-builder-identity migration criterion does not trigger.
 - Neutral, because C06's cryptographic verification core is unchanged; it verifies a different
   conforming producer bundle and adds exact payload comparison.
 - Good, because npm, Wave 4 release-manifest signing, and future profiles share one adapter contract
@@ -271,13 +267,15 @@ This decision is confirmed when:
 
 ## More Information
 
-This decision partially supersedes ADR 0035's selection of `actions/attest` and adapter-specific
-guidance while preserving its signer-independent isolation and verifier requirements. It partially
-supersedes ADR 0055's custom-mode Statement construction while preserving Windlass-owned semantics
-and post-sign payload verification. It also partially supersedes ADR 0071's signing-adapter
-descriptor for every producer profile while preserving ADR 0071's field classification and
-closed-set policy. ADR 0064 is unchanged; its npm subject remains the demonstrated instance that
-proved the structural defect.
+This decision supersedes ADR 0035 in full: its only self-owned decisions were the adapter selection
+and adapter-specific guidance, and its anticipated `sigstore-go` migration is realized here; the
+isolation and verifier requirements it cited were inherited from ADR 0029 and SLSA v1.2 rather than
+decided there. It supersedes ADR 0055 in full for the same reason: custom-mode Statement
+construction was its sole decision, while Windlass-owned semantics belong to ADR 0029 and post-sign
+payload verification is absorbed into the ADR 0069 verification policy. It partially supersedes ADR
+0071's signing-adapter descriptor for every producer profile while preserving ADR 0071's field
+classification and closed-set policy. ADR 0064 is unchanged; its npm subject remains the
+demonstrated instance that proved the structural defect.
 
 Reference points:
 

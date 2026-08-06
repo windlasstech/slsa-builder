@@ -1,15 +1,12 @@
 ---
 parent: Decisions
 nav_order: 55
-status: accepted
+status: superseded by ADR-0077
 date: 12026-07-08
 decision-makers: Yunseo Kim
 relations:
-  - type: partially-superseded-by
+  - type: superseded-by
     target: ADR-0077
-    scope:
-      "actions/attest custom-mode Statement construction for Windlass signing; Windlass-owned
-      provenance semantics and post-sign payload verification remain"
   - type: see-also
     target: ADR-0068
   - type: see-also
