@@ -18,7 +18,7 @@ docs/decisions/
 ├── 0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md
 ├── 0075-queue-mutation-segment-contenders-with-queue-max.md
 ├── 0076-use-observation-preflights-and-first-mutation-classification.md
-├── 0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md
+├── 0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
@@ -50,7 +50,7 @@ groupings.
 | Verifier identity binding     | `0068`                               | Immutable builder/source identities for verification.                        |
 | Transparency and trust root   | `0069`                               | Rekor inclusion, offline verification, trust root governance.                |
 | Build-environment recording   | `0070`, `0071`                       | Toolchain distributions, runner image, builder.version, builderDependencies. |
-| npm provenance signing        | `0077`                               | Go-native DSSE signing of the exact ADR 0064 Statement.                      |
+| Windlass provenance signing   | `0077`                               | Go-native exact-byte DSSE signing for all profiles and release manifests.    |
 
 ## CONVENTIONS
 
