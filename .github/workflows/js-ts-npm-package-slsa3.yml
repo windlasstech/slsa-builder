@@ -73,19 +73,18 @@ jobs:
         id: build
         working-directory: .slsa-builder
         env:
-          METADATA_ARTIFACT_NAME: js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
+          METADATA_ARTIFACT_NAME:
+            js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
           OBSERVED_REPOSITORY: ${{ github.repository }}
           OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-build-output
           PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
           REPOSITORY_ROOT: ${{ github.workspace }}/source
-          TARBALL_ARTIFACT_NAME: js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
+          TARBALL_ARTIFACT_NAME:
+            js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
         run: >-
-          go run ./cmd/slsa-builder-internal npm-profile-build
-          --repository-root "$REPOSITORY_ROOT"
-          --package-directory "$PACKAGE_DIRECTORY"
-          --observed-repository "$OBSERVED_REPOSITORY"
-          --output-directory "$OUTPUT_DIRECTORY"
-          --artifact-name "$TARBALL_ARTIFACT_NAME"
+          go run ./cmd/slsa-builder-internal npm-profile-build --repository-root "$REPOSITORY_ROOT"
+          --package-directory "$PACKAGE_DIRECTORY" --observed-repository "$OBSERVED_REPOSITORY"
+          --output-directory "$OUTPUT_DIRECTORY" --artifact-name "$TARBALL_ARTIFACT_NAME"
           --metadata-artifact-name "$METADATA_ARTIFACT_NAME"
 
       - name: Upload package tarball handoff
