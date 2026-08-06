@@ -7,7 +7,8 @@ trusted **core** and **profile-owned reusable workflows**.
   [0003](../decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md),
   [0004](../decisions/0004-use-go-as-primary-implementation-language.md),
   [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
-  [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md)
+  [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md), and
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md)
 
@@ -199,23 +200,26 @@ is malformed, or the recomputed SHA-256 does not match `digest.value`.
 
 ## Signing adapter boundary
 
-- The initial signing adapter is full-SHA-pinned `actions/attest`.
+- Signing adapters are profile-selected. The npm profile uses the Go-native `sigstore-go` signer
+  defined by ADR 0077; `actions/attest` remains available to other uses governed by ADR 0035.
 - The signing adapter is responsible for:
-  - Receiving a subject name and digest.
-  - Receiving a predicate type and predicate JSON.
-  - Constructing the in-toto Statement from those verified inputs.
+  - Receiving the profile's validated signing material.
+  - Preserving the exact in-toto Statement semantics owned by the trusted core and profile.
   - Producing a Sigstore-backed bundle.
-  - Optionally uploading the bundle to GitHub artifact attestation storage.
+  - Optionally uploading the bundle to GitHub artifact attestation storage only when the profile
+    explicitly permits that path.
 - The signing adapter is **not** responsible for:
   - Defining what `builder.id`, `buildType`, or `externalParameters` mean.
   - Validating ecosystem-specific subject or digest semantics.
   - Deciding whether an artifact is safe to publish.
-- The initial stock `actions/attest` adapter must not be invoked or documented as accepting a
-  complete in-toto Statement payload. The trusted core and profile own the subject, predicate type,
-  and predicate semantics, then the producer-side verification gate must extract the emitted
-  Statement from the signed bundle and prove that it matches those verified signing inputs.
-- A future ADR may replace `actions/attest` with direct Sigstore tooling, `sigstore-go`, or a
-  dedicated reusable workflow. Any migration must preserve the verifier-visible trust contract.
+- The npm adapter receives the exact preassembled Statement bytes, signs them as `sign.DSSEData`
+  with payload type `application/vnd.in-toto+json`, and must not reconstruct or reserialize them.
+  Its GitHub attestation storage path is disabled while that service rejects the profile's custom
+  `buildType`.
+- Uses that remain on stock `actions/attest` must follow their profile-specific custom-mode contract
+  and must not document the action as accepting complete Statement bytes.
+- Any future adapter migration must preserve the verifier-visible trust contract and update the
+  profile's closed `builderDependencies` descriptor.
 
 ## Profile extension contract
 
