@@ -40,6 +40,19 @@
       "covered-requirement": "ADR-0064.npm-purl-subject-digests"
     },
     {
+      "name": "npm-provenance-predicate-jcs-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/scoped-valid/package.json",
+      "provenance": "testdata/npm/provenance/npm-predicate.jcs.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ARCH-js-ts-npm-provenance-publish.signing-inputs"
+    },
+    {
       "name": "yarn-v4-root-valid",
       "type": "accepted",
       "surface": "npm",

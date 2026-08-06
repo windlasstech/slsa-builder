@@ -16,6 +16,7 @@ var requirementRegistry = map[string]string{
 	"ADR-0056.stale-lockfile-rejections":                            "ambiguous and missing selected lockfiles are rejected",
 	"ADR-0063.yarn-v4-selection":                                    "Yarn requires top-level exact Berry v4 packageManager metadata",
 	"ADR-0064.npm-purl-subject-digests":                             "npm PURL subjects require SHA-512 and SHA-256",
+	"ARCH-js-ts-npm-provenance-publish.signing-inputs":              "npm provenance signing inputs use the closed profile predicate contract",
 	"ARCH-slsa-provenance-v1.subject-cardinality":                   "SLSA provenance statements contain exactly one subject",
 	"ARCH-verification-policy-and-fixtures.fixture-manifest-schema": "Fixture manifests use the closed schema and consistent expectations",
 }
@@ -42,6 +43,9 @@ var fixturePhaseRequirements = map[string]map[string]struct{}{
 		"ADR-0056.stale-lockfile-rejections":     {},
 		"ADR-0063.yarn-v4-selection":             {},
 		"ADR-0064.npm-purl-subject-digests":      {},
+	},
+	"provenance-inputs": {
+		"ARCH-js-ts-npm-provenance-publish.signing-inputs": {},
 	},
 }
 
