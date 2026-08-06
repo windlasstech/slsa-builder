@@ -10,6 +10,7 @@ import (
 func main() {
 	result := command.NewDispatcher(
 		command.NewFixtureCheckCommand(),
+		command.NewNPMProfileBuildCommand(),
 		command.NewNPMProfileSelectCommand(),
 		command.NewVerifyHandoffCommand(),
 		command.NewVerifyAttestationCommand(),
