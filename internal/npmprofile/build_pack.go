@@ -295,7 +295,26 @@ func controlledEnvironment(root string) ([]string, error) {
 	}, nil
 }
 
+// allowedExecutableBasenames is the closed set of toolchain binaries runCommand
+// may execute. Callers resolve these from fixed names via exec.LookPath or from
+// the Corepack shim directory; rejecting any other basename is defense in depth
+// against a future caller passing influenced input.
+var allowedExecutableBasenames = map[string]bool{
+	"node":     true,
+	"npm":      true,
+	"npx":      true,
+	"corepack": true,
+	"pnpm":     true,
+	"yarn":     true,
+}
+
 func runCommand(ctx context.Context, directory, executable string, environment, arguments []string) (string, error) {
+	if !filepath.IsAbs(executable) {
+		return "", fmt.Errorf("executable path must be absolute: %q", executable)
+	}
+	if !allowedExecutableBasenames[filepath.Base(executable)] {
+		return "", fmt.Errorf("executable is not in the toolchain allowlist: %q", filepath.Base(executable))
+	}
 	commandContext, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()
 	command := exec.CommandContext(commandContext, executable, arguments...)

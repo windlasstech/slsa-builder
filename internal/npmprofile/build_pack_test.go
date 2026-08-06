@@ -205,3 +205,13 @@ func contains(values []string, want string) bool {
 	}
 	return false
 }
+
+func TestRunCommandExecutableAllowlist(t *testing.T) {
+	t.Parallel()
+	if _, err := runCommand(context.Background(), t.TempDir(), "npm", nil, []string{"--version"}); err == nil {
+		t.Fatal("relative executable path was accepted")
+	}
+	if _, err := runCommand(context.Background(), t.TempDir(), "/bin/sh", nil, []string{"-c", "true"}); err == nil {
+		t.Fatal("executable outside the toolchain allowlist was accepted")
+	}
+}
