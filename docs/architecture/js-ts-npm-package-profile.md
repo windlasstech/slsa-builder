@@ -21,7 +21,8 @@ profile.
   [0066](../decisions/0066-serialize-release-mutations-with-job-class-concurrency.md),
   [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
-  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md)
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -375,16 +376,18 @@ The caller job that invokes `.github/workflows/js-ts-npm-package-slsa3.yml` must
 for the selected mode. The called workflow must still reduce permissions at each internal job so
 build, publish, signing, release upload, and optional metadata authorities remain separated.
 
-| Mode                               | Required caller permissions                                                             | Notes                                                                     |
-| ---------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| npm-only                           | `contents: read`, `id-token: write`, `attestations: write`                              | Enables checkout, npm trusted publishing, and producer bundle signing.    |
-| release-asset                      | `contents: write`, `id-token: write`, `attestations: write`                             | Adds release upload authority for the existing caller-repository release. |
-| release-asset with linked metadata | `contents: write`, `id-token: write`, `attestations: write`, `artifact-metadata: write` | Adds linked artifact metadata only when explicitly enabled.               |
+| Mode                               | Required caller permissions                                      | Notes                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| npm-only                           | `contents: read`, `id-token: write`                              | Enables checkout, npm trusted publishing, and producer bundle signing.    |
+| release-asset                      | `contents: write`, `id-token: write`                             | Adds release upload authority for the existing caller-repository release. |
+| release-asset with linked metadata | `contents: write`, `id-token: write`, `artifact-metadata: write` | Adds linked artifact metadata only when explicitly enabled.               |
 
 `contents: write` is required at the caller job level only when release-asset mode is enabled. The
 called workflow must grant it only to the internal release upload job. Signing jobs must not have
 release mutation authority, release upload jobs must not have signing or package publishing
-authority, and linked artifact metadata jobs must not have signing or release upload authority.
+authority, and linked artifact metadata jobs must not have signing or release upload authority. The
+npm Go-signer path must not request `attestations: write` while GitHub attestation storage is
+disabled under ADR 0077.
 
 Static YAML conformance must reject a caller that enables release-asset mode without
 `contents: write`, or enables linked artifact metadata without `artifact-metadata: write`, before

@@ -21,7 +21,8 @@ tarball producer feeding the GitHub Release asset publisher.
   [0072](../decisions/0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md),
   [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
-  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md)
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Composed workflow internal handoff](composed-workflow-internal-handoff.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
@@ -82,7 +83,7 @@ The npm producer is responsible for:
 - Selecting the package directory and package manager.
 - Installing dependencies, running the build script, and packing the tarball.
 - Generating the Windlass SLSA provenance v1 Statement for the tarball.
-- Signing the provenance with `actions/attest`.
+- Signing the exact preassembled Statement bytes with the Go-native `sigstore-go` DSSE adapter.
 - Making the tarball and provenance bundle available to a same-run composition mapping layer.
 - Publishing to the npm registry using `npm publish --provenance-file` only after the composed
   release-state and policy preflight passes.

@@ -27,7 +27,8 @@ the package to an npm registry through a three-job digest-verified graph.
   and
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
   [0073](../decisions/0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md),
-  and [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md), and
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -91,13 +92,12 @@ or `release-upload` before `publish`.
 
 - Downloads the tarball artifact.
 - Recomputes the tarball digest and verifies it against the handoff.
-- Constructs and verifies the SLSA provenance v1 predicate and subject inputs.
-- Invokes full-SHA-pinned `actions/attest` custom mode to construct and sign the in-toto Statement.
+- Constructs and verifies the complete SLSA provenance v1 Statement.
+- Signs those exact Statement bytes through the Go-native `sigstore-go` DSSE adapter.
 - Uploads the signed bundle as a workflow artifact.
 - Permissions:
   - `contents: read`
   - `id-token: write`
-  - `attestations: write`
 - Must not have `contents: write` or npm publish authority.
 
 ### `publish`
@@ -162,7 +162,7 @@ retry attempt within the same `github.run_id`.
 | Job               | `contents` | `id-token` | `attestations` |
 | ----------------- | ---------- | ---------- | -------------- |
 | `build`           | read       | none       | none           |
-| `provenance-sign` | read       | write      | write          |
+| `provenance-sign` | read       | write      | none           |
 | `publish`         | read       | write      | none           |
 
 The initial npmjs production path must not request `packages: write`. A custom registry that needs
@@ -271,13 +271,12 @@ The artifact must contain exactly one file with this deterministic basename:
 <package-tarball-name>.intoto.jsonl
 ```
 
-The file contents are the signed Sigstore bundle emitted by the `actions/attest` custom-mode
-invocation for the package tarball. The `publish` job downloads the bundle and recomputes its
-digest.
+The file contents are the signed Sigstore bundle emitted by the Go-native DSSE signer for the
+package tarball. The `publish` job downloads the bundle and recomputes its digest.
 
-The signed bundle file is the exact byte sequence emitted by the `actions/attest` custom-mode
-invocation. The profile must hand off and submit those bytes unchanged; it must not replace the file
-with an extracted Statement, reserialized bundle, or GitHub-attestation-storage locator. See the
+The signed bundle file is the exact byte sequence emitted by the Go-native DSSE signer. The profile
+must hand off and submit those bytes unchanged; it must not replace the file with an extracted
+Statement, reserialized bundle, or GitHub-attestation-storage locator. See the
 [SLSA provenance v1 signed bundle file format](slsa-provenance-v1.md#signed-bundle-file-format).
 
 The provenance bundle handoff must satisfy the core same-run artifact handoff schema:
@@ -1149,10 +1148,10 @@ the same manager-dependent cardinality.
 
 ## Windlass-generated SLSA provenance
 
-The profile generates its own SLSA provenance v1 predicate and subject inputs. It does not rely on
-npm's automatic provenance feature and does not use `actions/attest` default provenance mode.
-Windlass owns the verifier-relevant contents of the emitted Statement: subject, `predicateType`,
-`buildType`, `externalParameters`, `builder.id`, and profile-defined predicate fields.
+The profile generates its own complete SLSA provenance v1 Statement. It does not rely on npm's
+automatic provenance feature or any `actions/attest` provenance mode. Windlass owns the
+verifier-relevant contents of the emitted Statement: subject, `predicateType`, `buildType`,
+`externalParameters`, `builder.id`, and profile-defined predicate fields.
 
 For this profile, `runDetails.builder.version` is the closed common-spec shape. Lowercase `nodejs`
 is required and equals the exact observed `node --version` output. Lowercase `corepack` is required
@@ -1192,16 +1191,15 @@ For example, the following npm-selected shape is invalid because `corepack` must
 }
 ```
 
-`runDetails.builder.builderDependencies` contains exactly one closed signing-adapter descriptor. Its
-full SHA is the actual pinned `actions/attest` action revision used by the signing step, and the
-same 40-character lowercase SHA must appear in both the URI suffix and `digest.gitCommit`:
+`runDetails.builder.builderDependencies` contains exactly one closed signing-adapter descriptor. It
+identifies the governed `sigstore-go` module version and checksum used by the signing binary:
 
 ```json
 [
   {
-    "uri": "git+https://github.com/actions/attest@0123456789abcdef0123456789abcdef01234567",
+    "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
     "digest": {
-      "gitCommit": "0123456789abcdef0123456789abcdef01234567"
+      "h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="
     },
     "annotations": {
       "role": "signing-adapter"
@@ -1211,11 +1209,11 @@ same 40-character lowercase SHA must appear in both the URI suffix and `digest.g
 ```
 
 The profile must not add build-job actions or any other builder dependency. A missing or additional
-descriptor, malformed or unequal SHA, URI/action-revision disagreement, unknown member, or role
-other than `"signing-adapter"` fails candidate-predicate validation with
-`windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity `error`, exit code
-`1`, before signing. The npm CLI version is already recorded by the npm profile in
-`externalParameters.runtime.npm_version` and, for npm-selected runs, as
+descriptor, malformed URI or checksum, URI/module-version disagreement, checksum disagreement with
+the signing binary, unknown member, or role other than `"signing-adapter"` fails candidate-predicate
+validation with `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity
+`error`, exit code `1`, before signing. The npm CLI version is already recorded by the npm profile
+in `externalParameters.runtime.npm_version` and, for npm-selected runs, as
 `externalParameters.package_manager.version`, so `builder.version` must not add an npm key.
 Runner-image identity remains in the descriptor named `runner-image`.
 
@@ -1225,9 +1223,9 @@ not agree:
 ```json
 [
   {
-    "uri": "git+https://github.com/actions/attest@0123456789abcdef0123456789abcdef01234567",
+    "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
     "digest": {
-      "gitCommit": "89abcdef0123456789abcdef0123456789abcdef"
+      "h1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
     },
     "annotations": {
       "role": "signing-adapter"
@@ -1236,28 +1234,17 @@ not agree:
 ]
 ```
 
-## `actions/attest` signing adapter
+## Go-native `sigstore-go` signing adapter
 
-The `provenance-sign` job invokes stock, full-SHA-pinned `actions/attest` in custom attestation
-mode. Windlass supplies only the adapter inputs supported by that mode:
+The `provenance-sign` job uses `sigstore-go` v1.3.0 to sign the exact complete Statement bytes that
+Windlass assembled and validated:
 
-| Adapter input    | Required value                                                               |
-| ---------------- | ---------------------------------------------------------------------------- |
-| Subject name     | The verified npm Package URL, equal to `subject[0].name`.                    |
-| Subject digest   | The verified tarball digest map, including lowercase `sha512` and `sha256`.  |
-| `predicate-type` | `https://slsa.dev/provenance/v1`.                                            |
-| Predicate input  | The Windlass-generated SLSA provenance predicate JSON, not a full Statement. |
+| Signer input | Required value                                                                    |
+| ------------ | --------------------------------------------------------------------------------- |
+| DSSE data    | Exact preassembled in-toto Statement bytes; no reconstruction or reserialization. |
+| Payload type | `application/vnd.in-toto+json`.                                                   |
 
-The deterministic predicate input file basename is:
-
-```text
-slsa-provenance-predicate.json
-```
-
-This file is an adapter input only. It must not be uploaded, published, or redistributed as the
-provenance bundle.
-
-Before invoking the adapter, the producer must validate the complete candidate predicate against the
+Before invoking the adapter, the producer must validate the complete candidate Statement against the
 common SLSA and npm-profile closed schemas and expected captured values. This pre-sign gate includes
 the closed external-parameter groups, manager-dependent enumerated dependency set,
 `builder.version`, and sole signing-adapter builder dependency. Missing package-manager-distribution
@@ -1267,23 +1254,25 @@ or runner-image capture evidence fails with `windlass.verify.error.input-unavail
 candidate that violates a closed shape or expected value fails with the field's central diagnostic
 and exit code `1`. Each result stops before signing.
 
-The adapter constructs the in-toto Statement, signs it as a Sigstore-backed bundle, emits the bundle
-file named `<package-tarball-name>.intoto.jsonl`, and may also upload the attestation to GitHub
-artifact attestation storage. The adapter must not be invoked in default provenance mode for the
-production npm profile and must not be documented as accepting a complete in-toto Statement input.
+The adapter uses GitHub Actions OIDC with an ephemeral key, obtains a Fulcio certificate and
+embedded SCT, signs the exact bytes as `sign.DSSEData`, and emits a Sigstore bundle containing the
+Rekor evidence required by ADR 0069. It emits the bundle file named
+`<package-tarball-name>.intoto.jsonl`. The signing boundary must not accept a caller-provided
+signing key, arbitrary OIDC token, npm token, publish credential, or caller-controlled step.
 
-After signing, the producer-side verification gate must extract the emitted Statement from the
-signed bundle and reject the bundle before publish if the Statement does not match the pre-sign
-validated candidate predicate and verified subject inputs. It must also reject adapter drift when
-the bundle file is missing, the emitted bundle basename differs from
-`<package-tarball-name>.intoto.jsonl`, the bundle cannot be parsed as a Sigstore bundle, the bundle
-contains a raw Statement instead of the expected signed bundle structure, or the extracted Statement
-uses unexpected `_type`, subject, `predicateType`, predicate, `builder.id`, `buildType`, or
-`externalParameters` values.
+After signing, the producer-side verification gate must verify the bundle offline, extract the DSSE
+payload, and reject the bundle before publish unless those payload bytes are byte-for-byte equal to
+the pre-sign validated Statement. It must also reject adapter drift when the bundle file is missing,
+the emitted bundle basename differs from `<package-tarball-name>.intoto.jsonl`, the bundle cannot be
+parsed as a Sigstore bundle, the bundle contains a raw Statement instead of the expected signed
+bundle structure, or the extracted Statement uses unexpected `_type`, subject, `predicateType`,
+predicate, `builder.id`, `buildType`, or `externalParameters` values.
 
-GitHub artifact attestation storage, when used, is an additional native locator. It is not a
-substitute for the signed bundle bytes required by `npm publish --provenance-file`, same-run
-handoff, GitHub Release sidecar publication, or consumer verification.
+GitHub artifact attestation storage is disabled for this npm path while its SLSA semantic validation
+rejects the Windlass custom `buildType`. If that restriction changes, storage may be reconsidered,
+but it must remain an optional locator and must not substitute for the signed bundle bytes required
+by `npm publish --provenance-file`, same-run handoff, GitHub Release sidecar publication, or
+consumer verification.
 
 ## Producer signer identity
 
@@ -1367,13 +1356,13 @@ publish.
 - The profile must not use npm's automatic provenance generation.
 - The profile must not fall back to token-based publish.
 - Before invoking `npm publish`, the profile must prove that the provenance file exists, is the
-  exact byte sequence emitted by the `actions/attest` custom-mode invocation, parses as the expected
-  Sigstore bundle, and contains an extracted Statement matching the Windlass-verified signing
-  inputs. Missing files, raw Statement files, reserialized bundle files, GitHub attestation storage
-  locator files, digest mismatches, and Statement mismatches must fail closed before registry
-  mutation. For a non-npmjs registry, rejection of the exact external provenance file fails at the
-  publish boundary with `windlass.verify.error.custom-registry-provenance-submission-rejected`; the
-  diagnostic report must state whether publication could have committed.
+  exact byte sequence emitted by the Go-native DSSE signer, parses as the expected Sigstore bundle,
+  and contains an extracted Statement matching the Windlass-verified signing inputs. Missing files,
+  raw Statement files, reserialized bundle files, GitHub attestation storage locator files, digest
+  mismatches, and Statement mismatches must fail closed before registry mutation. For a non-npmjs
+  registry, rejection of the exact external provenance file fails at the publish boundary with
+  `windlass.verify.error.custom-registry-provenance-submission-rejected`; the diagnostic report must
+  state whether publication could have committed.
 - Before running `npm publish` to `https://registry.npmjs.org/`, the profile must check whether
   npmjs already has the package identity and package version. If the package identity does not
   already exist, the workflow must fail clearly before attempting registry mutation because first
@@ -1642,9 +1631,9 @@ composition API.
 
 ## Producer-side verification gate
 
-Before invoking `actions/attest`, the producer must validate the candidate predicate as specified in
-the signing-adapter section. It must not sign a candidate that fails capture, closed-schema,
-cardinality, cross-field, or expected-value validation.
+Before invoking the Go-native signer, the producer must validate the candidate Statement as
+specified in the signing-adapter section. It must not sign a candidate that fails capture,
+closed-schema, cardinality, cross-field, or expected-value validation.
 
 After signing and before `npm publish`, the `publish` job must verify:
 
@@ -1663,13 +1652,10 @@ After signing and before `npm publish`, the `publish` job must verify:
 10. The name-keyed `resolvedDependencies` set has the exact manager-dependent cardinality and every
     lockfile, package-manager distribution, and runner-image descriptor satisfies its closed shape.
 11. `builder.version` has the exact observed `nodejs` and conditional `corepack` shape.
-12. `builderDependencies` contains only the exact pinned signing-adapter descriptor whose URI,
-    `digest.gitCommit`, role, and actual action revision agree.
-13. The emitted Statement's predicate is structurally equal to the complete candidate predicate that
-    Windlass validated before invoking `actions/attest`, and its Statement envelope fields match the
-    verified subject inputs and predicate type. Where this comparison or an associated digest
-    requires canonical JSON bytes, it must apply the RFC 8785 JCS rule in
-    [Canonical JSON serialization](verification-policy-and-fixtures.md#canonical-json-serialization).
+12. `builderDependencies` contains only the exact `sigstore-go` module descriptor whose URI, `h1`
+    checksum, role, and signing-binary dependency agree.
+13. The extracted DSSE payload is byte-for-byte equal to the complete candidate Statement that
+    Windlass validated before invoking the signer.
 
 If any check fails, the job must fail before registry mutation.
 
@@ -1686,7 +1672,7 @@ The `publish` job must fail before `npm publish` when:
 - Missing `subject[0].digest.sha512` or `subject[0].digest.sha256`.
 - npm Package URL subject mismatch.
 - Tarball-filename subject used for npm provenance.
-- Emitted Statement mismatch after `actions/attest` construction.
+- Extracted DSSE payload mismatch with the preassembled Statement.
 - Unexpected or mismatched `externalParameters`.
 - Missing or unknown closed `distribution` or `caller` members. The primary diagnostic is
   `windlass.verify.error.unexpected-external-parameters`, severity `error`, exit code `1`.
@@ -1709,7 +1695,7 @@ The `publish` job must fail before `npm publish` when:
   versions. The primary diagnostic is `windlass.verify.error.builder-version-mismatch`, severity
   `error`, exit code `1`.
 - The sole signing-adapter builder dependency is missing, extra, malformed, or inconsistent with the
-  pinned action revision. The primary diagnostic is
+  governed signer module version and checksum. The primary diagnostic is
   `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity `error`, exit code
   `1`.
 - Required package-manager distribution or runner-image capture evidence is unavailable before
@@ -1767,7 +1753,7 @@ The profile must not fall back to:
   download-hash Yarn distribution.
 - `npm-builder-version-direct-npm-valid` proves the `nodejs`-only builder version;
   `npm-builder-version-corepack-valid` proves the `nodejs` plus `corepack` shape; and
-  `npm-builder-signing-adapter-valid` proves the sole pinned `actions/attest` descriptor.
+  `npm-builder-signing-adapter-valid` proves the sole governed `sigstore-go` descriptor.
 - Existing `npm-resolved-lockfile-valid` and `npm-resolved-lockfile-stale-valid` fixtures continue
   to prove the unchanged lockfile descriptor within the manager-dependent set.
 - Positive convergence fixture: a retry attempt within the same `github.run_id` observes an existing
@@ -1804,7 +1790,7 @@ The profile must not fall back to:
   disagreement; and unavailable or mismatched caller filename. Their expected primary IDs are the
   corresponding central diagnostics listed in Failure behavior.
 - Builder rejected mutations must cover missing `nodejs`, absent conditional `corepack`, `corepack`
-  present for npm, an unknown version key, missing or extra signing adapters, URI/digest/action SHA
+  present for npm, an unknown version key, missing or extra signing adapters, URI/module/checksum
   disagreement, and a wrong role. Their expected primary IDs are `builder-version-mismatch` or
   `builder-dependencies-signing-adapter-mismatch` as applicable.
 - Candidate-predicate fixtures must prove capture unavailability exits `2` with `input-unavailable`,
