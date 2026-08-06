@@ -1305,7 +1305,7 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `input-unavailable`                                  | A required local artifact, bundle, policy, manifest, or trusted-root input is unreadable.                         |
 | `verifier-execution-failure`                         | The verifier cannot execute a requested check and therefore produces no acceptance result.                        |
 | `duplicate-json-member`                              | Signed Statement, bundle, or DSSE JSON contains duplicate object member names.                                    |
-| `npm-go-signer-contract`                             | Exact DSSE payload, emitted bundle, or npm provenance-file compatibility is invalid.                              |
+| `actions-attest-adapter-contract`                    | Exact DSSE payload, emitted bundle, or npm provenance-file compatibility is invalid.                              |
 | `wrong-producer-signer`                              | Producer signer repo, workflow path, ref, or issuer is not trusted.                                               |
 | `wrong-predicate-type`                               | `predicateType` is not SLSA provenance v1.                                                                        |
 | `wrong-manifest-predicate-type`                      | Release manifest `predicateType` is not the ADR 0054 predicate URI.                                               |
@@ -1566,8 +1566,11 @@ reserialized Statement payload, wrong payload type, raw Statement files used as 
 reserialized or wrapped bundles, GitHub artifact attestation storage locators substituted for bundle
 bytes, wrong predicate type, missing or renamed emitted bundle file, unparseable Sigstore bundle
 bytes, and npm CLI rejection of the external provenance file before registry mutation. These
-failures use `npm-go-signer-contract` unless the narrower wrong-predicate, bundle-byte-format,
-signer, transparency, or duplicate-member category applies.
+failures retain the registered `actions-attest-adapter-contract` ID unless the narrower
+wrong-predicate, bundle-byte-format, signer, transparency, or duplicate-member category applies. The
+ID name is historical: the C03 diagnostic registry is a closed machine contract, so renaming it or
+adding a signer-specific replacement is deferred to P02, which must update the registry and this
+taxonomy atomically.
 
 The existing F03 `actions/attest` two-subject bundle remains unchanged under
 `testdata/platform/contracts/` as historical platform evidence. It is not an accepted production

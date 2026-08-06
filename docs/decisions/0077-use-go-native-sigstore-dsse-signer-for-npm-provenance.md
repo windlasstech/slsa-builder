@@ -141,6 +141,10 @@ manifest signing or another profile that can satisfy its own subject and storage
   conforming producer bundle and adds exact payload comparison.
 - Neutral, because P01's Statement assembly is largely reused and P02 becomes the primary
   implementation effort.
+- Neutral, because Go-signer contract failures retain the registered
+  `windlass.verify.error.actions-attest-adapter-contract` diagnostic ID as a historical machine
+  name; any rename or signer-specific replacement is deferred to P02 so code and specification
+  change atomically.
 - Bad, because Windlass now owns Fulcio, SCT, Rekor, bundle assembly, and DSSE signing integration
   that the action previously encapsulated.
 - Bad, because GitHub attestation storage remains unavailable for this path while its custom
