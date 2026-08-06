@@ -13,6 +13,8 @@ const (
 	IDYarnSelectionInvalid              = "windlass.verify.error.yarn-selection-invalid"
 	IDRequiredLockfileMissing           = "windlass.verify.error.required-lockfile-missing"
 	IDPackageRepositoryIdentityMismatch = "windlass.verify.error.package-repository-identity-mismatch"
+	IDPackedPackageMetadataMismatch     = "windlass.verify.error.packed-package-metadata-mismatch"
+	IDPackagePackFailed                 = "windlass.verify.error.package-pack-failed"
 )
 
 // Manager is one supported build-stage package manager.
@@ -44,6 +46,7 @@ type Config struct {
 type Package struct {
 	Directory                    string
 	RealDirectory                string
+	RealManagerRoot              string
 	ManagerRoot                  string
 	ManagerRootRelativeDirectory string
 	Name                         string
@@ -70,18 +73,19 @@ type Result struct {
 }
 
 type manifest struct {
-	Name           string   `json:"name"`
-	Version        string   `json:"version"`
-	Private        bool     `json:"private"`
-	PackageManager jsonRaw  `json:"packageManager"`
-	DevEngines     jsonRaw  `json:"devEngines"`
-	Workspaces     jsonRaw  `json:"workspaces"`
-	Repository     jsonRaw  `json:"repository"`
-	License        jsonRaw  `json:"license"`
-	Description    string   `json:"description"`
-	Keywords       []string `json:"keywords"`
-	Author         jsonRaw  `json:"author"`
-	Homepage       string   `json:"homepage"`
+	Name           string            `json:"name"`
+	Version        string            `json:"version"`
+	Private        bool              `json:"private"`
+	PackageManager jsonRaw           `json:"packageManager"`
+	DevEngines     jsonRaw           `json:"devEngines"`
+	Workspaces     jsonRaw           `json:"workspaces"`
+	Repository     jsonRaw           `json:"repository"`
+	License        jsonRaw           `json:"license"`
+	Description    string            `json:"description"`
+	Keywords       []string          `json:"keywords"`
+	Author         jsonRaw           `json:"author"`
+	Homepage       string            `json:"homepage"`
+	Scripts        map[string]string `json:"scripts"`
 }
 
 type jsonRaw []byte
