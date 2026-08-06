@@ -31,7 +31,7 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
   [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md), and
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -1582,6 +1582,12 @@ Before production enablement, controlled registry conformance must also prove a 
 registry attestation read-back of the same bundle, and pacote consumer verification of the published
 package and provenance. Dry-run acceptance alone does not satisfy this production-signer fixture
 gate.
+
+This npm-shaped evidence is the first confirmation of the shared signer contract. Release-manifest
+fixtures must prove that M01/M02 use the same Go-native adapter and preserve the exact preassembled
+manifest Statement bytes; each future profile must add equivalent exact-payload and bundle fixtures
+when its contract is admitted. If the controlled publish, P06, or pacote verification surfaces a
+signer defect, a follow-up ADR must evaluate remediation or rollback.
 
 The signer identity fixture set must prove semantic GitHub Actions identity binding rather than
 artifact-name or log-based inference. Accepted npm producer fixtures must show a bundle whose signer

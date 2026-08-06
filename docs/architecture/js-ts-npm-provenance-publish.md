@@ -28,7 +28,7 @@ the package to an npm registry through a three-job digest-verified graph.
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
   [0073](../decisions/0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md),
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md), and
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),

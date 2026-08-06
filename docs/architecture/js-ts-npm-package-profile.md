@@ -22,7 +22,7 @@ profile.
   [0067](../decisions/0067-converge-repeated-runs-within-run-identity.md),
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
   [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
