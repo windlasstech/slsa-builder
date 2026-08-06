@@ -167,28 +167,3 @@ func readBoundedRegularFile(filePath string, maximum int64) ([]byte, error) {
 	}
 	return encoded, nil
 }
-
-func npmPURL(name, version string) string {
-	if strings.HasPrefix(name, "@") {
-		scope, packageName, found := strings.Cut(strings.TrimPrefix(name, "@"), "/")
-		if found {
-			return "pkg:npm/%40" + percentEncode(scope) + "/" + percentEncode(packageName) + "@" + percentEncode(version)
-		}
-	}
-	return "pkg:npm/" + percentEncode(name) + "@" + percentEncode(version)
-}
-
-func percentEncode(value string) string {
-	const hexadecimal = "0123456789ABCDEF"
-	var builder strings.Builder
-	for _, character := range []byte(value) {
-		if (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') || (character >= '0' && character <= '9') || strings.ContainsRune("-._~", rune(character)) {
-			builder.WriteByte(character)
-			continue
-		}
-		builder.WriteByte('%')
-		builder.WriteByte(hexadecimal[character>>4])
-		builder.WriteByte(hexadecimal[character&0x0f])
-	}
-	return builder.String()
-}
