@@ -317,6 +317,7 @@ func runCommand(ctx context.Context, directory, executable string, environment, 
 	}
 	commandContext, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()
+	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- executable is allowlist-validated immediately above; all call sites resolve fixed tool names via exec.LookPath or the enum-constrained Corepack shim directory, so pinned-toolchain resolution cannot stay statically literal.
 	command := exec.CommandContext(commandContext, executable, arguments...)
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	command.WaitDelay = commandWaitDelay
