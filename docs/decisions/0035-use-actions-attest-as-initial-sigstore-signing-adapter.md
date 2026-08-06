@@ -5,6 +5,11 @@ status: accepted
 date: 12026-07-06
 decision-makers: Yunseo Kim
 relations:
+  - type: partially-superseded-by
+    target: ADR-0077
+    scope:
+      "the npm profile's signing adapter becomes the Go-native signer; actions/attest delegation
+      remains for other uses"
   - type: see-also
     target: ADR-0069
   - type: see-also

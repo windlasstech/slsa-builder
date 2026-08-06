@@ -5,6 +5,11 @@ status: accepted
 date: 12026-08-03
 decision-makers: Yunseo Kim
 relations:
+  - type: partially-superseded-by
+    target: ADR-0077
+    scope:
+      "the npm signing-adapter descriptor in builderDependencies/resolvedDependencies identifies the
+      Go signer instead of actions/attest"
   - type: see-also
     target: ADR-0028
   - type: see-also
