@@ -8,7 +8,7 @@ trusted **core** and **profile-owned reusable workflows**.
   [0004](../decisions/0004-use-go-as-primary-implementation-language.md),
   [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md), and
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md)
 
@@ -56,8 +56,8 @@ The shared core owns the following:
      `externalParameters` and rejects unexpected fields when the verifier policy requires strict
      matching.
 6. **Signing adapter interface**
-   - The core defines the interface between profile workflows and signing adapters such as
-     `actions/attest`.
+   - The core defines the interface between profile workflows and the Go-native `sigstore-go`
+     signing adapter selected by ADR 0077.
    - The signing adapter is not the source of provenance semantics; it only signs the material
      produced by the trusted core and profile.
 7. **Shared verification documentation conventions**
@@ -118,8 +118,9 @@ invariant is not a valid `slsa-builder` profile.
 
 - Top-level workflow permissions must be minimal.
 - Job-level permissions must be elevated only when required and only for the narrowest scope (for
-  example, `id-token: write` and `attestations: write` only on the signing job, `contents: write`
-  only on the upload/publish job).
+  example, `id-token: write` only on the signing job, optional `attestations: write` only when a
+  profile separately enables GitHub attestation storage, and `contents: write` only on the
+  upload/publish job).
 
 ### Digest-verified handoff
 
@@ -200,8 +201,10 @@ is malformed, or the recomputed SHA-256 does not match `digest.value`.
 
 ## Signing adapter boundary
 
-- Signing adapters are profile-selected. The npm profile uses the Go-native `sigstore-go` signer
-  defined by ADR 0077; `actions/attest` remains available to other uses governed by ADR 0035.
+- The Go-native `sigstore-go` v1.3.0 signer defined by ADR 0077 is the Windlass signing adapter for
+  every production profile. The npm profile adopts it first, Wave 4 release-manifest signing reuses
+  it, and future profiles use it by default as their contracts are admitted. `actions/attest` is not
+  a Windlass signing adapter.
 - The signing adapter is responsible for:
   - Receiving the profile's validated signing material.
   - Preserving the exact in-toto Statement semantics owned by the trusted core and profile.
@@ -212,14 +215,13 @@ is malformed, or the recomputed SHA-256 does not match `digest.value`.
   - Defining what `builder.id`, `buildType`, or `externalParameters` mean.
   - Validating ecosystem-specific subject or digest semantics.
   - Deciding whether an artifact is safe to publish.
-- The npm adapter receives the exact preassembled Statement bytes, signs them as `sign.DSSEData`
-  with payload type `application/vnd.in-toto+json`, and must not reconstruct or reserialize them.
-  Its GitHub attestation storage path is disabled while that service rejects the profile's custom
-  `buildType`.
-- Uses that remain on stock `actions/attest` must follow their profile-specific custom-mode contract
-  and must not document the action as accepting complete Statement bytes.
+- The adapter receives each profile's exact preassembled Statement bytes, signs them as
+  `sign.DSSEData` with payload type `application/vnd.in-toto+json`, and must not reconstruct,
+  normalize, or reserialize them. The npm GitHub attestation storage path is disabled while that
+  service rejects the profile's custom `buildType`; storage integration is separate from signer
+  selection.
 - Any future adapter migration must preserve the verifier-visible trust contract and update the
-  profile's closed `builderDependencies` descriptor.
+  profile's closed `builderDependencies` descriptor through a follow-up ADR.
 
 ## Profile extension contract
 

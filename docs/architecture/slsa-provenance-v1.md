@@ -17,7 +17,8 @@ common contract.
   [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md),
   [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
-  and [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-npm-provenance.md)
+  and
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
@@ -216,11 +217,13 @@ diagnostics in profile-defined descriptor annotations and are not selected depen
   present only when Corepack supplied the selected package manager. `npm`, `runner-image`, and every
   other key are forbidden. Missing or extra keys, incorrect conditional `corepack` presence, or an
   observed-version mismatch is rejected with `windlass.verify.error.builder-version-mismatch`.
-- `builderDependencies`: exactly one profile-defined signing-adapter descriptor. For the npm
-  profile, its `uri` is `pkg:golang/github.com/sigstore/sigstore-go@v1.3.0`, its only digest member
-  is the governed module checksum `h1: hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE=`, and its only
-  annotation is `role: "signing-adapter"`. Missing, extra, malformed, wrong-role, or
-  dependency-inconsistent descriptors, including build-job action descriptors, are rejected with
+- `builderDependencies`: exactly one signing-adapter descriptor identifying the Go-native signer
+  selected by ADR 0077. Its `uri` is `pkg:golang/github.com/sigstore/sigstore-go@v1.3.0`, its only
+  digest member is the governed module checksum `h1: hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE=`,
+  and its only annotation is `role: "signing-adapter"`. This is the default closed descriptor for
+  every producer profile; profile admission must not substitute another signer. Missing, extra,
+  malformed, wrong-role, or dependency-inconsistent descriptors, including build-job action
+  descriptors, are rejected with
   `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.
 
 The npm CLI version is already recorded by the npm profile in
@@ -333,11 +336,12 @@ Invalid, because the attempt is not represented as the run-attempt URI:
 
 ## Signing adapter role
 
-The signing adapter is profile-selected and must sign only material already validated under the
-profile's closed contract. For npm, Windlass assembles and validates the complete in-toto Statement,
-then the Go-native `sigstore-go` adapter signs those exact bytes as `sign.DSSEData` with payload
+The Go-native `sigstore-go` v1.3.0 adapter selected by ADR 0077 is the signing adapter for all
+Windlass provenance. Windlass assembles and validates the complete in-toto Statement under the
+profile's closed contract, then the adapter signs those exact bytes as `sign.DSSEData` with payload
 type `application/vnd.in-toto+json`. It must not reconstruct, normalize, or reserialize the
-Statement.
+Statement. The npm profile adopts this contract first; future profiles apply it as their Statement
+and verification contracts are admitted.
 
 The adapter must not define the Statement's meaning. The producer-side verification gate must
 extract the signed bundle payload before publication and prove that the emitted Statement has:
@@ -348,18 +352,19 @@ extract the signed bundle payload before publication and prove that the emitted 
 - The Windlass-generated SLSA provenance predicate.
 - The expected `builder.id`, `buildType`, and `externalParameters` values.
 
-An adapter used by another profile may have a different input boundary, but it must preserve that
-profile's verifier-visible Statement contract and identify its actual signing dependency in
-`builderDependencies`.
+Every other profile must use the same exact-byte input boundary, preserve its verifier-visible
+Statement contract, and identify the governed signer dependency in `builderDependencies`.
 
-### npm Go-native signing adapter contract
+### Go-native signing adapter contract
 
-For the npm production profile, the signing adapter boundary is the Go-native `sigstore-go` v1.3.0
-DSSE interface. Windlass supplies:
+The signing adapter boundary is the Go-native `sigstore-go` v1.3.0 DSSE interface. Windlass
+supplies:
 
-- the exact preassembled Statement bytes containing the one npm Package URL subject and its SHA-512
-  and SHA-256 digest map; and
+- the exact preassembled Statement bytes containing the profile-defined single subject and complete
+  digest map; and
 - payload type `application/vnd.in-toto+json`.
+
+For npm, that subject is the one npm Package URL subject with its SHA-512 and SHA-256 digest map.
 
 The adapter signs with a GitHub Actions OIDC-backed ephemeral key, obtains the Fulcio certificate
 and embedded SCT, and emits a Sigstore bundle with the Rekor evidence required by ADR 0069. Windlass
@@ -367,10 +372,10 @@ must extract the DSSE payload and compare it byte-for-byte with the preassembled
 publication. GitHub artifact attestation storage is disabled for the npm path while its custom
 `buildType` restriction applies.
 
-The adapter contract has exactly one file output that can become provenance evidence for npm
-publish, cross-job handoff, release sidecar redistribution, and consumer verification: the emitted
-Sigstore bundle bytes. GitHub artifact attestation storage metadata, URLs, IDs, or lookup results
-are native diagnostic locators only. They must not replace the bundle file when a workflow,
+The adapter contract has exactly one file output that can become provenance evidence for registry
+publication, cross-job handoff, release sidecar redistribution, and consumer verification: the
+emitted Sigstore bundle bytes. GitHub artifact attestation storage metadata, URLs, IDs, or lookup
+results are native diagnostic locators only. They must not replace the bundle file when a workflow,
 registry, release asset, handoff, or verifier requires provenance bytes.
 
 ### Signer identity verification inputs
@@ -440,9 +445,9 @@ provenance sidecar.
 ## Signed bundle file format
 
 The initial production signed provenance artifact is the exact Sigstore bundle file emitted by the
-profile-selected signing adapter. The bundle bytes are verifier inputs and must be preserved
-byte-for-byte across job handoff, npm `--provenance-file` submission, and GitHub Release sidecar
-redistribution.
+Go-native signing adapter selected by ADR 0077. The bundle bytes are verifier inputs and must be
+preserved byte-for-byte across job handoff, registry submission such as npm `--provenance-file`, and
+GitHub Release sidecar redistribution.
 
 The `.intoto.jsonl` filename suffix used by npm, release sidecars, and release manifest assets is a
 distribution naming convention. It does not mean that Windlass may replace the signed bundle with a
