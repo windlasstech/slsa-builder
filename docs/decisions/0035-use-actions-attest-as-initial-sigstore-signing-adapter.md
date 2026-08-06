@@ -8,8 +8,9 @@ relations:
   - type: partially-superseded-by
     target: ADR-0077
     scope:
-      "the npm profile's signing adapter becomes the Go-native signer; actions/attest delegation
-      remains for other uses"
+      "the selection of actions/attest as the Windlass signing adapter and its adapter-specific
+      permissions and storage guidance; signer-independent isolation and verifier requirements
+      remain"
   - type: see-also
     target: ADR-0069
   - type: see-also

@@ -8,8 +8,8 @@ relations:
   - type: partially-superseded-by
     target: ADR-0077
     scope:
-      "stock actions/attest custom mode is replaced as the npm signing adapter because it cannot
-      construct the ADR 0064 subject shape and npm CLI rejects multi-subject bundles"
+      "actions/attest custom-mode Statement construction for Windlass signing; Windlass-owned
+      provenance semantics and post-sign payload verification remain"
   - type: see-also
     target: ADR-0068
   - type: see-also

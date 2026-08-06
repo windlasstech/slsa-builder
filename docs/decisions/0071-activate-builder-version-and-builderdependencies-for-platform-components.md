@@ -8,8 +8,8 @@ relations:
   - type: partially-superseded-by
     target: ADR-0077
     scope:
-      "the npm signing-adapter descriptor in builderDependencies/resolvedDependencies identifies the
-      Go signer instead of actions/attest"
+      "the signing-adapter descriptor for every producer profile identifies the governed sigstore-go
+      module instead of actions/attest; field classification and closed-set policy remain"
   - type: see-also
     target: ADR-0028
   - type: see-also
