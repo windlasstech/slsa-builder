@@ -13,6 +13,7 @@ func main() {
 		command.NewNPMProfileSelectCommand(),
 		command.NewVerifyHandoffCommand(),
 		command.NewVerifyAttestationCommand(),
+		command.NewWorkflowCheckCommand(),
 	).Dispatch(context.Background(), os.Args[1:], os.Stdout)
 	os.Exit(result.ExitCode)
 }
