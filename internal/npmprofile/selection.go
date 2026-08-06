@@ -29,6 +29,7 @@ func Analyze(config Config) (Result, error) {
 	result := Result{Package: Package{
 		Directory:                    resolved.directory,
 		RealDirectory:                resolved.directoryReal,
+		RealManagerRoot:              resolved.managerRootReal,
 		ManagerRoot:                  resolved.managerRoot,
 		ManagerRootRelativeDirectory: relativePackageDirectory(resolved),
 		Name:                         resolved.manifest.Name,
