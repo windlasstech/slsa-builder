@@ -50,6 +50,11 @@ func Verify(ctx context.Context, request Request) (Result, error) {
 	return verifyAt(ctx, request, time.Now().UTC())
 }
 
+// VerifyWithTrustedMaterial performs network-free verification with already authenticated material.
+func VerifyWithTrustedMaterial(ctx context.Context, request Request, trustedMaterial root.TrustedMaterial) (Result, error) {
+	return verifyWithTrustedMaterial(ctx, request, trustedMaterial)
+}
+
 func verifyAt(ctx context.Context, request Request, verificationTime time.Time) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{}, newError(idVerifierExecutionFailure, "context", "verification context is not usable", err)
@@ -76,6 +81,38 @@ func verifyAt(ctx context.Context, request Request, verificationTime time.Time) 
 	if err != nil {
 		return Result{}, err
 	}
+	return verifyParsedWithTrustedMaterial(request, parsed, trustedMaterial)
+}
+
+func verifyWithTrustedMaterial(ctx context.Context, request Request, trustedMaterial root.TrustedMaterial) (Result, error) {
+	if err := ctx.Err(); err != nil {
+		return Result{}, newError(idVerifierExecutionFailure, "context", "verification context is not usable", err)
+	}
+	hasModel := request.ExpectedStatement != nil
+	hasJSON := len(request.ExpectedStatementJSON) > 0
+	if !hasModel && !hasJSON {
+		return Result{}, newError(idInputUnavailable, "expected_statement", "an expected Statement is required", nil)
+	}
+	if hasModel && hasJSON {
+		return Result{}, newError(idPolicySchemaInvalid, "expected_statement", "exactly one expected Statement representation is allowed", nil)
+	}
+	if trustedMaterial == nil {
+		return Result{}, newError(idUngovernedTrustRoot, "trust_root", "authenticated trusted material is required", nil)
+	}
+	if err := validateIdentityExpectation(request.Identity); err != nil {
+		return Result{}, err
+	}
+	parsed, err := ParseBundle(request.Bundle)
+	if err != nil {
+		return Result{}, err
+	}
+	if err := rejectLegacyOverrides(); err != nil {
+		return Result{}, err
+	}
+	return verifyParsedWithTrustedMaterial(request, parsed, trustedMaterial)
+}
+
+func verifyParsedWithTrustedMaterial(request Request, parsed ParsedBundle, trustedMaterial root.TrustedMaterial) (Result, error) {
 	entries, err := parsed.sigstore.TlogEntries()
 	if err != nil || len(entries) == 0 {
 		return Result{}, newError(idMissingRekorEntry, "bundle.verificationMaterial.tlogEntries", "bundle-contained Rekor evidence is required", err)
