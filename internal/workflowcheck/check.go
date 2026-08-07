@@ -36,25 +36,73 @@ type ProvenanceSignJobResult struct {
 	BundleArtifactName           string `json:"bundle_artifact_name"`
 }
 
-type workflowDocument struct {
-	Permissions map[string]string   `yaml:"permissions"`
-	Jobs        map[string]buildJob `yaml:"jobs"`
+// PublishJobResult is the machine-readable P05 npm mutation-job conformance result.
+type PublishJobResult struct {
+	Result             string `json:"result"`
+	OIDCPermission     bool   `json:"oidc_permission"`
+	MutationPermission bool   `json:"mutation_permission"`
+	MutationKey        string `json:"mutation_key"`
+	CancelInProgress   bool   `json:"cancel_in_progress"`
+	Queue              string `json:"queue"`
+	AlwaysRunReport    bool   `json:"always_run_report"`
 }
 
-type buildJob struct {
+// NPMOnlyProfileResult is the complete machine-readable P05 workflow conformance result.
+type NPMOnlyProfileResult struct {
+	Result           string                       `json:"result"`
+	Profile          string                       `json:"profile"`
+	Graph            []string                     `json:"graph"`
+	MutationKey      string                       `json:"mutation_key"`
+	CancelInProgress bool                         `json:"cancel_in_progress"`
+	Queue            string                       `json:"queue"`
+	Permissions      map[string]map[string]string `json:"permissions"`
+	AlwaysRunReport  bool                         `json:"always_run_report"`
+}
+
+type workflowDocument struct {
+	Permissions map[string]string      `yaml:"permissions"`
+	On          workflowTriggers       `yaml:"on"`
+	Jobs        map[string]workflowJob `yaml:"jobs"`
+}
+
+type workflowTriggers struct {
+	WorkflowCall workflowCall `yaml:"workflow_call"`
+}
+
+type workflowCall struct {
+	Inputs  map[string]workflowInput  `yaml:"inputs"`
+	Outputs map[string]workflowOutput `yaml:"outputs"`
+}
+
+type workflowInput struct {
+	Required bool   `yaml:"required"`
+	Type     string `yaml:"type"`
+	Default  any    `yaml:"default"`
+}
+
+type workflowOutput struct {
+	Value string `yaml:"value"`
+}
+
+type workflowJob struct {
+	If          string            `yaml:"if"`
 	Needs       any               `yaml:"needs"`
 	RunsOn      string            `yaml:"runs-on"`
 	Permissions map[string]string `yaml:"permissions"`
 	Concurrency concurrency       `yaml:"concurrency"`
+	Outputs     map[string]string `yaml:"outputs"`
 	Steps       []workflowStep    `yaml:"steps"`
 }
 
 type concurrency struct {
 	Group            string `yaml:"group"`
 	CancelInProgress bool   `yaml:"cancel-in-progress"`
+	Queue            string `yaml:"queue"`
 }
 
 type workflowStep struct {
+	ID   string         `yaml:"id"`
+	If   string         `yaml:"if"`
 	Uses string         `yaml:"uses"`
 	Run  string         `yaml:"run"`
 	With map[string]any `yaml:"with"`
@@ -94,7 +142,7 @@ func CheckBuildJob(path string) (BuildJobResult, error) {
 	if build.RunsOn != "ubuntu-24.04" {
 		return BuildJobResult{}, fmt.Errorf("build job runs-on must be ubuntu-24.04")
 	}
-	if build.Concurrency.Group != "npm-build-${{ github.repository }}-${{ github.ref_name }}" || !build.Concurrency.CancelInProgress {
+	if build.Concurrency.Group != "npm-build-${{ github.repository }}-${{ github.ref_name }}" || !build.Concurrency.CancelInProgress || build.Concurrency.Queue != "" {
 		return BuildJobResult{}, fmt.Errorf("build job must use the pre-mutation concurrency contract")
 	}
 	if err := checkSteps(build.Steps, &result); err != nil {
@@ -148,6 +196,215 @@ func CheckProvenanceSignJob(path string) (ProvenanceSignJobResult, error) {
 	}
 	result.Result = "pass"
 	return result, nil
+}
+
+// CheckPublishJob verifies the isolated npm mutation authority, concurrency, handoffs, and report.
+func CheckPublishJob(path string) (PublishJobResult, error) {
+	document, err := readWorkflow(path)
+	if err != nil {
+		return PublishJobResult{}, err
+	}
+	if document.Permissions == nil || len(document.Permissions) != 0 {
+		return PublishJobResult{}, fmt.Errorf("top-level permissions must be an explicit empty mapping")
+	}
+	job, ok := document.Jobs["publish"]
+	if !ok {
+		return PublishJobResult{}, fmt.Errorf("workflow has no publish job")
+	}
+	result := PublishJobResult{
+		OIDCPermission:     job.Permissions["id-token"] == "write",
+		MutationPermission: hasWritePermission(job.Permissions, "contents", "packages", "attestations", "artifact-metadata"),
+		MutationKey:        job.Concurrency.Group,
+		CancelInProgress:   job.Concurrency.CancelInProgress,
+		Queue:              job.Concurrency.Queue,
+	}
+	if len(job.Permissions) != 2 || job.Permissions["contents"] != "read" || !result.OIDCPermission {
+		return PublishJobResult{}, fmt.Errorf("publish permissions must be exactly contents: read and id-token: write")
+	}
+	if result.MutationPermission {
+		return PublishJobResult{}, fmt.Errorf("publish must not have GitHub storage or repository mutation permission")
+	}
+	if job.RunsOn != "ubuntu-24.04" {
+		return PublishJobResult{}, fmt.Errorf("publish job runs-on must be ubuntu-24.04")
+	}
+	if !slices.Equal(sortedNeeds(job.Needs), []string{"build", "provenance-sign"}) {
+		return PublishJobResult{}, fmt.Errorf("publish must depend exactly on build and provenance-sign")
+	}
+	if normalizeExpression(job.If) != "always()" {
+		return PublishJobResult{}, fmt.Errorf("publish job must run always so it can emit the outcome report")
+	}
+	if result.MutationKey != "release-mutation-${{ github.repository }}-${{ github.ref_name }}" || result.CancelInProgress || result.Queue != "max" {
+		return PublishJobResult{}, fmt.Errorf("publish job must use the exact queued mutation concurrency contract")
+	}
+	if err := checkPublishSteps(job.Steps, &result); err != nil {
+		return PublishJobResult{}, err
+	}
+	result.Result = "pass"
+	return result, nil
+}
+
+// CheckNPMOnlyProfile verifies the complete public npm-only reusable workflow contract.
+func CheckNPMOnlyProfile(path string) (NPMOnlyProfileResult, error) {
+	document, err := readWorkflow(path)
+	if err != nil {
+		return NPMOnlyProfileResult{}, err
+	}
+	if err := checkNPMWorkflowCall(document.On.WorkflowCall); err != nil {
+		return NPMOnlyProfileResult{}, err
+	}
+	graph := make([]string, 0, len(document.Jobs))
+	for name := range document.Jobs {
+		graph = append(graph, name)
+	}
+	slices.Sort(graph)
+	wantGraph := []string{"build", "provenance-sign", "publish"}
+	if !slices.Equal(graph, wantGraph) {
+		return NPMOnlyProfileResult{}, fmt.Errorf("npm-only graph is %q, want %q", graph, wantGraph)
+	}
+	if _, err := CheckBuildJob(path); err != nil {
+		return NPMOnlyProfileResult{}, fmt.Errorf("build contract: %w", err)
+	}
+	if _, err := CheckProvenanceSignJob(path); err != nil {
+		return NPMOnlyProfileResult{}, fmt.Errorf("provenance-sign contract: %w", err)
+	}
+	signing := document.Jobs["provenance-sign"]
+	if signing.Concurrency.Group != "npm-provenance-sign-${{ github.repository }}-${{ github.ref_name }}" || !signing.Concurrency.CancelInProgress || signing.Concurrency.Queue != "" {
+		return NPMOnlyProfileResult{}, fmt.Errorf("provenance-sign must use the pre-mutation concurrency contract")
+	}
+	publish, err := CheckPublishJob(path)
+	if err != nil {
+		return NPMOnlyProfileResult{}, fmt.Errorf("publish contract: %w", err)
+	}
+	return NPMOnlyProfileResult{
+		Result: "pass", Profile: "npm-only", Graph: wantGraph,
+		MutationKey: publish.MutationKey, CancelInProgress: publish.CancelInProgress,
+		Queue: publish.Queue, AlwaysRunReport: publish.AlwaysRunReport,
+		Permissions: map[string]map[string]string{
+			"build":           document.Jobs["build"].Permissions,
+			"provenance-sign": document.Jobs["provenance-sign"].Permissions,
+			"publish":         document.Jobs["publish"].Permissions,
+		},
+	}, nil
+}
+
+func readWorkflow(path string) (workflowDocument, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return workflowDocument{}, fmt.Errorf("read workflow: %w", err)
+	}
+	var document workflowDocument
+	if err := yaml.Unmarshal(contents, &document); err != nil {
+		return workflowDocument{}, fmt.Errorf("decode workflow: %w", err)
+	}
+	return document, nil
+}
+
+func checkNPMWorkflowCall(call workflowCall) error {
+	wantInputs := map[string]struct {
+		typeName string
+		required bool
+		boolean  bool
+	}{
+		"package-directory": {typeName: "string", required: true},
+		"registry-url":      {typeName: "string"}, "dist-tag": {typeName: "string"}, "access": {typeName: "string"},
+		"release-asset-mode": {typeName: "boolean", boolean: true}, "release-tag": {typeName: "string"},
+		"provenance-sidecar": {typeName: "string"}, "linked-artifact-metadata": {typeName: "boolean", boolean: true},
+	}
+	if len(call.Inputs) != len(wantInputs) {
+		return fmt.Errorf("workflow_call inputs must contain exactly the eight public inputs")
+	}
+	for name, want := range wantInputs {
+		input, ok := call.Inputs[name]
+		if !ok || input.Type != want.typeName || input.Required != want.required {
+			return fmt.Errorf("workflow_call input %q has the wrong type or required state", name)
+		}
+		if want.boolean {
+			if input.Default != false {
+				return fmt.Errorf("boolean input %q must default to false", name)
+			}
+		} else if input.Default != nil {
+			return fmt.Errorf("string input %q must not define a workflow_call default", name)
+		}
+	}
+	wantOutputs := []string{"package-name", "package-registry-url", "package-tarball-name", "package-tarball-sha256", "package-tarball-sha512", "package-url", "package-version"}
+	gotOutputs := make([]string, 0, len(call.Outputs))
+	for name, output := range call.Outputs {
+		gotOutputs = append(gotOutputs, name)
+		if output.Value != "${{ jobs.publish.outputs."+name+" }}" {
+			return fmt.Errorf("workflow_call output %q must map to the publish job", name)
+		}
+	}
+	slices.Sort(gotOutputs)
+	if !slices.Equal(gotOutputs, wantOutputs) {
+		return fmt.Errorf("npm-only public outputs are %q, want %q", gotOutputs, wantOutputs)
+	}
+	return nil
+}
+
+func checkPublishSteps(steps []workflowStep, result *PublishJobResult) error {
+	if len(steps) == 0 || !strings.HasPrefix(steps[0].Uses, "step-security/harden-runner@") || scalar(steps[0].With["egress-policy"]) != "audit" {
+		return fmt.Errorf("harden-runner with audit egress must be the first publish step")
+	}
+	downloads := make([]string, 0, 2)
+	hasPublish := false
+	hasReport := false
+	hasReportUpload := false
+	for _, current := range steps {
+		if current.Uses != "" && !pinnedActionPattern.MatchString(current.Uses) {
+			return fmt.Errorf("action reference %q is not pinned to a full SHA", current.Uses)
+		}
+		if strings.HasPrefix(current.Uses, "actions/attest@") {
+			return fmt.Errorf("actions/attest is forbidden in publish")
+		}
+		if strings.HasPrefix(current.Uses, "actions/download-artifact@") {
+			downloads = append(downloads, scalar(current.With["name"]))
+		}
+		if strings.Contains(current.Run, "npm-profile-publish") {
+			hasPublish = true
+		}
+		if strings.Contains(current.Run, "npm-profile-report") && normalizeExpression(current.If) == "always()" {
+			hasReport = true
+		}
+		if strings.HasPrefix(current.Uses, "actions/upload-artifact@") && normalizeExpression(current.If) == "always()" &&
+			scalar(current.With["name"]) == "js-ts-npm-outcome-report-${{ github.run_id }}-${{ github.run_attempt }}" {
+			hasReportUpload = true
+		}
+	}
+	slices.Sort(downloads)
+	if !slices.Equal(downloads, []string{tarballArtifactName, provenanceBundleArtifactName}) {
+		return fmt.Errorf("publish handoff downloads are %q", downloads)
+	}
+	if !hasPublish {
+		return fmt.Errorf("publish job must invoke npm-profile-publish")
+	}
+	result.AlwaysRunReport = hasReport && hasReportUpload
+	if !result.AlwaysRunReport {
+		return fmt.Errorf("publish job must always generate and upload the outcome report")
+	}
+	return nil
+}
+
+func sortedNeeds(value any) []string {
+	var values []string
+	switch typed := value.(type) {
+	case string:
+		values = []string{typed}
+	case []any:
+		for _, item := range typed {
+			values = append(values, scalar(item))
+		}
+	case []string:
+		values = append(values, typed...)
+	}
+	slices.Sort(values)
+	return values
+}
+
+func normalizeExpression(value string) string {
+	value = strings.TrimSpace(value)
+	value = strings.TrimPrefix(value, "${{")
+	value = strings.TrimSuffix(value, "}}")
+	return strings.TrimSpace(value)
 }
 
 func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobResult) error {

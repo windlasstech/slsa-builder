@@ -26,27 +26,39 @@ func (workflowCheckCommand) Execute(ctx context.Context, args []string, out io.W
 	flags.SetOutput(io.Discard)
 	workflowPath := flags.String("workflow", "", "workflow file path")
 	jobName := flags.String("job", "", "job to validate")
+	profileName := flags.String("profile", "", "workflow profile to validate")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			_, writeErr := fmt.Fprintln(out, "Usage: slsa-builder-internal workflow-check --workflow <path> --job <build|provenance-sign>")
+			_, writeErr := fmt.Fprintln(out, "Usage: slsa-builder-internal workflow-check --workflow <path> (--job <build|provenance-sign|publish> | --profile <npm-only>)")
 			return writeErr
 		}
 		return err
 	}
-	if *workflowPath == "" || *jobName == "" || flags.NArg() != 0 {
-		return errors.New("--workflow and --job are required with no positional arguments")
+	if *workflowPath == "" || (*jobName == "") == (*profileName == "") || flags.NArg() != 0 {
+		return errors.New("--workflow and exactly one of --job or --profile are required with no positional arguments")
 	}
 	var (
 		result any
 		err    error
 	)
-	switch *jobName {
-	case "build":
-		result, err = workflowcheck.CheckBuildJob(*workflowPath)
-	case "provenance-sign":
-		result, err = workflowcheck.CheckProvenanceSignJob(*workflowPath)
-	default:
-		return fmt.Errorf("unsupported workflow job %q", *jobName)
+	if *profileName != "" {
+		switch *profileName {
+		case "npm-only":
+			result, err = workflowcheck.CheckNPMOnlyProfile(*workflowPath)
+		default:
+			return fmt.Errorf("unsupported workflow profile %q", *profileName)
+		}
+	} else {
+		switch *jobName {
+		case "build":
+			result, err = workflowcheck.CheckBuildJob(*workflowPath)
+		case "provenance-sign":
+			result, err = workflowcheck.CheckProvenanceSignJob(*workflowPath)
+		case "publish":
+			result, err = workflowcheck.CheckPublishJob(*workflowPath)
+		default:
+			return fmt.Errorf("unsupported workflow job %q", *jobName)
+		}
 	}
 	if err != nil {
 		return err

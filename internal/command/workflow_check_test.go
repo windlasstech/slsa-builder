@@ -54,7 +54,14 @@ jobs:
 
 func TestWorkflowCheckCommandRejectsUnsupportedJob(t *testing.T) {
 	var output bytes.Buffer
-	if err := NewWorkflowCheckCommand().Execute(context.Background(), []string{"--workflow", "workflow.yml", "--job", "publish"}, &output); err == nil {
+	if err := NewWorkflowCheckCommand().Execute(context.Background(), []string{"--workflow", "workflow.yml", "--job", "unknown"}, &output); err == nil {
 		t.Fatal("Execute() succeeded, want unsupported job error")
+	}
+}
+
+func TestWorkflowCheckCommandRejectsAmbiguousMode(t *testing.T) {
+	var output bytes.Buffer
+	if err := NewWorkflowCheckCommand().Execute(context.Background(), []string{"--workflow", "workflow.yml", "--job", "build", "--profile", "npm-only"}, &output); err == nil {
+		t.Fatal("Execute() succeeded, want mutually exclusive mode error")
 	}
 }
