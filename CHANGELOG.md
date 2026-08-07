@@ -8,6 +8,11 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ## [Unreleased]
 
+### Added
+
+- Added Go-native keyless DSSE signing for npm provenance, with digest-verified handoffs and offline
+  exact-Statement verification before bundle upload.
+
 ### Security
 
 - Raised the module Go directive to 1.26.5, clearing exposure to
