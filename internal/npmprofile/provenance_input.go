@@ -122,8 +122,8 @@ func NewProvenanceSigningInput(input NPMProvenanceInput) (ProvenanceSigningInput
 				ID:      input.BuilderID,
 				Version: version,
 				BuilderDependencies: []provenance.BuilderDependency{{
-					URI:         "git+https://github.com/actions/attest@" + input.SigningAdapterSHA,
-					Digest:      map[string]string{"gitCommit": input.SigningAdapterSHA},
+					URI:         "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
+					Digest:      map[string]string{"h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="},
 					Annotations: map[string]string{"role": "signing-adapter"},
 				}},
 			},
@@ -137,7 +137,7 @@ func NewProvenanceSigningInput(input NPMProvenanceInput) (ProvenanceSigningInput
 		},
 		PredicateType:     provenance.PredicateType,
 		Predicate:         predicate,
-		PredicateFileName: NPMProvenancePredicateFile,
+		StatementFileName: NPMProvenanceStatementFile,
 	}
 	if err := ValidateNPMStatement(signing.Statement(), input); err != nil {
 		return ProvenanceSigningInput{}, err
@@ -145,6 +145,10 @@ func NewProvenanceSigningInput(input NPMProvenanceInput) (ProvenanceSigningInput
 	signing.PredicateJSON, err = predicate.CanonicalJSON()
 	if err != nil {
 		return ProvenanceSigningInput{}, fmt.Errorf("canonicalize npm predicate: %w", err)
+	}
+	signing.StatementJSON, err = signing.Statement().CanonicalJSON()
+	if err != nil {
+		return ProvenanceSigningInput{}, fmt.Errorf("canonicalize npm Statement: %w", err)
 	}
 	return signing, nil
 }
@@ -173,9 +177,6 @@ func validateInputBindings(input NPMProvenanceInput, parameters ExternalParamete
 	if usesCorepack != (input.CorepackVersion != nil) {
 		return npmValidationError("windlass.verify.error.builder-version-mismatch", "builder.version.corepack", "Corepack presence must match package-manager acquisition")
 	}
-	if err := identity.ValidateFullSHA(input.SigningAdapterSHA); err != nil {
-		return npmValidationError(IDBuilderDependenciesMismatch, "builder.builderDependencies", "signing adapter revision must be a full lowercase SHA")
-	}
 	validator := npmProfileValidator{parameters: parameters, encodedParameters: input.BuildMetadata.ExternalParameters, dependencies: input.BuildMetadata.ResolvedDependencies, sha256: input.BuildMetadata.PrimaryArtifact.SHA256, sha512: input.BuildMetadata.PrimaryArtifact.SHA512}
 	return validator.ValidateResolvedDependencies(cloneNPMDependencies(input.BuildMetadata.ResolvedDependencies))
 }
@@ -200,9 +201,8 @@ func ValidateNPMStatement(statement provenance.Statement, input NPMProvenanceInp
 	expectations := provenance.Expectations{
 		SourceRepositoryURI: parameters.Source.Repository,
 		Builder: provenance.BuilderExpectations{
-			NodeJSVersion:     input.NodeJSVersion,
-			CorepackVersion:   input.CorepackVersion,
-			SigningAdapterSHA: input.SigningAdapterSHA,
+			NodeJSVersion:   input.NodeJSVersion,
+			CorepackVersion: input.CorepackVersion,
 		},
 	}
 	_, err = statement.Validate(expectations, validator)

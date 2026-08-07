@@ -27,7 +27,7 @@ func TestNPMProvenanceInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewProvenanceSigningInput() error = %v", err)
 	}
-	if signing.PredicateType != provenance.PredicateType || signing.PredicateFileName != NPMProvenancePredicateFile {
+	if signing.PredicateType != provenance.PredicateType || signing.StatementFileName != NPMProvenanceStatementFile {
 		t.Fatalf("signing input = %#v", signing)
 	}
 	if signing.Subject.Name != "pkg:npm/%40windlass/slsa-builder@1.2.3" {
@@ -54,6 +54,13 @@ func TestNPMProvenanceInput(t *testing.T) {
 	}
 
 	statement := signing.Statement()
+	wantStatement, err := statement.CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(signing.StatementJSON, wantStatement) {
+		t.Fatal("StatementJSON does not preserve the exact preassembled Statement bytes")
+	}
 	if err := ValidateNPMStatement(statement, input); err != nil {
 		t.Fatalf("ValidateNPMStatement() error = %v", err)
 	}
@@ -184,15 +191,14 @@ func TestBuilderFields(t *testing.T) {
 				t.Fatalf("corepack presence = %t for %s", hasCorepack, manager)
 			}
 			dependencies := signing.Predicate.RunDetails.Builder.BuilderDependencies
-			if len(dependencies) != 1 || dependencies[0].Digest["gitCommit"] != testAttestSHA {
+			if len(dependencies) != 1 ||
+				dependencies[0].URI != "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0" ||
+				dependencies[0].Digest["h1"] != "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE=" ||
+				dependencies[0].Annotations["role"] != "signing-adapter" {
 				t.Fatalf("builderDependencies = %#v", dependencies)
 			}
 		})
 	}
-
-	input := validProvenanceInput(t, ManagerPNPM)
-	input.SigningAdapterSHA = "short"
-	requireNPMDiagnostic(t, newProvenanceInputError(input), IDBuilderDependenciesMismatch)
 }
 
 func TestReleaseRefEquality(t *testing.T) {
@@ -250,7 +256,6 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 		BuilderID:             builderID,
 		NodeJSVersion:         "v24.0.0",
 		CorepackVersion:       corepackVersion,
-		SigningAdapterSHA:     testAttestSHA,
 		InvocationID:          "https://github.com/example/project/actions/runs/123456789/attempts/1",
 		StartedOn:             "2026-08-06T12:00:00Z",
 		FinishedOn:            "2026-08-06T12:00:03Z",

@@ -11,8 +11,8 @@ const (
 	NPMWorkflowPath = ".github/workflows/js-ts-npm-package-slsa3.yml"
 	// NPMBuildType is the acquired-domain npm producer build type.
 	NPMBuildType = "https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1"
-	// NPMProvenancePredicateFile is the deterministic actions/attest predicate input basename.
-	NPMProvenancePredicateFile = "slsa-provenance-predicate.json"
+	// NPMProvenanceStatementFile is the deterministic exact-byte DSSE payload basename.
+	NPMProvenanceStatementFile = "slsa-provenance-statement.json"
 
 	IDUnexpectedExternalParameters        = "windlass.verify.error.unexpected-external-parameters"
 	IDNPMSubjectMismatch                  = "windlass.verify.error.npm-purl-subject-mismatch"
@@ -140,7 +140,6 @@ type NPMProvenanceInput struct {
 	BuilderID             string
 	NodeJSVersion         string
 	CorepackVersion       *string
-	SigningAdapterSHA     string
 	InvocationID          string
 	StartedOn             string
 	FinishedOn            string
@@ -148,13 +147,14 @@ type NPMProvenanceInput struct {
 	PeeledReleaseRevision string
 }
 
-// ProvenanceSigningInput is the exact custom-mode input supplied to actions/attest.
+// ProvenanceSigningInput contains the exact Statement supplied to the Go-native DSSE signer.
 type ProvenanceSigningInput struct {
 	Subject           provenance.Subject
 	PredicateType     string
 	Predicate         provenance.Predicate
 	PredicateJSON     []byte
-	PredicateFileName string
+	StatementJSON     []byte
+	StatementFileName string
 }
 
 // Statement returns the in-toto Statement implied by the custom-mode signing inputs.
