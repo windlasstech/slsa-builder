@@ -56,16 +56,16 @@ const (
 
 // IdentityExpectation contains the semantic GitHub Actions certificate values required by ADR 0068.
 type IdentityExpectation struct {
-	Issuer                  string
-	SignerURI               string
-	WorkflowSHA             string
-	SourceRepositoryURI     string
-	SourceRepositoryID      string
-	SourceRepositoryOwnerID string
-	SourceDigest            string
-	SourceRef               string
-	RunnerEnvironment       string
-	RunInvocationURI        string
+	Issuer                  string `json:"issuer"`
+	SignerURI               string `json:"signer_uri"`
+	WorkflowSHA             string `json:"workflow_sha"`
+	SourceRepositoryURI     string `json:"source_repository_uri"`
+	SourceRepositoryID      string `json:"source_repository_id"`
+	SourceRepositoryOwnerID string `json:"source_repository_owner_id"`
+	SourceDigest            string `json:"source_digest"`
+	SourceRef               string `json:"source_ref"`
+	RunnerEnvironment       string `json:"runner_environment"`
+	RunInvocationURI        string `json:"run_invocation_uri"`
 }
 
 // Request is the complete immutable input set for one bundle verification decision.
