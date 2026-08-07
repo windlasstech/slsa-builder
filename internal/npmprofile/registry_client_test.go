@@ -60,6 +60,31 @@ func TestRegistryMetadataPackageAbsent(t *testing.T) {
 	}
 }
 
+func TestRegistryAttestations(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet || request.URL.EscapedPath() != "/-/npm/v1/attestations/%40windlass%2Fslsa-builder@1.2.3" {
+			t.Errorf("request = %s %s", request.Method, request.URL.EscapedPath())
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(writer, `{"attestations":[{"predicateType":"https://slsa.dev/provenance/v1","bundle":{"exact":"bytes"}},{"predicateType":"https://github.com/npm/attestation/tree/main/specs/publish/v0.1","bundle":{"ignored":true}}]}`)
+	}))
+	defer server.Close()
+
+	client, err := NewRegistryClient(RegistryClientConfig{HTTPClient: server.Client(), RegistryURL: server.URL + "/"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, err := client.Attestations(context.Background(), "@windlass/slsa-builder", "1.2.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !state.Found || len(state.Attestations) != 2 || string(state.Attestations[0].Bundle) != `{"exact":"bytes"}` {
+		t.Fatalf("attestation state = %#v", state)
+	}
+}
+
 func TestRegistryClientRejectsInsecureURL(t *testing.T) {
 	t.Parallel()
 	for _, rawURL := range []string{

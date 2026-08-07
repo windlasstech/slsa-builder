@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,7 +15,10 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/canonicaljson"
 )
 
-const maxPackumentResponse int64 = 8 << 20
+const (
+	maxPackumentResponse   int64 = 8 << 20
+	maxAttestationResponse int64 = 16 << 20
+)
 
 // RegistryClientConfig identifies one npm-compatible metadata endpoint.
 type RegistryClientConfig struct {
@@ -41,6 +45,18 @@ type RegistryVersion struct {
 	Version   string
 	Integrity string
 	Tarball   string
+}
+
+// RegistryAttestation is one exact bundle selected by its declared predicate type.
+type RegistryAttestation struct {
+	PredicateType string
+	Bundle        []byte
+}
+
+// RegistryAttestationState records one exact-version attestation observation.
+type RegistryAttestationState struct {
+	Found        bool
+	Attestations []RegistryAttestation
 }
 
 // NewRegistryClient validates the root registry URL and installs hardened HTTP behavior.
@@ -112,6 +128,66 @@ func (client *RegistryClient) Preflight(ctx context.Context, packageName, versio
 		Tarball:   metadata.Dist.Tarball,
 	}
 	return state, nil
+}
+
+// URL returns the normalized credential-free registry root used by this client.
+func (client *RegistryClient) URL() string {
+	if client == nil || client.registryURL == nil {
+		return ""
+	}
+	return client.registryURL.String()
+}
+
+// Attestations reads npm's exact-version public attestation surface without credentials.
+func (client *RegistryClient) Attestations(ctx context.Context, packageName, version string) (RegistryAttestationState, error) {
+	if client == nil || client.registryURL == nil || !validRegistryPackageName(packageName) || invalidPURLText(version) || strings.Contains(version, "/") {
+		return RegistryAttestationState{}, errors.New("package name or version is invalid")
+	}
+	endpoint := *client.registryURL
+	identifier := packageName + "@" + version
+	endpoint.Path = "/-/npm/v1/attestations/" + identifier
+	endpoint.RawPath = "/-/npm/v1/attestations/" + percentEncode(packageName) + "@" + percentEncode(version)
+	headers := make(http.Header)
+	headers.Set("Accept", "application/json")
+	headers.Set("User-Agent", "windlass-slsa-builder")
+	response, err := performBoundedRequest(ctx, client.httpClient, http.MethodGet, &endpoint, headers, maxAttestationResponse)
+	if err != nil {
+		return RegistryAttestationState{}, errors.New("registry attestation request failed")
+	}
+	if response.status == http.StatusNotFound {
+		return RegistryAttestationState{}, nil
+	}
+	if response.status != http.StatusOK {
+		return RegistryAttestationState{}, fmt.Errorf("registry attestation endpoint returned HTTP %d", response.status)
+	}
+	if err := canonicaljson.Validate(response.body); err != nil {
+		return RegistryAttestationState{}, errors.New("registry attestation response is malformed")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(response.body))
+	decoder.DisallowUnknownFields()
+	var document struct {
+		Attestations []struct {
+			PredicateType string          `json:"predicateType"`
+			Bundle        json.RawMessage `json:"bundle"`
+		} `json:"attestations"`
+	}
+	if err := decoder.Decode(&document); err != nil || document.Attestations == nil {
+		return RegistryAttestationState{}, errors.New("registry attestation response has an invalid shape")
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return RegistryAttestationState{}, errors.New("registry attestation response contains trailing data")
+	}
+	attestations := make([]RegistryAttestation, 0, len(document.Attestations))
+	for _, candidate := range document.Attestations {
+		if candidate.PredicateType == "" || len(candidate.Bundle) == 0 || string(candidate.Bundle) == "null" {
+			return RegistryAttestationState{}, errors.New("registry attestation entry is malformed")
+		}
+		attestations = append(attestations, RegistryAttestation{
+			PredicateType: candidate.PredicateType,
+			Bundle:        append([]byte(nil), candidate.Bundle...),
+		})
+	}
+	return RegistryAttestationState{Found: true, Attestations: attestations}, nil
 }
 
 func normalizeRegistryURL(rawURL string) (*url.URL, error) {
