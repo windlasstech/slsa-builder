@@ -137,7 +137,7 @@ func Publish(ctx context.Context, request PublishRequest) (PublishResult, error)
 
 	entryDecision, err := prepared.classify(ctx, false)
 	if err != nil {
-		return prepared.failure(entryDecision.state, false, IDPrepublishRegistryMetadataRequired, "npm.publish.entry-revalidation", err)
+		return prepared.failure(PublishIndeterminate, false, IDPrepublishRegistryMetadataRequired, "npm.publish.entry-revalidation", err)
 	}
 	if entryDecision.packageAbsent {
 		return prepared.failure(PublishAbsent, false, IDUnsupportedInitialPublication, "npm.publish.package-identity", errors.New("npm package identity does not already exist"))
@@ -183,6 +183,9 @@ func preparePublish(ctx context.Context, request PublishRequest) (preparedPublis
 	}
 	if request.NPMExecutable == "" {
 		return preparedPublish{}, errors.New("npm executable is required")
+	}
+	if !filepath.IsAbs(request.NPMExecutable) || filepath.Base(request.NPMExecutable) != "npm" {
+		return preparedPublish{}, fmt.Errorf("npm executable must be an absolute path to an npm binary: %q", request.NPMExecutable)
 	}
 	tarballBytes, err := verifiedPublishFile(request.TarballPath, ".tgz", maxTarballSize)
 	if err != nil {
@@ -415,6 +418,7 @@ func (prepared preparedPublish) runNPM(ctx context.Context) ([]byte, error) {
 	if err := os.WriteFile(globalConfig, nil, 0o600); err != nil {
 		return nil, errors.New("create isolated npm global configuration")
 	}
+	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- NPMExecutable is validated in preparePublish as an absolute path whose basename is exactly "npm"; the pinned toolchain supplies it and the argv is built from validated inputs only.
 	command := exec.CommandContext(ctx, prepared.request.NPMExecutable, prepared.argv...)
 	command.Dir = isolationDirectory
 	command.Env = publishEnvironment(os.Environ(), isolationDirectory, userConfig, globalConfig)

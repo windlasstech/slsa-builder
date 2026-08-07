@@ -331,7 +331,7 @@ func (fixture *publishFixture) requireInvocations(t *testing.T, want [][]string)
 
 func writeFakeNPM(t *testing.T, directory string) string {
 	t.Helper()
-	path := filepath.Join(directory, "fake-npm")
+	path := filepath.Join(directory, "npm")
 	script := `#!/bin/sh
 if [ -n "${NPM_TOKEN-}" ] || [ -n "${NODE_AUTH_TOKEN-}" ]; then
   exit 99
