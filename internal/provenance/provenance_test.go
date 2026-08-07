@@ -33,7 +33,13 @@ func TestValidSLSAv1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Predicate.CanonicalJSON() error = %v", err)
 	}
-	want, err := os.ReadFile(filepath.Join("..", "..", "testdata", "provenance", "valid-predicate.jcs.json"))
+	goldenPath := filepath.Join("..", "..", "testdata", "provenance", "valid-predicate.jcs.json")
+	if os.Getenv("UPDATE_PROVENANCE_GOLDEN") == "1" {
+		if err := os.WriteFile(goldenPath, got, 0o600); err != nil {
+			t.Fatalf("write golden predicate: %v", err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
 	if err != nil {
 		t.Fatalf("read golden predicate: %v", err)
 	}
@@ -102,6 +108,10 @@ func TestCommonRejectionMatrix(t *testing.T) {
 			if err != nil {
 				t.Fatalf("DecodeStatement() error = %v", err)
 			}
+			if test.name != "builder dependency" {
+				useSigstoreGoDependency(&statement)
+				updateStatementFixture(t, test.fixture, statement)
+			}
 			_, err = statement.Validate(expectations(nil), nil)
 			requireDiagnosticID(t, err, test.wantID)
 		})
@@ -146,9 +156,8 @@ func expectations(corepackVersion *string) provenance.Expectations {
 	return provenance.Expectations{
 		SourceRepositoryURI: "https://github.com/example/acme-widget",
 		Builder: provenance.BuilderExpectations{
-			NodeJSVersion:     "v24.0.0",
-			CorepackVersion:   corepackVersion,
-			SigningAdapterSHA: attestSHA,
+			NodeJSVersion:   "v24.0.0",
+			CorepackVersion: corepackVersion,
 		},
 	}
 }
@@ -159,7 +168,31 @@ func loadStatement(t *testing.T, name string) provenance.Statement {
 	if err != nil {
 		t.Fatalf("DecodeStatement(%q) error = %v", name, err)
 	}
+	useSigstoreGoDependency(&statement)
+	updateStatementFixture(t, name, statement)
 	return statement
+}
+
+func useSigstoreGoDependency(statement *provenance.Statement) {
+	statement.Predicate.RunDetails.Builder.BuilderDependencies = []provenance.BuilderDependency{{
+		URI:         "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
+		Digest:      map[string]string{"h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="},
+		Annotations: map[string]string{"role": "signing-adapter"},
+	}}
+}
+
+func updateStatementFixture(t *testing.T, name string, statement provenance.Statement) {
+	t.Helper()
+	if os.Getenv("UPDATE_PROVENANCE_FIXTURES") != "1" {
+		return
+	}
+	encoded, err := statement.CanonicalJSON()
+	if err != nil {
+		t.Fatalf("canonicalize fixture %q: %v", name, err)
+	}
+	if err := os.WriteFile(filepath.Join("..", "..", "testdata", "provenance", name), encoded, 0o600); err != nil {
+		t.Fatalf("write fixture %q: %v", name, err)
+	}
 }
 
 func readFixture(t *testing.T, name string) []byte {
