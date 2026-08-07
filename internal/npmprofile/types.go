@@ -78,6 +78,7 @@ type manifest struct {
 	Private        bool              `json:"private"`
 	PackageManager jsonRaw           `json:"packageManager"`
 	DevEngines     jsonRaw           `json:"devEngines"`
+	PublishConfig  jsonRaw           `json:"publishConfig"`
 	Workspaces     jsonRaw           `json:"workspaces"`
 	Repository     jsonRaw           `json:"repository"`
 	License        jsonRaw           `json:"license"`

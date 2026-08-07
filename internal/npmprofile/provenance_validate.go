@@ -258,7 +258,8 @@ func validatePackageManagerParameters(parameters PackageManagerParameters) error
 }
 
 func validatePublishParameters(parameters PublishParameters) error {
-	if parameters.ResolvedRegistryURL != "https://registry.npmjs.org/" || parameters.ResolvedDistTag == "" || !parameters.TrustedPublishing || !parameters.ProvenanceFile || parameters.PackageIdentityPreexisting == nil || !*parameters.PackageIdentityPreexisting || parameters.PackageVersionPreexisting == nil || *parameters.PackageVersionPreexisting {
+	registry, registryErr := normalizeRegistryURL(parameters.ResolvedRegistryURL)
+	if registryErr != nil || registry.String() != parameters.ResolvedRegistryURL || parameters.ResolvedDistTag == "" || !parameters.TrustedPublishing || !parameters.ProvenanceFile || parameters.PackageIdentityPreexisting == nil || !*parameters.PackageIdentityPreexisting || parameters.PackageVersionPreexisting == nil || *parameters.PackageVersionPreexisting {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish", "npmjs publish intent must be tokenless, provenance-file enabled, and target an absent version")
 	}
 	if parameters.EffectiveAccess != "existing-package-access" && parameters.EffectiveAccess != "public" && parameters.EffectiveAccess != "restricted" {
@@ -267,7 +268,11 @@ func validatePublishParameters(parameters PublishParameters) error {
 	if parameters.PublishAccessOption != nil && *parameters.PublishAccessOption != "public" && *parameters.PublishAccessOption != "restricted" {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish.publish_access_option", "publish access option is not enumerated")
 	}
-	if parameters.CustomRegistrySupport != "" {
+	wantCustomSupport := ""
+	if parameters.ResolvedRegistryURL != "https://registry.npmjs.org/" {
+		wantCustomSupport = "unsupported-but-not-blocked"
+	}
+	if parameters.CustomRegistrySupport != wantCustomSupport {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish.custom_registry_support", "custom registry marker is forbidden for npmjs")
 	}
 	return nil
@@ -390,7 +395,8 @@ func selectedLockfilePath(parameters PackageManagerParameters) string {
 }
 
 func npmRegistryPackageURL(registry, name, version string) (string, error) {
-	if registry != "https://registry.npmjs.org/" || invalidPURLText(name) || invalidPURLText(version) {
+	normalized, err := normalizeRegistryURL(registry)
+	if err != nil || normalized.String() != registry || invalidPURLText(name) || invalidPURLText(version) {
 		return "", fmt.Errorf("unsupported registry package URL input")
 	}
 	return registry + percentEncode(name) + "/" + percentEncode(version), nil

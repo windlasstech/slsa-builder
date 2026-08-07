@@ -3,11 +3,15 @@ package command
 import (
 	"bytes"
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 )
 
 func TestNPMProfileBuildCommand(t *testing.T) {
@@ -27,13 +31,32 @@ func TestNPMProfileBuildCommand(t *testing.T) {
 	t.Cleanup(cancel)
 
 	var output bytes.Buffer
-	err := NewNPMProfileBuildCommand().Execute(ctx, []string{
+	registry := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet {
+			t.Fatalf("registry method = %s", request.Method)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		if _, err := writer.Write([]byte(`{"name":"windlass-fixture-unscoped","versions":{}}`)); err != nil {
+			t.Errorf("write registry response: %v", err)
+		}
+	}))
+	t.Cleanup(registry.Close)
+	err := npmProfileBuildCommand{httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
+		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+	}}.Execute(ctx, []string{
 		"--repository-root", repository,
 		"--package-directory", ".",
 		"--observed-repository", "windlasstech/slsa-builder",
 		"--output-directory", outputDirectory,
 		"--artifact-name", artifactName,
 		"--metadata-artifact-name", metadataArtifactName,
+		"--registry-url", registry.URL,
+		"--event-name", "push",
+		"--ref-type", "tag",
+		"--ref", "refs/tags/v1.0.0",
+		"--revision", "0123456789abcdef0123456789abcdef01234567",
+		"--workflow-sha", "0123456789abcdef0123456789abcdef01234567",
+		"--caller-workflow-filename", "release.yml",
 		"--github-output", githubOutput,
 	}, &output)
 	if err != nil {

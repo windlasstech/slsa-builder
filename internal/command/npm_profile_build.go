@@ -7,19 +7,21 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/handoff"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
-	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
 
 var npmProfileBuildOutputs = NewOutputAllowlist(
 	"package-name",
 	"package-version",
 	"package-purl",
+	"package-registry-url",
+	"package-url",
 	"tarball-name",
 	"tarball-path",
 	"tarball-artifact-name",
@@ -30,14 +32,17 @@ var npmProfileBuildOutputs = NewOutputAllowlist(
 	"build-metadata-sha256",
 )
 
-type npmProfileBuildCommand struct{}
+type npmProfileBuildCommand struct {
+	httpClient     *http.Client
+	runnerOverride *npmprofile.RunnerCapture
+}
 
 // NewNPMProfileBuildCommand creates the npm install, build, and pack subcommand.
 func NewNPMProfileBuildCommand() Command { return npmProfileBuildCommand{} }
 
 func (npmProfileBuildCommand) Name() string { return "npm-profile-build" }
 
-func (npmProfileBuildCommand) Execute(ctx context.Context, args []string, out io.Writer) error {
+func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string, out io.Writer) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -49,6 +54,15 @@ func (npmProfileBuildCommand) Execute(ctx context.Context, args []string, out io
 	outputDirectory := flags.String("output-directory", "", "trusted build output directory")
 	artifactName := flags.String("artifact-name", "", "tarball handoff artifact name")
 	metadataArtifactName := flags.String("metadata-artifact-name", "", "build metadata handoff artifact name")
+	registryURL := flags.String("registry-url", "", "caller registry URL intent")
+	distTag := flags.String("dist-tag", "", "caller distribution tag intent")
+	access := flags.String("access", "", "caller access intent")
+	eventName := flags.String("event-name", "", "observed GitHub event name")
+	refType := flags.String("ref-type", "", "observed GitHub ref type")
+	ref := flags.String("ref", "", "observed GitHub ref")
+	revision := flags.String("revision", "", "observed source revision")
+	workflowSHA := flags.String("workflow-sha", "", "immutable reusable workflow revision")
+	callerWorkflow := flags.String("caller-workflow-filename", "", "observed caller workflow filename")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -58,7 +72,8 @@ func (npmProfileBuildCommand) Execute(ctx context.Context, args []string, out io
 		return err
 	}
 	if *repositoryRoot == "" || *packageDirectory == "" || *observedRepository == "" || *outputDirectory == "" ||
-		*artifactName == "" || *metadataArtifactName == "" || *githubOutput == "" || flags.NArg() != 0 {
+		*artifactName == "" || *metadataArtifactName == "" || *eventName == "" || *refType == "" || *ref == "" ||
+		*revision == "" || *workflowSHA == "" || *callerWorkflow == "" || *githubOutput == "" || flags.NArg() != 0 {
 		return errors.New("all npm-profile-build flags are required with no positional arguments")
 	}
 	if err := handoff.ValidateSafeBasename(*artifactName); err != nil {
@@ -82,17 +97,46 @@ func (npmProfileBuildCommand) Execute(ctx context.Context, args []string, out io
 		}
 		return ErrVerificationFailure
 	}
+	publishIntent, err := npmprofile.ResolveWorkflowPublishIntent(selection, *registryURL, *distTag, *access)
+	if err != nil {
+		return err
+	}
+	registry, err := npmprofile.NewRegistryClient(npmprofile.RegistryClientConfig{HTTPClient: command.httpClient, RegistryURL: publishIntent.ResolvedRegistryURL})
+	if err != nil {
+		return err
+	}
+	registryState, err := registry.Preflight(ctx, selection.Package.Name, selection.Package.Version)
+	if err != nil {
+		return err
+	}
 	result, err := npmprofile.BuildPack(ctx, npmprofile.BuildPackConfig{
-		Selection:            selection,
-		OutputDirectory:      *outputDirectory,
-		ArtifactName:         *artifactName,
-		ExternalParameters:   json.RawMessage(`{}`),
-		ResolvedDependencies: []provenance.ResourceDescriptor{},
+		Selection:          selection,
+		OutputDirectory:    *outputDirectory,
+		ArtifactName:       *artifactName,
+		ExternalParameters: json.RawMessage(`{}`),
 	})
 	if err != nil {
 		return err
 	}
-	metadataBytes, err := os.ReadFile(result.MetadataPath)
+	if command.runnerOverride != nil {
+		result.Toolchain.Runner = *command.runnerOverride
+	}
+	metadata, err := npmprofile.FinalizeWorkflowBuildMetadata(selection, result, npmprofile.WorkflowBuildMetadataConfig{
+		ArtifactName: *artifactName, RegistryURLInput: *registryURL, DistTagInput: *distTag, AccessInput: *access,
+		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, WorkflowSHA: *workflowSHA,
+		CallerWorkflowFilename: *callerWorkflow, RegistryState: registryState,
+	})
+	if err != nil {
+		return err
+	}
+	metadataBytes, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+	if err := WriteFileAtomic(result.MetadataPath, metadataBytes, 0o600); err != nil {
+		return err
+	}
+	metadataBytes, err = os.ReadFile(result.MetadataPath)
 	if err != nil {
 		return fmt.Errorf("read build metadata output: %w", err)
 	}
@@ -100,6 +144,8 @@ func (npmProfileBuildCommand) Execute(ctx context.Context, args []string, out io
 		"package-name":                 result.PackageName,
 		"package-version":              result.PackageVersion,
 		"package-purl":                 result.PackagePURL,
+		"package-registry-url":         publishIntent.ResolvedRegistryURL,
+		"package-url":                  metadataPackageURL(metadata),
 		"tarball-name":                 filepath.Base(result.TarballPath),
 		"tarball-path":                 result.TarballPath,
 		"tarball-artifact-name":        *artifactName,
@@ -112,4 +158,12 @@ func (npmProfileBuildCommand) Execute(ctx context.Context, args []string, out io
 		return err
 	}
 	return writeDiagnostics(out, nil, nil)
+}
+
+func metadataPackageURL(metadata npmprofile.BuildMetadata) string {
+	parameters, err := npmprofile.DecodeExternalParameters(metadata.ExternalParameters)
+	if err != nil {
+		return ""
+	}
+	return parameters.Package.PackageURL
 }
