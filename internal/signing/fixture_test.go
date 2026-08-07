@@ -11,6 +11,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/windlasstech/slsa-builder/internal/attestation"
 	"github.com/windlasstech/slsa-builder/internal/digest"
+	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
 
 func TestProductionSignerFixtureOffline(t *testing.T) {
@@ -32,6 +33,16 @@ func TestProductionSignerFixtureOffline(t *testing.T) {
 		}
 	}
 	statementBytes := readSigningFixture(t, statementPath)
+	statement, err := provenance.DecodeStatement(statementBytes)
+	if err != nil {
+		t.Fatalf("decode production signer Statement: %v", err)
+	}
+	if _, err := statement.Validate(provenance.Expectations{
+		SourceRepositoryURI: "https://github.com/yunseo-kim/slsa-builder-conformance",
+		Builder:             provenance.BuilderExpectations{NodeJSVersion: "v24.0.0"},
+	}, nil); err != nil {
+		t.Fatalf("validate production signer Statement: %v", err)
+	}
 	identityBytes := readSigningFixture(t, filepath.Join(fixtureDirectory, "npm-go-signer-identity.json"))
 	var identity attestation.IdentityExpectation
 	if err := json.Unmarshal(identityBytes, &identity); err != nil {

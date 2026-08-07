@@ -55,12 +55,20 @@ func TestSignGitHubActionsOnline(t *testing.T) {
 	sourceRef := requiredEnvironment(t, "GITHUB_REF")
 	statement, err := (provenance.Statement{
 		Type:          provenance.StatementType,
-		Subject:       []provenance.Subject{{Name: "pkg:generic/windlass-online-test", Digest: map[string]string{"sha256": strings.Repeat("0", 64)}}},
+		Subject:       []provenance.Subject{{Name: "pkg:npm/%40windlass/conformance@1.0.0", Digest: map[string]string{"sha256": strings.Repeat("0", 64), "sha512": strings.Repeat("0", 128)}}},
 		PredicateType: provenance.PredicateType,
 		Predicate: provenance.Predicate{
-			BuildDefinition: provenance.BuildDefinition{BuildType: "https://buildtype.dev/windlass/test/v1", ExternalParameters: []byte(`{}`), InternalParameters: []byte(`{}`), ResolvedDependencies: []provenance.ResourceDescriptor{}},
+			BuildDefinition: provenance.BuildDefinition{BuildType: "https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1", ExternalParameters: []byte(`{}`), InternalParameters: []byte(`{}`), ResolvedDependencies: []provenance.ResourceDescriptor{}},
 			RunDetails: provenance.RunDetails{
-				Builder:  provenance.Builder{ID: serverURL + "/" + workflowRef, Version: map[string]string{}, BuilderDependencies: []provenance.BuilderDependency{}},
+				Builder: provenance.Builder{
+					ID:      serverURL + "/" + workflowRef,
+					Version: map[string]string{"nodejs": "v24.0.0"},
+					BuilderDependencies: []provenance.BuilderDependency{{
+						URI:         "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
+						Digest:      map[string]string{"h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="},
+						Annotations: map[string]string{"role": "signing-adapter"},
+					}},
+				},
 				Metadata: provenance.Metadata{InvocationID: serverURL + "/" + repository + "/actions/runs/" + runID + "/attempts/" + runAttempt, StartedOn: "2026-08-07T00:00:00Z", FinishedOn: "2026-08-07T00:00:00Z"},
 			},
 		},
