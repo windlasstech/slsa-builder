@@ -1,29 +1,19 @@
 package npmprofile
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
-	"time"
 
 	"github.com/windlasstech/slsa-builder/internal/canonicaljson"
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/handoff"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
-
-const maxCommandOutput = 1 << 20
-
-const commandTimeout = 10 * time.Minute
-
-const commandWaitDelay = 5 * time.Second
 
 // BuildPack executes the selected real package manager and writes one tarball plus one metadata file.
 func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, error) {
@@ -295,84 +285,6 @@ func controlledEnvironment(root string) ([]string, error) {
 	}, nil
 }
 
-// allowedExecutableBasenames is the closed set of toolchain binaries runCommand
-// may execute. Callers resolve these from fixed names via exec.LookPath or from
-// the Corepack shim directory; rejecting any other basename is defense in depth
-// against a future caller passing influenced input.
-var allowedExecutableBasenames = map[string]bool{
-	"node":     true,
-	"npm":      true,
-	"npx":      true,
-	"corepack": true,
-	"pnpm":     true,
-	"yarn":     true,
-}
-
-func runCommand(ctx context.Context, directory, executable string, environment, arguments []string) (string, error) {
-	if !filepath.IsAbs(executable) {
-		return "", fmt.Errorf("executable path must be absolute: %q", executable)
-	}
-	if !allowedExecutableBasenames[filepath.Base(executable)] {
-		return "", fmt.Errorf("executable is not in the toolchain allowlist: %q", filepath.Base(executable))
-	}
-	commandContext, cancel := context.WithTimeout(ctx, commandTimeout)
-	defer cancel()
-	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- executable is allowlist-validated immediately above; all call sites resolve fixed tool names via exec.LookPath or the enum-constrained Corepack shim directory, so pinned-toolchain resolution cannot stay statically literal.
-	command := exec.CommandContext(commandContext, executable, arguments...)
-	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	command.WaitDelay = commandWaitDelay
-	command.Cancel = func() error {
-		if command.Process == nil {
-			return nil
-		}
-		err := syscall.Kill(-command.Process.Pid, syscall.SIGKILL)
-		if errors.Is(err, syscall.ESRCH) {
-			return nil
-		}
-		return err
-	}
-	command.Dir = directory
-	command.Env = environment
-	var output limitedBuffer
-	command.Stdout = &output
-	command.Stderr = &output
-	runErr := command.Run()
-	if command.Process != nil {
-		cleanupErr := syscall.Kill(-command.Process.Pid, syscall.SIGKILL)
-		if cleanupErr != nil && !errors.Is(cleanupErr, syscall.ESRCH) && runErr == nil {
-			runErr = fmt.Errorf("terminate command descendants: %w", cleanupErr)
-		}
-	}
-	if runErr != nil {
-		if errors.Is(commandContext.Err(), context.DeadlineExceeded) {
-			return "", fmt.Errorf("command timed out: %w", commandContext.Err())
-		}
-		return "", fmt.Errorf("%s %v failed: %w: %s", filepath.Base(executable), arguments, runErr, strings.TrimSpace(output.String()))
-	}
-	if output.total > maxCommandOutput {
-		return "", fmt.Errorf("command output exceeds %d bytes", maxCommandOutput)
-	}
-	return strings.TrimSpace(output.String()), nil
-}
-
-type limitedBuffer struct {
-	buffer bytes.Buffer
-	total  int
-}
-
-func (buffer *limitedBuffer) Write(data []byte) (int, error) {
-	buffer.total += len(data)
-	if buffer.buffer.Len() < maxCommandOutput {
-		remaining := maxCommandOutput - buffer.buffer.Len()
-		_, _ = buffer.buffer.Write(data[:min(len(data), remaining)])
-	}
-	return len(data), nil
-}
-
-func (buffer *limitedBuffer) String() string {
-	return buffer.buffer.String()
-}
-
 func installArguments(manager Manager) []string {
 	switch manager {
 	case ManagerNPM:
@@ -443,7 +355,11 @@ func runManagerCommand(ctx context.Context, selection Result, executable string,
 	if err := validateCredentialConfiguration(selection); err != nil {
 		return err
 	}
-	_, err := runCommand(ctx, selection.Package.RealManagerRoot, executable, environment, arguments)
+	shimDirectory := ""
+	if selection.Manager.Name != ManagerNPM {
+		shimDirectory = filepath.Dir(executable)
+	}
+	_, err := runCommandWithShimRoot(ctx, selection.Package.RealManagerRoot, executable, environment, arguments, shimDirectory)
 	return err
 }
 

@@ -86,7 +86,7 @@ func prepareToolchain(ctx context.Context, selection Result, root string, enviro
 	}
 	managerPath := filepath.Join(shimDirectory, string(selection.Manager.Name))
 	acquisitionEnvironment := append(append([]string(nil), environment...), "DEBUG=corepack")
-	managerOutput, err := runCommand(ctx, selection.Package.RealManagerRoot, managerPath, acquisitionEnvironment, []string{"--version"})
+	managerOutput, err := runCommandWithShimRoot(ctx, selection.Package.RealManagerRoot, managerPath, acquisitionEnvironment, []string{"--version"}, shimDirectory)
 	if err != nil {
 		return ToolchainCapture{}, "", err
 	}
