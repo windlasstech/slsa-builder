@@ -7,7 +7,6 @@ three-job signing boundary that produces and publishes the manifest.
 
 - Source ADRs: [0028](../decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md),
   [0031](../decisions/0031-use-sigstore-signed-in-toto-release-manifest.md),
-  [0035](../decisions/0035-use-actions-attest-as-initial-sigstore-signing-adapter.md),
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
   [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md),
@@ -17,7 +16,8 @@ three-job signing boundary that produces and publishes the manifest.
   [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md),
   [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md),
   [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
-  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md)
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md), and
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [Core profile contract](core-profile-contract.md)
 
@@ -36,8 +36,8 @@ three-job signing boundary that produces and publishes the manifest.
 
 - Consumer verifier implementation (verification policy spec).
 - Profile-specific `externalParameters` (profile specs).
-- Exact predicate or bundle format details already covered by `actions/attest` documentation
-  (referenced but not duplicated).
+- Common DSSE, Sigstore bundle, and exact-byte signing rules defined by ADR 0077 and the SLSA
+  provenance spec (referenced but not duplicated).
 
 ## Release manifest purpose
 
@@ -464,23 +464,24 @@ identifier and must be rejected when a release manifest predicate is expected.
 
 ## Signed payload rules
 
-The initial signing adapter is stock `actions/attest` in custom attestation mode. The manifest
-signing job must pass the verified subject name, subject digest, predicate type, and manifest
-predicate JSON to the adapter; it must not pass or document a complete in-toto Statement payload as
-an adapter input. The adapter constructs the in-toto Statement and signs that Statement as a
-Sigstore-backed bundle.
+Wave 4 release-manifest signing reuses the Go-native `sigstore-go` v1.3.0 adapter selected by
+ADR 0077. After validating the subject name, subject digest, predicate type, manifest predicate
+JSON, and release identity, the trusted Go core assembles the complete in-toto Statement. The
+manifest signing job passes those exact preassembled bytes to `sign.DSSEData` with payload type
+`application/vnd.in-toto+json`. The adapter must not reconstruct, normalize, or reserialize the
+Statement.
 
-The signed release manifest bundle file is the exact byte sequence emitted by `actions/attest`. The
-workflow must not replace it with the extracted Statement, reserialize it, wrap it in another DSSE
-or Sigstore representation, or re-sign it in the upload job. The `.intoto.jsonl` filename is the
-release manifest bundle naming convention, not permission to change the bundle byte format. See the
-[SLSA provenance v1 signed bundle file format](slsa-provenance-v1.md#signed-bundle-file-format).
+The signed release manifest bundle file is the exact byte sequence emitted by the Go-native signer.
+The workflow must not replace it with the extracted Statement, reserialize it, wrap it in another
+DSSE or Sigstore representation, or re-sign it in the upload job. The `.intoto.jsonl` filename is
+the release manifest bundle naming convention, not permission to change the bundle byte format. See
+the [SLSA provenance v1 signed bundle file format](slsa-provenance-v1.md#signed-bundle-file-format).
 
-The Statement's `predicate` must be the manifest JSON value, represented as a JSON object. The
-Statement subject digest must be the SHA-256 digest of the RFC 8785 JCS canonical JSON bytes for
-that value. After signing, the manifest signing or upload path must extract the emitted Statement
-payload from the signed bundle and compare it against the Statement implied by the verified subject
-inputs, predicate type, and manifest predicate JSON.
+The preassembled Statement's `predicate` must be the manifest JSON value, represented as a JSON
+object. The Statement subject digest must be the SHA-256 digest of the RFC 8785 JCS canonical JSON
+bytes for that value. After signing, the manifest signing or upload path must extract the emitted
+Statement payload from the signed bundle and compare it byte-for-byte with the exact preassembled
+Statement.
 
 The signed bundle is invalid when:
 
@@ -602,17 +603,18 @@ from accidentally consuming stale or misrouted artifacts.
 
 - Downloads the manifest artifacts.
 - Recomputes their digests and verifies them against the handoff from `manifest-generate`.
-- Invokes full-SHA-pinned `actions/attest` in custom attestation mode with the verified subject
-  name, subject digest, predicate type, and manifest predicate JSON.
-- Extracts the emitted in-toto Statement from the signed bundle and verifies that it matches the
-  Statement implied by the verified signing inputs.
+- Assembles and validates the complete in-toto Statement from the verified subject name, subject
+  digest, predicate type, manifest predicate JSON, and release identity.
+- Invokes the governed Go-native signer with the exact preassembled Statement bytes and
+  `application/vnd.in-toto+json` payload type.
+- Extracts the emitted in-toto Statement from the signed bundle and compares it byte-for-byte with
+  the preassembled Statement.
 - Uploads the signed bundle as a workflow artifact.
 - Re-exports the verified plain manifest artifact handle and canonical manifest digest to
   `manifest-upload` without modifying the manifest JSON bytes or canonical JSON value.
 - Permissions:
   - `contents: read`
   - `id-token: write`
-  - `attestations: write`
 - Must **not** have `contents: write` or release mutation authority.
 
 The handoff from `manifest-sign` to `manifest-upload` contains only values verified or produced by
@@ -1003,14 +1005,13 @@ profile mappings are additional constraints, not overrides. The effective truste
 the intersection of the verified manifest mappings and explicit verifier policy. A conflict or empty
 intersection must fail verification rather than selecting one source by precedence.
 
-## Migration criteria
+## Signing-model migration criteria
 
-A future ADR may replace the three-job inline workflow with one of the following. Any migration must
-preserve the verifier-visible trust contract for predicate type, schema version, signer identity,
-release version, workflow path, workflow SHA, `builder.id`, and `buildType`.
+A future ADR may replace the three-job inline workflow or the signer selected by ADR 0077. Any
+migration must preserve the verifier-visible trust contract for predicate type, schema version,
+signer identity, release version, workflow path, workflow SHA, `builder.id`, and `buildType`.
 
 - A dedicated reusable workflow for release manifest signing.
-- Direct Sigstore tooling such as `cosign` or `sigstore-go`.
 - TUF-style metadata with delegated roles, thresholds, expiry, or mirrors.
 
 ## Failure behavior

@@ -23,7 +23,8 @@ ecosystem-produced artifacts, not a source-to-artifact builder.
   [0072](../decisions/0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md),
   [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
-  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md)
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md), and
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -386,7 +387,10 @@ proof of trust. It must retrieve the bytes, compute SHA-256, and compare the res
 The initial production publisher accepts only a same-run GitHub Actions artifact containing the
 exact producer provenance bundle bytes. `producer-provenance-artifact-name` must name an artifact
 produced earlier in the same workflow run, and that artifact must contain exactly one signed
-Sigstore bundle file.
+Sigstore bundle file emitted by the Go-native signing adapter selected by ADR 0077. Future producer
+profiles use the same signer by default; the publisher remains responsible for verifying each
+profile's admitted Statement and identity contract rather than inferring trust from the adapter
+name.
 
 `producer-provenance-sha256` is mandatory. The publisher must retrieve the bundle bytes, compute
 SHA-256, compare it with `producer-provenance-sha256`, verify the bundle, and then upload those

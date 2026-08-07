@@ -29,7 +29,7 @@ the Go implementation tree has not been added yet.
 
 | Task                     | Location                                                   | Notes                                             |
 | ------------------------ | ---------------------------------------------------------- | ------------------------------------------------- |
-| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0076`.          |
+| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0077`.          |
 | Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`. |
 | Bootstrap / dev setup    | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.                  |
 | CI / workflow security   | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.                |
@@ -159,6 +159,12 @@ to the ADR whose confirmation criteria or scope produced it.
   watch GHES releases before making any GHES support claim.
 - **Early-exchange preflight dogfood** (ADR 0076 confirmation): the first dogfood publish must
   empirically exercise the early npm OIDC exchange preflight and record the result against ADR 0076.
+- **Go-signer dogfood confirmation** (ADR 0077 confirmation): before P06, complete a controlled real
+  npm publish with registry attestation read-back and pacote consumer verification. The signer is
+  already selected for all Windlass profiles and release-manifest signing; if this dogfood surfaces
+  defects, a follow-up ADR must evaluate remediation or rollback.
+- **actions/attest multi-digest subject request** (ADR 0077 consequence): file the non-blocking
+  upstream request for one subject carrying multiple digest algorithms; P02 does not wait for it.
 
 <!-- CODEGRAPH_START -->
 

@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0076`.
+`0077`.
 
 ## STRUCTURE
 
@@ -18,37 +18,39 @@ docs/decisions/
 ├── 0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md
 ├── 0075-queue-mutation-segment-contenders-with-queue-max.md
 ├── 0076-use-observation-preflights-and-first-mutation-classification.md
+├── 0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0076`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0077`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
 
-| Topic                         | ADR                            | Notes                                                                        |
-| ----------------------------- | ------------------------------ | ---------------------------------------------------------------------------- |
-| Why the repo exists           | `0001`                         | Clean-repository foundation.                                                 |
-| Trusted workflow architecture | `0002`, `0003`                 | Core vs. profile-owned reusable workflows.                                   |
-| Implementation language       | `0004`                         | Go for trusted core; shell stays glue.                                       |
-| Linter choices                | `0005`, `0006`, `0007`         | golangci-lint, ShellCheck, no universal bundle.                              |
-| Formatter choices             | `0008`                         | gofmt/goimports, shfmt, Prettier for Markdown.                               |
-| Dev tooling runtime           | `0009`, `0010`, `0011`, `0012` | Node/pnpm, Lefthook, mise bootstrap.                                         |
-| JS/TS npm package profile     | `0013`–`0037`, `0055`–`0064`   | Package manager selection, OIDC publishing, SLSA3 npm workflow.              |
-| GitHub release asset profile  | `0038`–`0052`, `0057`–`0062`   | Release asset subject handling, attestation distribution.                    |
-| Release manifest metadata     | `0053`, `0054`, `0062`         | Signing boundary, predicate URI, producer policy conflicts.                  |
-| ADR lifecycle metadata        | `0065`                         | Closed status grammar and relations field.                                   |
-| Release run ownership         | `0066`                         | Job-class concurrency and mutation segment serialization.                    |
-| Repeated run recovery         | `0067`                         | Run-identity convergence, outcome states, binding proofs.                    |
-| Release asset run ownership   | `0072`                         | Sidecar-first pair binding and custody non-attribution.                      |
-| npm run-ownership proof       | `0073`                         | Published-attestation run identity for same-run convergence.                 |
-| Mutation segment atomicity    | `0074`                         | Single-job segments and detection-based cross-run safety.                    |
-| Mutation queue policy         | `0075`                         | `queue: max` FIFO waiting for mutation segment contenders.                   |
-| Preflight and classification  | `0076`                         | Observation preflights; first-mutation classification otherwise.             |
-| Verifier identity binding     | `0068`                         | Immutable builder/source identities for verification.                        |
-| Transparency and trust root   | `0069`                         | Rekor inclusion, offline verification, trust root governance.                |
-| Build-environment recording   | `0070`, `0071`                 | Toolchain distributions, runner image, builder.version, builderDependencies. |
+| Topic                         | ADR                                  | Notes                                                                        |
+| ----------------------------- | ------------------------------------ | ---------------------------------------------------------------------------- |
+| Why the repo exists           | `0001`                               | Clean-repository foundation.                                                 |
+| Trusted workflow architecture | `0002`, `0003`                       | Core vs. profile-owned reusable workflows.                                   |
+| Implementation language       | `0004`                               | Go for trusted core; shell stays glue.                                       |
+| Linter choices                | `0005`, `0006`, `0007`               | golangci-lint, ShellCheck, no universal bundle.                              |
+| Formatter choices             | `0008`                               | gofmt/goimports, shfmt, Prettier for Markdown.                               |
+| Dev tooling runtime           | `0009`, `0010`, `0011`, `0012`       | Node/pnpm, Lefthook, mise bootstrap.                                         |
+| JS/TS npm package profile     | `0013`–`0037`, `0055`–`0064`, `0077` | Package manager selection, OIDC publishing, SLSA3 npm workflow.              |
+| GitHub release asset profile  | `0038`–`0052`, `0057`–`0062`         | Release asset subject handling, attestation distribution.                    |
+| Release manifest metadata     | `0053`, `0054`, `0062`               | Signing boundary, predicate URI, producer policy conflicts.                  |
+| ADR lifecycle metadata        | `0065`                               | Closed status grammar and relations field.                                   |
+| Release run ownership         | `0066`                               | Job-class concurrency and mutation segment serialization.                    |
+| Repeated run recovery         | `0067`                               | Run-identity convergence, outcome states, binding proofs.                    |
+| Release asset run ownership   | `0072`                               | Sidecar-first pair binding and custody non-attribution.                      |
+| npm run-ownership proof       | `0073`                               | Published-attestation run identity for same-run convergence.                 |
+| Mutation segment atomicity    | `0074`                               | Single-job segments and detection-based cross-run safety.                    |
+| Mutation queue policy         | `0075`                               | `queue: max` FIFO waiting for mutation segment contenders.                   |
+| Preflight and classification  | `0076`                               | Observation preflights; first-mutation classification otherwise.             |
+| Verifier identity binding     | `0068`                               | Immutable builder/source identities for verification.                        |
+| Transparency and trust root   | `0069`                               | Rekor inclusion, offline verification, trust root governance.                |
+| Build-environment recording   | `0070`, `0071`                       | Toolchain distributions, runner image, builder.version, builderDependencies. |
+| Windlass provenance signing   | `0077`                               | Go-native exact-byte DSSE signing for all profiles and release manifests.    |
 
 ## CONVENTIONS
 

@@ -14,7 +14,6 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0052](../decisions/0052-compose-npm-package-tarball-producer-with-release-asset-publisher.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
   [0054](../decisions/0054-use-slsa-builder-dev-release-manifest-predicate-uri.md),
-  [0055](../decisions/0055-use-actions-attest-custom-mode-for-statement-construction.md),
   [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
   [0057](../decisions/0057-provide-composed-public-npm-release-asset-workflow.md),
   [0058](../decisions/0058-define-github-release-asset-publisher-authority-boundary.md),
@@ -30,7 +29,8 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md),
   [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
-  and [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md)
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md), and
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -536,9 +536,9 @@ this shape fails with the narrow runner-image diagnostic.
 `corepack` only when Corepack supplied the selected manager. Missing or extra keys, wrong
 conditional `corepack` presence, or an observed-version mismatch fails with
 `windlass.verify.error.builder-version-mismatch`. `builderDependencies` contains exactly one signing
-adapter descriptor: `git+https://github.com/actions/attest@<full-sha>`, with exactly
-`digest.gitCommit: <same-full-sha>` and `annotations.role: "signing-adapter"`. A missing, extra,
-malformed, wrong-role, or revision-inconsistent descriptor fails with
+adapter descriptor: `pkg:golang/github.com/sigstore/sigstore-go@v1.3.0`, with exactly
+`digest.h1: hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE=` and `annotations.role: "signing-adapter"`.
+A missing, extra, malformed, wrong-role, or module/checksum-inconsistent descriptor fails with
 `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.
 
 The following valid npm-profile fragments show the closed v1 shapes. The runner-image URI is the
@@ -573,8 +573,8 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
       "version": { "nodejs": "v24.0.0" },
       "builderDependencies": [
         {
-          "uri": "git+https://github.com/actions/attest@0123456789abcdef0123456789abcdef01234567",
-          "digest": { "gitCommit": "0123456789abcdef0123456789abcdef01234567" },
+          "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
+          "digest": { "h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE=" },
           "annotations": { "role": "signing-adapter" }
         }
       ]
@@ -994,7 +994,7 @@ and exits `2`; a fixture that proves its condition but emits another primary ID 
 | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | The known conditional manager-distribution descriptor is missing, duplicated, forbidden, or malformed.                                                                                                                                                                                      |
 | `windlass.verify.error.resolved-dependencies-runner-image`                 | The runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched.                                                                                                                                                                                               |
 | `windlass.verify.error.builder-version-mismatch`                           | Closed `builder.version` keys or observed versions are invalid.                                                                                                                                                                                                                             |
-| `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or revision-inconsistent.                                                                                                                                                                                         |
+| `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or dependency-inconsistent.                                                                                                                                                                                       |
 | `windlass.verify.error.mutation-queue-overflow`                            | GitHub rejects an arrival beyond 100 pending executions in one mutation concurrency group.                                                                                                                                                                                                  |
 | `windlass.verify.error.npm-oidc-exchange-indeterminate`                    | The npm OIDC token exchange surface is unreadable or erroring, including HTTP `5xx` or a malformed response, so trusted-publisher configuration cannot be classified; the run fails as `indeterminate` even though the exchange mints only a short-lived publish token and mutates nothing. |
 | `windlass.verify.error.oidc-capability-unavailable`                        | `ACTIONS_ID_TOKEN_REQUEST_TOKEN` is absent or the id-token request fails, proving that the caller job cannot provide OIDC credentials because `id-token: write` is missing.                                                                                                                 |
@@ -1268,7 +1268,8 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `npm-resolved-dependencies-yarn-valid`              | npm              | Yarn has one download-hash manager distribution.                        |
 | `npm-builder-version-direct-npm-valid`              | npm              | Closed builder version contains `nodejs` only.                          |
 | `npm-builder-version-corepack-valid`                | npm              | Closed builder version contains `nodejs` and conditional `corepack`.    |
-| `npm-builder-signing-adapter-valid`                 | npm              | Exactly one pinned `actions/attest` signing-adapter dependency.         |
+| `npm-builder-signing-adapter-valid`                 | npm              | Exactly one governed `sigstore-go` signing-adapter dependency.          |
+| `npm-go-signer-bundle-valid`                        | npm              | Go signer payload exactly matches the preassembled Statement.           |
 | `npm-external-parameters-distribution-caller-valid` | npm              | Closed distribution and caller groups complete the eight-input mapping. |
 | `npm-internal-parameters-empty-valid`               | npm              | `internalParameters` is exactly `{}`.                                   |
 | `npm-invocation-id-certificate-uri-valid`           | npm              | `metadata.invocationId` byte-equals Fulcio OID `.21`.                   |
@@ -1303,7 +1304,7 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `input-unavailable`                                  | A required local artifact, bundle, policy, manifest, or trusted-root input is unreadable.                         |
 | `verifier-execution-failure`                         | The verifier cannot execute a requested check and therefore produces no acceptance result.                        |
 | `duplicate-json-member`                              | Signed Statement, bundle, or DSSE JSON contains duplicate object member names.                                    |
-| `actions-attest-adapter-contract`                    | Adapter inputs, emitted bundle basename, or npm provenance-file compatibility is invalid.                         |
+| `actions-attest-adapter-contract`                    | Exact DSSE payload, emitted bundle, or npm provenance-file compatibility is invalid.                              |
 | `wrong-producer-signer`                              | Producer signer repo, workflow path, ref, or issuer is not trusted.                                               |
 | `wrong-predicate-type`                               | `predicateType` is not SLSA provenance v1.                                                                        |
 | `wrong-manifest-predicate-type`                      | Release manifest `predicateType` is not the ADR 0054 predicate URI.                                               |
@@ -1396,7 +1397,7 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `resolved-dependencies-package-manager-distribution` | The known conditional manager-distribution descriptor is missing, duplicated, forbidden, or malformed.            |
 | `resolved-dependencies-runner-image`                 | The runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched.                     |
 | `builder-version-mismatch`                           | Closed `builder.version` keys or observed versions are invalid.                                                   |
-| `builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or revision-inconsistent.               |
+| `builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or dependency-inconsistent.             |
 | `mutation-queue-overflow`                            | GitHub rejects an arrival beyond 100 pending executions in one mutation concurrency group.                        |
 | `npm-oidc-exchange-indeterminate`                    | npm OIDC token exchange is unreadable or errors with HTTP `5xx` or a malformed response before registry mutation. |
 | `oidc-capability-unavailable`                        | Caller lacks OIDC capability because the id-token request token is absent or the id-token request fails.          |
@@ -1489,7 +1490,7 @@ follow the diagnostics ordering rules.
 | `corepack` is missing when used or present for npm                              | `builder-version-mismatch`                           |
 | `builder.version` has an unknown key                                            | `builder-version-mismatch`                           |
 | Signing-adapter descriptor is missing or extra                                  | `builder-dependencies-signing-adapter-mismatch`      |
-| Adapter URI, digest, or action revision disagrees                               | `builder-dependencies-signing-adapter-mismatch`      |
+| Adapter URI, module version, or checksum disagrees                              | `builder-dependencies-signing-adapter-mismatch`      |
 | Adapter `role` annotation is wrong                                              | `builder-dependencies-signing-adapter-mismatch`      |
 | `distribution` or `caller` member is missing or unknown                         | `unexpected-external-parameters`                     |
 | Raw release tag is duplicated into `distribution`                               | `release-asset-mode-schema-error`                    |
@@ -1555,17 +1556,37 @@ execution. Unsupported Yarn generation, descriptor, or selection-source failures
 `unsupported-yarn-version` unless the failure is more specifically a malformed manifest shape,
 lockfile mismatch, or Corepack enforcement error.
 
-The `actions/attest` adapter fixture set must prove the stock custom-mode adapter contract selected
-by ADR 0055. Accepted fixtures must include a custom-mode emitted bundle named
-`<package-tarball-name>.intoto.jsonl` whose extracted Statement matches the Windlass-verified
-subject inputs, `predicateType`, and SLSA predicate, and whose bytes are accepted by the npm
-`--provenance-file` path. Rejected fixtures must cover raw Statement files used as provenance,
+The npm Go-signer fixture set must prove the ADR 0077 contract. The accepted production fixture must
+be a bundle named `<package-tarball-name>.intoto.jsonl` with GitHub Actions OIDC identity, a Fulcio
+certificate and embedded SCT, bundle-contained Rekor evidence, and an extracted DSSE payload exactly
+equal to the preassembled one-subject, dual-digest Statement bytes. It must verify offline and be
+accepted by the npm `--provenance-file` path. Rejected fixtures must cover a reconstructed or
+reserialized Statement payload, wrong payload type, raw Statement files used as provenance,
 reserialized or wrapped bundles, GitHub artifact attestation storage locators substituted for bundle
-bytes, wrong or missing `slsa-provenance-predicate.json` adapter input, wrong predicate type,
-emitted Statement mismatch, missing or renamed emitted bundle file, unparseable Sigstore bundle
+bytes, wrong predicate type, missing or renamed emitted bundle file, unparseable Sigstore bundle
 bytes, and npm CLI rejection of the external provenance file before registry mutation. These
-failures use `actions-attest-adapter-contract` unless the narrower wrong-predicate,
-bundle-byte-format, signer, or duplicate-member category applies.
+failures retain the registered `actions-attest-adapter-contract` ID unless the narrower
+wrong-predicate, bundle-byte-format, signer, transparency, or duplicate-member category applies. The
+ID name is historical: the C03 diagnostic registry is a closed machine contract, so renaming it or
+adding a signer-specific replacement is deferred to P02, which must update the registry and this
+taxonomy atomically.
+
+The existing F03 `actions/attest` two-subject bundle remains unchanged under
+`testdata/platform/contracts/` as historical platform evidence. It is not an accepted production
+signer fixture and must continue to demonstrate that one checksum line per algorithm creates
+multiple subjects. ADR 0077 implementation adds the separate `npm-go-signer-bundle-valid` fixture;
+it must not modify F03 evidence to make the stock action appear conformant.
+
+Before production enablement, controlled registry conformance must also prove a real npm publish,
+registry attestation read-back of the same bundle, and pacote consumer verification of the published
+package and provenance. Dry-run acceptance alone does not satisfy this production-signer fixture
+gate.
+
+This npm-shaped evidence is the first confirmation of the shared signer contract. Release-manifest
+fixtures must prove that M01/M02 use the same Go-native adapter and preserve the exact preassembled
+manifest Statement bytes; each future profile must add equivalent exact-payload and bundle fixtures
+when its contract is admitted. If the controlled publish, P06, or pacote verification surfaces a
+signer defect, a follow-up ADR must evaluate remediation or rollback.
 
 The signer identity fixture set must prove semantic GitHub Actions identity binding rather than
 artifact-name or log-based inference. Accepted npm producer fixtures must show a bundle whose signer
@@ -1680,11 +1701,12 @@ fields `transport`, `artifact_name`, `payload_file_name`, `payload_kind`, `diges
 `digest.value`, whether those fields are public inputs or profile-owned fixed mappings. Missing or
 malformed fields fail with `handoff-schema-mismatch`.
 
-The signed bundle fixture set must prove that the bundle file bytes emitted by `actions/attest` are
-preserved byte-for-byte through npm provenance submission, publisher sidecar redistribution, and
-release manifest upload. Fixtures that extract only the Statement, reserialize the bundle, wrap it
-in a new envelope, or substitute a native attestation locator for the bundle file must fail with
-`bundle-byte-format-mismatch` or the narrower sidecar/provenance mismatch category.
+The signed bundle fixture set must prove that npm Go-signer bundle bytes are preserved byte-for-byte
+through npm provenance submission and publisher sidecar redistribution, while release-manifest
+fixtures preserve the bundle bytes emitted by that path's selected adapter. Fixtures that extract
+only the Statement, reserialize the bundle, wrap it in a new envelope, or substitute a native
+attestation locator for the bundle file must fail with `bundle-byte-format-mismatch` or the narrower
+sidecar/provenance mismatch category.
 
 The duplicate JSON member fixture set must prove that signed SLSA Statement payloads and
 security-relevant Sigstore bundle or DSSE JSON values fail before semantic policy validation when
@@ -1697,6 +1719,8 @@ These fixtures fail with `duplicate-json-member`.
 The npm publish permissions fixture set must prove that the initial npmjs production publish job has
 `contents: read`, `id-token: write`, no `attestations: write`, and no `packages: write`. A workflow
 that grants `packages: write` for the initial npmjs path fails with `excessive-publish-permission`.
+The npm signing permissions fixture must likewise prove `contents: read`, `id-token: write`, and no
+`attestations: write`, publish permission, caller-controlled step, or long-lived credential.
 
 The trusted-publisher fixture set is producer-side: it must prove that missing caller OIDC
 permission or npmjs.com trusted publisher mismatch fails before registry mutation and never falls
@@ -1934,7 +1958,7 @@ defines the accepted and rejected fixture contracts.
 | Empty internal parameters      | [internalParameters](slsa-provenance-v1.md#internalparameters)                                                     | `npm-internal-parameters-empty-valid`               | non-object or nonempty value                                        | `unexpected-internal-parameters`                     |
 | Builder direct-npm version     | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-version-direct-npm-valid`              | missing `nodejs` or npm-only `corepack`                             | `builder-version-mismatch`                           |
 | Builder Corepack version       | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-version-corepack-valid`                | missing conditional `corepack` or observed mismatch                 | `builder-version-mismatch`                           |
-| Signing adapter                | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-signing-adapter-valid`                 | missing, extra, wrong-role, or revision-inconsistent adapter        | `builder-dependencies-signing-adapter-mismatch`      |
+| Signing adapter                | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-signing-adapter-valid`                 | missing, extra, wrong-role, or module/checksum-inconsistent adapter | `builder-dependencies-signing-adapter-mismatch`      |
 | Invocation identity            | [metadata](slsa-provenance-v1.md#metadata)                                                                         | `npm-invocation-id-certificate-uri-valid`           | malformed URI or OID `.21` inequality                               | `run-invocation-uri-invalid`                         |
 | Online trust root              | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-online-tuf-valid`                       | TUF failure followed by pin fallback                                | `ungoverned-trust-root`                              |
 | Offline network isolation      | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-offline-pinned-valid`                   | offline network attempt                                             | `verification-network-call`                          |

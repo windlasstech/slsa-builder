@@ -1,10 +1,14 @@
 ---
 parent: Decisions
 nav_order: 35
-status: accepted
+status: superseded by ADR-0077
 date: 12026-07-06
 decision-makers: Yunseo Kim
 relations:
+  - type: superseded-by
+    target: ADR-0077
+  - type: see-also
+    target: ADR-0029
   - type: see-also
     target: ADR-0069
   - type: see-also

@@ -5,6 +5,11 @@ status: accepted
 date: 12026-08-03
 decision-makers: Yunseo Kim
 relations:
+  - type: partially-superseded-by
+    target: ADR-0077
+    scope:
+      "the signing-adapter descriptor for every producer profile identifies the governed sigstore-go
+      module instead of actions/attest; field classification and closed-set policy remain"
   - type: see-also
     target: ADR-0028
   - type: see-also
