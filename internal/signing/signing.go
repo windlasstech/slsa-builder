@@ -128,14 +128,22 @@ func bindOIDCSignerIdentity(statementBytes []byte, identity attestation.Identity
 	var claims struct {
 		JobWorkflowRef string `json:"job_workflow_ref"`
 		JobWorkflowSHA string `json:"job_workflow_sha"`
+		WorkflowRef    string `json:"workflow_ref"`
+		WorkflowSHA    string `json:"workflow_sha"`
 	}
-	if err := json.Unmarshal(payload, &claims); err != nil || claims.JobWorkflowRef == "" || claims.JobWorkflowSHA == "" {
+	if err := json.Unmarshal(payload, &claims); err != nil {
 		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC workflow claims are unavailable")
 	}
-	if claims.JobWorkflowSHA != identity.WorkflowSHA {
+	workflowRef := claims.JobWorkflowRef
+	workflowSHA := claims.JobWorkflowSHA
+	if workflowRef == "" && workflowSHA == "" {
+		workflowRef = claims.WorkflowRef
+		workflowSHA = claims.WorkflowSHA
+	}
+	if workflowRef == "" || workflowSHA == "" || workflowSHA != identity.WorkflowSHA {
 		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC workflow revision differs from trusted runtime")
 	}
-	signerURI := "https://github.com/" + claims.JobWorkflowRef
+	signerURI := "https://github.com/" + workflowRef
 	statement, err := provenance.DecodeStatement(statementBytes)
 	if err != nil {
 		return attestation.IdentityExpectation{}, fmt.Errorf("decode signed Statement identity: %w", err)

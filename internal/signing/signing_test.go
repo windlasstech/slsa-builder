@@ -87,6 +87,11 @@ func TestSignGitHubActionsOnline(t *testing.T) {
 	if len(result.Bundle) == 0 || string(result.Statement) != string(statement) {
 		t.Fatal("online signer did not preserve its output bytes")
 	}
+	if outputPath := os.Getenv("WINDLASS_ONLINE_BUNDLE_PATH"); outputPath != "" {
+		if err := os.WriteFile(outputPath, result.Bundle, 0o600); err != nil {
+			t.Fatalf("write online signing bundle: %v", err)
+		}
+	}
 }
 
 func requiredEnvironment(t *testing.T, name string) string {
