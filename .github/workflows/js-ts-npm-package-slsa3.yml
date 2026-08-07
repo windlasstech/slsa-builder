@@ -9,6 +9,51 @@ on:
         description: Repository-relative directory containing the package to build
         required: true
         type: string
+      registry-url:
+        description: Credential-free HTTPS npm-compatible registry root
+        required: false
+        type: string
+      dist-tag:
+        description: npm distribution tag
+        required: false
+        type: string
+      access:
+        description: npm public or restricted access option
+        required: false
+        type: string
+      release-asset-mode:
+        description: Reserved release-asset distribution mode
+        required: false
+        type: boolean
+        default: false
+      release-tag:
+        description: Reserved release asset tag
+        required: false
+        type: string
+      provenance-sidecar:
+        description: Reserved provenance sidecar path
+        required: false
+        type: string
+      linked-artifact-metadata:
+        description: Reserved linked artifact metadata mode
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      package-name:
+        value: ${{ jobs.publish.outputs.package-name }}
+      package-version:
+        value: ${{ jobs.publish.outputs.package-version }}
+      package-registry-url:
+        value: ${{ jobs.publish.outputs.package-registry-url }}
+      package-url:
+        value: ${{ jobs.publish.outputs.package-url }}
+      package-tarball-name:
+        value: ${{ jobs.publish.outputs.package-tarball-name }}
+      package-tarball-sha256:
+        value: ${{ jobs.publish.outputs.package-tarball-sha256 }}
+      package-tarball-sha512:
+        value: ${{ jobs.publish.outputs.package-tarball-sha512 }}
 
 jobs:
   build:
@@ -24,6 +69,8 @@ jobs:
       package-name: ${{ steps.build.outputs.package-name }}
       package-version: ${{ steps.build.outputs.package-version }}
       package-purl: ${{ steps.build.outputs.package-purl }}
+      package-registry-url: ${{ steps.build.outputs.package-registry-url }}
+      package-url: ${{ steps.build.outputs.package-url }}
       package-tarball-name: ${{ steps.build.outputs.tarball-name }}
       package-tarball-sha256: ${{ steps.build.outputs.tarball-sha256 }}
       package-tarball-sha512: ${{ steps.build.outputs.tarball-sha512 }}
@@ -69,23 +116,48 @@ jobs:
           OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-build-output
         run: mkdir --mode=0700 "$OUTPUT_DIRECTORY"
 
+      - name: Reject unavailable distribution modes
+        env:
+          LINKED_ARTIFACT_METADATA: ${{ inputs.linked-artifact-metadata }}
+          PROVENANCE_SIDECAR: ${{ inputs.provenance-sidecar }}
+          RELEASE_ASSET_MODE: ${{ inputs.release-asset-mode }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: |
+          if [[ "$RELEASE_ASSET_MODE" != "false" || -n "$RELEASE_TAG" || \
+                -n "$PROVENANCE_SIDECAR" || "$LINKED_ARTIFACT_METADATA" != "false" ]]; then
+            printf '%s\n' 'release-asset distribution inputs are not implemented by npm-only mode' >&2
+            exit 1
+          fi
+
       - name: Build and pack selected package
         id: build
         working-directory: .slsa-builder
         env:
           METADATA_ARTIFACT_NAME:
             js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
+          ACCESS: ${{ inputs.access }}
+          CALLER_WORKFLOW_REF: ${{ github.workflow_ref }}
+          DIST_TAG: ${{ inputs.dist-tag }}
+          EVENT_NAME: ${{ github.event_name }}
           OBSERVED_REPOSITORY: ${{ github.repository }}
           OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-build-output
           PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
+          REF: ${{ github.ref }}
+          REF_TYPE: ${{ github.ref_type }}
+          REGISTRY_URL: ${{ inputs.registry-url }}
           REPOSITORY_ROOT: ${{ github.workspace }}/source
+          REVISION: ${{ github.sha }}
           TARBALL_ARTIFACT_NAME:
             js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
         run: >-
           go run ./cmd/slsa-builder-internal npm-profile-build --repository-root "$REPOSITORY_ROOT"
           --package-directory "$PACKAGE_DIRECTORY" --observed-repository "$OBSERVED_REPOSITORY"
           --output-directory "$OUTPUT_DIRECTORY" --artifact-name "$TARBALL_ARTIFACT_NAME"
-          --metadata-artifact-name "$METADATA_ARTIFACT_NAME"
+          --metadata-artifact-name "$METADATA_ARTIFACT_NAME" --registry-url "$REGISTRY_URL"
+          --dist-tag "$DIST_TAG" --access "$ACCESS" --event-name "$EVENT_NAME" --ref-type
+          "$REF_TYPE" --ref "$REF" --revision "$REVISION" --workflow-sha "$WORKFLOW_SHA"
+          --caller-workflow-filename "$(basename "${CALLER_WORKFLOW_REF%@*}")"
 
       - name: Upload package tarball handoff
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -113,6 +185,12 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    concurrency:
+      group: npm-provenance-sign-${{ github.repository }}-${{ github.ref_name }}
+      cancel-in-progress: true
+    outputs:
+      bundle-name: ${{ steps.sign.outputs.bundle-path }}
+      bundle-sha256: ${{ steps.sign.outputs.bundle-sha256 }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
@@ -179,6 +257,8 @@ jobs:
             js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
           TARBALL_DIRECTORY: ${{ runner.temp }}/windlass-sign-input/tarball
           TARBALL_SHA256: ${{ needs.build.outputs.package-tarball-sha256 }}
+          PACKAGE_NAME: ${{ needs.build.outputs.package-name }}
+          REGISTRY_URL: ${{ needs.build.outputs.package-registry-url }}
           WINDLASS_WORKFLOW_SHA: ${{ job.workflow_sha }}
         run: >-
           go run ./cmd/slsa-builder-internal npm-profile-sign --metadata-artifact-dir
@@ -186,13 +266,125 @@ jobs:
           "$METADATA_ARTIFACT_NAME" --tarball-artifact-dir "$TARBALL_DIRECTORY" --tarball-sha256
           "$TARBALL_SHA256" --tarball-artifact-name "$TARBALL_ARTIFACT_NAME" --node-version
           "$NODE_VERSION" --corepack-version "$COREPACK_VERSION" --output-directory
-          "$OUTPUT_DIRECTORY"
+          "$OUTPUT_DIRECTORY" --registry-url "$REGISTRY_URL" --package-name "$PACKAGE_NAME"
 
       - name: Upload verified provenance bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/windlass-provenance/*.intoto.jsonl
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: false
+
+  publish:
+    name: Publish npm package
+    if: always()
+    needs: [build, provenance-sign]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: release-mutation-${{ github.repository }}-${{ github.ref_name }}
+      cancel-in-progress: false
+      queue: max
+    outputs:
+      package-name: ${{ steps.publish.outputs.package-name }}
+      package-version: ${{ steps.publish.outputs.package-version }}
+      package-registry-url: ${{ steps.publish.outputs.package-registry-url }}
+      package-url: ${{ steps.publish.outputs.package-url }}
+      package-tarball-name: ${{ steps.publish.outputs.package-tarball-name }}
+      package-tarball-sha256: ${{ steps.publish.outputs.package-tarball-sha256 }}
+      package-tarball-sha512: ${{ steps.publish.outputs.package-tarball-sha512 }}
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout trusted builder
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .slsa-builder
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "1.26.5"
+          cache: false
+
+      - name: Set up Node.js
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Download package tarball handoff
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/windlass-publish-input/tarball
+
+      - name: Download provenance bundle handoff
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/windlass-publish-input/provenance
+
+      - name: Publish with trusted-publisher convergence
+        id: publish
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        working-directory: .slsa-builder
+        env:
+          BUNDLE_ARTIFACT_NAME:
+            js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
+          BUNDLE_DIRECTORY: ${{ runner.temp }}/windlass-publish-input/provenance
+          BUNDLE_NAME: ${{ needs.build.outputs.package-tarball-name }}.intoto.jsonl
+          BUNDLE_SHA256: ${{ needs.provenance-sign.outputs.bundle-sha256 }}
+          PACKAGE_NAME: ${{ needs.build.outputs.package-name }}
+          PACKAGE_URL: ${{ needs.build.outputs.package-url }}
+          PACKAGE_VERSION: ${{ needs.build.outputs.package-version }}
+          REGISTRY_URL: ${{ needs.build.outputs.package-registry-url }}
+          REPORT_PATH: ${{ runner.temp }}/windlass-npm-outcome-report.json
+          TARBALL_ARTIFACT_NAME:
+            js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
+          TARBALL_DIRECTORY: ${{ runner.temp }}/windlass-publish-input/tarball
+          TARBALL_NAME: ${{ needs.build.outputs.package-tarball-name }}
+          TARBALL_SHA256: ${{ needs.build.outputs.package-tarball-sha256 }}
+          TARBALL_SHA512: ${{ needs.build.outputs.package-tarball-sha512 }}
+          WINDLASS_WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: >-
+          go run ./cmd/slsa-builder-internal npm-profile-publish --tarball-artifact-dir
+          "$TARBALL_DIRECTORY" --tarball-artifact-name "$TARBALL_ARTIFACT_NAME" --tarball-name
+          "$TARBALL_NAME" --tarball-sha256 "$TARBALL_SHA256" --tarball-sha512 "$TARBALL_SHA512"
+          --bundle-artifact-dir "$BUNDLE_DIRECTORY" --bundle-artifact-name "$BUNDLE_ARTIFACT_NAME"
+          --bundle-name "$BUNDLE_NAME" --bundle-sha256 "$BUNDLE_SHA256" --package-name
+          "$PACKAGE_NAME" --package-version "$PACKAGE_VERSION" --package-url "$PACKAGE_URL"
+          --registry-url "$REGISTRY_URL" --npm-executable "$(command -v npm)" --report-path
+          "$REPORT_PATH"
+
+      - name: Finalize outcome report
+        if: always()
+        id: report
+        working-directory: .slsa-builder
+        env:
+          REPORT_PATH: ${{ runner.temp }}/windlass-npm-outcome-report.json
+        run: >-
+          go run ./cmd/slsa-builder-internal npm-profile-report --report-path "$REPORT_PATH"
+
+      - name: Upload outcome report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: js-ts-npm-outcome-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/windlass-npm-outcome-report.json
           if-no-files-found: error
           compression-level: 0
           overwrite: false
