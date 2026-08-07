@@ -28,7 +28,7 @@ func (workflowCheckCommand) Execute(ctx context.Context, args []string, out io.W
 	jobName := flags.String("job", "", "job to validate")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			_, writeErr := fmt.Fprintln(out, "Usage: slsa-builder-internal workflow-check --workflow <path> --job build")
+			_, writeErr := fmt.Fprintln(out, "Usage: slsa-builder-internal workflow-check --workflow <path> --job <build|provenance-sign>")
 			return writeErr
 		}
 		return err
@@ -36,10 +36,18 @@ func (workflowCheckCommand) Execute(ctx context.Context, args []string, out io.W
 	if *workflowPath == "" || *jobName == "" || flags.NArg() != 0 {
 		return errors.New("--workflow and --job are required with no positional arguments")
 	}
-	if *jobName != "build" {
+	var (
+		result any
+		err    error
+	)
+	switch *jobName {
+	case "build":
+		result, err = workflowcheck.CheckBuildJob(*workflowPath)
+	case "provenance-sign":
+		result, err = workflowcheck.CheckProvenanceSignJob(*workflowPath)
+	default:
 		return fmt.Errorf("unsupported workflow job %q", *jobName)
 	}
-	result, err := workflowcheck.CheckBuildJob(*workflowPath)
 	if err != nil {
 		return err
 	}

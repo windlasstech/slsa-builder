@@ -20,7 +20,8 @@ const (
 	idTimestampOrderingInvalid       = "windlass.verify.error.timestamp-ordering-invalid"
 	idBuilderVersionMismatch         = "windlass.verify.error.builder-version-mismatch"
 	idBuilderDependenciesMismatch    = "windlass.verify.error.builder-dependencies-signing-adapter-mismatch"
-	signingAdapterURIPrefix          = "git+https://github.com/actions/attest@"
+	signingAdapterURI                = "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0"
+	signingAdapterDigest             = "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="
 	canonicalTimestampLayout         = "2006-01-02T15:04:05Z"
 	maximumAcceptedNegativeClockSkew = 5 * time.Second
 )
@@ -33,9 +34,8 @@ var (
 
 // BuilderExpectations are authenticated or locally observed common builder values.
 type BuilderExpectations struct {
-	NodeJSVersion     string
-	CorepackVersion   *string
-	SigningAdapterSHA string
+	NodeJSVersion   string
+	CorepackVersion *string
 }
 
 // Expectations supplies common validation values that are outside the predicate itself.
@@ -153,7 +153,7 @@ func validateBuilder(builder Builder, expected BuilderExpectations) error {
 	if err := validateBuilderVersion(builder.Version, expected); err != nil {
 		return err
 	}
-	return validateBuilderDependencies(builder.BuilderDependencies, expected.SigningAdapterSHA)
+	return validateBuilderDependencies(builder.BuilderDependencies)
 }
 
 func validateBuilderVersion(version map[string]string, expected BuilderExpectations) error {
@@ -180,18 +180,15 @@ func validateBuilderVersion(version map[string]string, expected BuilderExpectati
 	return nil
 }
 
-func validateBuilderDependencies(dependencies []BuilderDependency, expectedSHA string) error {
-	if err := identity.ValidateFullSHA(expectedSHA); err != nil {
-		return validationError(idBuilderDependenciesMismatch, "expectations.builder.signingAdapterSHA", "expected signing adapter revision must be a full lowercase SHA")
-	}
+func validateBuilderDependencies(dependencies []BuilderDependency) error {
 	if len(dependencies) != 1 {
 		return validationError(idBuilderDependenciesMismatch, "predicate.runDetails.builder.builderDependencies", "builderDependencies must contain exactly one signing adapter")
 	}
 	dependency := dependencies[0]
-	if dependency.URI != signingAdapterURIPrefix+expectedSHA || len(dependency.Digest) != 1 ||
-		dependency.Digest["gitCommit"] != expectedSHA || len(dependency.Annotations) != 1 ||
+	if dependency.URI != signingAdapterURI || len(dependency.Digest) != 1 ||
+		dependency.Digest["h1"] != signingAdapterDigest || len(dependency.Annotations) != 1 ||
 		dependency.Annotations["role"] != "signing-adapter" {
-		return validationError(idBuilderDependenciesMismatch, "predicate.runDetails.builder.builderDependencies[0]", "signing adapter URI, digest, role, and expected revision must match")
+		return validationError(idBuilderDependenciesMismatch, "predicate.runDetails.builder.builderDependencies[0]", "sigstore-go signing adapter URI, module digest, and role must match")
 	}
 	return nil
 }

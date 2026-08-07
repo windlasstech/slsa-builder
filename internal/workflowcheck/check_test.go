@@ -46,6 +46,40 @@ jobs:
           path: .windlass/metadata/build-metadata.json
 `
 
+const validSigningWorkflow = `name: npm package
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions: {contents: read}
+    steps: []
+  provenance-sign:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
+        with: {egress-policy: audit}
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
+      - run: go run ./cmd/slsa-builder-internal npm-profile-sign
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/windlass-provenance/*.intoto.jsonl
+`
+
 func TestCheckBuildJob(t *testing.T) {
 	path := writeWorkflow(t, validBuildWorkflow)
 
@@ -88,6 +122,39 @@ func TestCheckBuildJobRejectsAuthorityAndHandoffDrift(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			if _, err := CheckBuildJob(writeWorkflow(t, contents)); err == nil {
 				t.Fatal("CheckBuildJob() succeeded, want rejection")
+			}
+		})
+	}
+}
+
+func TestCheckProvenanceSignJob(t *testing.T) {
+	result, err := CheckProvenanceSignJob(writeWorkflow(t, validSigningWorkflow))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Result != "pass" || !result.OIDCPermission || result.AttestationStoragePermission || result.MutationPermission {
+		t.Fatalf("unexpected signing result: %#v", result)
+	}
+	if result.BundleArtifactName != "js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}" {
+		t.Fatalf("bundle artifact name = %q", result.BundleArtifactName)
+	}
+}
+
+func TestCheckProvenanceSignJobRejectsBoundaryDrift(t *testing.T) {
+	tests := map[string]string{
+		"attestation storage":    replaceOnce(t, validSigningWorkflow, "id-token: write", "id-token: write\n      attestations: write"),
+		"mutation permission":    replaceOnce(t, validSigningWorkflow, "contents: read\n      id-token: write", "contents: write\n      id-token: write"),
+		"missing OIDC":           replaceOnce(t, validSigningWorkflow, "      id-token: write\n", ""),
+		"wrong tarball handoff":  replaceOnce(t, validSigningWorkflow, tarballArtifactName, "caller-tarball"),
+		"wrong metadata handoff": replaceOnce(t, validSigningWorkflow, metadataArtifactName, "caller-metadata"),
+		"wrong bundle artifact":  replaceOnce(t, validSigningWorkflow, provenanceBundleArtifactName, "caller-bundle"),
+		"caller checkout":        replaceOnce(t, validSigningWorkflow, "repository: ${{ job.workflow_repository }}", "repository: ${{ github.repository }}"),
+	}
+
+	for name, contents := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := CheckProvenanceSignJob(writeWorkflow(t, contents)); err == nil {
+				t.Fatal("CheckProvenanceSignJob() succeeded, want rejection")
 			}
 		})
 	}
