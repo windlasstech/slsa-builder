@@ -207,11 +207,117 @@ func contains(values []string, want string) bool {
 }
 
 func TestRunCommandExecutableAllowlist(t *testing.T) {
-	t.Parallel()
 	if _, err := runCommand(context.Background(), t.TempDir(), "npm", nil, []string{"--version"}); err == nil {
 		t.Fatal("relative executable path was accepted")
 	}
 	if _, err := runCommand(context.Background(), t.TempDir(), "/bin/sh", nil, []string{"-c", "true"}); err == nil {
 		t.Fatal("executable outside the toolchain allowlist was accepted")
 	}
+}
+
+func TestRunCommandRejectsExecutableOutsideTrustedRoots(t *testing.T) {
+	clearToolchainRootEnvironment(t)
+	anchor := writeFakeTool(t, t.TempDir(), "node")
+	t.Setenv("PATH", filepath.Dir(anchor))
+	untrusted := writeFakeTool(t, t.TempDir(), "npm")
+
+	_, err := runCommand(context.Background(), t.TempDir(), untrusted, nil, []string{"--version"})
+	if err == nil || !strings.Contains(err.Error(), "windlass.verify.error.trusted-core-boundary-violation") {
+		t.Fatalf("runCommand() error = %v, want trusted-root containment rejection", err)
+	}
+}
+
+func TestRunCommandRejectsSymlinkEscape(t *testing.T) {
+	clearToolchainRootEnvironment(t)
+	trusted := t.TempDir()
+	anchorDirectory := t.TempDir()
+	anchor := writeFakeTool(t, anchorDirectory, "node")
+	t.Setenv("PATH", anchorDirectory)
+	outside := writeFakeTool(t, t.TempDir(), "npm-target")
+	symlink := filepath.Join(trusted, "npm")
+	if err := os.Symlink(outside, symlink); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := runCommandWithShimRoot(context.Background(), t.TempDir(), symlink, nil, []string{"--version"}, trusted)
+	if err == nil || !strings.Contains(err.Error(), "windlass.verify.error.trusted-core-boundary-violation") {
+		t.Fatalf("runCommandWithShimRoot() error = %v, want symlink escape rejection", err)
+	}
+	_ = anchor
+}
+
+func TestRunCommandAcceptsEachTrustedRoot(t *testing.T) {
+	for _, testCase := range []struct {
+		name  string
+		setup func(*testing.T) (string, string)
+	}{
+		{
+			name: "corepack-shim-directory",
+			setup: func(t *testing.T) (string, string) {
+				root := t.TempDir()
+				return writeFakeTool(t, root, "pnpm"), root
+			},
+		},
+		{
+			name: "runner-tool-cache",
+			setup: func(t *testing.T) (string, string) {
+				root := t.TempDir()
+				t.Setenv("RUNNER_TOOL_CACHE", root)
+				return writeFakeTool(t, filepath.Join(root, "node", "24", "bin"), "npm"), ""
+			},
+		},
+		{
+			name: "mise-data-directory",
+			setup: func(t *testing.T) (string, string) {
+				root := t.TempDir()
+				t.Setenv("MISE_DATA_DIR", root)
+				return writeFakeTool(t, filepath.Join(root, "installs", "node", "24", "bin"), "corepack"), ""
+			},
+		},
+		{
+			name: "node-binary-directory",
+			setup: func(t *testing.T) (string, string) {
+				root := t.TempDir()
+				return writeFakeTool(t, root, "npm"), ""
+			},
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			clearToolchainRootEnvironment(t)
+			anchorDirectory := t.TempDir()
+			executable, shimRoot := testCase.setup(t)
+			if testCase.name == "node-binary-directory" {
+				anchorDirectory = filepath.Dir(executable)
+			}
+			writeFakeTool(t, anchorDirectory, "node")
+			t.Setenv("PATH", anchorDirectory)
+
+			output, err := runCommandWithShimRoot(context.Background(), t.TempDir(), executable, nil, nil, shimRoot)
+			if err != nil {
+				t.Fatalf("runCommandWithShimRoot() error = %v", err)
+			}
+			if output != "trusted-tool" {
+				t.Fatalf("runCommandWithShimRoot() output = %q", output)
+			}
+		})
+	}
+}
+
+func clearToolchainRootEnvironment(t *testing.T) {
+	t.Helper()
+	t.Setenv("RUNNER_TOOL_CACHE", "")
+	t.Setenv("MISE_DATA_DIR", "")
+	t.Setenv("HOME", t.TempDir())
+}
+
+func writeFakeTool(t *testing.T, directory, name string) string {
+	t.Helper()
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(directory, name)
+	if err := os.WriteFile(path, []byte("#!/bin/sh\nprintf 'trusted-tool\\n'\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return path
 }

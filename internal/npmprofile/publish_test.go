@@ -36,7 +36,7 @@ func TestPublishAbsent(t *testing.T) {
 	if result.State != PublishCommittedAsExpected || !result.MutationAttempted {
 		t.Fatalf("Publish() result = %#v, want committed mutation", result)
 	}
-	fixture.requireInvocations(t, [][]string{fixture.expectedArgv()})
+	fixture.requireInvocations(t, fixture.expectedMutationInvocations())
 	if fixture.packumentRequests != 2 || fixture.attestationRequests != 2 {
 		t.Fatalf("registry requests = packument:%d attestation:%d, want 2 and 2", fixture.packumentRequests, fixture.attestationRequests)
 	}
@@ -88,7 +88,7 @@ func TestPublishAmbiguousReadback(t *testing.T) {
 	if result.State != PublishIndeterminate || !result.MutationAttempted {
 		t.Fatalf("Publish() result = %#v, want one ambiguous mutation", result)
 	}
-	fixture.requireInvocations(t, [][]string{fixture.expectedArgv()})
+	fixture.requireInvocations(t, fixture.expectedMutationInvocations())
 	if fixture.clock.sleeps != 60 || fixture.packumentRequests != 62 || fixture.attestationRequests != 62 {
 		t.Fatalf("polling = sleeps:%d packument:%d attestations:%d, want exact 15-minute budget", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests)
 	}
@@ -103,7 +103,7 @@ func TestPublishUsesExactBundle(t *testing.T) {
 	if result.State != PublishCommittedAsExpected {
 		t.Fatalf("Publish() state = %q", result.State)
 	}
-	fixture.requireInvocations(t, [][]string{fixture.expectedArgv()})
+	fixture.requireInvocations(t, fixture.expectedMutationInvocations())
 	if !reflect.DeepEqual(fixture.verifier.localBytes, fixture.bundleBytes) {
 		t.Fatalf("local verifier received altered bundle bytes\n got: %q\nwant: %q", fixture.verifier.localBytes, fixture.bundleBytes)
 	}
@@ -131,11 +131,29 @@ func TestPublishErrorMapping(t *testing.T) {
 			if err == nil || result.Report.PrimaryID == nil || *result.Report.PrimaryID != testCase.wantID {
 				t.Fatalf("Publish() = result:%#v err:%v, want %s", result, err, testCase.wantID)
 			}
-			fixture.requireInvocations(t, [][]string{fixture.expectedArgv()})
+			fixture.requireInvocations(t, fixture.expectedMutationInvocations())
 			if fixture.packumentRequests != 1 || fixture.attestationRequests != 1 {
 				t.Fatal("definitive npm rejection incorrectly triggered read-back")
 			}
 		})
+	}
+}
+
+func TestPublishRejectsNPMVersionMismatchBeforeMutation(t *testing.T) {
+	fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, npmVersion: "11.6.0"})
+	result, err := Publish(context.Background(), fixture.request)
+	if err == nil {
+		t.Fatal("Publish() error = nil, want npm version mismatch")
+	}
+	if result.MutationAttempted {
+		t.Fatalf("Publish() result = %#v, want zero mutations", result)
+	}
+	if result.Report.PrimaryID == nil || *result.Report.PrimaryID != "windlass.verify.error.builder-version-mismatch" {
+		t.Fatalf("Publish() primary diagnostic = %v, want builder-version-mismatch", result.Report.PrimaryID)
+	}
+	fixture.requireInvocations(t, [][]string{{"--version"}})
+	if fixture.packumentRequests != 1 || fixture.attestationRequests != 1 {
+		t.Fatalf("registry requests = packument:%d attestation:%d, want one entry read", fixture.packumentRequests, fixture.attestationRequests)
 	}
 }
 
@@ -146,6 +164,7 @@ type publishFixtureOptions struct {
 	readbackIndeterminate bool
 	npmExitCode           int
 	npmError              string
+	npmVersion            string
 }
 
 type publishFixture struct {
@@ -236,9 +255,15 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 	fixture.clock = &publishFakeClock{now: time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC)}
 
 	npmPath := writeFakeNPM(t, directory)
+	t.Setenv("MISE_DATA_DIR", directory)
 	t.Setenv("NPM_LOG", fixture.logPath)
 	t.Setenv("FAKE_NPM_EXIT", strconv.Itoa(options.npmExitCode))
 	t.Setenv("FAKE_NPM_ERROR", options.npmError)
+	npmVersion := options.npmVersion
+	if npmVersion == "" {
+		npmVersion = parameters.Runtime.NPMVersion
+	}
+	t.Setenv("FAKE_NPM_VERSION", npmVersion)
 	t.Setenv("NPM_TOKEN", "must-not-reach-fake-npm")
 	t.Setenv("NODE_AUTH_TOKEN", "must-not-reach-fake-npm")
 	untrustedHome := filepath.Join(directory, "untrusted-home")
@@ -301,6 +326,10 @@ func (fixture *publishFixture) expectedArgv() []string {
 	}
 }
 
+func (fixture *publishFixture) expectedMutationInvocations() [][]string {
+	return [][]string{{"--version"}, fixture.expectedArgv()}
+}
+
 func (fixture *publishFixture) requireInvocations(t *testing.T, want [][]string) {
 	t.Helper()
 	encoded, err := os.ReadFile(fixture.logPath)
@@ -340,6 +369,10 @@ if [ -f "$HOME/.npmrc" ]; then
   exit 98
 fi
 python3 -c 'import json, os, sys; open(os.environ["NPM_LOG"], "a", encoding="utf-8").write(json.dumps(sys.argv[1:]) + "\n")' "$@"
+if [ "$#" -eq 1 ] && [ "$1" = "--version" ]; then
+  printf '%s\n' "$FAKE_NPM_VERSION"
+  exit 0
+fi
 if [ -n "${FAKE_NPM_ERROR-}" ]; then
   printf '%s\n' "$FAKE_NPM_ERROR" >&2
 fi

@@ -1,14 +1,12 @@
 package npmprofile
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -152,6 +150,9 @@ func Publish(ctx context.Context, request PublishRequest) (PublishResult, error)
 	case PublishAbsent:
 	default:
 		return prepared.failure(PublishIndeterminate, false, IDPrepublishRegistryMetadataRequired, "npm.publish.entry-revalidation", errors.New("registry entry state is invalid"))
+	}
+	if err := prepared.validateNPMVersion(ctx); err != nil {
+		return prepared.failure(PublishAbsent, false, diagnosticIDOr(err, "windlass.verify.error.builder-version-mismatch"), "npm.publish.toolchain", err)
 	}
 
 	output, mutationErr := prepared.runNPM(ctx)
@@ -405,6 +406,21 @@ func (prepared preparedPublish) runNPM(ctx context.Context) ([]byte, error) {
 	if err != nil || !digest.SumSHA256(bundleBytes).Equal(prepared.request.BundleSHA256) {
 		return nil, errors.New("bundle handoff changed before npm invocation")
 	}
+	return prepared.runNPMCommand(ctx, prepared.argv)
+}
+
+func (prepared preparedPublish) validateNPMVersion(ctx context.Context) error {
+	version, err := prepared.runNPMCommand(ctx, []string{"--version"})
+	if err != nil {
+		return fmt.Errorf("observe npm version before publish: %w", err)
+	}
+	if string(version) != prepared.parameters.Runtime.NPMVersion {
+		return fmt.Errorf("npm version mismatch: build used %q but publish resolved %q", prepared.parameters.Runtime.NPMVersion, version)
+	}
+	return nil
+}
+
+func (prepared preparedPublish) runNPMCommand(ctx context.Context, arguments []string) ([]byte, error) {
 	isolationDirectory, err := os.MkdirTemp("", "windlass-npm-publish-")
 	if err != nil {
 		return nil, errors.New("create isolated npm configuration directory")
@@ -418,15 +434,14 @@ func (prepared preparedPublish) runNPM(ctx context.Context) ([]byte, error) {
 	if err := os.WriteFile(globalConfig, nil, 0o600); err != nil {
 		return nil, errors.New("create isolated npm global configuration")
 	}
-	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- NPMExecutable is validated in preparePublish as an absolute path whose basename is exactly "npm"; the pinned toolchain supplies it and the argv is built from validated inputs only.
-	command := exec.CommandContext(ctx, prepared.request.NPMExecutable, prepared.argv...)
-	command.Dir = isolationDirectory
-	command.Env = publishEnvironment(os.Environ(), isolationDirectory, userConfig, globalConfig)
-	output := &boundedWriter{maximum: maxNPMOutputSize}
-	command.Stdout = output
-	command.Stderr = output
-	err = command.Run()
-	return output.Bytes(), err
+	output, err := runPublishCommand(
+		ctx,
+		isolationDirectory,
+		prepared.request.NPMExecutable,
+		publishEnvironment(os.Environ(), isolationDirectory, userConfig, globalConfig),
+		arguments,
+	)
+	return []byte(output), err
 }
 
 func (prepared preparedPublish) success(mutationAttempted bool) (PublishResult, error) {
@@ -581,21 +596,4 @@ func diagnosticIDOr(err error, fallback string) string {
 		}
 	}
 	return fallback
-}
-
-type boundedWriter struct {
-	buffer  bytes.Buffer
-	maximum int
-}
-
-func (writer *boundedWriter) Write(data []byte) (int, error) {
-	remaining := writer.maximum - writer.buffer.Len()
-	if remaining > 0 {
-		_, _ = writer.buffer.Write(data[:min(len(data), remaining)])
-	}
-	return len(data), nil
-}
-
-func (writer *boundedWriter) Bytes() []byte {
-	return append([]byte(nil), writer.buffer.Bytes()...)
 }
