@@ -104,3 +104,95 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           overwrite: false
+
+  provenance-sign:
+    name: Sign npm provenance
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout trusted builder
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .slsa-builder
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "1.26.5"
+          cache: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Download package tarball handoff
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/windlass-sign-input/tarball
+
+      - name: Download build metadata handoff
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/windlass-sign-input/metadata
+
+      - name: Create provenance output directory
+        env:
+          OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-provenance
+        run: mkdir --mode=0700 "$OUTPUT_DIRECTORY"
+
+      - name: Capture trusted toolchain versions
+        id: toolchain
+        run: |
+          printf 'node-version=%s\n' "$(node --version)" >>"$GITHUB_OUTPUT"
+          printf 'corepack-version=%s\n' "$(corepack --version)" >>"$GITHUB_OUTPUT"
+
+      - name: Sign and verify exact npm provenance Statement
+        id: sign
+        working-directory: .slsa-builder
+        env:
+          COREPACK_VERSION: ${{ steps.toolchain.outputs.corepack-version }}
+          METADATA_ARTIFACT_NAME:
+            js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
+          METADATA_DIRECTORY: ${{ runner.temp }}/windlass-sign-input/metadata
+          METADATA_SHA256: ${{ needs.build.outputs.build-metadata-sha256 }}
+          NODE_VERSION: ${{ steps.toolchain.outputs.node-version }}
+          OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-provenance
+          TARBALL_ARTIFACT_NAME:
+            js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
+          TARBALL_DIRECTORY: ${{ runner.temp }}/windlass-sign-input/tarball
+          TARBALL_SHA256: ${{ needs.build.outputs.package-tarball-sha256 }}
+          WINDLASS_WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: >-
+          go run ./cmd/slsa-builder-internal npm-profile-sign --metadata-artifact-dir
+          "$METADATA_DIRECTORY" --metadata-sha256 "$METADATA_SHA256" --metadata-artifact-name
+          "$METADATA_ARTIFACT_NAME" --tarball-artifact-dir "$TARBALL_DIRECTORY" --tarball-sha256
+          "$TARBALL_SHA256" --tarball-artifact-name "$TARBALL_ARTIFACT_NAME" --node-version
+          "$NODE_VERSION" --corepack-version "$COREPACK_VERSION" --output-directory
+          "$OUTPUT_DIRECTORY"
+
+      - name: Upload verified provenance bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/windlass-provenance/*.intoto.jsonl
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: false
