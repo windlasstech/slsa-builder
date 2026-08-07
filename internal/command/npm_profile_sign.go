@@ -40,6 +40,8 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 	tarballArtifactName := flags.String("tarball-artifact-name", "", "expected tarball artifact name")
 	nodeVersion := flags.String("node-version", "", "observed Node.js version")
 	corepackVersion := flags.String("corepack-version", "", "observed Corepack version when used")
+	registryURL := flags.String("registry-url", "", "resolved npm registry root")
+	packageName := flags.String("package-name", "", "selected package name")
 	outputDirectory := flags.String("output-directory", "", "trusted provenance output directory")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
@@ -51,7 +53,7 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 	}
 	if flags.NArg() != 0 || *metadataDirectory == "" || *metadataDigest == "" || *metadataArtifactName == "" ||
 		*tarballDirectory == "" || *tarballDigest == "" || *tarballArtifactName == "" || *nodeVersion == "" ||
-		*outputDirectory == "" || *githubOutput == "" {
+		*registryURL == "" || *packageName == "" || *outputDirectory == "" || *githubOutput == "" {
 		return errors.New("all required npm-profile-sign flags must be supplied with no positional arguments")
 	}
 	metadataSHA256, err := digest.ParseSHA256(*metadataDigest)
@@ -93,6 +95,28 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 	parameters, err := npmprofile.DecodeExternalParameters(metadata.ExternalParameters)
 	if err != nil {
 		return err
+	}
+	if parameters.Package.Name != *packageName || parameters.Publish.ResolvedRegistryURL != *registryURL {
+		return errors.New("signing preflight inputs differ from signed build metadata")
+	}
+	oidc, err := npmprofile.NewOIDCClient(npmprofile.OIDCClientConfig{
+		RegistryURL:         *registryURL,
+		IDTokenRequestURL:   os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL"),
+		IDTokenRequestToken: os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN"),
+		GitHubWorkflowRef:   os.Getenv("GITHUB_WORKFLOW_REF"),
+	})
+	if err != nil {
+		return err
+	}
+	preflight := oidc.Preflight(ctx, *packageName)
+	if preflight.Report.PrimaryID != nil {
+		if err := WriteReport(out, preflight.Report); err != nil {
+			return err
+		}
+		return ErrVerificationFailure
+	}
+	if preflight.WorkflowFilename != parameters.Caller.WorkflowFilename {
+		return errors.New("OIDC caller workflow differs from signed build metadata")
 	}
 	observedCorepack := (*string)(nil)
 	if parameters.PackageManager.Name != npmprofile.ManagerNPM {
