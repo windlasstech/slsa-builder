@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">slsa-builder logo</title>
+  <style>
+    :root {
+      --outline: #3d3029;
+      --bowl: #36a6a0;
+      --bowl-shadow: #27847f;
+      --bowl-highlight: #82d1c9;
+      --salsa: #d94a34;
+      --salsa-dark: #ad3027;
+      --salsa-light: #f47a4e;
+      --green: #3f8f4f;
+      --green-dark: #2d6f3d;
+      --chip: #f4c654;
+      --chip-light: #ffe183;
+      --toast: #b8752f;
+    }
+
+    .ink {
+      stroke: var(--outline);
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
+
+  <!-- Bowl: a broad, sturdy silhouette with a cool teal glaze. -->
+  <g id="bowl">
+    <path class="ink" fill="var(--bowl)" d="M96 276c7 91 53 166 160 166s153-75 160-166Z"/>
+    <path fill="var(--bowl-shadow)" d="M128 342c25 58 68 84 128 84 64 0 104-28 129-84-37 31-78 47-129 47-50 0-92-16-128-47Z"/>
+    <path fill="var(--bowl-highlight)" d="M143 326c11 39 34 63 66 75-26-27-38-54-43-84Z"/>
+  </g>
+
+  <!-- Chip: one toasted tortilla triangle, tucked behind the salsa. -->
+  <g id="chip" transform="translate(-4 32)">
+    <path class="ink" fill="var(--chip)" d="M330 266c-7 7-10 2-6-7l52-178c4-17 14-20 27-8l68 71c13 13 11 25-5 31l-116 33c-9 3-13 7-14 17Z"/>
+    <path fill="var(--chip-light)" d="M340 217c7-8 14-13 23-17l-5 18c-7 2-13 6-19 11Z"/>
+    <path fill="var(--toast)" d="M394 113c7-5 16-3 19 4 4 8 0 16-7 19-8 3-16-1-18-8-2-6 1-12 6-15Z"/>
+    <path fill="var(--toast)" d="M431 149c5-4 13-3 17 2 4 6 2 13-3 17-6 4-14 2-17-4-3-5-1-11 3-15Z"/>
+    <path fill="var(--toast)" d="M382 158c9-6 20-7 28-2 5 3 6 8 3 12-3 3-7 3-11 1-5-3-11-2-16 1-5 3-10 2-12-2-2-4 2-8 8-10Z"/>
+  </g>
+
+  <!-- Salsa: an irregular mound over a visible elliptical surface. -->
+  <g id="salsa">
+    <path class="ink" fill="var(--salsa)" d="M99 272c1-26 20-42 50-42 9-25 35-38 61-27 18-23 55-28 78-7 28-15 63 0 67 28 35-1 57 18 58 48-3 42-68 76-157 76S102 314 99 272Z"/>
+
+    <!-- Sauce climbs over the deeply submerged lower edge of the chip. -->
+    <path fill="var(--salsa)" d="M335 220c12-10 29-12 43-4l-5 20c-2 8-8 9-11 17l-4 14c-2 7-11 7-14 1-3-5 2-13 3-20-7 2-13 4-19 8Z"/>
+    <path d="M335 220c12-10 29-12 43-4" fill="none" stroke="var(--outline)" stroke-width="14" stroke-linecap="round"/>
+
+    <!-- Chunky tomato pieces -->
+    <path fill="var(--salsa-dark)" d="M144 263c11-14 33-14 43 1l-9 23-29 1Z"/>
+    <path fill="var(--salsa-dark)" d="M249 216c18-8 39 2 42 20l-18 13-26-10Z"/>
+    <path fill="var(--salsa-dark)" d="M322 260c13-13 36-9 43 8l-12 20-29-2Z"/>
+    <path fill="var(--salsa-dark)" d="M213 300c13-12 35-9 43 7l-13 19-27-3Z"/>
+
+    <!-- Pepper, cilantro, and a warm sauce highlight -->
+    <path fill="var(--green)" d="M190 226c13 1 22 9 24 21-13 2-24-5-28-16Z"/>
+    <path fill="var(--green-dark)" d="M294 289c14-9 29-5 36 8-10 10-25 11-37 3Z"/>
+    <path fill="var(--green)" d="M374 240c10 0 18 6 21 15-9 6-21 4-28-4Z"/>
+    <path fill="var(--salsa-light)" d="M119 284c5 25 35 42 68 48-27-17-39-34-42-52Z"/>
+
+  </g>
+
+  <!-- Accents: restrained glaze and garnish details. -->
+  <g id="accents">
+    <path d="M154 366c20 29 53 43 102 43" fill="none" stroke="var(--bowl-highlight)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M213 265c10-9 23-12 35-7" fill="none" stroke="var(--salsa-light)" stroke-width="11" stroke-linecap="round"/>
+    <path d="M276 199c4-17 17-27 34-26-1 17-12 29-29 33Z" fill="var(--green)" stroke="var(--outline)" stroke-width="9" stroke-linejoin="round"/>
+  </g>
+</svg>
