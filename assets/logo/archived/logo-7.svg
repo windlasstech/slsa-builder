@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">slsa-builder logo draft 7 (molcajete and tejolote, making salsa)</title>
+  
+  <g transform="translate(0 15)">
+    <!-- Bowl Legs (Tripod) -->
+    <!-- Center leg (recessed, darker) -->
+    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#57514B" d="M 230 380 L 220 440 A 15 15 0 0 0 240 455 L 272 455 A 15 15 0 0 0 292 440 L 282 380 Z" />
+    <!-- Left leg -->
+    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#756F68" d="M 120 360 L 105 430 A 15 15 0 0 0 125 450 L 155 445 A 15 15 0 0 0 165 420 L 165 370 Z" />
+    <!-- Right leg -->
+    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#756F68" d="M 392 360 L 407 430 A 15 15 0 0 1 387 450 L 357 445 A 15 15 0 0 1 347 420 L 347 370 Z" />
+
+    <!-- Bowl Outer -->
+    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#756F68" d="M 60 260 A 196 64 0 0 0 452 260 A 196 150 0 0 1 60 260 Z" />
+
+    <!-- Bowl Shadow (Inset, Low Crescent) -->
+    <path fill="#57514B" stroke="none" d="M 151 380 A 190 144 0 0 0 361 380 C 310 398, 202 398, 151 380 Z" />
+
+    <!-- Stone Textures (Vesicular Pores) -->
+    <path fill="#4B4641" d="M 90 290 c 6 -4 13 -2 15 3 c 2 6 -1 12 -6 14 c -6 2 -12 -1 -13 -6 c -1 -5 1 -9 4 -11 Z" />
+    <path fill="#4B4641" d="M 220 330 c 5 -4 12 -2 14 3 c 2 5 -1 11 -6 13 c -5 2 -11 -1 -12 -6 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#4B4641" d="M 310 325 c 6 -4 12 -2 14 3 c 2 6 -1 11 -6 13 c -5 2 -11 -1 -12 -6 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#8C847C" d="M 105 335 c 5 -4 12 -2 14 3 c 2 5 -1 11 -6 13 c -5 2 -11 -1 -12 -6 c -1 -4 1 -8 4 -10 Z" />
+
+    <!-- Bowl Inner (Thick Rim creation) -->
+    <ellipse cx="256" cy="260" rx="160" ry="48" fill="#4E4842" stroke="#3d3029" stroke-width="12" />
+
+    <!-- Tejolote (Pestle) - Repositioned inside to cross front rim -->
+    <g id="tejolote" transform="translate(290 200) rotate(35)">
+      <!-- Main body -->
+      <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#756F68" d="M -26 -50 L -44 50 A 44 44 0 0 0 44 50 L 26 -50 Q 0 -65 -26 -50 Z" />
+      <!-- Shadow -->
+      <path fill="#57514B" stroke="none" d="M -20 -48 L -36 40 A 36 36 0 0 0 18 60 A 44 44 0 0 1 -44 50 L -26 -50 Q 0 -58 -20 -48 Z" />
+      <!-- Pores -->
+      <path fill="#4B4641" d="M -10 -20 c 3 -2 7 -1 8 2 c 1 3 -1 6 -4 7 c -3 1 -7 0 -8 -3 c 0 -2 1 -5 4 -6 Z" />
+      <path fill="#8C847C" d="M -20 15 c 3 -2 7 -1 8 2 c 1 3 -1 6 -4 7 c -3 1 -7 0 -8 -3 c 0 -2 1 -5 4 -6 Z" />
+    </g>
+
+    <!-- Unified Salsa Base and Wrap -->
+    <path fill="#d94a34" stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" d="M 110 266 A 146 40 0 0 0 402 266 C 380 255, 323 223, 306 248 C 286 238, 240 195, 225 216 C 208 240, 160 266, 110 266 Z" />
+
+    <!-- Salsa Ingredients -->
+    <circle cx="225" cy="285" r="5" fill="#f47a4e" />
+    <circle cx="180" cy="285" r="8" fill="#ad3027" />
+    <path fill="#f47a4e" stroke="#3d3029" stroke-width="6" stroke-linejoin="round" d="M 150 260 C 140 250, 170 240, 180 255 C 175 270, 155 270, 150 260 Z" />
+    <circle cx="200" cy="255" r="6" fill="#F5E9DA" stroke="#3d3029" stroke-width="6" />
+    <path fill="#3f8f4f" stroke="#3d3029" stroke-width="6" stroke-linejoin="round" d="M 350 280 Q 360 270 370 285 Q 360 295 350 280 Z" />
+    <path fill="#2d6f3d" stroke="#3d3029" stroke-width="6" stroke-linejoin="round" d="M 120 275 Q 130 270 135 285 Q 125 290 120 275 Z" />
+    <circle cx="320" cy="265" r="7" fill="#F5E9DA" stroke="#3d3029" stroke-width="6" />
+  </g>
+</svg>
