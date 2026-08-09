@@ -1,58 +1,80 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="logo-title">
   <title id="logo-title">slsa-builder logo</title>
 
-  <!-- Bowl -->
-  <g id="bowl">
-    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#36a6a0" d="M 176 414 L 176 440 A 80 20 0 0 0 336 440 L 336 414 Z" />
-    <path fill="#27847f" d="M 182 432 L 182 440 A 74 14 0 0 0 330 440 L 330 432 A 74 14 0 0 1 182 432 Z" stroke="none" />
+  <!-- Optical fit: scale 1.12 around the artwork center (256, 298.8 local,
+       measured) so the composition fills the viewBox with balanced margins -->
+  <g transform="translate(256 256) scale(1.12) translate(-256 -298.8)">
 
-    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#36a6a0" d="M 72 270 A 184 64 0 0 1 440 270 A 184 160 0 0 1 72 270 Z" />
-    <ellipse cx="256" cy="270" rx="184" ry="64" fill="#27847f" stroke="none" />
-    
-    <path fill="#27847f" d="M 126 375 A 200 130 0 0 0 386 375 A 178 154 0 0 1 126 375 Z" stroke="none" />
-    <path d="M 115 320 C 120 355, 140 375, 175 390" fill="none" stroke="#82d1c9" stroke-width="12" stroke-linecap="round" />
-  </g>
+    <!-- Bowl legs (tripod, logo-7 base): center leg recessed in shadow color -->
+    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#57514B" d="M 230 380 L 220 440 A 15 15 0 0 0 240 455 L 272 455 A 15 15 0 0 0 292 440 L 282 380 Z" />
+    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#756F68" d="M 120 360 L 105 430 A 15 15 0 0 0 125 450 L 155 445 A 15 15 0 0 0 165 420 L 165 370 Z" />
+    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#756F68" d="M 392 360 L 407 430 A 15 15 0 0 1 387 450 L 357 445 A 15 15 0 0 1 347 420 L 347 370 Z" />
 
-  <!-- Chip -->
-  <g id="chip">
-    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#f4c654" d="M 290 220 L 370 40 C 378 30, 392 32, 398 42 L 465 150 C 471 162, 465 176, 453 182 L 350 240 Z" />
-    <path fill="#ffe183" d="M 295 215 L 370 45 C 375 40, 385 42, 390 48 L 380 55 L 305 215 Z" />
-    
-    <!-- Organic Toast Spots -->
-    <path fill="#b8752f" d="M 370 70 c 7 -5 16 -3 19 4 c 4 8 0 16 -7 19 c -8 3 -16 -1 -18 -8 c -2 -6 1 -12 6 -15 Z" />
-    <path fill="#b8752f" d="M 410 110 c 5 -4 13 -3 17 2 c 4 6 2 13 -3 17 c -6 4 -14 2 -17 -4 c -3 -5 -1 -11 3 -15 Z" />
-    <path fill="#b8752f" d="M 350 120 c 9 -6 20 -7 28 -2 c 5 3 6 8 3 12 c -3 3 -7 3 -11 1 c -5 -3 -11 -2 -16 1 c -5 3 -10 2 -12 -2 c -2 -4 2 -8 8 -10 Z" />
-    <path fill="#b8752f" d="M 390 150 c 7 -4 15 -2 18 3 c 3 5 1 12 -5 15 c -6 3 -13 0 -15 -5 c -2 -4 0 -10 2 -13 Z" />
-  </g>
+    <!-- Bowl outer body (logo-7 curvature): top arc raised into a back rim so the
+         stone band between rim and inner opening reads (logo-6 principle) -->
+    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#756F68" d="M 60 260 A 196 76 0 0 1 452 260 A 196 150 0 0 1 60 260 Z" />
 
-  <!-- Salsa -->
-  <g id="salsa">
-    <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#d94a34" d="
-      M 88 270 
-      C 88 220, 130 180, 180 200 
-      C 220 160, 270 160, 310 175
-      C 330 185, 340 145, 360 175
-      C 380 205, 390 200, 400 200
-      C 420 190, 424 230, 424 270 
-      A 168 48 0 0 1 88 270 Z" />
-      
-    <!-- De-uniformed Chunky tomato pieces -->
-    <path fill="#ad3027" d="M 115 225 c 8 -8 20 -8 25 0 l -4 12 -16 4 Z" />
-    <path fill="#ad3027" d="M 215 260 c 18 -6 36 6 42 24 l -18 12 -30 -12 Z" />
-    <path fill="#ad3027" d="M 270 230 c 10 -15 30 -10 35 5 l -10 20 -25 -5 Z" />
-    <path fill="#ad3027" d="M 355 275 c 8 -8 20 -4 25 8 l -12 12 -16 -4 Z" />
-    
-    <!-- De-uniformed Pepper and cilantro bits -->
-    <path fill="#3f8f4f" d="M 155 190 c 10 2 20 8 18 18 c -10 5 -20 0 -25 -10 Z" />
-    <path fill="#2d6f3d" d="M 235 275 c 9 -6 19 -1.5 22 7.5 c -7.5 6 -16.5 7.5 -24 1.5 Z" />
-    <path fill="#3f8f4f" d="M 385 240 c 10 0 18 6 21 14 c -9 6 -21 4 -28 -4 Z" />
-    
-    <!-- Nudged warm sauce highlight -->
-    <path fill="#f47a4e" d="M 130 240 c 5 15 25 30 50 35 c -20 -10 -30 -20 -35 -40 Z" />
-  </g>
+    <!-- Stone shading: segmented crescent (logo-6 style, scaled to the wider bowl);
+         lower arc rides the bowl outline's inner edge - no bright gap -->
+    <path fill="#57514B" d="M 122 362 A 213 122 0 0 0 390 362 A 190 144 0 0 1 122 362 Z" stroke="none" />
 
-  <!-- Accent Garnish -->
-  <g id="accents">
-    <path d="M 241 199 c 4 -17 17 -27 34 -26 c -1 17 -12 29 -29 33 Z" fill="#3f8f4f" stroke="#3d3029" stroke-width="9" stroke-linejoin="round" />
+    <!-- Vesicular pores (dark pits; two on the legs, logo-6 density) -->
+    <path fill="#4B4641" d="M 88 288 c 6 -4 13 -2 15 3 c 2 6 -1 12 -6 14 c -6 2 -12 -1 -13 -6 c -1 -5 1 -9 4 -11 Z" />
+    <path fill="#4B4641" d="M 212 326 c 5 -4 12 -2 14 3 c 2 5 -1 11 -6 13 c -5 2 -11 -1 -12 -6 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#4B4641" d="M 303 321 c 6 -4 12 -2 14 3 c 2 6 -1 11 -6 13 c -5 2 -11 -1 -12 -6 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#4B4641" d="M 409 308 c 5 -3 11 -1 13 3 c 2 5 -1 10 -6 12 c -5 2 -10 0 -11 -5 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#4B4641" d="M 135 420 c 4 -3 9 -1 11 2 c 2 4 0 9 -4 10 c -4 1 -9 -1 -10 -5 c -1 -3 1 -6 3 -7 Z" />
+    <path fill="#4B4641" d="M 375 420 c 4 -3 9 -1 11 2 c 2 4 0 9 -4 10 c -4 1 -9 -1 -10 -5 c -1 -3 1 -6 3 -7 Z" />
+
+    <!-- Vesicular pores (light pits; left wall brightness via pits, not gloss) -->
+    <path fill="#8C847C" d="M 95 330 c 5 -4 12 -2 14 3 c 2 5 -1 11 -6 13 c -5 2 -11 -1 -12 -6 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#8C847C" d="M 124 316 c 5 -4 12 -2 14 3 c 2 5 -1 11 -6 13 c -5 2 -11 -1 -12 -6 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#8C847C" d="M 148 351 c 4 -3 10 -1 12 3 c 2 4 -1 9 -5 11 c -4 2 -9 0 -11 -4 c -1 -4 1 -7 4 -10 Z" />
+    <path fill="#8C847C" d="M 383 321 c 6 -4 13 -2 15 3 c 2 6 -1 12 -6 14 c -6 2 -12 -1 -13 -6 c -1 -5 1 -9 4 -11 Z" />
+    <path fill="#8C847C" d="M 287 335 c 5 -3 11 -1 13 3 c 2 5 -1 10 -6 12 c -5 2 -10 0 -11 -5 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#8C847C" d="M 250 372 c 5 -4 12 -2 14 3 c 2 5 -1 11 -6 13 c -5 2 -11 -1 -12 -6 c -1 -4 1 -8 4 -10 Z" />
+    <path fill="#8C847C" d="M 340 364 c 5 -3 11 -1 13 3 c 2 5 -1 10 -6 12 c -5 2 -10 0 -11 -5 c -1 -4 1 -8 4 -10 Z" />
+
+    <!-- Inner opening (logo-7 dimensions): the ring between outer silhouette and
+         this smaller stroked ellipse reads as the thick rim wall -->
+    <ellipse cx="256" cy="260" rx="160" ry="48" fill="#4E4842" stroke="#3d3029" stroke-width="12" />
+
+    <!-- Tejolote (logo-7 form verbatim): local coords + transform, own inset shadow -->
+    <g id="tejolote" transform="translate(290 200) rotate(35)">
+      <!-- Main body: blunt domed handle end - cubic cap whose end tangents
+           continue the side lines, so no corner where cap meets sides -->
+      <path stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#756F68" d="M -26 -50 L -44 50 A 44 44 0 0 0 44 50 L 26 -50 C 24 -62, -24 -62, -26 -50 Z" />
+      <path fill="#57514B" stroke="none" d="M -20 -48 L -36 40 A 36 36 0 0 0 18 60 A 44 44 0 0 1 -44 50 L -26 -50 Q 0 -58 -20 -48 Z" />
+      <path fill="#4B4641" d="M -10 -20 c 3 -2 7 -1 8 2 c 1 3 -1 6 -4 7 c -3 1 -7 0 -8 -3 c 0 -2 1 -5 4 -6 Z" />
+      <path fill="#8C847C" d="M -20 15 c 3 -2 7 -1 8 2 c 1 3 -1 6 -4 7 c -3 1 -7 0 -8 -3 c 0 -2 1 -5 4 -6 Z" />
+    </g>
+
+    <!-- Salsa (logo-7 verbatim): single merged base + wrap contour, climbs the
+         pestle left side, crests onto the face, descends on the right -->
+    <path fill="#d94a34" stroke="#3d3029" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" d="M 110 266 A 146 40 0 0 0 402 266 C 380 255, 323 223, 306 248 C 286 238, 240 195, 225 216 C 208 240, 160 266, 110 266 Z" />
+
+    <!-- Ground particles worked under the head (logo-6 detail, shifted left to
+         cluster at this tejolote's grinding point) -->
+    <path fill="#ad3027" d="M 266 258 c 6 -4 14 -3 17 2 c -5 5 -13 5 -18 1 Z" />
+    <path fill="#ad3027" d="M 290 263 c 7 -4 15 -2 18 3 c -6 5 -14 5 -19 0 Z" />
+    <path fill="#ad3027" d="M 308 264 c 6 -3 13 -1 15 3 c -4 4 -12 5 -16 1 Z" />
+
+    <!-- Half-smashed tomato near the head (logo-6 detail, moved left with the head) -->
+    <path fill="#ad3027" d="M 225 262 c 10 -6 24 -4 28 4 c -6 6 -20 8 -30 2 Z" />
+
+    <!-- Whole and half-crushed ingredients (logo-6 detail; kept >=8px inside the
+         sauce outline so nothing spills onto the front inner wall) -->
+    <path fill="#ad3027" d="M 156 274 c 8 -8 20 -8 25 0 l -4 11 -16 4 Z" />
+    <path fill="#ad3027" d="M 238 274 c 12 -4 24 3 28 13 l -12 7 -20 -7 Z" />
+    <path fill="#ad3027" d="M 342 270 c 8 -8 20 -4 25 7 l -11 11 -16 -4 Z" />
+    <path fill="#3f8f4f" d="M 274 276 c 10 2 20 8 18 18 c -10 5 -20 0 -25 -10 Z" />
+    <path fill="#2d6f3d" d="M 318 280 c 9 -6 19 -1.5 22 7.5 c -7.5 6 -16.5 7.5 -24 1.5 Z" />
+    <path fill="#F5E9DA" d="M 296 282 c 6 -6 16 -5 20 2 l -6 10 -14 -2 Z" />
+    <path fill="#F5E9DA" d="M 370 270 c 6 -5 15 -3 17 3 l -8 9 -12 -4 Z" />
+
+    <!-- Cilantro garnish on the sauce surface (logo-6 stroked accent; fully on
+         the sauce, clear of the back inner wall) -->
+    <path d="M 184 280 c 4 -17 17 -27 34 -26 c -1 17 -12 29 -29 33 Z" fill="#3f8f4f" stroke="#3d3029" stroke-width="9" stroke-linejoin="round" />
+
   </g>
 </svg>
