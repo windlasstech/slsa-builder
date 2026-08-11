@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">slsa-builder logo</title>
+  <style>
+    :root {
+      --outline: #3d3029;
+      --bowl: #36a6a0;
+      --bowl-shadow: #27847f;
+      --bowl-highlight: #82d1c9;
+      --salsa: #d94a34;
+      --salsa-dark: #ad3027;
+      --salsa-light: #f47a4e;
+      --green: #3f8f4f;
+      --green-dark: #2d6f3d;
+      --chip: #f4c654;
+      --chip-light: #ffe183;
+      --toast: #b8752f;
+    }
+    .ink {
+      stroke: var(--outline);
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
+
+  <!-- Bowl -->
+  <g id="bowl">
+    <path class="ink" fill="var(--bowl)" d="M 176 414 L 176 440 A 80 20 0 0 0 336 440 L 336 414 Z" />
+    <path fill="var(--bowl-shadow)" d="M 176 430 L 176 440 A 80 20 0 0 0 336 440 L 336 430 A 80 20 0 0 1 176 430 Z" stroke="none" />
+
+    <path class="ink" fill="var(--bowl)" d="M 72 270 A 184 64 0 0 1 440 270 A 184 160 0 0 1 72 270 Z" />
+    <ellipse cx="256" cy="270" rx="184" ry="64" fill="var(--bowl-shadow)" stroke="none" />
+    
+    <path fill="var(--bowl-shadow)" d="M 120 375 A 184 160 0 0 0 392 375 A 200 130 0 0 1 120 375 Z" stroke="none" />
+    <path d="M 115 320 C 120 355, 140 375, 175 390" fill="none" stroke="var(--bowl-highlight)" stroke-width="12" stroke-linecap="round" />
+  </g>
+
+  <!-- Chip -->
+  <g id="chip">
+    <path class="ink" fill="var(--chip)" d="M 290 220 L 370 40 C 378 30, 392 32, 398 42 L 465 150 C 471 162, 465 176, 453 182 L 350 240 Z" />
+    <path fill="var(--chip-light)" d="M 295 215 L 370 45 C 375 40, 385 42, 390 48 L 380 55 L 305 215 Z" />
+    
+    <!-- Organic Toast Spots -->
+    <path fill="var(--toast)" d="M 370 70 c 7 -5 16 -3 19 4 c 4 8 0 16 -7 19 c -8 3 -16 -1 -18 -8 c -2 -6 1 -12 6 -15 Z" />
+    <path fill="var(--toast)" d="M 410 110 c 5 -4 13 -3 17 2 c 4 6 2 13 -3 17 c -6 4 -14 2 -17 -4 c -3 -5 -1 -11 3 -15 Z" />
+    <path fill="var(--toast)" d="M 350 120 c 9 -6 20 -7 28 -2 c 5 3 6 8 3 12 c -3 3 -7 3 -11 1 c -5 -3 -11 -2 -16 1 c -5 3 -10 2 -12 -2 c -2 -4 2 -8 8 -10 Z" />
+    <path fill="var(--toast)" d="M 390 150 c 7 -4 15 -2 18 3 c 3 5 1 12 -5 15 c -6 3 -13 0 -15 -5 c -2 -4 0 -10 2 -13 Z" />
+  </g>
+
+  <!-- Salsa -->
+  <g id="salsa">
+    <!-- Salsa Mound with U-dip for the chip insertion point -->
+    <path class="ink" fill="var(--salsa)" d="
+      M 88 270 
+      C 88 220, 130 180, 180 200 
+      C 220 160, 270 160, 310 175
+      C 320 260, 380 260, 400 200
+      C 420 190, 424 230, 424 270 
+      A 168 48 0 0 1 88 270 Z" />
+      
+    <!-- Organic sauce dollop overlapping the chip (covers U-dip) -->
+    <path fill="var(--salsa)" d="M 310 175 C 330 185, 340 145, 360 175 C 380 205, 390 200, 400 200 L 420 260 L 290 260 Z" />
+    <path fill="none" stroke="var(--outline)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" d="M 310 175 C 330 185, 340 145, 360 175 C 380 205, 390 200, 400 200" />
+
+    <!-- De-uniformed Chunky tomato pieces -->
+    <path fill="var(--salsa-dark)" d="M 115 225 c 8 -8 20 -8 25 0 l -4 12 -16 4 Z" />
+    <path fill="var(--salsa-dark)" d="M 215 260 c 18 -6 36 6 42 24 l -18 12 -30 -12 Z" />
+    <path fill="var(--salsa-dark)" d="M 270 230 c 10 -15 30 -10 35 5 l -10 20 -25 -5 Z" />
+    <path fill="var(--salsa-dark)" d="M 355 275 c 8 -8 20 -4 25 8 l -12 12 -16 -4 Z" />
+    
+    <!-- De-uniformed Pepper and cilantro bits -->
+    <path fill="var(--green)" d="M 155 190 c 10 2 20 8 18 18 c -10 5 -20 0 -25 -10 Z" />
+    <path fill="var(--green-dark)" d="M 235 275 c 9 -6 19 -1.5 22 7.5 c -7.5 6 -16.5 7.5 -24 1.5 Z" />
+    <path fill="var(--green)" d="M 385 240 c 10 0 18 6 21 14 c -9 6 -21 4 -28 -4 Z" />
+    
+    <!-- Nudged warm sauce highlight -->
+    <path fill="var(--salsa-light)" d="M 130 240 c 5 15 25 30 50 35 c -20 -10 -30 -20 -35 -40 Z" />
+  </g>
+
+  <!-- Accent Garnish (moved left) -->
+  <g id="accents">
+    <path d="M 241 199 c 4 -17 17 -27 34 -26 c -1 17 -12 29 -29 33 Z" fill="var(--green)" stroke="var(--outline)" stroke-width="9" stroke-linejoin="round" />
+  </g>
+</svg>

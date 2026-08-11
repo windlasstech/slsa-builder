@@ -36,6 +36,7 @@ the Go implementation tree has not been added yet.
 | Lint/format policy       | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                              |
 | Git hooks / DCO          | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.                |
 | ADR relations check      | `.agents/skills/adr-relations-check/`                      | Status grammar + relations symmetry.              |
+| Badge regeneration       | `.agents/skills/badge-generator/`                          | shields-style badge SVG pipeline.                 |
 | Dependency security      | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile.          |
 
 ## CONVENTIONS

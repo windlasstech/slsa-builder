@@ -460,12 +460,12 @@ Type and nullability rules:
   unsupported-but-not-blocked registry does not expose a tokenless metadata check that can prove the
   state before publish.
 
-> [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
-> milestone. The behavior in this section remains the eventual contract but is deferred:
-> first-milestone conformance does not require it. Consistent with ADR 0030's "unsupported but not
-> blocked" stance, this deferral does not prohibit attempts; their results are outside
-> first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
-> requires a new ADR.
+> [!IMPORTANT]  
+> Custom (third-party) npm registry support is an explicit non-goal of the first milestone. The
+> behavior in this section remains the eventual contract but is deferred: first-milestone
+> conformance does not require it. Consistent with ADR 0030's "unsupported but not blocked" stance,
+> this deferral does not prohibit attempts; their results are outside first-milestone conformance
+> scope. Promoting custom registries to supported, or blocking them, requires a new ADR.
 
 - `package.workspace_root` is either `null` or a repository-root-relative directory string.
 - `package_manager.selection_manifest`, `package_manager.selection_manifest_path`, and
@@ -592,12 +592,12 @@ Type and nullability rules:
   `false` when the best-effort metadata diagnostic can prove that state, and `null` when the state
   is not verifier-proven for that unsupported registry.
 
-> [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
-> milestone. The behavior in this section remains the eventual contract but is deferred:
-> first-milestone conformance does not require it. Consistent with ADR 0030's "unsupported but not
-> blocked" stance, this deferral does not prohibit attempts; their results are outside
-> first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
-> requires a new ADR.
+> [!IMPORTANT]  
+> Custom (third-party) npm registry support is an explicit non-goal of the first milestone. The
+> behavior in this section remains the eventual contract but is deferred: first-milestone
+> conformance does not require it. Consistent with ADR 0030's "unsupported but not blocked" stance,
+> this deferral does not prohibit attempts; their results are outside first-milestone conformance
+> scope. Promoting custom registries to supported, or blocking them, requires a new ADR.
 
 - `release.ref` must equal the release ref accepted by runtime guards and must be byte-for-byte
   equal to `source.ref` after both values are represented as full Git refs.
@@ -1370,12 +1370,12 @@ publish.
   A retry attempt within the same `github.run_id` instead applies the convergence classification
   below; it may continue without republishing only on `committed-as-expected`.
 
-> [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
-> milestone. The behavior in this section remains the eventual contract but is deferred:
-> first-milestone conformance does not require it. Consistent with ADR 0030's "unsupported but not
-> blocked" stance, this deferral does not prohibit attempts; their results are outside
-> first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
-> requires a new ADR.
+> [!IMPORTANT]  
+> Custom (third-party) npm registry support is an explicit non-goal of the first milestone. The
+> behavior in this section remains the eventual contract but is deferred: first-milestone
+> conformance does not require it. Consistent with ADR 0030's "unsupported but not blocked" stance,
+> this deferral does not prohibit attempts; their results are outside first-milestone conformance
+> scope. Promoting custom registries to supported, or blocking them, requires a new ADR.
 
 - For non-npmjs registries, package-identity and package-version existence checks are best-effort
   diagnostics unless a later ADR defines that registry class. The workflow should attempt an
@@ -1410,12 +1410,12 @@ boundary with `windlass.verify.error.custom-registry-access-option-rejected`. Th
 flow has not committed; the diagnostic report must state whether any registry mutation could
 nevertheless have committed.
 
-> [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
-> milestone. The behavior in this section remains the eventual contract but is deferred:
-> first-milestone conformance does not require it. Consistent with ADR 0030's "unsupported but not
-> blocked" stance, this deferral does not prohibit attempts; their results are outside
-> first-milestone conformance scope. Promoting custom registries to supported, or blocking them,
-> requires a new ADR.
+> [!IMPORTANT]  
+> Custom (third-party) npm registry support is an explicit non-goal of the first milestone. The
+> behavior in this section remains the eventual contract but is deferred: first-milestone
+> conformance does not require it. Consistent with ADR 0030's "unsupported but not blocked" stance,
+> this deferral does not prohibit attempts; their results are outside first-milestone conformance
+> scope. Promoting custom registries to supported, or blocking them, requires a new ADR.
 
 For non-npmjs registries, `publish.package_identity_preexisting: null` or
 `publish.package_version_preexisting: null` is allowed only when a tokenless metadata check is

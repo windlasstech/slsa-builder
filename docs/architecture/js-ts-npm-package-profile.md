@@ -123,12 +123,13 @@ input is non-empty.
 
 #### Optional input rules
 
-> [!IMPORTANT] Custom (third-party) npm registry support is an explicit non-goal of the first
-> milestone. First-milestone conformance requires the profile to accept a syntactically valid
-> non-npmjs `registry-url` without treating its registry identity as a preflight failure. It does
-> not require a custom-registry publish attempt, successful publication, or custom-registry
-> post-publish verification. An implementation that offers a custom-registry attempt must follow
-> every custom-registry attempt rule in this contract. Consistent with ADR 0030's
+> [!IMPORTANT]  
+> Custom (third-party) npm registry support is an explicit non-goal of the first milestone.
+> First-milestone conformance requires the profile to accept a syntactically valid non-npmjs
+> `registry-url` without treating its registry identity as a preflight failure. It does not require
+> a custom-registry publish attempt, successful publication, or custom-registry post-publish
+> verification. An implementation that offers a custom-registry attempt must follow every
+> custom-registry attempt rule in this contract. Consistent with ADR 0030's
 > "unsupported-but-not-blocked" stance, an implementation must not reject a URL solely because it is
 > non-npmjs. Promoting custom registries to supported, or blocking them, requires a new ADR.
 
@@ -588,9 +589,9 @@ A manual dispatch release must satisfy all of the following:
 
 ## Registry URL support
 
-> [!IMPORTANT] First-milestone custom-registry scope is defined in
-> [Optional input rules](#optional-input-rules). The rules below apply only when an implementation
-> offers a custom-registry attempt.
+> [!IMPORTANT]  
+> First-milestone custom-registry scope is defined in [Optional input rules](#optional-input-rules).
+> The rules below apply only when an implementation offers a custom-registry attempt.
 
 - The profile accepts a `registry-url` input.
 - The profile guarantees only npmjs publish semantics.
