@@ -104,10 +104,11 @@ claims. ADR 0068 verification uses these platform-signed values as the authorita
 source identifiers; repository and owner names are display-only. A missing, malformed, or mismatched
 numeric identifier is an identity verification failure.
 
-> [!NOTE] The 12026-08-02 live spike confirmed this behavior. Runs `30745570800` (SHA pin) and
-> `30745572730` (tag pin) both returned the resolved callee SHA through `job_workflow_sha`; observed
-> callee commits included `1f4ebdc3…` and `b30c14d8…`. The spike also confirmed that
-> `github.workflow_sha` exposed the caller SHA.
+> [!NOTE]  
+> The 12026-08-02 live spike confirmed this behavior. Runs `30745570800` (SHA pin) and `30745572730`
+> (tag pin) both returned the resolved callee SHA through `job_workflow_sha`; observed callee
+> commits included `1f4ebdc3…` and `b30c14d8…`. The spike also confirmed that `github.workflow_sha`
+> exposed the caller SHA.
 
 ## `buildType` URI format
 
