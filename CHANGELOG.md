@@ -18,6 +18,10 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   with a shield-check icon, and a plain logo badge in gray or green) under `assets/badges/`, each in
   four shields.io-compatible styles (flat, flat-square, plastic, and for-the-badge), with copy-ready
   Markdown and HTML snippets in the README.
+- Expanded and synchronized the bilingual READMEs with a logo header, table of contents, SLSA and
+  provenance primers (including the Mini Shai-Hulud caution), an alternatives comparison, profile
+  feature tables, an expanded security and trust model, badge usage documentation, contributing
+  links, and a license section.
 
 ### Security
 
