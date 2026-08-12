@@ -15,8 +15,10 @@ installs dependencies, runs build scripts, packs the artifact, and validates pac
   [0033](../decisions/0033-run-build-script-only-when-declared.md),
   [0056](../decisions/0056-treat-non-selected-lockfiles-as-stale-diagnostics.md),
   [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md),
-  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md), and
-  [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md)
+  [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
+  [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
+  and
+  [0078](../decisions/0078-treat-settings-only-pnpm-workspace-yaml-as-standalone-root-package-mode.md)
 - Related specs: [JS/TS npm package profile](js-ts-npm-package-profile.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Core profile contract](core-profile-contract.md)
@@ -111,8 +113,10 @@ The initial production profile supports only these workspace metadata shapes:
 - npm and Yarn `workspaces` as an array of string patterns, for example `["packages/*", "tools/*"]`.
 - npm and Yarn `workspaces` as an object whose `packages` member is an array of string patterns, for
   example `{ "packages": ["packages/*"] }`.
-- pnpm `pnpm-workspace.yaml` as a YAML object whose `packages` member is an array of string
-  patterns.
+- pnpm `pnpm-workspace.yaml` as a YAML object whose optional `packages` member, when present, is an
+  array of string patterns. Under ADR 0078, an omitted `packages` member means zero workspace
+  patterns and root-only package membership; other settings in the object do not declare workspace
+  packages.
 
 Workspace patterns are evaluated as candidate-workspace-root-relative, slash-separated path patterns
 after path normalization. For each candidate ancestor, the implementation converts the selected
@@ -173,17 +177,28 @@ If multiple ancestors claim the selected package directory, the nearest claiming
 workspace root. If no ancestor claims the selected package directory, the selected package is
 treated as a standalone package and the selected package directory is its package root.
 
+A candidate `pnpm-workspace.yaml` object with no `packages` member claims only its own candidate
+root when the selected `package-directory` resolves exactly to that root. The candidate root must
+contain the selected root `package.json`, which remains authoritative for package identity and
+package-manager metadata. This root-only classification has zero workspace patterns and is terminal:
+it must not be ignored in favor of a farther ancestor. If the selected directory is not the
+settings-only candidate root, the file cannot claim that subdirectory and package resolution must
+fail closed with `windlass.verify.error.package-resolution-invalid` rather than reinterpreting the
+root-only repository as a workspace or standalone subpackage layout.
+
 The profile must fail before install when a workspace metadata file is malformed, when workspace
 membership cannot identify exactly one selected package, or when the selected package directory is
 claimed by workspace metadata but lacks its own `package.json`.
 
 Malformed workspace metadata includes a root `package.json` whose `workspaces` value uses an
 unsupported shape, a `pnpm-workspace.yaml` file that is not a YAML object, a `pnpm-workspace.yaml`
-object whose `packages` member is missing or is not an array of strings, and any workspace pattern
-that uses unsupported syntax such as negation, brace expansion, extended glob syntax, absolute
-paths, empty path segments, traversal segments, or backslash separators. A malformed metadata file
-at a candidate root that would otherwise be considered for workspace ownership must fail closed
-rather than being ignored in favor of a farther ancestor or standalone package mode.
+object whose present `packages` member is not an array of strings, and any workspace pattern that
+uses unsupported syntax such as negation, brace expansion, extended glob syntax, absolute paths,
+empty path segments, traversal segments, or backslash separators. An absent `packages` member is not
+malformed; it has the root-only meaning defined above. A malformed metadata file at a candidate root
+that would otherwise be considered for workspace ownership must fail closed with
+`windlass.verify.error.package-resolution-invalid` rather than being ignored in favor of a farther
+ancestor or standalone package mode.
 
 If the selected package directory matches more than one supported pattern within the nearest
 claiming workspace root, that is still one selected package when every matching pattern resolves to
