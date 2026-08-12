@@ -105,6 +105,7 @@ type workflowStep struct {
 	If   string         `yaml:"if"`
 	Uses string         `yaml:"uses"`
 	Run  string         `yaml:"run"`
+	Env  map[string]any `yaml:"env"`
 	With map[string]any `yaml:"with"`
 }
 
@@ -145,7 +146,8 @@ func CheckBuildJob(path string) (BuildJobResult, error) {
 	if build.Concurrency.Group != "npm-build-${{ github.repository }}-${{ github.ref_name }}" || !build.Concurrency.CancelInProgress || build.Concurrency.Queue != "" {
 		return BuildJobResult{}, fmt.Errorf("build job must use the pre-mutation concurrency contract")
 	}
-	if err := checkSteps(build.Steps, &result); err != nil {
+	_, requiresSourceRef := document.On.WorkflowCall.Inputs["source-ref"]
+	if err := checkSteps(build.Steps, &result, requiresSourceRef); err != nil {
 		return BuildJobResult{}, err
 	}
 	slices.Sort(result.ArtifactNames)
@@ -307,11 +309,12 @@ func checkNPMWorkflowCall(call workflowCall) error {
 	}{
 		"package-directory": {typeName: "string", required: true},
 		"registry-url":      {typeName: "string"}, "dist-tag": {typeName: "string"}, "access": {typeName: "string"},
+		"source-ref":         {typeName: "string"},
 		"release-asset-mode": {typeName: "boolean", boolean: true}, "release-tag": {typeName: "string"},
 		"provenance-sidecar": {typeName: "string"}, "linked-artifact-metadata": {typeName: "boolean", boolean: true},
 	}
 	if len(call.Inputs) != len(wantInputs) {
-		return fmt.Errorf("workflow_call inputs must contain exactly the eight public inputs")
+		return fmt.Errorf("workflow_call inputs must contain exactly the nine public inputs")
 	}
 	for name, want := range wantInputs {
 		input, ok := call.Inputs[name]
@@ -455,7 +458,7 @@ func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobRes
 	return nil
 }
 
-func checkSteps(steps []workflowStep, result *BuildJobResult) error {
+func checkSteps(steps []workflowStep, result *BuildJobResult, requiresSourceRef bool) error {
 	if len(steps) == 0 || !strings.HasPrefix(steps[0].Uses, "step-security/harden-runner@") {
 		return fmt.Errorf("harden-runner must be the first build step")
 	}
@@ -463,6 +466,7 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 		return fmt.Errorf("harden-runner must use egress-policy audit")
 	}
 	hasCheckout := false
+	hasSourceResolution := false
 	hasNode24 := false
 	hasCorepack := false
 	hasBuild := false
@@ -472,7 +476,11 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 		}
 		switch {
 		case strings.HasPrefix(current.Uses, "actions/checkout@"):
-			hasCheckout = scalar(current.With["persist-credentials"]) == "false"
+			if requiresSourceRef && scalar(current.With["path"]) == "source" {
+				hasCheckout = scalar(current.With["persist-credentials"]) == "false" && scalar(current.With["ref"]) == "${{ steps.source.outputs.revision }}"
+			} else if !requiresSourceRef {
+				hasCheckout = scalar(current.With["persist-credentials"]) == "false"
+			}
 		case strings.HasPrefix(current.Uses, "actions/setup-node@"):
 			hasNode24 = scalar(current.With["node-version"]) == "24"
 		case strings.HasPrefix(current.Uses, "actions/upload-artifact@"):
@@ -484,6 +492,13 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 		if strings.Contains(current.Run, "npm-profile-build") {
 			hasBuild = true
 		}
+		if current.ID == "source" && strings.Contains(current.Run, "npm-profile-source") &&
+			scalar(current.Env["SOURCE_REF"]) == "${{ inputs.source-ref }}" && !strings.Contains(current.Run, "${{ inputs.source-ref }}") {
+			hasSourceResolution = true
+		}
+	}
+	if requiresSourceRef && !hasSourceResolution {
+		return fmt.Errorf("build job must resolve source-ref through the trusted source command")
 	}
 	if !hasCheckout {
 		return fmt.Errorf("build job must checkout without persisted credentials")

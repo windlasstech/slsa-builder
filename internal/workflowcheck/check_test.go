@@ -16,6 +16,9 @@ on:
       package-directory:
         required: true
         type: string
+      source-ref:
+        required: false
+        type: string
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -28,8 +31,14 @@ jobs:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
+      - id: source
+        env:
+          SOURCE_REF: ${{ inputs.source-ref }}
+        run: go run ./cmd/slsa-builder-internal npm-profile-source --source-ref "$SOURCE_REF"
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ steps.source.outputs.revision }}
+          path: source
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -89,6 +98,7 @@ on:
       registry-url: {required: false, type: string}
       dist-tag: {required: false, type: string}
       access: {required: false, type: string}
+      source-ref: {required: false, type: string}
       release-asset-mode: {required: false, type: boolean, default: false}
       release-tag: {required: false, type: string}
       provenance-sidecar: {required: false, type: string}
@@ -112,7 +122,19 @@ jobs:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
         with: {egress-policy: audit}
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with: {persist-credentials: false}
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+      - id: source
+        env:
+          SOURCE_REF: ${{ inputs.source-ref }}
+        run: go run ./cmd/slsa-builder-internal npm-profile-source --source-ref "$SOURCE_REF"
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ steps.source.outputs.revision }}
+          path: source
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: "24"}
       - run: corepack enable
@@ -304,11 +326,15 @@ func TestCheckNPMOnlyProfile(t *testing.T) {
 
 func TestCheckNPMOnlyProfileRejectsPublicContractDrift(t *testing.T) {
 	tests := map[string]string{
-		"missing input":      replaceOnce(t, validNPMOnlyWorkflow, "      registry-url: {required: false, type: string}\n", ""),
-		"string default":     replaceOnce(t, validNPMOnlyWorkflow, "registry-url: {required: false, type: string}", "registry-url: {required: false, type: string, default: https://registry.npmjs.org/}"),
-		"missing output":     replaceOnce(t, validNPMOnlyWorkflow, "      package-url: {value: \"${{ jobs.publish.outputs.package-url }}\"}\n", ""),
-		"extra job":          replaceOnce(t, validNPMOnlyWorkflow, "jobs:\n", "jobs:\n  extra:\n    runs-on: ubuntu-24.04\n    steps: []\n"),
-		"pre-mutation queue": replaceOnce(t, validNPMOnlyWorkflow, "      cancel-in-progress: true\n    steps:", "      cancel-in-progress: true\n      queue: max\n    steps:"),
+		"missing input":       replaceOnce(t, validNPMOnlyWorkflow, "      registry-url: {required: false, type: string}\n", ""),
+		"string default":      replaceOnce(t, validNPMOnlyWorkflow, "registry-url: {required: false, type: string}", "registry-url: {required: false, type: string, default: https://registry.npmjs.org/}"),
+		"source ref required": replaceOnce(t, validNPMOnlyWorkflow, "source-ref: {required: false, type: string}", "source-ref: {required: true, type: string}"),
+		"source ref default":  replaceOnce(t, validNPMOnlyWorkflow, "source-ref: {required: false, type: string}", "source-ref: {required: false, type: string, default: refs/tags/v1.2.3}"),
+		"missing output":      replaceOnce(t, validNPMOnlyWorkflow, "      package-url: {value: \"${{ jobs.publish.outputs.package-url }}\"}\n", ""),
+		"extra job":           replaceOnce(t, validNPMOnlyWorkflow, "jobs:\n", "jobs:\n  extra:\n    runs-on: ubuntu-24.04\n    steps: []\n"),
+		"pre-mutation queue":  replaceOnce(t, validNPMOnlyWorkflow, "      cancel-in-progress: true\n    steps:", "      cancel-in-progress: true\n      queue: max\n    steps:"),
+		"unresolved checkout": replaceOnce(t, validNPMOnlyWorkflow, "ref: ${{ steps.source.outputs.revision }}", "ref: ${{ inputs.source-ref }}"),
+		"shell interpolation": replaceOnce(t, validNPMOnlyWorkflow, `--source-ref "$SOURCE_REF"`, `--source-ref "${{ inputs.source-ref }}"`),
 	}
 	for name, contents := range tests {
 		t.Run(name, func(t *testing.T) {
