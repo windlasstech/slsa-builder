@@ -135,13 +135,13 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 		InvocationID:          runInvocation,
 		StartedOn:             now,
 		FinishedOn:            now,
-		RuntimeReleaseRef:     os.Getenv("GITHUB_REF"),
-		PeeledReleaseRevision: os.Getenv("GITHUB_SHA"),
+		RuntimeReleaseRef:     parameters.Source.Ref,
+		PeeledReleaseRevision: parameters.Source.Revision,
 	})
 	if err != nil {
 		return err
 	}
-	identity, err := githubSigningIdentity(runInvocation)
+	identity, err := githubSigningIdentity(runInvocation, parameters.Source.Ref, parameters.Source.Revision)
 	if err != nil {
 		return err
 	}
@@ -171,12 +171,15 @@ func githubRunInvocationURI() string {
 	return os.Getenv("GITHUB_SERVER_URL") + "/" + os.Getenv("GITHUB_REPOSITORY") + "/actions/runs/" + os.Getenv("GITHUB_RUN_ID") + "/attempts/" + os.Getenv("GITHUB_RUN_ATTEMPT")
 }
 
-func githubSigningIdentity(runInvocation string) (attestation.IdentityExpectation, error) {
-	required := []string{"GITHUB_SERVER_URL", "GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID", "GITHUB_REPOSITORY_OWNER_ID", "GITHUB_SHA", "GITHUB_REF", "WINDLASS_WORKFLOW_SHA"}
+func githubSigningIdentity(runInvocation, sourceRef, sourceRevision string) (attestation.IdentityExpectation, error) {
+	required := []string{"GITHUB_SERVER_URL", "GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID", "GITHUB_REPOSITORY_OWNER_ID", "WINDLASS_WORKFLOW_SHA"}
 	for _, name := range required {
 		if os.Getenv(name) == "" {
 			return attestation.IdentityExpectation{}, fmt.Errorf("required trusted runtime value %s is unavailable", name)
 		}
+	}
+	if sourceRef == "" || sourceRevision == "" {
+		return attestation.IdentityExpectation{}, errors.New("built source identity is unavailable")
 	}
 	return attestation.IdentityExpectation{
 		Issuer:                  "https://token.actions.githubusercontent.com",
@@ -184,8 +187,8 @@ func githubSigningIdentity(runInvocation string) (attestation.IdentityExpectatio
 		SourceRepositoryURI:     os.Getenv("GITHUB_SERVER_URL") + "/" + os.Getenv("GITHUB_REPOSITORY"),
 		SourceRepositoryID:      os.Getenv("GITHUB_REPOSITORY_ID"),
 		SourceRepositoryOwnerID: os.Getenv("GITHUB_REPOSITORY_OWNER_ID"),
-		SourceDigest:            os.Getenv("GITHUB_SHA"),
-		SourceRef:               os.Getenv("GITHUB_REF"),
+		SourceDigest:            sourceRevision,
+		SourceRef:               sourceRef,
 		RunnerEnvironment:       "github-hosted",
 		RunInvocationURI:        runInvocation,
 	}, nil

@@ -116,7 +116,7 @@ func runNPMProfilePublish(ctx context.Context, input npmProfilePublishInput) (np
 	if exchange.Report.PrimaryID != nil {
 		return npmprofile.PublishResult{State: npmprofile.PublishIndeterminate, Report: exchange.Report}, errors.New("trusted-publisher preflight failed")
 	}
-	identity, err := githubSigningIdentity(githubRunInvocationURI())
+	identity, err := githubSigningIdentity(githubRunInvocationURI(), os.Getenv("BUILT_SOURCE_REF"), os.Getenv("BUILT_SOURCE_REVISION"))
 	if err != nil {
 		return publishInvocationFailure(err)
 	}

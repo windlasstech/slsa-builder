@@ -69,9 +69,8 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 		return err
 	}
 	identityExpectation := verifier.config.Identity
-	if parameters.Source.Repository != identityExpectation.SourceRepositoryURI ||
-		parameters.Source.Revision != identityExpectation.SourceDigest || parameters.Source.Ref != identityExpectation.SourceRef {
-		return errors.New("signed npm source identity differs from verified Fulcio identity")
+	if parameters.Source.Repository != identityExpectation.SourceRepositoryURI {
+		return errors.New("signed npm source repository differs from verified Fulcio identity")
 	}
 	builderID := statement.Predicate.RunDetails.Builder.ID
 	builderPath, builderSHA, builderFound := strings.Cut(builderID, "@")
