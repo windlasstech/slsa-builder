@@ -52,6 +52,45 @@ func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
 	}
 }
 
+func TestFinalizeWorkflowBuildMetadataUsesBuiltSourceDuringDispatch(t *testing.T) {
+	repositoryRoot := t.TempDir()
+	manifest := []byte(`{"name":"pkg","version":"1.2.3","repository":"https://github.com/example/project"}`)
+	if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repositoryRoot, "package-lock.json"), []byte(`{"lockfileVersion":3}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	selection := Result{
+		Package: Package{Directory: ".", RealDirectory: repositoryRoot, RealManagerRoot: repositoryRoot, ManagerRoot: ".", Name: "pkg", Version: "1.2.3", Repository: "https://github.com/example/project"},
+		Manager: ManagerSelection{Name: ManagerNPM, Version: "11.5.1", Source: SelectionPackageManager, SelectionManifestPath: "package.json", SelectedLockfilePath: "package-lock.json"},
+	}
+	build := BuildPackResult{
+		PackageName: "pkg", PackageVersion: "1.2.3", TarballPath: filepath.Join(repositoryRoot, "pkg-1.2.3.tgz"),
+		SHA256: mustSHA256(t, testSHA256), SHA512: mustSHA512(t, testSHA512),
+		Packed:      PackedMetadata{Name: "pkg", Version: "1.2.3"},
+		BuildScript: BuildScriptCapture{Result: BuildScriptSkippedAbsent},
+		Toolchain:   ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
+	}
+	metadata, err := FinalizeWorkflowBuildMetadata(selection, build, WorkflowBuildMetadataConfig{
+		ArtifactName: "artifact", EventName: "workflow_dispatch", RefType: "tag",
+		Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testAttestSHA,
+		CallerWorkflowFilename: "release.yml",
+		RegistryState:          RegistryPreflightState{PackageExists: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	parameters, err := DecodeExternalParameters(metadata.ExternalParameters)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parameters.Source.Ref != "refs/tags/v1.2.3" || parameters.Source.Revision != testSourceSHA ||
+		parameters.Source.EventName != "workflow_dispatch" || parameters.Source.RefType != "tag" {
+		t.Fatalf("unexpected built source parameters: %#v", parameters.Source)
+	}
+}
+
 func TestFinalizeWorkflowBuildMetadataRejectsGuardAndModeDrift(t *testing.T) {
 	selection := Result{Package: Package{Directory: ".", Name: "pkg", Version: "1.2.3", Repository: "https://github.com/example/project"}}
 	build := BuildPackResult{PackageName: "pkg", PackageVersion: "1.2.3"}
