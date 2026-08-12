@@ -1,0 +1,18 @@
+{
+  "phase": "build-pack",
+  "package-directory": "testdata/npm/packages/pnpm-settings-only-valid",
+  "package-manager": {
+    "name": "pnpm",
+    "version": "10.14.0",
+    "selection-source": "packageManager",
+    "selected-lockfile": "pnpm-lock.yaml",
+    "distribution-digest-authority": "registry-integrity"
+  },
+  "commands": {
+    "install": ["pnpm", "install", "--frozen-lockfile"],
+    "build": [],
+    "pack": ["pnpm", "pack", "--pack-destination", "<pack-output-directory>"]
+  },
+  "expected-subject": "pkg:npm/%40windlass-fixtures/pnpm-settings-only@1.0.0",
+  "required-digests": ["sha512", "sha256"]
+}

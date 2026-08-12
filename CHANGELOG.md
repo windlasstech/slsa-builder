@@ -23,6 +23,11 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   feature tables, an expanded security and trust model, badge usage documentation, contributing
   links, and a license section.
 
+### Fixed
+
+- Fixed pnpm package resolution for standalone root packages whose `pnpm-workspace.yaml` contains
+  policy settings but omits the optional `packages` member.
+
 ### Security
 
 - Raised the module Go directive to 1.26.5, clearing exposure to

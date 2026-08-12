@@ -13,7 +13,7 @@ import (
 
 func discoverWorkspaceRoot(repositoryRoot, selectedDirectory string) (string, *manifest, error) {
 	for candidate := selectedDirectory; ; candidate = filepath.Dir(candidate) {
-		patterns, candidateManifest, metadataPresent, err := workspacePatterns(candidate)
+		patterns, candidateManifest, metadataPresent, pnpmRootOnly, err := workspacePatterns(candidate)
 		if err != nil {
 			return "", nil, err
 		}
@@ -21,6 +21,12 @@ func discoverWorkspaceRoot(repositoryRoot, selectedDirectory string) (string, *m
 			relative, relErr := filepath.Rel(candidate, selectedDirectory)
 			if relErr != nil {
 				return "", nil, relErr
+			}
+			if pnpmRootOnly {
+				if relative == "." {
+					return candidate, candidateManifest, nil
+				}
+				return "", nil, errors.New("settings-only pnpm workspace cannot claim a subdirectory")
 			}
 			matched := false
 			for _, pattern := range patterns {
@@ -43,48 +49,50 @@ func discoverWorkspaceRoot(repositoryRoot, selectedDirectory string) (string, *m
 	return selectedDirectory, nil, nil
 }
 
-func workspacePatterns(candidate string) ([]string, *manifest, bool, error) {
+func workspacePatterns(candidate string) ([]string, *manifest, bool, bool, error) {
 	var patterns []string
 	var candidateManifest *manifest
 	metadataPresent := false
+	pnpmRootOnly := false
 
 	manifestPath := filepath.Join(candidate, "package.json")
 	if _, err := os.Lstat(manifestPath); err == nil {
 		decoded, _, readErr := readManifest(manifestPath)
 		if readErr != nil {
-			return nil, nil, false, readErr
+			return nil, nil, false, false, readErr
 		}
 		candidateManifest = &decoded
 		if len(decoded.Workspaces) != 0 {
 			metadataPresent = true
 			workspacePatterns, parseErr := parseJSONWorkspacePatterns(decoded.Workspaces)
 			if parseErr != nil {
-				return nil, nil, false, parseErr
+				return nil, nil, false, false, parseErr
 			}
 			patterns = append(patterns, workspacePatterns...)
 		}
 	} else if !os.IsNotExist(err) {
-		return nil, nil, false, err
+		return nil, nil, false, false, err
 	}
 
 	pnpmPath := filepath.Join(candidate, "pnpm-workspace.yaml")
 	if encoded, fileErr := readRegularNonSymlink(pnpmPath); fileErr == nil {
 		metadataPresent = true
-		pnpmPatterns, parseErr := parsePNPMWorkspacePatterns(encoded)
+		pnpmPatterns, rootOnly, parseErr := parsePNPMWorkspacePatterns(encoded)
 		if parseErr != nil {
-			return nil, nil, false, parseErr
+			return nil, nil, false, false, parseErr
 		}
+		pnpmRootOnly = rootOnly
 		patterns = append(patterns, pnpmPatterns...)
 	} else if !os.IsNotExist(fileErr) {
-		return nil, nil, false, fileErr
+		return nil, nil, false, false, fileErr
 	}
 
 	for _, pattern := range patterns {
 		if err := validateWorkspacePattern(pattern); err != nil {
-			return nil, nil, false, err
+			return nil, nil, false, false, err
 		}
 	}
-	return patterns, candidateManifest, metadataPresent, nil
+	return patterns, candidateManifest, metadataPresent, pnpmRootOnly, nil
 }
 
 func parseJSONWorkspacePatterns(raw jsonRaw) ([]string, error) {
@@ -103,29 +111,29 @@ func parseJSONWorkspacePatterns(raw jsonRaw) ([]string, error) {
 	return direct, nil
 }
 
-func parsePNPMWorkspacePatterns(encoded []byte) ([]string, error) {
+func parsePNPMWorkspacePatterns(encoded []byte) ([]string, bool, error) {
 	var object map[string]any
 	decoder := yaml.NewDecoder(bytes.NewReader(encoded), yaml.Strict())
 	if err := decoder.Decode(&object); err != nil || object == nil {
-		return nil, errors.New("pnpm workspace must be an object")
+		return nil, false, errors.New("pnpm workspace must be an object")
 	}
 	rawPackages, ok := object["packages"]
 	if !ok {
-		return nil, errors.New("pnpm workspace packages are required")
+		return nil, true, nil
 	}
 	values, ok := rawPackages.([]any)
 	if !ok {
-		return nil, errors.New("pnpm workspace packages must be an array")
+		return nil, false, errors.New("pnpm workspace packages must be an array")
 	}
 	patterns := make([]string, 0, len(values))
 	for _, value := range values {
 		pattern, ok := value.(string)
 		if !ok {
-			return nil, errors.New("pnpm workspace patterns must be strings")
+			return nil, false, errors.New("pnpm workspace patterns must be strings")
 		}
 		patterns = append(patterns, pattern)
 	}
-	return patterns, nil
+	return patterns, false, nil
 }
 
 func validateWorkspacePattern(pattern string) error {

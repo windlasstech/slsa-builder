@@ -1,0 +1,6 @@
+{
+  "name": "@windlass-fixtures/pnpm-workspace-packages-wrong-type",
+  "version": "1.0.0",
+  "repository": "github:windlasstech/slsa-builder",
+  "packageManager": "pnpm@10.14.0"
+}

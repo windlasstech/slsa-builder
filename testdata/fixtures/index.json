@@ -40,6 +40,19 @@
       "covered-requirement": "ADR-0064.npm-purl-subject-digests"
     },
     {
+      "name": "pnpm-settings-only-root-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/pnpm-settings-only-valid/package.json",
+      "provenance": "testdata/npm/packages/pnpm-settings-only-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0078.pnpm-settings-only-root-package"
+    },
+    {
       "name": "npm-provenance-predicate-jcs-valid",
       "type": "accepted",
       "surface": "npm",
@@ -233,6 +246,32 @@
       "expected-primary-id": "windlass.verify.error.yarn-selection-invalid",
       "expected-secondary-ids": [],
       "covered-requirement": "ADR-0063.yarn-v4-selection"
+    },
+    {
+      "name": "pnpm-workspace-packages-wrong-type",
+      "type": "rejected",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/rejected/pnpm-workspace-packages-wrong-type/package.json",
+      "provenance": "testdata/npm/packages/rejected/pnpm-workspace-packages-wrong-type/fixture.json",
+      "release-manifest": null,
+      "expected-result": "fail",
+      "expected-failure-category": "package-resolution-invalid",
+      "expected-primary-id": "windlass.verify.error.package-resolution-invalid",
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0078.pnpm-settings-only-root-package"
+    },
+    {
+      "name": "pnpm-settings-only-subdirectory",
+      "type": "rejected",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/rejected/pnpm-settings-only-subdirectory/packages/undeclared/package.json",
+      "provenance": "testdata/npm/packages/rejected/pnpm-settings-only-subdirectory/fixture.json",
+      "release-manifest": null,
+      "expected-result": "fail",
+      "expected-failure-category": "package-resolution-invalid",
+      "expected-primary-id": "windlass.verify.error.package-resolution-invalid",
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0078.pnpm-settings-only-root-package"
     }
   ]
 }

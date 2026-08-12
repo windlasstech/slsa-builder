@@ -1,0 +1,1 @@
+{"phase":"build-pack","package-directory":"testdata/npm/packages/rejected/pnpm-settings-only-subdirectory/packages/undeclared","commands":{},"expected-primary-id":"windlass.verify.error.package-resolution-invalid"}

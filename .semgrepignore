@@ -1,0 +1,5 @@
+# Byte-exact test fixture corpus: Semgrep findings on curated fixture content
+# (e.g., pnpm cooldown policy values inside testdata) are categorically false
+# positives. Fixtures mirror real caller files for parser validation and are
+# never executed or shipped. Production policy files remain fully scanned.
+testdata/
