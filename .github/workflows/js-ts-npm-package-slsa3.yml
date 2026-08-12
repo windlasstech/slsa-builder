@@ -21,6 +21,10 @@ on:
         description: npm public or restricted access option
         required: false
         type: string
+      source-ref:
+        description: Optional full release tag ref whose resolved commit is built
+        required: false
+        type: string
       release-asset-mode:
         description: Reserved release-asset distribution mode
         required: false
@@ -66,6 +70,8 @@ jobs:
       group: npm-build-${{ github.repository }}-${{ github.ref_name }}
       cancel-in-progress: true
     outputs:
+      source-ref: ${{ steps.source.outputs.ref }}
+      source-revision: ${{ steps.source.outputs.revision }}
       package-name: ${{ steps.build.outputs.package-name }}
       package-version: ${{ steps.build.outputs.package-version }}
       package-purl: ${{ steps.build.outputs.package-purl }}
@@ -83,18 +89,35 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Checkout package source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          path: source
-          persist-credentials: false
-
       - name: Checkout trusted builder
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
           path: .slsa-builder
+          persist-credentials: false
+
+      - name: Resolve immutable package source
+        id: source
+        working-directory: .slsa-builder
+        env:
+          EVENT_REF: ${{ github.ref }}
+          EVENT_REF_TYPE: ${{ github.ref_type }}
+          EVENT_REVISION: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SERVER_API_URL: ${{ github.api_url }}
+          SOURCE_REF: ${{ inputs.source-ref }}
+        run: >-
+          go run ./cmd/slsa-builder-internal npm-profile-source --source-ref "$SOURCE_REF"
+          --event-ref "$EVENT_REF" --event-revision "$EVENT_REVISION" --event-ref-type
+          "$EVENT_REF_TYPE" --repository "$REPOSITORY" --api-url "$SERVER_API_URL"
+
+      - name: Checkout package source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.source.outputs.revision }}
+          path: source
           persist-credentials: false
 
       - name: Set up Go
@@ -142,11 +165,11 @@ jobs:
           OBSERVED_REPOSITORY: ${{ github.repository }}
           OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-build-output
           PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
-          REF: ${{ github.ref }}
-          REF_TYPE: ${{ github.ref_type }}
+          REF: ${{ steps.source.outputs.ref }}
+          REF_TYPE: ${{ steps.source.outputs.ref-type }}
           REGISTRY_URL: ${{ inputs.registry-url }}
           REPOSITORY_ROOT: ${{ github.workspace }}/source
-          REVISION: ${{ github.sha }}
+          REVISION: ${{ steps.source.outputs.revision }}
           TARBALL_ARTIFACT_NAME:
             js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
@@ -348,6 +371,8 @@ jobs:
           BUNDLE_DIRECTORY: ${{ runner.temp }}/windlass-publish-input/provenance
           BUNDLE_NAME: ${{ needs.build.outputs.package-tarball-name }}.intoto.jsonl
           BUNDLE_SHA256: ${{ needs.provenance-sign.outputs.bundle-sha256 }}
+          BUILT_SOURCE_REF: ${{ needs.build.outputs.source-ref }}
+          BUILT_SOURCE_REVISION: ${{ needs.build.outputs.source-revision }}
           PACKAGE_NAME: ${{ needs.build.outputs.package-name }}
           PACKAGE_URL: ${{ needs.build.outputs.package-url }}
           PACKAGE_VERSION: ${{ needs.build.outputs.package-version }}
