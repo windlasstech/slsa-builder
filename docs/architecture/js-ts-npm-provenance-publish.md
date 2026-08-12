@@ -486,11 +486,15 @@ Type and nullability rules:
 ### Field rules
 
 - `source.repository` must be the canonical HTTPS source repository URL.
-- `source.ref` must be the Git ref used for release intent.
-- `source.revision` and `workflow.sha` must be full 40-character lowercase Git commit SHAs.
+- `source.ref` must be the full release tag ref whose content was built. When `source-ref` is
+  supplied, this is its normalized value; otherwise it is the event-context release ref.
+- `source.revision` must be the full 40-character lowercase terminal commit SHA resolved from
+  `source.ref` before checkout. `workflow.sha` must independently be the full 40-character lowercase
+  reusable-workflow commit SHA.
 - `source.event_name` must match a supported caller event, such as `push` or constrained
   `workflow_dispatch`.
-- `source.ref_type` must be `tag` for the production release path.
+- `source.ref_type` must describe the built source and be `tag` for the production release path,
+  including a branch-dispatched run that supplies `source-ref`.
 - `workflow.path` must be `.github/workflows/js-ts-npm-package-slsa3.yml`.
 - `workflow.builder_id` must equal the SHA-based builder identity for `workflow.path` and
   `workflow.sha`.
@@ -610,7 +614,7 @@ Type and nullability rules:
   mode. Omitted and explicitly `required` public inputs normalize to the same signed value.
 - `distribution.linked_artifact_metadata` records the accepted `linked-artifact-metadata` boolean.
 - `caller.workflow_filename` must be the normalized caller workflow filename observed for the run
-  and used by npm trusted-publisher authorization. It is not a ninth public workflow input. If the
+  and used by npm trusted-publisher authorization. It is not a tenth public workflow input. If the
   producer cannot observe it before candidate predicate construction, the run fails with
   `windlass.verify.error.trusted-publisher-mismatch` before signing; a signed value that differs
   from the trusted-publisher identity fails producer-side and consumer-side verification with the
@@ -619,7 +623,9 @@ Type and nullability rules:
 - `build.script_result` must be `executed` when `scripts.build` ran and `skipped-absent` when the
   build step was an explicit no-op.
 
-The public workflow's eight inputs have exactly these signed locations:
+#### Nine-input completeness mapping
+
+The public workflow's nine inputs have exactly these signed locations:
 
 | Public input               | Signed location                                                                                                            |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -627,20 +633,22 @@ The public workflow's eight inputs have exactly these signed locations:
 | `registry-url`             | `publish.input_registry_url`                                                                                               |
 | `dist-tag`                 | `publish.input_dist_tag`                                                                                                   |
 | `access`                   | `publish.input_access`                                                                                                     |
+| `source-ref`               | normalized built ref in `source.ref`; terminal resolved commit in `source.revision`                                        |
 | `release-asset-mode`       | `distribution.release_asset_mode`                                                                                          |
 | `release-tag`              | suppliedness in `distribution.release_tag_supplied`; effective identity remains in `release.ref` and `release.version_tag` |
 | `provenance-sidecar`       | `distribution.provenance_sidecar`                                                                                          |
 | `linked-artifact-metadata` | `distribution.linked_artifact_metadata`                                                                                    |
 
-The completeness mapping intentionally excludes four duplications. The profile must not duplicate
-the raw `release-tag` input, duplicate caller repository identity already held in
+The completeness mapping intentionally excludes five duplications. The profile must not duplicate
+the raw `source-ref` or `release-tag` input, duplicate caller repository identity already held in
 `source.repository`, sign the remote npm trusted-publisher configuration object, or preserve the
 omitted-versus-`required` `provenance-sidecar` spelling after both forms normalize to the same
-policy. The observed caller filename relevant to the run is nevertheless signed at
-`caller.workflow_filename`. A missing or unknown `distribution` or `caller` member, or another
-duplicate representation fails with `windlass.verify.error.unexpected-external-parameters`; a raw
-release tag copied into `distribution`, or disagreement between normalized distribution values and
-the accepted public mode inputs, fails with `windlass.verify.error.release-asset-mode-schema-error`.
+policy. The effective source identity is signed only at `source.ref` and `source.revision`; the
+observed caller filename relevant to the run is signed at `caller.workflow_filename`. A missing or
+unknown `distribution` or `caller` member, or another duplicate representation fails with
+`windlass.verify.error.unexpected-external-parameters`; a raw release tag copied into
+`distribution`, or disagreement between normalized distribution values and the accepted public mode
+inputs, fails with `windlass.verify.error.release-asset-mode-schema-error`.
 
 The following focused invalid `distribution` object omits `linked_artifact_metadata` and fails with
 `windlass.verify.error.unexpected-external-parameters`:
@@ -1302,8 +1310,8 @@ contract to the npm profile values as follows:
 | Signer workflow SHA        | Full commit SHA from `externalParameters.workflow.sha` and the SHA suffix of `runDetails.builder.id`.                                                                      |
 | Signer workflow ref        | Must not be a branch, tag, pull request ref, or short SHA when the tool exposes it separately from the full workflow SHA.                                                  |
 | Source repository          | Canonical GitHub source repository URL exactly equal to `externalParameters.package.repository`, `externalParameters.source.repository`, and the observed caller identity. |
-| Source ref                 | Full release tag ref from `externalParameters.source.ref` and `externalParameters.release.ref`.                                                                            |
-| Source revision            | Full 40-character lowercase commit SHA from `externalParameters.source.revision` and the trusted producer policy.                                                          |
+| Source ref                 | Full built release tag ref from `externalParameters.source.ref` and `externalParameters.release.ref`.                                                                      |
+| Source revision            | Full 40-character lowercase terminal commit SHA resolved from the built tag and recorded in `externalParameters.source.revision`.                                          |
 | Predicate type             | `https://slsa.dev/provenance/v1`.                                                                                                                                          |
 
 When a verification tool exposes both reusable-workflow identity claims and caller-workflow/source
@@ -1328,6 +1336,25 @@ both present, the reusable workflow identity must identify the Windlass signer a
 source or caller identity must agree with the signed `externalParameters.source` fields and trusted
 producer policy. Conflicting claim spellings or missing required semantic fields fail closed before
 publish.
+
+For a `workflow_dispatch` retry with `source-ref` set, the source rows above describe the content
+that was built, not the ref from which the caller workflow was dispatched. The workflow must record
+the supplied full tag ref in `externalParameters.source.ref` and `externalParameters.release.ref`,
+and the tag's terminal resolved commit SHA in `externalParameters.source.revision`. The
+digest-verified build metadata handoff must carry those values unchanged through signing and
+publishing so no later job can substitute the invocation ref or resolve the tag again to a different
+revision.
+
+The Run Invocation URI and GitHub Actions caller-workflow identity continue to identify the actual
+workflow execution: caller repository, event, dispatch ref and revision, run ID, and run attempt.
+They must not be rewritten to the built tag. The certificate source ref and digest claims remain
+bound to the built source identity so they agree with `externalParameters.source`. Consequently, a
+dispatch retry from `refs/heads/main` with `source-ref: refs/tags/v1.2.3` makes the invariant
+explicit and verifiable: the workflow file came from the `main` dispatch context, while the built
+content came from the resolved `v1.2.3` tag commit. Verification must reject a candidate that
+substitutes either side, conflates the invocation ref with the built source ref, or cannot prove the
+terminal tag-to-commit binding. When `source-ref` is unset on a tag push, both identities naturally
+coincide and the existing signed bytes and behavior remain unchanged.
 
 A bundle signed by another repository, another workflow path, a branch ref, a pull request ref, a
 short SHA ref, a signer identity that does not match `runDetails.builder.id`, a source identity that
