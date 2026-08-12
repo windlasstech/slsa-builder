@@ -14,6 +14,7 @@ func main() {
 		command.NewNPMProfilePublishCommand(),
 		command.NewNPMProfileReportCommand(),
 		command.NewNPMProfileSignCommand(),
+		command.NewNPMProfileSourceCommand(),
 		command.NewNPMProfileSelectCommand(),
 		command.NewVerifyHandoffCommand(),
 		command.NewVerifyAttestationCommand(),
