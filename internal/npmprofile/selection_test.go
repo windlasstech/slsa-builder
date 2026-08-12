@@ -116,6 +116,21 @@ func TestWorkspaceDiscovery(t *testing.T) {
 		t.Fatalf("manager selection = %#v", result.Manager)
 	}
 
+	t.Run("pnpm settings-only root", func(t *testing.T) {
+		t.Parallel()
+		result := analyzeFixture(t, testRepositoryRoot(t), "testdata/npm/packages/pnpm-settings-only-valid")
+		assertPass(t, result)
+		if result.Package.Directory != "." || result.Package.ManagerRoot != "." {
+			t.Fatalf("standalone root package = %#v", result.Package)
+		}
+	})
+
+	t.Run("pnpm settings-only subdirectory fails closed", func(t *testing.T) {
+		t.Parallel()
+		result := analyzeFixture(t, testRepositoryRoot(t), "testdata/npm/packages/rejected/pnpm-settings-only-subdirectory/packages/undeclared")
+		assertRejected(t, result, IDPackageResolutionInvalid)
+	})
+
 	t.Run("pnpm recursive pattern", func(t *testing.T) {
 		t.Parallel()
 		root := createRepository(t, map[string]string{
@@ -343,6 +358,10 @@ func analyzeFixture(t *testing.T, repositoryRoot, packageDirectory string) Resul
 	}
 	if len(parts) > 0 && parts[0] == "rejected" {
 		fixtureRootParts = 2
+		selectedDirectory = strings.Join(parts[2:], "/")
+		if selectedDirectory == "" {
+			selectedDirectory = "."
+		}
 	}
 	if len(parts) > 0 && parts[0] == "workspace-valid" {
 		fixtureRootParts = 1
