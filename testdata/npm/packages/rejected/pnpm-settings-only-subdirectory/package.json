@@ -1,0 +1,7 @@
+{
+  "name": "@windlass-fixtures/pnpm-settings-only-root",
+  "version": "1.0.0",
+  "private": true,
+  "repository": "github:windlasstech/slsa-builder",
+  "packageManager": "pnpm@10.14.0"
+}
