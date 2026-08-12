@@ -10,6 +10,8 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
+- Added an optional tags-only `source-ref` input to the npm reusable workflow so dispatch retries
+  can use current workflow logic while building and attesting the immutable signed release tag.
 - Added Go-native keyless DSSE signing for npm provenance, with digest-verified handoffs and offline
   exact-Statement verification before bundle upload.
 - Added the public npm-only reusable workflow with trusted-publisher preflights, serialized publish
