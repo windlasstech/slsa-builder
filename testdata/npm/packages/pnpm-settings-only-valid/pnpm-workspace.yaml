@@ -1,0 +1,6 @@
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - '@windlass-fixtures/*'
+onlyBuiltDependencies:
+  - esbuild
+trustPolicy: no-downgrade

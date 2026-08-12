@@ -1,0 +1,8 @@
+{
+  "name": "@windlass-fixtures/pnpm-settings-only",
+  "version": "1.0.0",
+  "description": "Standalone pnpm package with workspace policy settings",
+  "license": "Apache-2.0",
+  "repository": "github:windlasstech/slsa-builder",
+  "packageManager": "pnpm@10.14.0"
+}
