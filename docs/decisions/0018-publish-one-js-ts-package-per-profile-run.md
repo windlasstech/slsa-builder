@@ -9,6 +9,11 @@ relations:
     target: ADR-0013
   - type: see-also
     target: ADR-0015
+  - type: amended-by
+    target: ADR-0078
+    scope:
+      "pnpm root-package selection when pnpm-workspace.yaml omits packages; one-package-per-run and
+      explicitly selected workspace-package behavior remain in force"
 ---
 
 # Publish One JS/TS Package per Profile Run

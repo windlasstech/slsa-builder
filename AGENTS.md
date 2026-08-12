@@ -29,7 +29,7 @@ the Go implementation tree has not been added yet.
 
 | Task                     | Location                                                   | Notes                                             |
 | ------------------------ | ---------------------------------------------------------- | ------------------------------------------------- |
-| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0077`.          |
+| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0078`.          |
 | Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`. |
 | Bootstrap / dev setup    | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.                  |
 | CI / workflow security   | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.                |
@@ -166,6 +166,10 @@ to the ADR whose confirmation criteria or scope produced it.
   defects, a follow-up ADR must evaluate remediation or rollback.
 - **actions/attest multi-digest subject request** (ADR 0077 consequence): file the non-blocking
   upstream request for one subject carrying multiple digest algorithms; P02 does not wait for it.
+- **pnpm settings-only package resolution** (ADR 0078 confirmation): N02 must treat an omitted
+  `pnpm-workspace.yaml#packages` member as root-only package mode, add accepted settings-only and
+  rejected wrong-type fixtures without changing diagnostic IDs, then retry the `vers-js` dogfood
+  with `workflow_dispatch` and `release_tag=v0.1.2` and confirm package resolution passes.
 
 <!-- CODEGRAPH_START -->
 

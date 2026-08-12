@@ -29,8 +29,10 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md),
   [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
-  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md), and
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
+  and
+  [0078](../decisions/0078-treat-settings-only-pnpm-workspace-yaml-as-standalone-root-package-mode.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -1518,7 +1520,10 @@ may admit a producer by caller input alone.
 The workspace fixture set must include nested workspace roots and prove that workspace patterns are
 evaluated relative to each candidate workspace root, not relative to the repository root. A fixture
 whose pattern only matches under the wrong base path must fail with
-`workspace-pattern-base-mismatch`.
+`workspace-pattern-base-mismatch`. Under ADR 0078, the accepted workspace fixtures must also include
+a settings-only `pnpm-workspace.yaml` with no `packages` member that resolves exactly the root
+`package.json` as a standalone root package and does not infer any subpackage member. A rejected
+fixture must select a subdirectory beneath that root and fail with `package-resolution-invalid`.
 
 The workspace fixture set must prove the initial limited glob semantics. Accepted fixtures must
 cover `*` matching exactly one path segment, `**` matching one or more nested segments, `**`
@@ -1528,11 +1533,12 @@ patterns that resolve to the same selected package directory. Rejected fixtures 
 `packages/*` incorrectly matching `packages/a/b`, a pattern matching a descendant or ancestor rather
 than the exact selected package directory, a selected package claimed by workspace metadata but
 missing its own `package.json`, patterns that resolve to different package directories for one
-input, malformed `pnpm-workspace.yaml`, unsupported `workspaces` shapes, negation, brace expansion,
-extended glob syntax, absolute paths, empty path segments, traversal segments, and backslash
-separators. Pattern base failures use `workspace-pattern-base-mismatch`; malformed metadata or
-non-exact package selection failures use `workspace-resolution-mismatch` unless a narrower category
-applies.
+input, a non-object `pnpm-workspace.yaml`, a present pnpm `packages` member with a non-array value
+or non-string member, unsupported `workspaces` shapes, negation, brace expansion, extended glob
+syntax, absolute paths, empty path segments, traversal segments, and backslash separators. Pattern
+base failures use `workspace-pattern-base-mismatch`; malformed metadata or non-exact package
+selection failures use `package-resolution-invalid` unless a narrower category applies. An absent
+pnpm `packages` member must not appear in the rejected corpus.
 
 The package-manager manifest fixture set must prove that top-level `packageManager` uses the
 `name@version` descriptor form while `devEngines.packageManager` uses the closed object form

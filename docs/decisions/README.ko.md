@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0077`까지입니다.
+`0078`까지입니다.
 
 | 범위      | 주제                               | 설명                                                       |
 | --------- | ---------------------------------- | ---------------------------------------------------------- |
@@ -58,6 +58,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0075      | Mutation 큐 정책                   | Mutation segment contender의 `queue: max` FIFO 대기.       |
 | 0076      | Preflight와 첫 mutation 분류       | 관측 preflight와 probe 부재 표면의 첫 mutation 분류.       |
 | 0077      | Windlass provenance 서명 어댑터    | 모든 프로필의 정확한 바이트를 위한 Go-native DSSE 서명.    |
+| 0078      | pnpm 설정 전용 루트 패키지 모드    | `packages` 누락은 잘못된 데이터가 아니라 루트 전용 모드.   |
 
 ## ADR status와 relations
 
@@ -194,6 +195,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0075 | Queue mutation segment contenders with queue: max                             | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, verification policy and fixtures                                                                |
 | 0076 | Use observation preflights and first-mutation classification                  | GitHub Release asset publisher, JS/TS npm package profile, verification policy and fixtures                                                                                         |
 | 0077 | Use a Go-native Sigstore DSSE signer for Windlass provenance signing          | Core profile contract, SLSA provenance v1, JS/TS npm package profile, JS/TS npm provenance and publish, release asset publisher, release manifest, composition, verification policy |
+| 0078 | Treat settings-only pnpm-workspace.yaml as standalone root package mode       | JS/TS npm build and pack, verification policy and fixtures                                                                                                                          |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
