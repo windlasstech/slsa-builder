@@ -218,6 +218,19 @@ alternatives have the following limitations.
   - The latest SLSA specification version is v1.2, but the provenance format supported by
     slsa-github-generator has not been updated since [v0.2](https://slsa.dev/spec/v0.2/provenance).
     Using these tools is therefore no longer recommended.
+  - slsa-github-generator does not support `workflow_dispatch`-driven releases: a dispatch run
+    cannot carry the caller-selected release target tag into provenance, so that information is not
+    recorded, and artifacts built by dispatch therefore fail `slsa-verifier --source-tag`
+    verification. The verifier documented `--source-tag` support as limited to tag and release
+    triggers. The tracking issue,
+    [slsa-github-generator#1947](https://github.com/slsa-framework/slsa-github-generator/issues/1947),
+    remained open and unresolved through the end of maintenance. This left no supported
+    fixed-pipeline retry path: a release that failed because of a pipeline defect could not be
+    re-run from a fixed caller workflow without moving or recreating the tag.
+    - See:
+      [ADR 0079](./docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
+      [ADR 0080](./docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
+      [osv-scanner#632](https://github.com/google/osv-scanner/issues/632)
 - **GitHub `actions/attest`:**
   - GitHub Artifact Attestations — the [`attest` action](https://github.com/actions/attest) — make
     it possible to build and distribute packages on the GitHub Actions platform while meeting SLSA
@@ -299,6 +312,15 @@ alternatives have the following limitations.
   spec: [Release manifest](docs/architecture/release-manifest.md),
   [GitHub Release asset publisher](docs/architecture/github-release-asset-publisher.md),
   [Verification policy and fixtures](docs/architecture/verification-policy-and-fixtures.md)).
+- **Improved flexibility in release-target tag selection and retry:** A release that fails because
+  of a pipeline defect can be retried by dispatching from the ref that carries the fixed pipeline
+  (for example `main`), while the built and attested content remains the signed release tag. The
+  optional, tags-only `source-ref` input keeps provenance anchored to the tag's commit, and the
+  dispatch ref is recorded separately as auditable invocation context — closing a gap the
+  predecessor ecosystem never shipped
+  ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
+  [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md);
+  spec: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
 
 ## Features
 
@@ -314,7 +336,15 @@ distribution targets will continue to be added over time.
 | JS/TS npm | [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md) | npm package build, SLSA v1 provenance issuance and signing, npm publish | Pre-release |
 
 - **Exactly one package per run:** Select the target package with the required `package-directory`
-  input. The public contract consists of this one required input and seven optional inputs.
+  input. The public contract consists of this one required input and eight optional inputs.
+- **Fixed-pipeline release retry:** The optional, tags-only `source-ref` input lets a caller retry a
+  failed release by dispatching from a ref that carries the fixed pipeline (for example `main`)
+  while the built and attested content remains the signed release tag — no retagging, no weakened
+  provenance claim. Provenance records the built tag identity, and the dispatch ref is recorded
+  separately as invocation context (see
+  [ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)
+  and
+  [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)).
 - **Manifest-first package manager selection:** Supports npm, pnpm, and Yarn Berry v4+ through
   Corepack, and runs build scripts only when declared (see
   [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
@@ -362,6 +392,10 @@ trust, and where the limits of its defense lie.
 - **Immutable identity binding:** Verification binds to the `builder.id` of a commit-SHA-pinned
   workflow and to an immutable source identity, not to movable tags
   ([ADR 0068](docs/decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md)).
+  Source expectations bind to the signed provenance fields, while the signing certificate's
+  platform-fixed source claims authenticate the invocation context — the two stay cryptographically
+  bound even when a dispatch retry builds a tag from a different invocation ref
+  ([ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)).
 - **Transparency log and governed trust root:** Every signature must be recorded in the Rekor
   transparency log, and the Sigstore trust root uses a pinned copy governed by the project, enabling
   offline verification

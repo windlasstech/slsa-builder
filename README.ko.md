@@ -214,6 +214,18 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   - 최신 SLSA 스펙 버전은 v1.2이나 slsa-github-generator가 지원하는 출처 증명 형식은
     [v0.2](https://slsa.dev/spec/v0.2/provenance) 이후로 업데이트되지 않습니다. 따라서 해당 도구
     사용은 더 이상 권장되지 않습니다.
+  - slsa-github-generator는 `workflow_dispatch` 기반 릴리스를 지원하지 않습니다. dispatch 실행의
+    경우 호출자가 선택한 릴리스 대상 태그를 전달할 수 없어 출처 증명에 해당 정보가 기록되지 않으며,
+    따라서 dispatch로 빌드된 아티팩트는 `slsa-verifier --source-tag` 검증이 불가능합니다. 검증기는
+    `--source-tag` 지원을 태그 및 릴리스 트리거로만 한정한다고 문서화했습니다. 관련 추적 이슈인
+    [slsa-github-generator#1947](https://github.com/slsa-framework/slsa-github-generator/issues/1947)은
+    유지관리 종료 시점까지 해결되지 않고 열린 상태였습니다. 이로 인해 지원되는 고정 파이프라인
+    재시도 경로가 존재하지 않았으며, 파이프라인 결함으로 실패한 릴리스는 태그를 이동하거나
+    재생성하지 않는 한 수정된 호출자 워크플로로 재실행할 수 없었습니다.
+    - 참고:
+      [ADR 0079](./docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
+      [ADR 0080](./docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
+      [osv-scanner#632](https://github.com/google/osv-scanner/issues/632)
 - **GitHub `actions/attest`:**
   - GitHub Artifact Attestations, 즉 [`attest` 액션](https://github.com/actions/attest)을 활용하면
     GitHub Actions 플랫폼에서 SLSA Build L3 요건을 충족하면서 패키지를 빌드 및 배포하는 것이
@@ -294,6 +306,14 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   명세: [Release manifest](docs/architecture/release-manifest.md),
   [GitHub Release asset publisher](docs/architecture/github-release-asset-publisher.md),
   [Verification policy and fixtures](docs/architecture/verification-policy-and-fixtures.md)).
+- **릴리스 대상 태그 지정 및 재시도 관련 향상된 유연성:** 파이프라인 결함으로 실패한 릴리스도 수정된
+  파이프라인이 있는 ref(예: `main`)에서 dispatch하여 재시도할 수 있으며, 빌드·증명 대상 콘텐츠는
+  서명된 릴리스 태그로 유지됩니다. 태그 전용 선택 입력 `source-ref`는 출처 증명을 태그 커밋에
+  고정하고, dispatch ref는 감사 가능한 호출 컨텍스트로 별도 기록됩니다. 전임 도구가 끝내 제공하지
+  못한 격차를 해소합니다
+  ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
+  [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md);
+  명세: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
 
 ## 기능
 
@@ -308,7 +328,14 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
 | JS/TS npm | [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md) | npm 패키지 빌드, SLSA v1 출처 증명 발급·서명, npm 게시 | 프리릴리스 |
 
 - **각 실행당 정확히 하나의 패키지:** 필수 입력 `package-directory`로 대상 패키지를 선택합니다. 공개
-  계약은 이 필수 입력 하나와 선택 입력 일곱 개로 구성됩니다.
+  계약은 이 필수 입력 하나와 선택 입력 여덟 개로 구성됩니다.
+- **고정 파이프라인 릴리스 재시도:** 태그 전용 선택 입력 `source-ref`를 사용하면, 수정된
+  파이프라인이 있는 ref(예: `main`)에서 dispatch하면서도 빌드·증명 대상 콘텐츠는 서명된 릴리스
+  태그로 유지하는 릴리스 재시도가 가능합니다. 태그 재생성도, 출처 증명 주장 약화도 필요 없습니다.
+  출처 증명은 빌드된 태그 신원을 기록하고, dispatch ref는 호출 컨텍스트로 별도 기록합니다
+  ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)와
+  [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
+  참고).
 - **매니페스트 우선 패키지 매니저 선택:** npm, pnpm, Corepack을 통한 Yarn Berry v4+를 지원하며, 빌드
   스크립트는 선언된 경우에만 실행합니다
   ([JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md) 참고).
@@ -355,6 +382,10 @@ slsa-builder의 신뢰 모델은
 - **불변 신원 바인딩:** 검증은 이동 가능한 태그가 아니라 커밋 SHA로 고정된 워크플로의 `builder.id`와
   불변 source identity에 바인딩됩니다
   ([ADR 0068](docs/decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md)).
+  소스 기대값은 서명된 출처 증명 필드에 바인딩되고, 서명 인증서의 플랫폼 고정 소스 클레임은 호출
+  컨텍스트를 인증합니다. dispatch 재시도로 다른 호출 ref에서 태그를 빌드하더라도 둘은 암호학적으로
+  묶여 있습니다
+  ([ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)).
 - **투명성 로그와 관리되는 trust root:** 모든 서명은 Rekor 투명성 로그에 기록되어야 하며, Sigstore
   trust root는 프로젝트가 관리하는 고정본을 사용해 오프라인 검증을 가능하게 합니다
   ([ADR 0069](docs/decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md)).
