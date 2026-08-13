@@ -65,6 +65,9 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     permissions: {contents: read}
+    outputs:
+      built-ref: ${{ steps.source-ref.outputs.built-ref }}
+      built-revision: ${{ steps.source-ref.outputs.built-revision }}
     steps: []
   provenance-sign:
     needs: build
@@ -86,7 +89,10 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
-      - run: go run ./cmd/slsa-builder-internal npm-profile-sign
+      - env:
+          BUILT_REF: ${{ needs.build.outputs.built-ref }}
+          BUILT_REVISION: ${{ needs.build.outputs.built-revision }}
+        run: go run ./cmd/slsa-builder-internal npm-profile-sign --built-ref "$BUILT_REF" --built-revision "$BUILT_REVISION"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
@@ -122,6 +128,9 @@ jobs:
     concurrency:
       group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
+    outputs:
+      built-ref: ${{ steps.source-ref.outputs.built-ref }}
+      built-revision: ${{ steps.source-ref.outputs.built-revision }}
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
         with: {egress-policy: audit}
@@ -168,7 +177,10 @@ jobs:
         with: {name: "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with: {name: "js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}"}
-      - run: go run ./cmd/slsa-builder-internal npm-profile-sign
+      - env:
+          BUILT_REF: ${{ needs.build.outputs.built-ref }}
+          BUILT_REVISION: ${{ needs.build.outputs.built-revision }}
+        run: go run ./cmd/slsa-builder-internal npm-profile-sign --built-ref "$BUILT_REF" --built-revision "$BUILT_REVISION"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: "js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}"

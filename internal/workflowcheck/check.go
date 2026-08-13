@@ -105,12 +105,13 @@ type concurrency struct {
 }
 
 type workflowStep struct {
-	ID               string         `yaml:"id"`
-	If               string         `yaml:"if"`
-	Uses             string         `yaml:"uses"`
-	Run              string         `yaml:"run"`
-	WorkingDirectory string         `yaml:"working-directory"`
-	With             map[string]any `yaml:"with"`
+	ID               string            `yaml:"id"`
+	If               string            `yaml:"if"`
+	Uses             string            `yaml:"uses"`
+	Run              string            `yaml:"run"`
+	WorkingDirectory string            `yaml:"working-directory"`
+	Env              map[string]string `yaml:"env"`
+	With             map[string]any    `yaml:"with"`
 }
 
 // CheckBuildJob verifies the permission, runtime, hardening, and handoff contract for job build.
@@ -195,6 +196,11 @@ func CheckProvenanceSignJob(path string) (ProvenanceSignJobResult, error) {
 	}
 	if scalar(job.Needs) != "build" {
 		return ProvenanceSignJobResult{}, fmt.Errorf("provenance-sign must depend only on build")
+	}
+	build := document.Jobs["build"]
+	if build.Outputs["built-ref"] != "${{ steps.source-ref.outputs.built-ref }}" ||
+		build.Outputs["built-revision"] != "${{ steps.source-ref.outputs.built-revision }}" {
+		return ProvenanceSignJobResult{}, fmt.Errorf("build job must expose resolver built-source outputs to provenance-sign")
 	}
 	if err := checkProvenanceSignSteps(job.Steps, &result); err != nil {
 		return ProvenanceSignJobResult{}, err
@@ -441,7 +447,9 @@ func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobRes
 			}
 		}
 		if strings.Contains(current.Run, "npm-profile-sign") {
-			hasSigner = true
+			hasSigner = containsAll(current.Run, `--built-ref "$BUILT_REF"`, `--built-revision "$BUILT_REVISION"`) &&
+				current.Env["BUILT_REF"] == "${{ needs.build.outputs.built-ref }}" &&
+				current.Env["BUILT_REVISION"] == "${{ needs.build.outputs.built-revision }}"
 		}
 	}
 	slices.Sort(downloads)
@@ -453,7 +461,7 @@ func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobRes
 		return fmt.Errorf("provenance-sign must checkout the trusted builder at job.workflow_sha without credentials")
 	}
 	if !hasSigner {
-		return fmt.Errorf("provenance-sign must invoke npm-profile-sign")
+		return fmt.Errorf("provenance-sign must invoke npm-profile-sign with resolver built-source outputs")
 	}
 	if result.BundleArtifactName != provenanceBundleArtifactName {
 		return fmt.Errorf("provenance bundle artifact name is %q, want %q", result.BundleArtifactName, provenanceBundleArtifactName)

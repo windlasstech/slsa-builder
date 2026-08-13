@@ -19,14 +19,18 @@ import (
 
 var npmProfileSignOutputs = NewOutputAllowlist("bundle-path", "bundle-sha256", "result", "statement-sha256")
 
-type npmProfileSignCommand struct{}
+type npmProfileSignCommand struct {
+	preflight func(context.Context, string, string) npmprofile.OIDCExchangeResult
+	sign      func(context.Context, signing.Request) (signing.Result, error)
+	now       func() time.Time
+}
 
 // NewNPMProfileSignCommand creates the digest-bound Go-native npm provenance signer.
 func NewNPMProfileSignCommand() Command { return npmProfileSignCommand{} }
 
 func (npmProfileSignCommand) Name() string { return "npm-profile-sign" }
 
-func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.Writer) error {
+func (command npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.Writer) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -42,6 +46,8 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 	corepackVersion := flags.String("corepack-version", "", "observed Corepack version when used")
 	registryURL := flags.String("registry-url", "", "resolved npm registry root")
 	packageName := flags.String("package-name", "", "selected package name")
+	builtRef := flags.String("built-ref", "", "resolved built release ref")
+	builtRevision := flags.String("built-revision", "", "resolved built release revision")
 	outputDirectory := flags.String("output-directory", "", "trusted provenance output directory")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
@@ -99,16 +105,29 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 	if parameters.Package.Name != *packageName || parameters.Publish.ResolvedRegistryURL != *registryURL {
 		return errors.New("signing preflight inputs differ from signed build metadata")
 	}
-	oidc, err := npmprofile.NewOIDCClient(npmprofile.OIDCClientConfig{
-		RegistryURL:         *registryURL,
-		IDTokenRequestURL:   os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL"),
-		IDTokenRequestToken: os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN"),
-		GitHubWorkflowRef:   os.Getenv("GITHUB_WORKFLOW_REF"),
-	})
-	if err != nil {
-		return err
+	normalizedBuiltRef := npmprofile.NormalizeSourceRefInput(*builtRef)
+	if (normalizedBuiltRef == "") != (*builtRevision == "") {
+		return errors.New("built-ref and built-revision must be supplied together")
 	}
-	preflight := oidc.Preflight(ctx, *packageName)
+	if normalizedBuiltRef == "" {
+		normalizedBuiltRef = os.Getenv("GITHUB_REF")
+		*builtRevision = os.Getenv("GITHUB_SHA")
+	}
+	preflight := npmprofile.OIDCExchangeResult{}
+	if command.preflight != nil {
+		preflight = command.preflight(ctx, *registryURL, *packageName)
+	} else {
+		oidc, err := npmprofile.NewOIDCClient(npmprofile.OIDCClientConfig{
+			RegistryURL:         *registryURL,
+			IDTokenRequestURL:   os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL"),
+			IDTokenRequestToken: os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN"),
+			GitHubWorkflowRef:   os.Getenv("GITHUB_WORKFLOW_REF"),
+		})
+		if err != nil {
+			return err
+		}
+		preflight = oidc.Preflight(ctx, *packageName)
+	}
 	if preflight.Report.PrimaryID != nil {
 		if err := WriteReport(out, preflight.Report); err != nil {
 			return err
@@ -125,7 +144,11 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 		}
 		observedCorepack = corepackVersion
 	}
-	now := time.Now().UTC().Truncate(time.Second).Format(time.RFC3339)
+	now := time.Now
+	if command.now != nil {
+		now = command.now
+	}
+	timestamp := now().UTC().Truncate(time.Second).Format(time.RFC3339)
 	runInvocation := githubRunInvocationURI()
 	signingInput, err := npmprofile.NewProvenanceSigningInput(npmprofile.NPMProvenanceInput{
 		BuildMetadata:         metadata,
@@ -133,10 +156,10 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 		NodeJSVersion:         *nodeVersion,
 		CorepackVersion:       observedCorepack,
 		InvocationID:          runInvocation,
-		StartedOn:             now,
-		FinishedOn:            now,
-		RuntimeReleaseRef:     os.Getenv("GITHUB_REF"),
-		PeeledReleaseRevision: os.Getenv("GITHUB_SHA"),
+		StartedOn:             timestamp,
+		FinishedOn:            timestamp,
+		RuntimeReleaseRef:     normalizedBuiltRef,
+		PeeledReleaseRevision: *builtRevision,
 	})
 	if err != nil {
 		return err
@@ -145,7 +168,11 @@ func (npmProfileSignCommand) Execute(ctx context.Context, args []string, out io.
 	if err != nil {
 		return err
 	}
-	result, err := signing.SignGitHubActions(ctx, signing.Request{Statement: signingInput.StatementJSON, Identity: identity})
+	sign := command.sign
+	if sign == nil {
+		sign = signing.SignGitHubActions
+	}
+	result, err := sign(ctx, signing.Request{Statement: signingInput.StatementJSON, Identity: identity})
 	if err != nil {
 		return err
 	}

@@ -70,6 +70,8 @@ jobs:
       group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     outputs:
+      built-ref: ${{ steps.source-ref.outputs.built-ref }}
+      built-revision: ${{ steps.source-ref.outputs.built-revision }}
       package-name: ${{ steps.build.outputs.package-name }}
       package-version: ${{ steps.build.outputs.package-version }}
       package-purl: ${{ steps.build.outputs.package-purl }}
@@ -270,6 +272,8 @@ jobs:
         id: sign
         working-directory: .slsa-builder
         env:
+          BUILT_REF: ${{ needs.build.outputs.built-ref }}
+          BUILT_REVISION: ${{ needs.build.outputs.built-revision }}
           COREPACK_VERSION: ${{ steps.toolchain.outputs.corepack-version }}
           METADATA_ARTIFACT_NAME:
             js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
@@ -289,8 +293,9 @@ jobs:
           "$METADATA_DIRECTORY" --metadata-sha256 "$METADATA_SHA256" --metadata-artifact-name
           "$METADATA_ARTIFACT_NAME" --tarball-artifact-dir "$TARBALL_DIRECTORY" --tarball-sha256
           "$TARBALL_SHA256" --tarball-artifact-name "$TARBALL_ARTIFACT_NAME" --node-version
-          "$NODE_VERSION" --corepack-version "$COREPACK_VERSION" --output-directory
-          "$OUTPUT_DIRECTORY" --registry-url "$REGISTRY_URL" --package-name "$PACKAGE_NAME"
+          "$NODE_VERSION" --corepack-version "$COREPACK_VERSION" --built-ref "$BUILT_REF"
+          --built-revision "$BUILT_REVISION" --output-directory "$OUTPUT_DIRECTORY" --registry-url
+          "$REGISTRY_URL" --package-name "$PACKAGE_NAME"
 
       - name: Upload verified provenance bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
