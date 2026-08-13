@@ -10,6 +10,8 @@ relations:
     scope: "the tag-ref caller examples; the supported caller trigger patterns remain in force"
   - type: see-also
     target: ADR-0066
+  - type: see-also
+    target: ADR-0079
   - type: amended-by
     target: ADR-0067
     scope:

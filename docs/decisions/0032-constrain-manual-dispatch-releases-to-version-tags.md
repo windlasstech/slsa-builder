@@ -4,6 +4,13 @@ nav_order: 32
 status: accepted
 date: 12026-07-05
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0079
+    scope:
+      "the invocation-ref requirement for manual dispatch (workflow_dispatch must run on a tag ref
+      and must fail when github.ref_type is not tag); the version-tag matching, no-tag-creation,
+      rerun-as-same-release, and already-published-version clauses remain in force"
 ---
 
 # Constrain Manual Dispatch Releases to Version Tags
