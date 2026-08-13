@@ -1,0 +1,8 @@
+{
+  "stage": "metadata",
+  "source-ref": "refs/tags/v1.2.4",
+  "invocation-ref": "refs/heads/main",
+  "package-version": "1.2.3",
+  "expectation": "windlass.verify.error.source-ref-invalid",
+  "rationale": "The source-ref tag name must equal v${package.json version} as proven by the packed artifact metadata."
+}

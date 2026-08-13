@@ -1,0 +1,7 @@
+{
+  "stage": "resolution",
+  "source-ref": "refs/tags/v9.9.9",
+  "invocation-ref": "refs/heads/main",
+  "expectation": "windlass.verify.error.source-ref-invalid",
+  "rationale": "A source-ref tag that does not exist in the caller repository, or does not resolve to a commit, fails closed at the pre-checkout resolution step."
+}

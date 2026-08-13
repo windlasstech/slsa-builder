@@ -1,0 +1,7 @@
+{
+  "stage": "input",
+  "source-ref": "refs/tags/v1.2.4",
+  "invocation-ref": "refs/tags/v1.2.3",
+  "expectation": "windlass.verify.error.source-ref-invalid",
+  "rationale": "On a tag-triggered run (push of a tag, or dispatch from a tag ref), a supplied source-ref that differs from the invocation tag is a conflict."
+}

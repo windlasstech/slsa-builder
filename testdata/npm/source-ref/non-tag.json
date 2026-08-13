@@ -1,0 +1,7 @@
+{
+  "stage": "input",
+  "source-ref": "refs/heads/v1.2.3",
+  "invocation-ref": "refs/heads/main",
+  "expectation": "windlass.verify.error.source-ref-invalid",
+  "rationale": "A supplied source-ref that is not a full refs/tags/ release tag ref is rejected before install, pack, signing, or publish."
+}

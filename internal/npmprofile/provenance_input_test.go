@@ -227,6 +227,45 @@ func TestReleaseRefEquality(t *testing.T) {
 	}
 }
 
+func TestNPMProvenanceInputSourceRefDispatchRetry(t *testing.T) {
+	t.Parallel()
+
+	input := validProvenanceInput(t, ManagerNPM)
+	parameters, err := DecodeExternalParameters(input.BuildMetadata.ExternalParameters)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parameters.Source.EventName = "workflow_dispatch"
+	parameters.Source.InputRef = testStringPointer("refs/tags/v1.2.3")
+	parameters.Source.InvocationRef = testStringPointer("refs/heads/main")
+	parameters.Source.InvocationRevision = testStringPointer(testAttestSHA)
+	encoded, err := EncodeExternalParameters(parameters)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.BuildMetadata.ExternalParameters = encoded
+	signing, err := NewProvenanceSigningInput(input)
+	if err != nil {
+		t.Fatalf("NewProvenanceSigningInput() error = %v", err)
+	}
+	goldenPath := filepath.Join("..", "..", "testdata", "npm", "provenance", "npm-predicate-source-ref-dispatch-retry.jcs.json")
+	if os.Getenv("UPDATE_P01_GOLDEN") == "1" {
+		if err := os.WriteFile(goldenPath, signing.PredicateJSON, 0o600); err != nil {
+			t.Fatalf("write generated golden: %v", err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("read golden predicate: %v", err)
+	}
+	if !bytes.Equal(signing.PredicateJSON, want) {
+		t.Fatalf("dispatch-retry predicate differs from JCS golden\n got: %s\nwant: %s", signing.PredicateJSON, want)
+	}
+	if err := ValidateNPMStatement(signing.Statement(), input); err != nil {
+		t.Fatalf("ValidateNPMStatement() dispatch retry error = %v", err)
+	}
+}
+
 func TestSourceInvocationRecordValidation(t *testing.T) {
 	t.Parallel()
 

@@ -1,7 +1,6 @@
 package npmprofile
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -9,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
+	"github.com/windlasstech/slsa-builder/internal/fixture"
 )
 
 const observedRepository = "https://github.com/windlasstech/slsa-builder"
@@ -305,28 +305,18 @@ func TestYarnV4(t *testing.T) {
 	}
 }
 
-type rejectedFixture struct {
-	Name              string  `json:"name"`
-	Type              string  `json:"type"`
-	Surface           string  `json:"surface"`
-	Artifact          string  `json:"artifact"`
-	ExpectedPrimaryID *string `json:"expected-primary-id"`
-}
-
 func loadRejectedFixtures(t *testing.T) []struct {
 	Name              string
 	Artifact          string
 	ExpectedPrimaryID string
 } {
 	t.Helper()
-	encoded, err := os.ReadFile(filepath.Join(testRepositoryRoot(t), "testdata", "fixtures", "index.json"))
+	index, err := fixture.Load(filepath.Join(testRepositoryRoot(t), "testdata", "fixtures", "index.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var index struct {
-		Fixtures []rejectedFixture `json:"fixtures"`
-	}
-	if err := json.Unmarshal(encoded, &index); err != nil {
+	selected, err := fixture.Select(index, "npm", "build-pack")
+	if err != nil {
 		t.Fatal(err)
 	}
 	fixtures := make([]struct {
@@ -334,15 +324,15 @@ func loadRejectedFixtures(t *testing.T) []struct {
 		Artifact          string
 		ExpectedPrimaryID string
 	}, 0)
-	for _, fixture := range index.Fixtures {
-		if fixture.Type != "rejected" || fixture.Surface != "npm" || fixture.ExpectedPrimaryID == nil {
+	for _, manifest := range selected.Fixtures {
+		if manifest.Type != "rejected" || manifest.ExpectedPrimaryID == nil {
 			continue
 		}
 		fixtures = append(fixtures, struct {
 			Name              string
 			Artifact          string
 			ExpectedPrimaryID string
-		}{fixture.Name, fixture.Artifact, *fixture.ExpectedPrimaryID})
+		}{manifest.Name, manifest.Artifact, *manifest.ExpectedPrimaryID})
 	}
 	return fixtures
 }
