@@ -8,7 +8,8 @@ This document defines the machine-verifiable identity of `slsa-builder` workflow
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0049](../decisions/0049-separate-artifact-production-from-github-release-asset-publication.md),
   [0053](../decisions/0053-use-three-job-release-manifest-signing-boundary.md),
-  [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md)
+  [0068](../decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md),
+  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [Release manifest](release-manifest.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md)
@@ -103,6 +104,13 @@ The same token carries the source repository's numeric `repository_id` and `repo
 claims. ADR 0068 verification uses these platform-signed values as the authoritative immutable
 source identifiers; repository and owner names are display-only. A missing, malformed, or mismatched
 numeric identifier is an identity verification failure.
+
+The token's `ref` and `sha` claims — and the certificate Source Repository Ref and Digest extensions
+they map to — describe the invocation context: the ref the run was dispatched on and its head
+commit. Under ADR 0080 they are verified against the signed invocation record in the provenance
+predicate, not against the built release identity; the built release tag and its resolved commit are
+bound from the signed `externalParameters.source.*` fields. The numeric repository and owner
+identifiers above are context-independent and unaffected by that split.
 
 > [!NOTE]  
 > The 12026-08-02 live spike confirmed this behavior. Runs `30745570800` (SHA pin) and `30745572730`
