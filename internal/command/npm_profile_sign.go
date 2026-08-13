@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/windlasstech/slsa-builder/internal/attestation"
+	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/handoff"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
@@ -162,7 +163,10 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 		PeeledReleaseRevision: *builtRevision,
 	})
 	if err != nil {
-		return err
+		if reportErr := writeNPMProfileSignPolicyError(out, err); reportErr != nil {
+			return reportErr
+		}
+		return ErrVerificationFailure
 	}
 	identity, err := githubSigningIdentity(runInvocation)
 	if err != nil {
@@ -192,6 +196,22 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 		return err
 	}
 	return writeDiagnostics(out, &runInvocation, nil)
+}
+
+func writeNPMProfileSignPolicyError(out io.Writer, err error) error {
+	var identified interface{ DiagnosticID() string }
+	if !errors.As(err, &identified) {
+		return err
+	}
+	entry, reportErr := diagnostic.New(identified.DiagnosticID(), "provenance.signing-input", err.Error())
+	if reportErr != nil {
+		return reportErr
+	}
+	report, reportErr := diagnostic.Build(nil, []diagnostic.Diagnostic{entry}, nil)
+	if reportErr != nil {
+		return reportErr
+	}
+	return WriteReport(out, report)
 }
 
 func githubRunInvocationURI() string {

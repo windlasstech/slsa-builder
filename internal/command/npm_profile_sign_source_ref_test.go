@@ -125,6 +125,7 @@ func TestNPMProfileSignCommandRejectsMismatchedBuiltIdentity(t *testing.T) {
 			return signing.Result{}, nil
 		},
 	}
+	var output bytes.Buffer
 	err := command.Execute(context.Background(), signSourceRefArguments(
 		metadataDirectory,
 		tarballDirectory,
@@ -134,14 +135,44 @@ func TestNPMProfileSignCommandRejectsMismatchedBuiltIdentity(t *testing.T) {
 		digest.SumSHA256(tarball).String(),
 		signBuiltRef,
 		signOtherBuiltRevision,
-	), &bytes.Buffer{})
-	if err == nil {
-		t.Fatal("Execute() accepted a built revision that differs from verified build metadata")
+	), &output)
+	if !errors.Is(err, ErrVerificationFailure) {
+		t.Fatalf("Execute() error = %v, want ErrVerificationFailure", err)
 	}
-	var identified interface{ DiagnosticID() string }
-	if !errors.As(err, &identified) || identified.DiagnosticID() != npmprofile.IDReleaseRefMismatch {
-		t.Fatalf("Execute() error = %v, want %s", err, npmprofile.IDReleaseRefMismatch)
+	assertPrimaryDiagnostic(t, output.Bytes(), ExitCodeVerificationFailure, ExitCodeVerificationFailure, npmprofile.IDReleaseRefMismatch)
+}
+
+func TestNPMProfileSignDispatcherClassifiesMismatchedBuiltIdentityAsPolicyFailure(t *testing.T) {
+	metadata, tarball := signSourceRefMetadata(t)
+	metadataBytes := mustMarshalSignJSON(t, metadata)
+	metadataDirectory := writeSignHandoff(t, "build-metadata.json", metadataBytes)
+	tarballDirectory := writeSignHandoff(t, signTarballName, tarball)
+	githubOutput := filepath.Join(t.TempDir(), "github-output")
+	setSignGitHubEnvironment(t, signInvocationRef, signInvocationRevision, githubOutput)
+
+	command := npmProfileSignCommand{
+		preflight: func(context.Context, string, string) npmprofile.OIDCExchangeResult {
+			return npmprofile.OIDCExchangeResult{WorkflowFilename: "release.yml"}
+		},
+		sign: func(context.Context, signing.Request) (signing.Result, error) {
+			t.Fatal("signer called with mismatched built identity")
+			return signing.Result{}, nil
+		},
 	}
+	arguments := append([]string{command.Name()}, signSourceRefArguments(
+		metadataDirectory,
+		tarballDirectory,
+		t.TempDir(),
+		githubOutput,
+		digest.SumSHA256(metadataBytes).String(),
+		digest.SumSHA256(tarball).String(),
+		signBuiltRef,
+		signOtherBuiltRevision,
+	)...)
+
+	var output bytes.Buffer
+	result := NewDispatcher(command).Dispatch(context.Background(), arguments, &output)
+	assertPrimaryDiagnostic(t, output.Bytes(), result.ExitCode, ExitCodeVerificationFailure, npmprofile.IDReleaseRefMismatch)
 }
 
 func TestNPMProfileSignCommandFallsBackToSingleInvocationIdentity(t *testing.T) {
