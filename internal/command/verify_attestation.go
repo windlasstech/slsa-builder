@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -69,15 +70,20 @@ func (verifyAttestationCommand) Execute(ctx context.Context, args []string, out 
 		}
 		return emitFailure(out, "windlass.verify.error.policy-schema-invalid", "identity", "identity expectation violates the closed schema", ErrVerificationFailure)
 	}
-	if err := bindIdentityPolicy(identityExpectation, explicitPolicy); err != nil {
-		return emitFailure(out, "windlass.verify.error.policy-schema-invalid", "identity", err.Error(), ErrVerificationFailure)
-	}
 	expectedStatement, err := readRegularFile(*statementPath)
 	if err != nil {
 		return emitFailure(out, diagnostic.IDInputUnavailable, "statement", "expected Statement is unavailable", ErrInvocationFailure)
 	}
-	if _, err := provenance.DecodeStatement(expectedStatement); err != nil {
+	statement, err := provenance.DecodeStatement(expectedStatement)
+	if err != nil {
 		return emitFailure(out, "windlass.verify.error.statement-assembly-mismatch", "statement", "expected Statement does not satisfy the closed schema", ErrVerificationFailure)
+	}
+	if err := bindIdentityPolicy(identityExpectation, explicitPolicy, statement); err != nil {
+		id := diagnosticIDOf(err)
+		if id == "" {
+			id = "windlass.verify.error.policy-schema-invalid"
+		}
+		return emitFailure(out, id, "identity", err.Error(), ErrVerificationFailure)
 	}
 
 	request := attestation.Request{
@@ -119,11 +125,40 @@ func (verifyAttestationCommand) Execute(ctx context.Context, args []string, out 
 
 var attestationOutputAllowlist = NewOutputAllowlist("bundle-sha256", "result", "run-invocation", "statement-sha256")
 
-func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit policy.ExplicitPolicy) error {
+// bindIdentityPolicy enforces the ADR 0080 binding model: the certificate identity expectation
+// binds the signed invocation record (invocation_ref/invocation_revision when present, otherwise
+// the built source fields), while the verifier policy source expectations bind the signed built
+// source fields.
+func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit policy.ExplicitPolicy, statement provenance.Statement) error {
+	source, err := decodeStatementSource(statement)
+	if err != nil {
+		return err
+	}
+	invocationRef, invocationRevision := source.Ref, source.Revision
+	if source.InvocationRef != nil {
+		invocationRef = *source.InvocationRef
+	}
+	if source.InvocationRevision != nil {
+		invocationRevision = *source.InvocationRevision
+	}
+	if identity.SourceDigest != invocationRevision {
+		return &identityBindingError{id: "windlass.verify.error.source-digest-mismatch", message: "identity expectation source digest differs from the signed invocation record"}
+	}
+	if identity.SourceRef != invocationRef {
+		return &identityBindingError{id: "windlass.verify.error.source-ref-mismatch", message: "identity expectation source ref differs from the signed invocation record"}
+	}
+	if explicit.Source.RepositoryURI != source.Repository {
+		return &identityBindingError{id: "windlass.verify.error.source-identity-mismatch", message: "verifier policy source repository differs from the signed built source"}
+	}
+	if explicit.Source.Digest != source.Revision {
+		return &identityBindingError{id: "windlass.verify.error.source-digest-mismatch", message: "verifier policy source digest differs from the signed built source revision"}
+	}
+	if explicit.Source.Ref != source.Ref {
+		return &identityBindingError{id: "windlass.verify.error.source-ref-mismatch", message: "verifier policy source ref differs from the signed built source ref"}
+	}
 	if identity.SourceRepositoryURI != explicit.Source.RepositoryURI ||
 		identity.SourceRepositoryID != explicit.Source.RepositoryID ||
 		identity.SourceRepositoryOwnerID != explicit.Source.RepositoryOwnerID ||
-		identity.SourceDigest != explicit.Source.Digest || identity.SourceRef != explicit.Source.Ref ||
 		identity.WorkflowSHA != explicit.Producer.WorkflowSHA ||
 		identity.RunnerEnvironment != explicit.Producer.RunnerEnvironment {
 		return errors.New("identity expectation conflicts with verifier policy")
@@ -133,6 +168,36 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 		return errors.New("signer URI conflicts with verifier policy workflow path")
 	}
 	return nil
+}
+
+type identityBindingError struct {
+	id      string
+	message string
+}
+
+func (bindingError *identityBindingError) Error() string { return bindingError.message }
+
+func (bindingError *identityBindingError) DiagnosticID() string { return bindingError.id }
+
+type statementSourceFields struct {
+	Repository         string  `json:"repository"`
+	Ref                string  `json:"ref"`
+	Revision           string  `json:"revision"`
+	InvocationRef      *string `json:"invocation_ref"`
+	InvocationRevision *string `json:"invocation_revision"`
+}
+
+func decodeStatementSource(statement provenance.Statement) (statementSourceFields, error) {
+	var parameters struct {
+		Source statementSourceFields `json:"source"`
+	}
+	if err := json.Unmarshal(statement.Predicate.BuildDefinition.ExternalParameters, &parameters); err != nil {
+		return statementSourceFields{}, fmt.Errorf("decode statement source identity: %w", err)
+	}
+	if parameters.Source.Repository == "" || parameters.Source.Ref == "" || parameters.Source.Revision == "" {
+		return statementSourceFields{}, errors.New("statement source identity is incomplete")
+	}
+	return parameters.Source, nil
 }
 
 func emitTypedVerificationFailure(out io.Writer, err error) error {

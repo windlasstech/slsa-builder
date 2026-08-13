@@ -69,9 +69,21 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 		return err
 	}
 	identityExpectation := verifier.config.Identity
-	if parameters.Source.Repository != identityExpectation.SourceRepositoryURI ||
-		parameters.Source.Revision != identityExpectation.SourceDigest || parameters.Source.Ref != identityExpectation.SourceRef {
+	if parameters.Source.Repository != identityExpectation.SourceRepositoryURI {
 		return errors.New("signed npm source identity differs from verified Fulcio identity")
+	}
+	invocationRef, invocationRevision := parameters.Source.Ref, parameters.Source.Revision
+	if parameters.Source.InvocationRef != nil {
+		invocationRef = *parameters.Source.InvocationRef
+	}
+	if parameters.Source.InvocationRevision != nil {
+		invocationRevision = *parameters.Source.InvocationRevision
+	}
+	if invocationRevision != identityExpectation.SourceDigest {
+		return npmValidationError("windlass.verify.error.source-digest-mismatch", "externalParameters.source.invocation_revision", "signed invocation record revision differs from the verified Fulcio source digest")
+	}
+	if invocationRef != identityExpectation.SourceRef {
+		return npmValidationError("windlass.verify.error.source-ref-mismatch", "externalParameters.source.invocation_ref", "signed invocation record ref differs from the verified Fulcio source ref")
 	}
 	builderID := statement.Predicate.RunDetails.Builder.ID
 	builderPath, builderSHA, builderFound := strings.Cut(builderID, "@")

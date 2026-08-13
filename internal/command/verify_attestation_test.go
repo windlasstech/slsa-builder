@@ -3,9 +3,14 @@ package command
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/windlasstech/slsa-builder/internal/attestation"
+	"github.com/windlasstech/slsa-builder/internal/policy"
+	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
 
 func TestVerifyAttestationRejectsMalformedTypedInputs(t *testing.T) {
@@ -42,6 +47,93 @@ type attestationInputPaths struct {
 	policy    string
 	identity  string
 	statement string
+}
+
+func TestBindIdentityPolicySourceRefRebinding(t *testing.T) {
+	t.Parallel()
+
+	const (
+		builtSHA      = "0123456789abcdef0123456789abcdef01234567"
+		invocationSHA = "89abcdef0123456789abcdef0123456789abcdef"
+	)
+	baseIdentity := attestation.IdentityExpectation{
+		Issuer:                  "https://token.actions.githubusercontent.com",
+		SignerURI:               "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@" + builtSHA,
+		WorkflowSHA:             builtSHA,
+		SourceRepositoryURI:     "https://github.com/example/project",
+		SourceRepositoryID:      "1",
+		SourceRepositoryOwnerID: "2",
+		SourceDigest:            builtSHA,
+		SourceRef:               "refs/tags/v1.2.3",
+		RunnerEnvironment:       "github-hosted",
+	}
+	basePolicy := policy.ExplicitPolicy{
+		SchemaVersion: "1",
+		Source: policy.SourcePolicy{
+			RepositoryURI: "https://github.com/example/project", RepositoryID: "1", RepositoryOwnerID: "2",
+			Digest: builtSHA, Ref: "refs/tags/v1.2.3",
+		},
+		Producer: policy.ProducerPolicy{
+			WorkflowPath: ".github/workflows/js-ts-npm-package-slsa3.yml", WorkflowSHA: builtSHA, RunnerEnvironment: "github-hosted",
+		},
+	}
+	statementWithSource := func(sourceJSON string) provenance.Statement {
+		return provenance.Statement{Predicate: provenance.Predicate{BuildDefinition: provenance.BuildDefinition{
+			ExternalParameters: json.RawMessage(`{"source":` + sourceJSON + `}`),
+		}}}
+	}
+	singleIdentity := statementWithSource(`{"repository":"https://github.com/example/project","ref":"refs/tags/v1.2.3","revision":"` + builtSHA + `"}`)
+	dispatchRetry := statementWithSource(`{"repository":"https://github.com/example/project","ref":"refs/tags/v1.2.3","revision":"` + builtSHA + `","input_ref":"refs/tags/v1.2.3","invocation_ref":"refs/heads/main","invocation_revision":"` + invocationSHA + `"}`)
+
+	t.Run("single identity", func(t *testing.T) {
+		if err := bindIdentityPolicy(baseIdentity, basePolicy, singleIdentity); err != nil {
+			t.Fatalf("bindIdentityPolicy() error = %v", err)
+		}
+	})
+
+	t.Run("dispatch retry", func(t *testing.T) {
+		identity := baseIdentity
+		identity.SourceRef = "refs/heads/main"
+		identity.SourceDigest = invocationSHA
+		if err := bindIdentityPolicy(identity, basePolicy, dispatchRetry); err != nil {
+			t.Fatalf("bindIdentityPolicy() error = %v", err)
+		}
+	})
+
+	t.Run("identity bound to built source is rejected", func(t *testing.T) {
+		err := bindIdentityPolicy(baseIdentity, basePolicy, dispatchRetry)
+		assertBindingDiagnostic(t, err, "windlass.verify.error.source-digest-mismatch")
+	})
+
+	t.Run("policy bound to invocation context is rejected", func(t *testing.T) {
+		identity := baseIdentity
+		identity.SourceRef = "refs/heads/main"
+		identity.SourceDigest = invocationSHA
+		explicit := basePolicy
+		explicit.Source.Ref = "refs/heads/main"
+		explicit.Source.Digest = invocationSHA
+		err := bindIdentityPolicy(identity, explicit, dispatchRetry)
+		assertBindingDiagnostic(t, err, "windlass.verify.error.source-digest-mismatch")
+	})
+
+	t.Run("policy repository differs from signed source", func(t *testing.T) {
+		explicit := basePolicy
+		explicit.Source.RepositoryURI = "https://github.com/example/other"
+		identity := baseIdentity
+		identity.SourceRepositoryURI = "https://github.com/example/other"
+		err := bindIdentityPolicy(identity, explicit, singleIdentity)
+		assertBindingDiagnostic(t, err, "windlass.verify.error.source-identity-mismatch")
+	})
+}
+
+func assertBindingDiagnostic(t *testing.T, err error, wantID string) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("bindIdentityPolicy() succeeded, want diagnostic %q", wantID)
+	}
+	if got := diagnosticIDOf(err); got != wantID {
+		t.Fatalf("bindIdentityPolicy() diagnostic = %q, want %q (error = %v)", got, wantID, err)
+	}
 }
 
 func (paths attestationInputPaths) args() []string {
