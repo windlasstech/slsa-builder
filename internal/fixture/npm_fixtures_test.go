@@ -47,6 +47,8 @@ func TestNPMFixturesNeverPublish(t *testing.T) {
 		"npm-source-ref-input-ref-mismatch-rejected":                "windlass.verify.error.source-ref-invalid",
 		"npm-source-ref-invocation-without-input-ref-rejected":      "windlass.verify.error.unexpected-external-parameters",
 		"npm-source-ref-invocation-missing-with-input-ref-rejected": "windlass.verify.error.unexpected-external-parameters",
+		"npm-source-ref-certificate-invocation-mismatch-rejected":   "windlass.verify.error.source-ref-mismatch",
+		"npm-source-ref-built-policy-mismatch-rejected":             "windlass.verify.error.source-digest-mismatch",
 	}
 
 	for _, manifest := range index.Fixtures {

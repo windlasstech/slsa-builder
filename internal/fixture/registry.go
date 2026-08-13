@@ -35,6 +35,8 @@ var failureCategoryRegistry = map[string]struct{}{
 	"package-resolution-invalid":       {},
 	"policy-schema-invalid":            {},
 	"required-lockfile-missing":        {},
+	"source-digest-mismatch":           {},
+	"source-ref-mismatch":              {},
 	"source-ref-invalid":               {},
 	"unexpected-external-parameters":   {},
 	"yarn-selection-invalid":           {},

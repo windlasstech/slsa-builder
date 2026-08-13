@@ -389,6 +389,32 @@
       "expected-primary-id": "windlass.verify.error.unexpected-external-parameters",
       "expected-secondary-ids": [],
       "covered-requirement": "ADR-0080.invocation-record-binding"
+    },
+    {
+      "name": "npm-source-ref-certificate-invocation-mismatch-rejected",
+      "type": "rejected",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/rejected/npm-source-ref-certificate-invocation-mismatch-rejected/package.json",
+      "provenance": "testdata/npm/packages/rejected/npm-source-ref-certificate-invocation-mismatch-rejected/fixture.json",
+      "release-manifest": null,
+      "expected-result": "fail",
+      "expected-failure-category": "source-ref-mismatch",
+      "expected-primary-id": "windlass.verify.error.source-ref-mismatch",
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0080.invocation-record-binding"
+    },
+    {
+      "name": "npm-source-ref-built-policy-mismatch-rejected",
+      "type": "rejected",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/rejected/npm-source-ref-built-policy-mismatch-rejected/package.json",
+      "provenance": "testdata/npm/packages/rejected/npm-source-ref-built-policy-mismatch-rejected/fixture.json",
+      "release-manifest": null,
+      "expected-result": "fail",
+      "expected-failure-category": "source-digest-mismatch",
+      "expected-primary-id": "windlass.verify.error.source-digest-mismatch",
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0080.invocation-record-binding"
     }
   ]
 }
