@@ -1,6 +1,7 @@
 package npmprofile
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -15,16 +17,25 @@ const tagRefPrefix = "refs/tags/"
 
 const sourceRefResolutionTimeout = 30 * time.Second
 
-// NormalizeSourceRefInput trims the ASCII whitespace accepted around source-ref input.
+const sourceRefGitOutputLimit = 1 << 20
+
+// NormalizeSourceRefInput maps ASCII-whitespace-only input to omission without canonicalizing a
+// supplied ref spelling.
 func NormalizeSourceRefInput(sourceRef string) string {
-	return strings.Trim(sourceRef, " \t\n\r\v\f")
+	if strings.Trim(sourceRef, " \t\n\r\v\f") == "" {
+		return ""
+	}
+	return sourceRef
 }
 
 // ValidateSourceRefInput validates the tags-only caller-selected build source intent.
 func ValidateSourceRefInput(sourceRef, invocationRef, packageVersion string) error {
-	sourceRef = NormalizeSourceRefInput(sourceRef)
-	if sourceRef == "" {
+	trimmedSourceRef := strings.Trim(sourceRef, " \t\n\r\v\f")
+	if trimmedSourceRef == "" {
 		return nil
+	}
+	if sourceRef != trimmedSourceRef {
+		return sourceRefError("source-ref must use its exact canonical spelling without surrounding whitespace")
 	}
 	if !strings.HasPrefix(sourceRef, tagRefPrefix) || !validTagName(strings.TrimPrefix(sourceRef, tagRefPrefix)) {
 		return sourceRefError("source-ref must be a full, well-formed tag ref")
@@ -84,11 +95,42 @@ func executeSourceRefGit(ctx context.Context, directory string, arguments ...str
 	command := exec.CommandContext(ctx, "git", commandArguments...)
 	command.Dir = filepath.Clean(directory)
 	command.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
-	output, err := command.CombinedOutput()
+	output := newBoundedOutput(sourceRefGitOutputLimit)
+	command.Stdout = output
+	command.Stderr = output
+	err := command.Run()
 	if err != nil {
-		return "", errors.Join(err, fmt.Errorf("git operation failed: %s", strings.TrimSpace(string(output))))
+		return "", errors.Join(err, fmt.Errorf("git operation failed: %s", strings.TrimSpace(output.String())))
 	}
-	return string(output), nil
+	return output.String(), nil
+}
+
+type boundedOutput struct {
+	mu        sync.Mutex
+	buffer    bytes.Buffer
+	remaining int
+}
+
+func newBoundedOutput(limit int) *boundedOutput {
+	return &boundedOutput{remaining: limit}
+}
+
+func (output *boundedOutput) Write(data []byte) (int, error) {
+	output.mu.Lock()
+	defer output.mu.Unlock()
+	written := len(data)
+	if output.remaining > 0 {
+		kept := min(len(data), output.remaining)
+		_, _ = output.buffer.Write(data[:kept])
+		output.remaining -= kept
+	}
+	return written, nil
+}
+
+func (output *boundedOutput) String() string {
+	output.mu.Lock()
+	defer output.mu.Unlock()
+	return output.buffer.String()
 }
 
 func validTagName(name string) bool {

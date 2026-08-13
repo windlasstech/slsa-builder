@@ -12,7 +12,7 @@ func TestNormalizeSourceRefInput(t *testing.T) {
 	}{
 		{name: "omitted", input: "", want: ""},
 		{name: "ASCII whitespace only", input: " \t\n\r\v\f", want: ""},
-		{name: "trimmed tag", input: " \trefs/tags/v1.2.3\r\n", want: "refs/tags/v1.2.3"},
+		{name: "padded tag remains noncanonical", input: " \trefs/tags/v1.2.3\r\n", want: " \trefs/tags/v1.2.3\r\n"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -34,7 +34,11 @@ func TestValidateSourceRefInput(t *testing.T) {
 		wantID        string
 	}{
 		{name: "omitted tag run", invocationRef: "refs/tags/v1.2.3", version: "1.2.3"},
+		{name: "ASCII whitespace only", sourceRef: " \t\n\r\v\f", invocationRef: "refs/tags/v1.2.3", version: "1.2.3"},
 		{name: "dispatch retry", sourceRef: "refs/tags/v1.2.3", invocationRef: "refs/heads/main", version: "1.2.3"},
+		{name: "leading space", sourceRef: " refs/tags/v1.2.3", invocationRef: "refs/heads/main", version: "1.2.3", wantID: IDSourceRefInvalid},
+		{name: "trailing space", sourceRef: "refs/tags/v1.2.3 ", invocationRef: "refs/heads/main", version: "1.2.3", wantID: IDSourceRefInvalid},
+		{name: "tab padded", sourceRef: "\trefs/tags/v1.2.3\t", invocationRef: "refs/heads/main", version: "1.2.3", wantID: IDSourceRefInvalid},
 		{name: "branch", sourceRef: "refs/heads/main", invocationRef: "refs/heads/main", version: "1.2.3", wantID: IDSourceRefInvalid},
 		{name: "short tag", sourceRef: "v1.2.3", invocationRef: "refs/heads/main", version: "1.2.3", wantID: IDSourceRefInvalid},
 		{name: "commit SHA", sourceRef: "0123456789abcdef0123456789abcdef01234567", invocationRef: "refs/heads/main", version: "1.2.3", wantID: IDSourceRefInvalid},

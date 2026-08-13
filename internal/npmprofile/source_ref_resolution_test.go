@@ -23,6 +23,7 @@ func TestResolveSourceRefTag(t *testing.T) {
 	}{
 		{name: "lightweight tag", remote: remote, sourceRef: "refs/tags/v1.2.3", want: commit},
 		{name: "annotated tag", remote: remote, sourceRef: "refs/tags/v1.2.4", want: commit},
+		{name: "padded tag", remote: remote, sourceRef: " refs/tags/v1.2.3", wantError: true},
 		{name: "missing tag", remote: remote, sourceRef: "refs/tags/v9.9.9", wantError: true},
 		{name: "unreachable remote", remote: filepath.Join(t.TempDir(), "missing.git"), sourceRef: "refs/tags/v1.2.3", wantError: true},
 		{name: "non-commit tag", remote: remote, sourceRef: "refs/tags/blob", wantError: true},
