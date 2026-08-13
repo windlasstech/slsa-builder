@@ -63,7 +63,7 @@ func buildRegistry() map[string]Definition {
 
 	set(definitions, PhasePreMutation, ExitCodePolicyFailure, false, 7,
 		"release-target-immutable", "handoff-schema-mismatch", "publisher-remote-digest-unproven",
-		"npm-oidc-exchange-indeterminate", "oidc-capability-unavailable")
+		"npm-oidc-exchange-indeterminate", "oidc-capability-unavailable", "source-ref-invalid")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, false, 7, "mutation-permission-denied")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, true, 7,
 		"publisher-indeterminate-primary-upload", "mutation-queue-overflow",
@@ -235,6 +235,7 @@ signer-workflow-sha-mismatch
 source-digest-mismatch
 source-identity-mismatch
 source-numeric-id-mismatch
+source-ref-invalid
 source-ref-mismatch
 source-repository-canonicalization-error
 stale-pinned-trust-root
