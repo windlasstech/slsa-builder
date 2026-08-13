@@ -13,7 +13,9 @@ var requirementRegistry = map[string]string{
 	"ADR-0018.single-workspace-package":                             "one explicitly selected workspace package per run",
 	"ADR-0019.package-publish-metadata":                             "package identity and private publish intent validation",
 	"ADR-0078.pnpm-settings-only-root-package":                      "settings-only pnpm metadata selects only the standalone root package",
+	"ADR-0079.source-ref-dispatch-retry":                            "Tags-only source-ref selects the built release tag while preserving invocation context.",
 	"ADR-0079.source-ref-rejections":                                "invalid, unresolvable, version-mismatched, or invocation-conflicting source-ref values fail closed",
+	"ADR-0080.invocation-record-binding":                            "Certificate source claims bind the signed invocation record while policy binds signed built-source fields.",
 	"ADR-0056.stale-lockfile-diagnostics":                           "non-selected lockfiles are recorded stale diagnostics",
 	"ADR-0056.stale-lockfile-rejections":                            "ambiguous and missing selected lockfiles are rejected",
 	"ADR-0063.yarn-v4-selection":                                    "Yarn requires top-level exact Berry v4 packageManager metadata",
@@ -34,6 +36,7 @@ var failureCategoryRegistry = map[string]struct{}{
 	"policy-schema-invalid":            {},
 	"required-lockfile-missing":        {},
 	"source-ref-invalid":               {},
+	"unexpected-external-parameters":   {},
 	"yarn-selection-invalid":           {},
 }
 
@@ -51,7 +54,9 @@ var fixturePhaseRequirements = map[string]map[string]struct{}{
 	},
 	"provenance-inputs": {
 		"ARCH-js-ts-npm-provenance-publish.signing-inputs": {},
+		"ADR-0079.source-ref-dispatch-retry":               {},
 		"ADR-0079.source-ref-rejections":                   {},
+		"ADR-0080.invocation-record-binding":               {},
 	},
 }
 

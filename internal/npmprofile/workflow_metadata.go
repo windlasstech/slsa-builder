@@ -26,6 +26,9 @@ type WorkflowBuildMetadataConfig struct {
 	RefType                string
 	Ref                    string
 	Revision               string
+	SourceRefInput         string
+	InvocationRef          string
+	InvocationRevision     string
 	WorkflowSHA            string
 	CallerWorkflowFilename string
 	RegistryState          RegistryPreflightState
@@ -33,7 +36,11 @@ type WorkflowBuildMetadataConfig struct {
 
 // FinalizeWorkflowBuildMetadata creates the complete closed metadata uploaded by the build job.
 func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, config WorkflowBuildMetadataConfig) (BuildMetadata, error) {
-	if err := validateWorkflowRuntime(selection, build, config); err != nil {
+	source, err := workflowSourceParameters(selection, config)
+	if err != nil {
+		return BuildMetadata{}, err
+	}
+	if err := validateWorkflowRuntime(selection, build, config, source); err != nil {
 		return BuildMetadata{}, err
 	}
 	publish, err := ResolveWorkflowPublishIntent(selection, config.RegistryURLInput, config.DistTagInput, config.AccessInput)
@@ -51,7 +58,7 @@ func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, conf
 		return BuildMetadata{}, err
 	}
 	parameters := ExternalParameters{
-		Source:   SourceParameters{Repository: selection.Package.Repository, Ref: config.Ref, Revision: config.Revision, EventName: config.EventName, RefType: config.RefType},
+		Source:   source,
 		Workflow: WorkflowParameters{Path: NPMWorkflowPath, SHA: config.WorkflowSHA, BuilderID: builderID},
 		Runtime:  RuntimeParameters{Runner: "ubuntu-24.04", NodeVersion: strings.TrimPrefix(build.Toolchain.NodeVersion, "v"), NPMVersion: build.Toolchain.NPMVersion},
 		Package: PackageParameters{
@@ -62,7 +69,7 @@ func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, conf
 		},
 		PackageManager: packageManagerParameters(selection, build),
 		Publish:        publish,
-		Release:        ReleaseParameters{Ref: config.Ref, VersionTag: strings.TrimPrefix(config.Ref, "refs/tags/")},
+		Release:        ReleaseParameters{Ref: source.Ref, VersionTag: strings.TrimPrefix(source.Ref, "refs/tags/")},
 		Distribution:   DistributionParameters{},
 		Caller:         CallerParameters{WorkflowFilename: config.CallerWorkflowFilename},
 		Build:          BuildParameters{ScriptPresent: build.BuildScript.Present, ScriptResult: build.BuildScript.Result},
@@ -136,17 +143,46 @@ func ResolvePublishIntent(registryInput, distTagInput, accessInput string, sourc
 	return result, nil
 }
 
-func validateWorkflowRuntime(selection Result, build BuildPackResult, config WorkflowBuildMetadataConfig) error {
+func workflowSourceParameters(selection Result, config WorkflowBuildMetadataConfig) (SourceParameters, error) {
+	if err := ValidateSourceRefInput(config.SourceRefInput, config.InvocationRef, selection.Package.Version); err != nil {
+		return SourceParameters{}, err
+	}
+	source := SourceParameters{
+		Repository: selection.Package.Repository,
+		Ref:        config.Ref,
+		Revision:   config.Revision,
+		EventName:  config.EventName,
+		RefType:    config.RefType,
+	}
+	if config.SourceRefInput == "" {
+		return source, nil
+	}
+	if config.InvocationRef == "" || config.InvocationRevision == "" {
+		return SourceParameters{}, npmValidationError(IDUnexpectedExternalParameters, "source-ref", "source-ref requires the complete invocation ref and revision")
+	}
+	if config.Ref != config.SourceRefInput {
+		return SourceParameters{}, sourceRefError("resolved built ref differs from source-ref input")
+	}
+	source.Ref = config.SourceRefInput
+	source.Revision = config.Revision
+	source.RefType = "tag"
+	source.InputRef = optionalString(config.SourceRefInput)
+	source.InvocationRef = optionalString(config.InvocationRef)
+	source.InvocationRevision = optionalString(config.InvocationRevision)
+	return source, nil
+}
+
+func validateWorkflowRuntime(selection Result, build BuildPackResult, config WorkflowBuildMetadataConfig, source SourceParameters) error {
 	if config.ReleaseAssetMode || trimASCII(config.ReleaseTag) != "" || trimASCII(config.ProvenanceSidecar) != "" || config.LinkedArtifactMetadata {
 		return errors.New("release-asset-only inputs require the later release-asset mode implementation")
 	}
 	if config.EventName != "push" && config.EventName != "workflow_dispatch" {
 		return errors.New("release event is unsupported")
 	}
-	if config.RefType != "tag" || config.Ref != "refs/tags/v"+selection.Package.Version {
+	if source.RefType != "tag" || source.Ref != "refs/tags/v"+selection.Package.Version {
 		return errors.New("release ref must be the package version tag")
 	}
-	if identity.ValidateFullSHA(config.Revision) != nil || identity.ValidateFullSHA(config.WorkflowSHA) != nil {
+	if identity.ValidateFullSHA(source.Revision) != nil || identity.ValidateFullSHA(config.WorkflowSHA) != nil {
 		return errors.New("source and reusable workflow revisions must be immutable full SHAs")
 	}
 	if config.CallerWorkflowFilename == "" || filepath.Base(config.CallerWorkflowFilename) != config.CallerWorkflowFilename ||
