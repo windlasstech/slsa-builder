@@ -61,7 +61,7 @@ func validateExternalParameterShape(encoded []byte) error {
 		required []string
 		optional []string
 	}{
-		{name: "source", required: []string{"repository", "ref", "revision", "event_name", "ref_type"}},
+		{name: "source", required: []string{"repository", "ref", "revision", "event_name", "ref_type"}, optional: []string{"input_ref", "invocation_ref", "invocation_revision"}},
 		{name: "workflow", required: []string{"path", "sha", "builder_id"}},
 		{name: "runtime", required: []string{"runner", "node_version", "npm_version"}},
 		{name: "package", required: []string{"directory", "workspace_root", "source_manifest", "name", "version", "private", "repository", "tarball_name", "package_url", "packed_name", "packed_version"}, optional: []string{"publish_config_raw", "packed_files", "consumer_surface"}},
@@ -183,6 +183,9 @@ func validateExternalParameters(parameters ExternalParameters, expectedRepositor
 	if parameters.Source.EventName == "" || parameters.Source.RefType != "tag" {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "release source event and tag type are required")
 	}
+	if err := validateSourceInvocationRecord(parameters.Source); err != nil {
+		return err
+	}
 	if parameters.Runtime.Runner != "ubuntu-24.04" || !minimumVersion(parameters.Runtime.NodeVersion, 24, 0, 0) || !minimumVersion(parameters.Runtime.NPMVersion, 11, 5, 1) {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.runtime", "runtime must use ubuntu-24.04, Node.js 24+, and npm 11.5.1+")
 	}
@@ -215,6 +218,34 @@ func validateExternalParameters(parameters ExternalParameters, expectedRepositor
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.build", "build result must match script presence")
 	}
 	return validateOptionalExternalFields(parameters)
+}
+
+// validateSourceInvocationRecord enforces the ADR 0079/0080 conditional presence contract:
+// input_ref is present exactly when the caller supplied source-ref, must equal the built source
+// ref, and the signed invocation record must be present exactly when input_ref is present.
+func validateSourceInvocationRecord(source SourceParameters) error {
+	if source.InputRef == nil {
+		if source.InvocationRef != nil || source.InvocationRevision != nil {
+			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "invocation record members require input_ref")
+		}
+		return nil
+	}
+	if identity.ValidateReleaseRef(*source.InputRef) != nil {
+		return npmValidationError(IDSourceRefInvalid, "externalParameters.source.input_ref", "input_ref must be a full refs/tags/ release tag ref")
+	}
+	if *source.InputRef != source.Ref {
+		return npmValidationError(IDSourceRefInvalid, "externalParameters.source.input_ref", "input_ref must equal the built source ref")
+	}
+	if source.InvocationRef == nil || source.InvocationRevision == nil {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "input_ref requires the complete invocation record")
+	}
+	if !strings.HasPrefix(*source.InvocationRef, "refs/") || strings.TrimSpace(*source.InvocationRef) != *source.InvocationRef {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.invocation_ref", "invocation ref must be a full canonical Git ref")
+	}
+	if identity.ValidateFullSHA(*source.InvocationRevision) != nil {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.invocation_revision", "invocation revision must be a full lowercase Git commit SHA")
+	}
+	return nil
 }
 
 func validatePackageParameters(parameters ExternalParameters) error {

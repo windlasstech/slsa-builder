@@ -227,6 +227,59 @@ func TestReleaseRefEquality(t *testing.T) {
 	}
 }
 
+func TestSourceInvocationRecordValidation(t *testing.T) {
+	t.Parallel()
+
+	dispatchRetry := func() ExternalParameters {
+		parameters := validExternalParameters(ManagerNPM)
+		parameters.Source.InputRef = testStringPointer("refs/tags/v1.2.3")
+		parameters.Source.InvocationRef = testStringPointer("refs/heads/main")
+		parameters.Source.InvocationRevision = testStringPointer(testAttestSHA)
+		return parameters
+	}
+	if err := validateExternalParameters(dispatchRetry(), ""); err != nil {
+		t.Fatalf("validateExternalParameters() dispatch retry error = %v", err)
+	}
+	if err := validateExternalParameters(validExternalParameters(ManagerNPM), ""); err != nil {
+		t.Fatalf("validateExternalParameters() single-identity error = %v", err)
+	}
+	tests := []struct {
+		name   string
+		mutate func(*ExternalParameters)
+		want   string
+	}{
+		{name: "input_ref unequal to built ref", want: IDSourceRefInvalid, mutate: func(parameters *ExternalParameters) {
+			parameters.Source.InputRef = testStringPointer("refs/tags/v9.9.9")
+		}},
+		{name: "input_ref not a full tag ref", want: IDSourceRefInvalid, mutate: func(parameters *ExternalParameters) {
+			parameters.Source.InputRef = testStringPointer("v1.2.3")
+		}},
+		{name: "input_ref without invocation record", want: IDUnexpectedExternalParameters, mutate: func(parameters *ExternalParameters) {
+			parameters.Source.InvocationRef = nil
+			parameters.Source.InvocationRevision = nil
+		}},
+		{name: "invocation revision malformed", want: IDUnexpectedExternalParameters, mutate: func(parameters *ExternalParameters) {
+			parameters.Source.InvocationRevision = testStringPointer("main")
+		}},
+		{name: "invocation ref not full", want: IDUnexpectedExternalParameters, mutate: func(parameters *ExternalParameters) {
+			parameters.Source.InvocationRef = testStringPointer("main")
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			parameters := dispatchRetry()
+			test.mutate(&parameters)
+			requireNPMDiagnostic(t, validateExternalParameters(parameters, ""), test.want)
+		})
+	}
+	t.Run("invocation record without input_ref", func(t *testing.T) {
+		parameters := validExternalParameters(ManagerNPM)
+		parameters.Source.InvocationRef = testStringPointer("refs/tags/v1.2.3")
+		parameters.Source.InvocationRevision = testStringPointer(testSourceSHA)
+		requireNPMDiagnostic(t, validateExternalParameters(parameters, ""), IDUnexpectedExternalParameters)
+	})
+}
+
 func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 	t.Helper()
 	parameters := validExternalParameters(manager)

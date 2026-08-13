@@ -25,6 +25,7 @@ const (
 	IDResolvedDependenciesUnexpectedEntry = "windlass.verify.error.resolved-dependencies-unexpected-entry"
 	IDBuilderDependenciesMismatch         = "windlass.verify.error.builder-dependencies-signing-adapter-mismatch"
 	IDReleaseRefMismatch                  = "windlass.verify.error.release-ref-mismatch"
+	IDSourceRefInvalid                    = "windlass.verify.error.source-ref-invalid"
 )
 
 // ExternalParameters is the closed npm v1 buildType external interface.
@@ -47,6 +48,14 @@ type SourceParameters struct {
 	Revision   string `json:"revision"`
 	EventName  string `json:"event_name"`
 	RefType    string `json:"ref_type"`
+	// InputRef records the caller-supplied source-ref input (ADR 0079). It is present
+	// exactly when the caller supplied a non-empty source-ref and absent otherwise.
+	InputRef *string `json:"input_ref,omitempty"`
+	// InvocationRef and InvocationRevision are the signed invocation record (ADR 0080):
+	// the ref the run was dispatched on and its commit SHA. They are present exactly
+	// when InputRef is present and absent otherwise.
+	InvocationRef      *string `json:"invocation_ref,omitempty"`
+	InvocationRevision *string `json:"invocation_revision,omitempty"`
 }
 
 type WorkflowParameters struct {
