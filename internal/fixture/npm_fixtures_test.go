@@ -39,6 +39,7 @@ func TestNPMFixturesNeverPublish(t *testing.T) {
 		"pnpm-workspace-packages-wrong-type":                        "windlass.verify.error.package-resolution-invalid",
 		"pnpm-settings-only-subdirectory":                           "windlass.verify.error.package-resolution-invalid",
 		"npm-source-ref-non-tag-rejected":                           "windlass.verify.error.source-ref-invalid",
+		"npm-source-ref-unresolvable-rejected":                      "windlass.verify.error.source-ref-invalid",
 		"npm-source-ref-version-mismatch-rejected":                  "windlass.verify.error.source-ref-invalid",
 		"npm-source-ref-invocation-conflict-rejected":               "windlass.verify.error.source-ref-invalid",
 		"npm-source-ref-dispatch-retry-valid":                       "",
