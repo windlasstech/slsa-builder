@@ -19,9 +19,18 @@ relations:
   - type: see-also
     target: ADR-0062
   - type: see-also
+    target: ADR-0079
+  - type: see-also
     target: ADR-0069
   - type: see-also
     target: ADR-0073
+  - type: partially-superseded-by
+    target: ADR-0080
+    scope:
+      "the Source content binding (Decision Outcome clause 4): certificate Source Repository Digest
+      and Source Repository Ref equality with the expected release commit SHA and tag ref; the
+      issuer, signer workflow, source repository identity including numeric IDs, run identity, and
+      runner trust bindings remain in force"
 ---
 
 # Bind Verification to Immutable Builder and Source Identities
