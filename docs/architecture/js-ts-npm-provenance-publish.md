@@ -25,8 +25,11 @@ the package to an npm registry through a three-job digest-verified graph.
   and
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
   [0073](../decisions/0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md),
-  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md), and
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
+  [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
+  [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
+  and
+  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -434,7 +437,7 @@ listed below as the only allowed additions:
 
 | Object            | Required members                                                                                                                                                                                                                                                            | Optional members                                         |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `source`          | `repository`, `ref`, `revision`, `event_name`, `ref_type`                                                                                                                                                                                                                   | none                                                     |
+| `source`          | `repository`, `ref`, `revision`, `event_name`, `ref_type`                                                                                                                                                                                                                   | `input_ref`, `invocation_ref`, `invocation_revision`     |
 | `workflow`        | `path`, `sha`, `builder_id`                                                                                                                                                                                                                                                 | none                                                     |
 | `runtime`         | `runner`, `node_version`, `npm_version`                                                                                                                                                                                                                                     | none                                                     |
 | `package`         | `directory`, `workspace_root`, `source_manifest`, `name`, `version`, `private`, `repository`, `tarball_name`, `package_url`, `packed_name`, `packed_version`                                                                                                                | `publish_config_raw`, `packed_files`, `consumer_surface` |
@@ -486,11 +489,64 @@ Type and nullability rules:
 ### Field rules
 
 - `source.repository` must be the canonical HTTPS source repository URL.
-- `source.ref` must be the Git ref used for release intent.
+- `source.ref` must be the built Git ref: the ref whose content the profile checked out, built,
+  packed, and attests. It is the `source-ref` input value when that input is supplied and the
+  invocation ref otherwise, and it is the release ref accepted by the runtime guards.
 - `source.revision` and `workflow.sha` must be full 40-character lowercase Git commit SHAs.
-- `source.event_name` must match a supported caller event, such as `push` or constrained
-  `workflow_dispatch`.
-- `source.ref_type` must be `tag` for the production release path.
+  `source.revision` is the commit the built ref resolved to before checkout.
+- `source.event_name` records the invocation event and must match a supported caller event, such as
+  `push` or constrained `workflow_dispatch`.
+- `source.ref_type` describes the built ref and must be `tag` for the production release path.
+- `source.input_ref` records the caller-supplied `source-ref` input. It must be present exactly when
+  the caller supplied a non-empty `source-ref`, must be a full `refs/tags/<tag-name>` ref, and must
+  be byte-for-byte equal to `source.ref` — the runtime guards reject any other outcome before
+  signing. It must be absent when `source-ref` is omitted. A present-but-invalid, unequal, or
+  unexpectedly absent `input_ref` fails with `windlass.verify.error.source-ref-invalid`.
+- `source.invocation_ref` and `source.invocation_revision` are the signed invocation record defined
+  by ADR 0080: the ref the run was dispatched on (`github.ref`) and its commit SHA (`github.sha`).
+  They must be present exactly when `source.input_ref` is present and absent otherwise.
+  `source.invocation_ref` must be a full Git ref and `source.invocation_revision` must be a full
+  40-character lowercase Git commit SHA. When `source-ref` is omitted, the invocation ref is the
+  built ref, so these members would duplicate `source.ref` and `source.revision`; the schema forbids
+  that duplication by requiring their absence.
+
+The following focused valid `source` group records a dispatch retry: the run was dispatched on
+`refs/heads/main` (invocation), while the built and attested content is the release tag
+`refs/tags/v1.2.3` at its resolved commit:
+
+```json
+{
+  "source": {
+    "repository": "https://github.com/example/project",
+    "ref": "refs/tags/v1.2.3",
+    "revision": "0123456789abcdef0123456789abcdef01234567",
+    "event_name": "workflow_dispatch",
+    "ref_type": "tag",
+    "input_ref": "refs/tags/v1.2.3",
+    "invocation_ref": "refs/heads/main",
+    "invocation_revision": "89abcdef0123456789abcdef0123456789abcdef01"
+  }
+}
+```
+
+The following focused invalid `source` group supplies the invocation record while `input_ref` is
+absent, violating the conditional-presence rule; it fails with
+`windlass.verify.error.unexpected-external-parameters`:
+
+```json
+{
+  "source": {
+    "repository": "https://github.com/example/project",
+    "ref": "refs/tags/v1.2.3",
+    "revision": "0123456789abcdef0123456789abcdef01234567",
+    "event_name": "push",
+    "ref_type": "tag",
+    "invocation_ref": "refs/tags/v1.2.3",
+    "invocation_revision": "0123456789abcdef0123456789abcdef01234567"
+  }
+}
+```
+
 - `workflow.path` must be `.github/workflows/js-ts-npm-package-slsa3.yml`.
 - `workflow.builder_id` must equal the SHA-based builder identity for `workflow.path` and
   `workflow.sha`.
@@ -619,18 +675,21 @@ Type and nullability rules:
 - `build.script_result` must be `executed` when `scripts.build` ran and `skipped-absent` when the
   build step was an explicit no-op.
 
-The public workflow's eight inputs have exactly these signed locations:
+### Nine-input completeness mapping
 
-| Public input               | Signed location                                                                                                            |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `package-directory`        | `package.directory`                                                                                                        |
-| `registry-url`             | `publish.input_registry_url`                                                                                               |
-| `dist-tag`                 | `publish.input_dist_tag`                                                                                                   |
-| `access`                   | `publish.input_access`                                                                                                     |
-| `release-asset-mode`       | `distribution.release_asset_mode`                                                                                          |
-| `release-tag`              | suppliedness in `distribution.release_tag_supplied`; effective identity remains in `release.ref` and `release.version_tag` |
-| `provenance-sidecar`       | `distribution.provenance_sidecar`                                                                                          |
-| `linked-artifact-metadata` | `distribution.linked_artifact_metadata`                                                                                    |
+The public workflow's nine inputs have exactly these signed locations:
+
+| Public input               | Signed location                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `package-directory`        | `package.directory`                                                                                                             |
+| `registry-url`             | `publish.input_registry_url`                                                                                                    |
+| `dist-tag`                 | `publish.input_dist_tag`                                                                                                        |
+| `access`                   | `publish.input_access`                                                                                                          |
+| `source-ref`               | `source.input_ref`; the invocation context it decouples is recorded in `source.invocation_ref` and `source.invocation_revision` |
+| `release-asset-mode`       | `distribution.release_asset_mode`                                                                                               |
+| `release-tag`              | suppliedness in `distribution.release_tag_supplied`; effective identity remains in `release.ref` and `release.version_tag`      |
+| `provenance-sidecar`       | `distribution.provenance_sidecar`                                                                                               |
+| `linked-artifact-metadata` | `distribution.linked_artifact_metadata`                                                                                         |
 
 The completeness mapping intentionally excludes four duplications. The profile must not duplicate
 the raw `release-tag` input, duplicate caller repository identity already held in
@@ -861,9 +920,10 @@ from the normalized source and observed caller identity:
 ### Release ref equality
 
 For the production release path, `externalParameters.source.ref`, `externalParameters.release.ref`,
-and the runtime Git ref accepted by the workflow guards must all be the same full Git tag ref in the
-form `refs/tags/<tag-name>`. The short tag name recorded in `externalParameters.release.version_tag`
-must be exactly the suffix of that ref after removing `refs/tags/`.
+and the built Git ref accepted by the workflow guards must all be the same full Git tag ref in the
+form `refs/tags/<tag-name>`. When `source-ref` is supplied, that built ref is the input's tag, not
+the invocation ref. The short tag name recorded in `externalParameters.release.version_tag` must be
+exactly the suffix of that ref after removing `refs/tags/`.
 
 Producer-side verification must reject the bundle before publish when any of these refs differ after
 canonical full-ref representation, when either field is a short tag such as `v1.2.3`, when either
@@ -927,6 +987,9 @@ The selected lockfile that constrained the release install has this unchanged cl
 
 - `uri` must be
   `git+<externalParameters.source.repository>@<externalParameters.source.revision>#<selection_lockfile_path>`.
+  The `@<externalParameters.source.revision>` component records the built ref's resolved commit, so
+  the descriptor carries the immutable built-source resolution required by ADR 0079 without a
+  separate source descriptor.
 - The URI fragment must be the repository-root-relative selected lockfile path. It must not be
   empty, absolute, contain path traversal, contain backslashes, point outside the repository, or
   name a non-selected lockfile.
@@ -1281,15 +1344,33 @@ of the following signer constraints:
 - signer workflow repository: `windlasstech/slsa-builder`;
 - signer workflow path: `.github/workflows/js-ts-npm-package-slsa3.yml`;
 - signer workflow ref: the same full commit SHA recorded in `runDetails.builder.id`;
-- source ref: the release ref accepted by runtime guards, normally `refs/tags/v<version>`;
+- built source ref: the release tag recorded in the signed `externalParameters.source.ref`, normally
+  `refs/tags/v<version>`;
 - OIDC issuer: GitHub Actions;
 - predicate type: `https://slsa.dev/provenance/v1`.
 
 The signer workflow repository is the trusted builder repository, not the package source repository.
 The package source repository remains caller-specific and is recorded separately in
 `externalParameters.source.repository`. Verification must check both identities: the signer identity
-must match the Windlass reusable workflow identity, and the source identity must match the expected
-caller repository and release ref.
+must match the Windlass reusable workflow identity, and the built source identity recorded in the
+signed fields must match the expected caller repository and release ref.
+
+Under ADR 0080, the certificate's platform-issued source claims describe the invocation context, not
+the built content, and the two differ on a `source-ref` dispatch retry. Verification therefore binds
+each identity to the evidence that can prove it:
+
+- The **built** source identity (repository, release tag ref, resolved commit SHA) is verified
+  against the signed `externalParameters.source.*` and `externalParameters.release.*` fields and the
+  trusted producer policy.
+- The **invocation** context is verified by comparing the certificate's Source Repository Ref and
+  Source Repository Digest claims against the signed invocation record:
+  `externalParameters.source.invocation_ref` and `externalParameters.source.invocation_revision`
+  when present, or `externalParameters.source.ref` and `externalParameters.source.revision` when the
+  invocation record is absent (`source-ref` omitted). A mismatch fails with
+  `windlass.verify.error.source-ref-mismatch` or `windlass.verify.error.source-digest-mismatch`.
+- The Source Repository URI and the numeric repository and owner identifiers are
+  context-independent: they identify the same caller repository in both contexts and continue to
+  bind certificate claims against the expected values exactly as ADR 0068 requires.
 
 The npm producer verifier must bind the semantic identity fields from the common SLSA provenance
 contract to the npm profile values as follows:
@@ -1302,17 +1383,21 @@ contract to the npm profile values as follows:
 | Signer workflow SHA        | Full commit SHA from `externalParameters.workflow.sha` and the SHA suffix of `runDetails.builder.id`.                                                                      |
 | Signer workflow ref        | Must not be a branch, tag, pull request ref, or short SHA when the tool exposes it separately from the full workflow SHA.                                                  |
 | Source repository          | Canonical GitHub source repository URL exactly equal to `externalParameters.package.repository`, `externalParameters.source.repository`, and the observed caller identity. |
-| Source ref                 | Full release tag ref from `externalParameters.source.ref` and `externalParameters.release.ref`.                                                                            |
-| Source revision            | Full 40-character lowercase commit SHA from `externalParameters.source.revision` and the trusted producer policy.                                                          |
+| Source ref                 | Full release tag ref from the signed `externalParameters.source.ref` and `externalParameters.release.ref`; policy expectations bind to these signed fields.                |
+| Source revision            | Full 40-character lowercase commit SHA from the signed `externalParameters.source.revision` and the trusted producer policy.                                               |
+| Invocation ref             | Certificate Source Repository Ref, byte-equal to `source.invocation_ref` when present, otherwise to `source.ref`.                                                          |
+| Invocation revision        | Certificate Source Repository Digest, byte-equal to `source.invocation_revision` when present, otherwise to `source.revision`.                                             |
 | Predicate type             | `https://slsa.dev/provenance/v1`.                                                                                                                                          |
 
 When a verification tool exposes both reusable-workflow identity claims and caller-workflow/source
-claims, the reusable-workflow claims must satisfy the signer workflow rows above and the caller
-source claims must satisfy the source rows above. The producer verifier must reject a bundle when
-the trusted Windlass workflow identity is correct but the caller source repository, source ref, or
-source revision differs from the signed `externalParameters`, and it must also reject a bundle when
-the caller source identity is correct but the signer workflow path or SHA is not the trusted
-Windlass reusable workflow identity.
+claims, the reusable-workflow claims must satisfy the signer workflow rows above, and the caller
+source claims must satisfy the source repository, invocation ref, and invocation revision rows
+above. The producer verifier must reject a bundle when the trusted Windlass workflow identity is
+correct but the signed source repository, built source ref, or built source revision differs from
+the policy expectation, and it must also reject a bundle when the caller source identity is correct
+but the signer workflow path or SHA is not the trusted Windlass reusable workflow identity. On a
+tag-triggered run without `source-ref`, the invocation rows compare the certificate claims against
+`source.ref` and `source.revision`, which reduces to the single-identity contract.
 
 The producer verifier must also reject the bundle before publish with
 `windlass.verify.error.package-repository-identity-mismatch` when normalized
@@ -1743,8 +1828,14 @@ The profile must not fall back to:
 
 - Positive fixture: accepted signed bundle leading to successful npmjs `npm publish`.
 - `npm-external-parameters-distribution-caller-valid` proves the closed `distribution` and `caller`
-  groups, all eight public-input representations, normalized sidecar policy, and observed caller
+  groups, all nine public-input representations, normalized sidecar policy, and observed caller
   filename.
+- `npm-source-ref-dispatch-retry-valid` proves the dispatch-retry `source` group: `input_ref` equals
+  the built release tag, the invocation record carries the dispatch ref and its commit SHA, and the
+  certificate source claims match the invocation record.
+- `npm-source-ref-omitted-valid` proves the single-identity shape: `input_ref`, `invocation_ref`,
+  and `invocation_revision` are absent, and the certificate source claims match `source.ref` and
+  `source.revision` exactly as the pre-`source-ref` contract required.
 - `npm-resolved-dependencies-npm-valid` proves npm emits the name-keyed lockfile and runner-image
   set and no package-manager distribution. `npm-resolved-dependencies-pnpm-valid` proves one
   registry-integrity pnpm distribution. `npm-resolved-dependencies-yarn-valid` proves one
@@ -1785,8 +1876,10 @@ The profile must not fall back to:
   or version disagreement; malformed non-hex SHA-512; runner absence, duplication, unknown member,
   or prohibited digest; unknown dependency names and generated transitive-package entries; missing
   or unknown `distribution`/`caller` members; raw release-tag duplication; normalized distribution
-  disagreement; and unavailable or mismatched caller filename. Their expected primary IDs are the
-  corresponding central diagnostics listed in Failure behavior.
+  disagreement; unavailable or mismatched caller filename; `input_ref` present but unequal to
+  `source.ref` (`source-ref-invalid`); and `invocation_ref` or `invocation_revision` present without
+  `input_ref`, or absent when `input_ref` is present (`unexpected-external-parameters`). Their
+  expected primary IDs are the corresponding central diagnostics listed in Failure behavior.
 - Builder rejected mutations must cover missing `nodejs`, absent conditional `corepack`, `corepack`
   present for npm, an unknown version key, missing or extra signing adapters, URI/module/checksum
   disagreement, and a wrong role. Their expected primary IDs are `builder-version-mismatch` or

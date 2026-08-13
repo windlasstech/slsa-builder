@@ -15,8 +15,10 @@ common contract.
   [0069](../decisions/0069-require-rekor-transparency-and-govern-sigstore-trust-root.md),
   [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
+  [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   and
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
+  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
@@ -148,8 +150,13 @@ Common field groups recorded by producer profiles include:
 
 - `source`:
   - `repository`: source repository URI.
-  - `ref`: source ref, for example `refs/tags/v1.2.3`.
-  - `revision`: immutable source revision, such as a Git commit SHA.
+  - `ref`: the built source ref — the ref whose content was checked out, built, and attested, for
+    example `refs/tags/v1.2.3`.
+  - `revision`: the immutable commit the built ref resolved to.
+  - Conditional invocation record members (for example `input_ref`, `invocation_ref`,
+    `invocation_revision`) when the profile's caller selected a built ref through an input such as
+    ADR 0079's `source-ref` and that ref differs from the ref the run was dispatched on. Profile
+    specs define the exact member names and conditional-presence rules.
 - `workflow`:
   - `path`: reusable workflow file path.
   - `sha`: full commit SHA.
@@ -159,6 +166,11 @@ Common field groups recorded by producer profiles include:
   - `runner`: `ubuntu-24.04`.
 - `package_manager`: name, actual version, and selection source when the profile uses a package
   manager.
+
+The built source identity is the release identity that verifier policy binds to (ADR 0080). The
+invocation record keeps "which ref's workflow file ran" explicit when it differs from the built ref;
+the signing certificate's platform-fixed source claims are verified against that signed invocation
+record, not against the built identity.
 
 A verifier must reject unexpected `externalParameters` fields when the policy requires strict
 matching. The profile spec must define the complete schema and the strict-matching policy.
@@ -392,15 +404,20 @@ below before accepting a bundle.
 | Signer workflow ref or SHA | Immutable workflow identity selected by the profile: a full commit SHA for reusable producer workflows, or a protected |
 |                            | release tag ref for the release manifest signer.                                                                       |
 | Source repository          | Repository whose source was released, which may differ from the signer workflow repository for reusable workflows.     |
-| Source ref                 | Release ref accepted by the producer or manifest runtime guards.                                                       |
-| Source revision            | Immutable source revision recorded in the signed predicate and expected policy.                                        |
+| Source ref                 | Built release ref recorded in the signed predicate and expected policy.                                                |
+| Source revision            | Immutable commit the built ref resolved to, recorded in the signed predicate and expected policy.                      |
+| Invocation ref             | Ref the run was dispatched on, proven by the certificate source ref claim and the signed invocation record.            |
+| Invocation revision        | Commit SHA of the invocation ref, proven by the certificate source digest claim and the signed invocation record.      |
 | Predicate type             | The predicate URI expected for the signed Statement.                                                                   |
 
 For reusable producer profiles, the signer workflow repository and path identify the trusted
 Windlass workflow, while the source repository, ref, and revision identify the caller package
-repository and release. For the release manifest workflow, the signer workflow repository and source
-repository are both `windlasstech/slsa-builder`, and the signer workflow ref is the protected
-release tag recorded in the manifest.
+repository and release. Under ADR 0080, the source ref and revision rows are the **built** identity
+and are bound from the signed predicate; the certificate's platform-issued source claims describe
+the invocation context and are bound to the signed invocation record (or to the built fields when
+the invocation record is absent, where both are the same value). For the release manifest workflow,
+the signer workflow repository and source repository are both `windlasstech/slsa-builder`, and the
+signer workflow ref is the protected release tag recorded in the manifest.
 
 Common GitHub/Sigstore verification outputs expose these concepts with claim names such as `issuer`,
 `repository`, `workflow_ref`, `workflow_sha`, `job_workflow_ref`, `job_workflow_sha`, `ref`, and
@@ -418,22 +435,27 @@ with signed certificate claims to satisfy one policy.
 When the pinned verification tool exposes multiple claim names for the same semantic field, the
 implementation must apply this fallback order:
 
-| Semantic field             | Preferred verified claim source                                         | Fallback verified claim source                                                  |
-| -------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| OIDC issuer                | Sigstore certificate issuer extension.                                  | Tool-reported issuer value bound to the same certificate.                       |
-| Signer workflow repository | Reusable workflow identity such as `job_workflow_ref` owner/repository. | Signing workflow `workflow_ref` owner/repository when no reusable claim exists. |
-| Signer workflow path       | Reusable workflow identity such as `job_workflow_ref` workflow path.    | Signing workflow `workflow_ref` path when no reusable claim exists.             |
-| Signer workflow SHA        | `job_workflow_sha` for reusable workflow signers.                       | `workflow_sha` or the SHA suffix of `runDetails.builder.id`.                    |
-| Signer workflow ref        | Ref component of `job_workflow_ref` for reusable workflow signers.      | Ref component of `workflow_ref` when no reusable claim exists.                  |
-| Source repository          | Source repository claim emitted for the caller/source repository.       | Signed predicate `externalParameters.source.repository` plus local policy.      |
-| Source ref                 | Source ref claim emitted for the caller/source ref.                     | Signed predicate `externalParameters.source.ref` plus local policy.             |
-| Source revision            | Source revision or commit claim emitted for the caller/source revision. | Signed predicate `externalParameters.source.revision` plus local policy.        |
-| Predicate type             | Verified Statement `predicateType`.                                     | Tool-reported predicate type extracted from the same signed Statement.          |
+| Semantic field             | Preferred verified claim source                                          | Fallback verified claim source                                                               |
+| -------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| OIDC issuer                | Sigstore certificate issuer extension.                                   | Tool-reported issuer value bound to the same certificate.                                    |
+| Signer workflow repository | Reusable workflow identity such as `job_workflow_ref` owner/repository.  | Signing workflow `workflow_ref` owner/repository when no reusable claim exists.              |
+| Signer workflow path       | Reusable workflow identity such as `job_workflow_ref` workflow path.     | Signing workflow `workflow_ref` path when no reusable claim exists.                          |
+| Signer workflow SHA        | `job_workflow_sha` for reusable workflow signers.                        | `workflow_sha` or the SHA suffix of `runDetails.builder.id`.                                 |
+| Signer workflow ref        | Ref component of `job_workflow_ref` for reusable workflow signers.       | Ref component of `workflow_ref` when no reusable claim exists.                               |
+| Source repository          | Source repository claim emitted for the caller/source repository.        | Signed predicate `externalParameters.source.repository` plus local policy.                   |
+| Source ref                 | Signed predicate `externalParameters.source.ref` plus local policy.      | None: the certificate source ref claim is invocation evidence, not built-source evidence.    |
+| Source revision            | Signed predicate `externalParameters.source.revision` plus local policy. | None: the certificate source digest claim is invocation evidence, not built-source evidence. |
+| Invocation ref             | Source ref claim emitted for the caller invocation ref.                  | Signed predicate invocation record member defined by the profile spec.                       |
+| Invocation revision        | Source digest claim emitted for the caller invocation revision.          | Signed predicate invocation record member defined by the profile spec.                       |
+| Predicate type             | Verified Statement `predicateType`.                                      | Tool-reported predicate type extracted from the same signed Statement.                       |
 
 If both a preferred and fallback source are present for the same semantic field, they must identify
 the same value after the profile-defined canonicalization. A conflict is a signer identity failure,
-not a reason to choose one spelling by precedence. If a required field remains unavailable after the
-allowed fallback sources are checked, verification fails with a missing semantic identity field.
+not a reason to choose one spelling by precedence. This equality rule does not compare the built
+source ref or revision against the certificate source claims: on an ADR 0079 dispatch retry those
+claims legitimately describe the invocation context, and the invocation rows above define their
+comparison target. If a required field remains unavailable after the allowed fallback sources are
+checked, verification fails with a missing semantic identity field.
 
 Before the npm production implementation is accepted, a controlled publish must prove that the
 Go-signer bundle is accepted by `npm publish --provenance-file`, appears in registry read-back, and
