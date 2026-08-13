@@ -25,6 +25,7 @@ const (
 	IDResolvedDependenciesUnexpectedEntry = "windlass.verify.error.resolved-dependencies-unexpected-entry"
 	IDBuilderDependenciesMismatch         = "windlass.verify.error.builder-dependencies-signing-adapter-mismatch"
 	IDReleaseRefMismatch                  = "windlass.verify.error.release-ref-mismatch"
+	IDSourceRefInvalid                    = "windlass.verify.error.source-ref-invalid"
 )
 
 // ExternalParameters is the closed npm v1 buildType external interface.

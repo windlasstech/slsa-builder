@@ -272,6 +272,45 @@
       "expected-primary-id": "windlass.verify.error.package-resolution-invalid",
       "expected-secondary-ids": [],
       "covered-requirement": "ADR-0078.pnpm-settings-only-root-package"
+    },
+    {
+      "name": "npm-source-ref-non-tag-rejected",
+      "type": "rejected",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/rejected/npm-source-ref-non-tag-rejected/package.json",
+      "provenance": "testdata/npm/packages/rejected/npm-source-ref-non-tag-rejected/fixture.json",
+      "release-manifest": null,
+      "expected-result": "fail",
+      "expected-failure-category": "source-ref-invalid",
+      "expected-primary-id": "windlass.verify.error.source-ref-invalid",
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0079.source-ref-rejections"
+    },
+    {
+      "name": "npm-source-ref-version-mismatch-rejected",
+      "type": "rejected",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/rejected/npm-source-ref-version-mismatch-rejected/package.json",
+      "provenance": "testdata/npm/packages/rejected/npm-source-ref-version-mismatch-rejected/fixture.json",
+      "release-manifest": null,
+      "expected-result": "fail",
+      "expected-failure-category": "source-ref-invalid",
+      "expected-primary-id": "windlass.verify.error.source-ref-invalid",
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0079.source-ref-rejections"
+    },
+    {
+      "name": "npm-source-ref-invocation-conflict-rejected",
+      "type": "rejected",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/rejected/npm-source-ref-invocation-conflict-rejected/package.json",
+      "provenance": "testdata/npm/packages/rejected/npm-source-ref-invocation-conflict-rejected/fixture.json",
+      "release-manifest": null,
+      "expected-result": "fail",
+      "expected-failure-category": "source-ref-invalid",
+      "expected-primary-id": "windlass.verify.error.source-ref-invalid",
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0079.source-ref-rejections"
     }
   ]
 }
