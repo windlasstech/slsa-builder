@@ -1,6 +1,6 @@
 # npm M1 dogfood verification procedure
 
-Run this procedure for the live P06 M1 dogfood retry on 12026-08-14. It publishes
+Run this procedure for the live P06 M1 dogfood retry of vers-js v0.1.2. It publishes
 `@windlass/vers-js@0.1.2` through the SHA-pinned reusable workflow, collects the publication
 evidence, and records the completed run in `docs/dogfood/npm-m1.md`. Do not create that evidence
 record until the run begins.
@@ -65,7 +65,7 @@ to the caller workflow is already confirmed working.
 3. Record the caller pin, operator, and start timestamp.
 
    ```bash
-   gh api repos/windlasstech/vers-js/contents/.github/workflows/publish.yml?ref=main --jq '.sha'
+    gh api "repos/windlasstech/vers-js/contents/.github/workflows/publish.yml?ref=main" --jq '.sha'
    gh api repos/windlasstech/vers-js/commits/main --jq '.sha'
    date -u +%Y-%m-%dT%H:%M:%SZ
    ```
@@ -213,8 +213,8 @@ code `1`. Compare the registry `dist.integrity` with the run's recorded SHA-512 
 they must match exactly.
 
 npm verifies registry ECDSA packument signatures and provenance attestations. It checks Sigstore
-bundle validity and that the attestation subject matches the package name and SHA-512 integrity. It
-evidence of npm-path compatibility, but ADR 0068 identity binding still requires the Phase 5
+bundle validity and that the attestation subject matches the package name and SHA-512 integrity.
+This is evidence of npm-path compatibility, but ADR 0068 identity binding still requires the Phase 5
 reference procedure. `gh attestation verify` success is also necessary but not sufficient.
 
 ## Phase 5: reference-procedure identity verification
