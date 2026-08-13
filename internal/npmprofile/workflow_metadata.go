@@ -164,11 +164,8 @@ func validateWorkflowRuntime(selection Result, build BuildPackResult, config Wor
 			return "", errors.New("release ref must be the package version tag")
 		}
 	} else {
-		if err := identity.ValidateReleaseRef(sourceRef); err != nil {
-			return "", npmValidationError(IDSourceRefInvalid, "inputs.source-ref", "source-ref must be a full refs/tags/ release tag ref")
-		}
-		if strings.HasPrefix(config.Ref, "refs/tags/") && config.Ref != sourceRef {
-			return "", npmValidationError(IDSourceRefInvalid, "inputs.source-ref", "source-ref conflicts with the invocation tag of a tag-triggered run")
+		if err := ValidateSourceRefInput(sourceRef, config.Ref); err != nil {
+			return "", err
 		}
 		if sourceRef != "refs/tags/v"+selection.Package.Version {
 			return "", npmValidationError(IDSourceRefInvalid, "inputs.source-ref", "source-ref tag must equal the packed package version tag")
@@ -190,6 +187,19 @@ func validateWorkflowRuntime(selection Result, build BuildPackResult, config Wor
 		return "", errors.New("build result is incomplete or conflicts with selected package")
 	}
 	return builtRef, nil
+}
+
+// ValidateSourceRefInput enforces the ADR 0079 input contract that does not require package
+// metadata: a supplied source-ref must be a full release tag ref and must not conflict with the
+// invocation tag of a tag-triggered run.
+func ValidateSourceRefInput(sourceRef, invocationRef string) error {
+	if err := identity.ValidateReleaseRef(sourceRef); err != nil {
+		return npmValidationError(IDSourceRefInvalid, "inputs.source-ref", "source-ref must be a full refs/tags/ release tag ref")
+	}
+	if strings.HasPrefix(invocationRef, "refs/tags/") && invocationRef != sourceRef {
+		return npmValidationError(IDSourceRefInvalid, "inputs.source-ref", "source-ref conflicts with the invocation tag of a tag-triggered run")
+	}
+	return nil
 }
 
 func decodePublishConfig(raw jsonRaw) (*PublishConfigParameters, error) {
