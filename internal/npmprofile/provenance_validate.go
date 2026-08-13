@@ -2,6 +2,7 @@ package npmprofile
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -561,6 +562,15 @@ func npmValidationError(id, field, message string) error {
 	}
 	entry.Field = field
 	return &npmProvenanceValidationError{diagnostic: entry}
+}
+
+// DiagnosticOf returns the diagnostic carried by an npm profile validation error.
+func DiagnosticOf(err error) (diagnostic.Diagnostic, bool) {
+	var validationError *npmProvenanceValidationError
+	if errors.As(err, &validationError) {
+		return validationError.diagnostic, true
+	}
+	return diagnostic.Diagnostic{}, false
 }
 
 var _ provenance.ProfileValidator = npmProfileValidator{}

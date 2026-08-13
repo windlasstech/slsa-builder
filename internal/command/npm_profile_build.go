@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/handoff"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
@@ -57,10 +58,13 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	registryURL := flags.String("registry-url", "", "caller registry URL intent")
 	distTag := flags.String("dist-tag", "", "caller distribution tag intent")
 	access := flags.String("access", "", "caller access intent")
+	sourceRef := flags.String("source-ref", "", "caller built source ref intent")
 	eventName := flags.String("event-name", "", "observed GitHub event name")
 	refType := flags.String("ref-type", "", "observed GitHub ref type")
 	ref := flags.String("ref", "", "observed GitHub ref")
 	revision := flags.String("revision", "", "observed source revision")
+	invocationRef := flags.String("invocation-ref", "", "observed invocation ref")
+	invocationRevision := flags.String("invocation-revision", "", "observed invocation revision")
 	workflowSHA := flags.String("workflow-sha", "", "immutable reusable workflow revision")
 	callerWorkflow := flags.String("caller-workflow-filename", "", "observed caller workflow filename")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
@@ -123,10 +127,17 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	}
 	metadata, err := npmprofile.FinalizeWorkflowBuildMetadata(selection, result, npmprofile.WorkflowBuildMetadataConfig{
 		ArtifactName: *artifactName, RegistryURLInput: *registryURL, DistTagInput: *distTag, AccessInput: *access,
-		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, WorkflowSHA: *workflowSHA,
+		SourceRefInput: *sourceRef, EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision,
+		InvocationRef: *invocationRef, InvocationRevision: *invocationRevision, WorkflowSHA: *workflowSHA,
 		CallerWorkflowFilename: *callerWorkflow, RegistryState: registryState,
 	})
 	if err != nil {
+		if entry, ok := npmprofile.DiagnosticOf(err); ok {
+			if writeErr := writeDiagnostics(out, nil, []diagnostic.Diagnostic{entry}); writeErr != nil {
+				return writeErr
+			}
+			return ErrVerificationFailure
+		}
 		return err
 	}
 	metadataBytes, err := json.Marshal(metadata)
