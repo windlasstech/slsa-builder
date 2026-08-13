@@ -6,8 +6,11 @@ trusted **core** and **profile-owned reusable workflows**.
 - Source ADRs: [0002](../decisions/0002-use-extensible-trusted-reusable-workflow-foundation.md),
   [0003](../decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md),
   [0004](../decisions/0004-use-go-as-primary-implementation-language.md),
-  [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md), and
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
+  [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
+  [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
+  and
+  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md)
 
@@ -46,6 +49,9 @@ The shared core owns the following:
 3. **Common SLSA provenance v1 construction**
    - The core defines the shared in-toto Statement and SLSA provenance v1 predicate shape used by
      all producer profiles.
+   - The core defines the shared two-identity source model: the signed predicate records the built
+     source identity (the ref whose content was checked out and attested) and, when it differs, the
+     invocation identity (the ref the run was dispatched on), per ADRs 0079 and 0080.
    - The core does not define ecosystem-specific subject names or digest rules.
 4. **Builder identity and build type conventions**
    - The core defines how `builder.id` and `buildType` URIs are documented and how release metadata
@@ -110,8 +116,29 @@ invariant is not a valid `slsa-builder` profile.
 - A reusable workflow must not accept or execute arbitrary shell commands, scripts, services,
   composite actions, or workflow defaults supplied by the caller.
 - A profile must not expose inputs that let callers override the runtime environment, tool versions,
-  or command matrix.
+  or command matrix. The producer `source-ref` input defined by ADR 0079 is not a runtime override:
+  it is a declared, closed-schema input constrained to the profile's release tag, and it changes
+  only which existing repository content is built, never how the build runs.
 - A profile must not inherit broad secrets or `GITHUB_TOKEN` permissions from the caller.
+
+### Built source identity (producer profiles)
+
+- Every producer profile must offer the optional `source-ref` input decided by ADR 0079: a
+  tags-only, fail-closed selector for the Git ref whose content the profile builds, attests, and
+  publishes. Publisher profiles do not build source and must not define it.
+- Runtime release guards must evaluate the **built** ref — the `source-ref` value when supplied, the
+  invocation ref otherwise — rather than the invocation ref. The built ref must satisfy the
+  profile's release tag convention before install, pack, signing, or publish.
+- The profile must resolve the built ref to a full commit SHA before building and must carry that
+  resolved SHA through the digest-verified handoff so that signing and publish jobs cannot disagree
+  with the build job about what was built.
+- The signed provenance must record the built source identity as the release source identity and,
+  when `source-ref` is supplied, must additionally record the invocation ref and its commit SHA as
+  the signed invocation record defined by the common provenance contract. Verification binds policy
+  to the signed built-source fields and binds the certificate's platform-fixed source claims to the
+  signed invocation record, per ADR 0080.
+- When `source-ref` is omitted, the invocation ref is the built ref and every comparison reduces to
+  the single-identity contract.
 
 ### Minimal permissions
 
@@ -253,6 +280,8 @@ following:
    boundary for the producer.
 5. SLSA provenance v1 generation with documented `builder.id`, `buildType`, and
    `externalParameters`.
+6. The optional `source-ref` input, the built-ref runtime guards, and the built-versus-invocation
+   source recording required by the built source identity invariant above (ADRs 0079 and 0080).
 
 ### Publisher profile requirements
 
