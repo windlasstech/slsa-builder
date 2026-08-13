@@ -32,6 +32,21 @@ func TestNPMProfileSourceRefCommand(t *testing.T) {
 		assertSourceRefOutputs(t, output, "refs/tags/v1.2.3", revision)
 	})
 
+	t.Run("ASCII whitespace source ref is byte-identical to omitted", func(t *testing.T) {
+		output := filepath.Join(t.TempDir(), "github-output")
+		command := newNPMProfileSourceRefCommand(func(context.Context, string, string, string) (string, error) {
+			t.Fatal("resolver called for ASCII-whitespace-only source-ref")
+			return "", nil
+		})
+		result, report := dispatchSourceRef(t, command, output,
+			"--source-ref", " \t\n\r\v\f", "--ref", "refs/tags/v1.2.3", "--ref-type", "tag", "--revision", revision,
+			"--observed-repository", "windlasstech/slsa-builder")
+		if result.ExitCode != ExitCodeSuccess || report != "" {
+			t.Fatalf("result = %#v, report = %s", result, report)
+		}
+		assertSourceRefOutputs(t, output, "refs/tags/v1.2.3", revision)
+	})
+
 	t.Run("supplied tag resolves", func(t *testing.T) {
 		output := filepath.Join(t.TempDir(), "github-output")
 		command := newNPMProfileSourceRefCommand(func(ctx context.Context, sourceRef, invocationRef, remote string) (string, error) {

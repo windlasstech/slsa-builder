@@ -2,6 +2,27 @@ package npmprofile
 
 import "testing"
 
+func TestNormalizeSourceRefInput(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "omitted", input: "", want: ""},
+		{name: "ASCII whitespace only", input: " \t\n\r\v\f", want: ""},
+		{name: "trimmed tag", input: " \trefs/tags/v1.2.3\r\n", want: "refs/tags/v1.2.3"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			if got := NormalizeSourceRefInput(test.input); got != test.want {
+				t.Fatalf("NormalizeSourceRefInput(%q) = %q, want %q", test.input, got, test.want)
+			}
+		})
+	}
+}
+
 func TestValidateSourceRefInput(t *testing.T) {
 	t.Parallel()
 

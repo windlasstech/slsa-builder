@@ -144,6 +144,7 @@ func ResolvePublishIntent(registryInput, distTagInput, accessInput string, sourc
 }
 
 func workflowSourceParameters(selection Result, config WorkflowBuildMetadataConfig) (SourceParameters, error) {
+	config.SourceRefInput = NormalizeSourceRefInput(config.SourceRefInput)
 	if err := ValidateSourceRefInput(config.SourceRefInput, config.InvocationRef, selection.Package.Version); err != nil {
 		return SourceParameters{}, err
 	}

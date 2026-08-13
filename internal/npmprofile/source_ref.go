@@ -15,9 +15,15 @@ const tagRefPrefix = "refs/tags/"
 
 const sourceRefResolutionTimeout = 30 * time.Second
 
+// NormalizeSourceRefInput trims the ASCII whitespace accepted around source-ref input.
+func NormalizeSourceRefInput(sourceRef string) string {
+	return strings.Trim(sourceRef, " \t\n\r\v\f")
+}
+
 // ValidateSourceRefInput validates the tags-only caller-selected build source intent.
 func ValidateSourceRefInput(sourceRef, invocationRef, packageVersion string) error {
-	if strings.Trim(sourceRef, " \t\n\r\v\f") == "" {
+	sourceRef = NormalizeSourceRefInput(sourceRef)
+	if sourceRef == "" {
 		return nil
 	}
 	if !strings.HasPrefix(sourceRef, tagRefPrefix) || !validTagName(strings.TrimPrefix(sourceRef, tagRefPrefix)) {

@@ -57,6 +57,7 @@ func (command npmProfileSourceRefCommand) Execute(ctx context.Context, args []st
 		}
 		return err
 	}
+	normalizedSourceRef := npmprofile.NormalizeSourceRefInput(*sourceRef)
 	if flags.NArg() != 0 {
 		return fmt.Errorf("unexpected positional arguments: %v", flags.Args())
 	}
@@ -69,16 +70,16 @@ func (command npmProfileSourceRefCommand) Execute(ctx context.Context, args []st
 
 	builtRef := *invocationRef
 	builtRevision := *revision
-	if strings.Trim(*sourceRef, " \t\n\r\v\f") != "" {
-		if err := npmprofile.ValidateSourceRefInput(*sourceRef, *invocationRef, ""); err != nil {
+	if normalizedSourceRef != "" {
+		if err := npmprofile.ValidateSourceRefInput(normalizedSourceRef, *invocationRef, ""); err != nil {
 			return writeSourceRefFailure(out, err)
 		}
 		remote := "https://github.com/" + *observedRepository + ".git"
-		resolved, err := command.resolve(ctx, *sourceRef, *invocationRef, remote)
+		resolved, err := command.resolve(ctx, normalizedSourceRef, *invocationRef, remote)
 		if err != nil {
 			return writeSourceRefFailure(out, err)
 		}
-		builtRef = *sourceRef
+		builtRef = normalizedSourceRef
 		builtRevision = resolved
 	}
 	if err := WriteGitHubOutputs(*githubOutput, npmSourceRefOutputs, map[string]string{

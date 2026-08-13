@@ -1,6 +1,7 @@
 package npmprofile
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -67,4 +68,52 @@ func TestFinalizeWorkflowBuildMetadataSourceRefRequiresInvocationContext(t *test
 
 	_, err := FinalizeWorkflowBuildMetadata(selection, BuildPackResult{}, config)
 	requireNPMDiagnostic(t, err, IDUnexpectedExternalParameters)
+}
+
+func TestFinalizeWorkflowBuildMetadataWhitespaceSourceRefMatchesOmitted(t *testing.T) {
+	repositoryRoot := t.TempDir()
+	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"https://github.com/example/project"}`)
+	if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repositoryRoot, "package-lock.json"), []byte(`{"lockfileVersion":3}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	selection := Result{
+		Package: Package{Directory: ".", RealDirectory: repositoryRoot, RealManagerRoot: repositoryRoot, ManagerRoot: ".", Name: "@windlass/slsa-builder", Version: "1.2.3", Repository: "https://github.com/example/project"},
+		Manager: ManagerSelection{Name: ManagerNPM, Version: "11.5.1", Source: SelectionPackageManager, SelectionManifestPath: "package.json", SelectedLockfilePath: "package-lock.json"},
+	}
+	build := BuildPackResult{
+		PackageName: "@windlass/slsa-builder", PackageVersion: "1.2.3",
+		TarballPath: filepath.Join(repositoryRoot, "windlass-slsa-builder-1.2.3.tgz"),
+		SHA256:      mustSHA256(t, testSHA256), SHA512: mustSHA512(t, testSHA512),
+		Packed:      PackedMetadata{Name: "@windlass/slsa-builder", Version: "1.2.3", Files: []string{"package.json"}},
+		BuildScript: BuildScriptCapture{Present: true, Result: BuildScriptExecuted},
+		Toolchain:   ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
+	}
+	config := WorkflowBuildMetadataConfig{
+		ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",
+		EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA,
+		WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml",
+		RegistryState: RegistryPreflightState{PackageExists: true},
+	}
+	omitted, err := FinalizeWorkflowBuildMetadata(selection, build, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.SourceRefInput = " \t\n\r\v\f"
+	whitespace, err := FinalizeWorkflowBuildMetadata(selection, build, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(whitespace.ExternalParameters, omitted.ExternalParameters) {
+		t.Fatalf("whitespace source-ref metadata differs from omitted\n got: %s\nwant: %s", whitespace.ExternalParameters, omitted.ExternalParameters)
+	}
+	parameters, err := DecodeExternalParameters(whitespace.ExternalParameters)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parameters.Source.InputRef != nil || parameters.Source.InvocationRef != nil || parameters.Source.InvocationRevision != nil {
+		t.Fatalf("whitespace source-ref emitted conditional source members: %#v", parameters.Source)
+	}
 }

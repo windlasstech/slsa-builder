@@ -75,6 +75,7 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		}
 		return err
 	}
+	normalizedSourceRef := npmprofile.NormalizeSourceRefInput(*sourceRef)
 	if *repositoryRoot == "" || *packageDirectory == "" || *observedRepository == "" || *outputDirectory == "" ||
 		*artifactName == "" || *metadataArtifactName == "" || *eventName == "" || *refType == "" || *ref == "" ||
 		*revision == "" || *workflowSHA == "" || *callerWorkflow == "" || *githubOutput == "" || flags.NArg() != 0 {
@@ -101,7 +102,7 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		}
 		return ErrVerificationFailure
 	}
-	if err := npmprofile.ValidateSourceRefInput(*sourceRef, *invocationRef, selection.Package.Version); err != nil {
+	if err := npmprofile.ValidateSourceRefInput(normalizedSourceRef, *invocationRef, selection.Package.Version); err != nil {
 		if reportErr := writeNPMBuildPolicyError(out, err); reportErr != nil {
 			return reportErr
 		}
@@ -133,8 +134,8 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	}
 	metadata, err := npmprofile.FinalizeWorkflowBuildMetadata(selection, result, npmprofile.WorkflowBuildMetadataConfig{
 		ArtifactName: *artifactName, RegistryURLInput: *registryURL, DistTagInput: *distTag, AccessInput: *access,
-		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, SourceRefInput: *sourceRef,
-		InvocationRef: conditionalSourceIdentity(*sourceRef, *invocationRef), InvocationRevision: conditionalSourceIdentity(*sourceRef, *invocationRevision), WorkflowSHA: *workflowSHA,
+		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, SourceRefInput: normalizedSourceRef,
+		InvocationRef: conditionalSourceIdentity(normalizedSourceRef, *invocationRef), InvocationRevision: conditionalSourceIdentity(normalizedSourceRef, *invocationRevision), WorkflowSHA: *workflowSHA,
 		CallerWorkflowFilename: *callerWorkflow, RegistryState: registryState,
 	})
 	if err != nil {
