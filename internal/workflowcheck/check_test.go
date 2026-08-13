@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: read
     concurrency:
-      group: npm-build-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
@@ -89,6 +89,7 @@ on:
       registry-url: {required: false, type: string}
       dist-tag: {required: false, type: string}
       access: {required: false, type: string}
+      source-ref: {required: false, type: string}
       release-asset-mode: {required: false, type: boolean, default: false}
       release-tag: {required: false, type: string}
       provenance-sidecar: {required: false, type: string}
@@ -106,7 +107,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: read}
     concurrency:
-      group: npm-build-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
@@ -126,7 +127,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: read, id-token: write}
     concurrency:
-      group: npm-provenance-sign-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-provenance-sign-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
@@ -151,7 +152,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: read, id-token: write}
     concurrency:
-      group: release-mutation-${{ github.repository }}-${{ github.ref_name }}
+      group: release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: false
       queue: max
     outputs:
@@ -266,7 +267,7 @@ func TestCheckPublishJob(t *testing.T) {
 	if result.Result != "pass" || !result.OIDCPermission || result.MutationPermission || !result.AlwaysRunReport {
 		t.Fatalf("unexpected publish result: %#v", result)
 	}
-	if result.MutationKey != "release-mutation-${{ github.repository }}-${{ github.ref_name }}" || result.CancelInProgress || result.Queue != "max" {
+	if result.MutationKey != "release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}" || result.CancelInProgress || result.Queue != "max" {
 		t.Fatalf("unexpected publish concurrency: %#v", result)
 	}
 }
@@ -276,7 +277,7 @@ func TestCheckPublishJobRejectsBoundaryDrift(t *testing.T) {
 		"wrong dependency":     replaceOnce(t, validNPMOnlyWorkflow, "needs: [build, provenance-sign]", "needs: build"),
 		"cancellable mutation": replaceOnce(t, validNPMOnlyWorkflow, "cancel-in-progress: false\n      queue: max", "cancel-in-progress: true\n      queue: max"),
 		"missing queue":        replaceOnce(t, validNPMOnlyWorkflow, "      queue: max\n", ""),
-		"wrong mutation key":   replaceOnce(t, validNPMOnlyWorkflow, "release-mutation-${{ github.repository }}-${{ github.ref_name }}", "release-mutation-${{ github.workflow }}"),
+		"wrong mutation key":   replaceOnce(t, validNPMOnlyWorkflow, "release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}", "release-mutation-${{ github.workflow }}"),
 		"mutation authority": replaceOnce(t, validNPMOnlyWorkflow,
 			"permissions: {contents: read, id-token: write}\n    concurrency:\n      group: release-mutation-",
 			"permissions: {contents: write, id-token: write}\n    concurrency:\n      group: release-mutation-"),

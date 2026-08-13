@@ -142,7 +142,7 @@ func CheckBuildJob(path string) (BuildJobResult, error) {
 	if build.RunsOn != "ubuntu-24.04" {
 		return BuildJobResult{}, fmt.Errorf("build job runs-on must be ubuntu-24.04")
 	}
-	if build.Concurrency.Group != "npm-build-${{ github.repository }}-${{ github.ref_name }}" || !build.Concurrency.CancelInProgress || build.Concurrency.Queue != "" {
+	if build.Concurrency.Group != "npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}" || !build.Concurrency.CancelInProgress || build.Concurrency.Queue != "" {
 		return BuildJobResult{}, fmt.Errorf("build job must use the pre-mutation concurrency contract")
 	}
 	if err := checkSteps(build.Steps, &result); err != nil {
@@ -233,7 +233,7 @@ func CheckPublishJob(path string) (PublishJobResult, error) {
 	if normalizeExpression(job.If) != "always()" {
 		return PublishJobResult{}, fmt.Errorf("publish job must run always so it can emit the outcome report")
 	}
-	if result.MutationKey != "release-mutation-${{ github.repository }}-${{ github.ref_name }}" || result.CancelInProgress || result.Queue != "max" {
+	if result.MutationKey != "release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}" || result.CancelInProgress || result.Queue != "max" {
 		return PublishJobResult{}, fmt.Errorf("publish job must use the exact queued mutation concurrency contract")
 	}
 	if err := checkPublishSteps(job.Steps, &result); err != nil {
@@ -268,7 +268,7 @@ func CheckNPMOnlyProfile(path string) (NPMOnlyProfileResult, error) {
 		return NPMOnlyProfileResult{}, fmt.Errorf("provenance-sign contract: %w", err)
 	}
 	signing := document.Jobs["provenance-sign"]
-	if signing.Concurrency.Group != "npm-provenance-sign-${{ github.repository }}-${{ github.ref_name }}" || !signing.Concurrency.CancelInProgress || signing.Concurrency.Queue != "" {
+	if signing.Concurrency.Group != "npm-provenance-sign-${{ github.repository }}-${{ inputs.source-ref || github.ref }}" || !signing.Concurrency.CancelInProgress || signing.Concurrency.Queue != "" {
 		return NPMOnlyProfileResult{}, fmt.Errorf("provenance-sign must use the pre-mutation concurrency contract")
 	}
 	publish, err := CheckPublishJob(path)
@@ -307,11 +307,12 @@ func checkNPMWorkflowCall(call workflowCall) error {
 	}{
 		"package-directory": {typeName: "string", required: true},
 		"registry-url":      {typeName: "string"}, "dist-tag": {typeName: "string"}, "access": {typeName: "string"},
+		"source-ref":         {typeName: "string"},
 		"release-asset-mode": {typeName: "boolean", boolean: true}, "release-tag": {typeName: "string"},
 		"provenance-sidecar": {typeName: "string"}, "linked-artifact-metadata": {typeName: "boolean", boolean: true},
 	}
 	if len(call.Inputs) != len(wantInputs) {
-		return fmt.Errorf("workflow_call inputs must contain exactly the eight public inputs")
+		return fmt.Errorf("workflow_call inputs must contain exactly the nine public inputs")
 	}
 	for name, want := range wantInputs {
 		input, ok := call.Inputs[name]

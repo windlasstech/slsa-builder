@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: read}
     concurrency:
-      group: npm-build-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
