@@ -15,6 +15,10 @@ const (
 	tarballArtifactName          = "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"
 	metadataArtifactName         = "js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}"
 	provenanceBundleArtifactName = "js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}"
+	builtSourceExpression        = "${{ inputs.source-ref || github.ref }}"
+	buildConcurrencyGroup        = "npm-build-${{ github.repository }}-" + builtSourceExpression
+	signConcurrencyGroup         = "npm-provenance-sign-${{ github.repository }}-" + builtSourceExpression
+	publishConcurrencyGroup      = "release-mutation-${{ github.repository }}-" + builtSourceExpression
 )
 
 var pinnedActionPattern = regexp.MustCompile(`^[^@\s]+@[0-9a-f]{40}$`)
@@ -101,11 +105,12 @@ type concurrency struct {
 }
 
 type workflowStep struct {
-	ID   string         `yaml:"id"`
-	If   string         `yaml:"if"`
-	Uses string         `yaml:"uses"`
-	Run  string         `yaml:"run"`
-	With map[string]any `yaml:"with"`
+	ID               string         `yaml:"id"`
+	If               string         `yaml:"if"`
+	Uses             string         `yaml:"uses"`
+	Run              string         `yaml:"run"`
+	WorkingDirectory string         `yaml:"working-directory"`
+	With             map[string]any `yaml:"with"`
 }
 
 // CheckBuildJob verifies the permission, runtime, hardening, and handoff contract for job build.
@@ -142,7 +147,7 @@ func CheckBuildJob(path string) (BuildJobResult, error) {
 	if build.RunsOn != "ubuntu-24.04" {
 		return BuildJobResult{}, fmt.Errorf("build job runs-on must be ubuntu-24.04")
 	}
-	if build.Concurrency.Group != "npm-build-${{ github.repository }}-${{ github.ref_name }}" || !build.Concurrency.CancelInProgress || build.Concurrency.Queue != "" {
+	if build.Concurrency.Group != buildConcurrencyGroup || !build.Concurrency.CancelInProgress || build.Concurrency.Queue != "" {
 		return BuildJobResult{}, fmt.Errorf("build job must use the pre-mutation concurrency contract")
 	}
 	if err := checkSteps(build.Steps, &result); err != nil {
@@ -233,7 +238,7 @@ func CheckPublishJob(path string) (PublishJobResult, error) {
 	if normalizeExpression(job.If) != "always()" {
 		return PublishJobResult{}, fmt.Errorf("publish job must run always so it can emit the outcome report")
 	}
-	if result.MutationKey != "release-mutation-${{ github.repository }}-${{ github.ref_name }}" || result.CancelInProgress || result.Queue != "max" {
+	if result.MutationKey != publishConcurrencyGroup || result.CancelInProgress || result.Queue != "max" {
 		return PublishJobResult{}, fmt.Errorf("publish job must use the exact queued mutation concurrency contract")
 	}
 	if err := checkPublishSteps(job.Steps, &result); err != nil {
@@ -268,7 +273,7 @@ func CheckNPMOnlyProfile(path string) (NPMOnlyProfileResult, error) {
 		return NPMOnlyProfileResult{}, fmt.Errorf("provenance-sign contract: %w", err)
 	}
 	signing := document.Jobs["provenance-sign"]
-	if signing.Concurrency.Group != "npm-provenance-sign-${{ github.repository }}-${{ github.ref_name }}" || !signing.Concurrency.CancelInProgress || signing.Concurrency.Queue != "" {
+	if signing.Concurrency.Group != signConcurrencyGroup || !signing.Concurrency.CancelInProgress || signing.Concurrency.Queue != "" {
 		return NPMOnlyProfileResult{}, fmt.Errorf("provenance-sign must use the pre-mutation concurrency contract")
 	}
 	publish, err := CheckPublishJob(path)
@@ -306,12 +311,13 @@ func checkNPMWorkflowCall(call workflowCall) error {
 		boolean  bool
 	}{
 		"package-directory": {typeName: "string", required: true},
+		"source-ref":        {typeName: "string"},
 		"registry-url":      {typeName: "string"}, "dist-tag": {typeName: "string"}, "access": {typeName: "string"},
 		"release-asset-mode": {typeName: "boolean", boolean: true}, "release-tag": {typeName: "string"},
 		"provenance-sidecar": {typeName: "string"}, "linked-artifact-metadata": {typeName: "boolean", boolean: true},
 	}
 	if len(call.Inputs) != len(wantInputs) {
-		return fmt.Errorf("workflow_call inputs must contain exactly the eight public inputs")
+		return fmt.Errorf("workflow_call inputs must contain exactly the nine public inputs")
 	}
 	for name, want := range wantInputs {
 		input, ok := call.Inputs[name]
@@ -462,17 +468,30 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if scalar(steps[0].With["egress-policy"]) != "audit" {
 		return fmt.Errorf("harden-runner must use egress-policy audit")
 	}
-	hasCheckout := false
+	hasTrustedCheckout := false
+	resolverIndex := -1
+	packageCheckoutIndex := -1
 	hasNode24 := false
 	hasCorepack := false
 	hasBuild := false
-	for _, current := range steps {
+	for index, current := range steps {
 		if current.Uses != "" && !pinnedActionPattern.MatchString(current.Uses) {
 			return fmt.Errorf("action reference %q is not pinned to a full SHA", current.Uses)
 		}
 		switch {
 		case strings.HasPrefix(current.Uses, "actions/checkout@"):
-			hasCheckout = scalar(current.With["persist-credentials"]) == "false"
+			switch scalar(current.With["path"]) {
+			case ".slsa-builder":
+				hasTrustedCheckout = scalar(current.With["repository"]) == "${{ job.workflow_repository }}" &&
+					scalar(current.With["ref"]) == "${{ job.workflow_sha }}" &&
+					scalar(current.With["persist-credentials"]) == "false"
+			case "source":
+				packageCheckoutIndex = index
+				if scalar(current.With["ref"]) != "${{ steps.source-ref.outputs.built-revision }}" ||
+					scalar(current.With["persist-credentials"]) != "false" {
+					return fmt.Errorf("package source checkout must use the resolved built revision without persisted credentials")
+				}
+			}
 		case strings.HasPrefix(current.Uses, "actions/setup-node@"):
 			hasNode24 = scalar(current.With["node-version"]) == "24"
 		case strings.HasPrefix(current.Uses, "actions/upload-artifact@"):
@@ -482,11 +501,22 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 			hasCorepack = true
 		}
 		if strings.Contains(current.Run, "npm-profile-build") {
-			hasBuild = true
+			hasBuild = containsAll(current.Run,
+				"--source-ref", "--invocation-ref", "--invocation-revision", "--ref", "--revision")
+		}
+		if strings.Contains(current.Run, "npm-profile-source-ref") {
+			resolverIndex = index
+			if current.ID != "source-ref" || current.WorkingDirectory != ".slsa-builder" || !containsAll(current.Run,
+				"--source-ref", "--ref", "--ref-type", "--revision", "--observed-repository", "--github-output") {
+				return fmt.Errorf("source-ref resolver must expose trusted built-source outputs from invocation observations")
+			}
 		}
 	}
-	if !hasCheckout {
-		return fmt.Errorf("build job must checkout without persisted credentials")
+	if !hasTrustedCheckout {
+		return fmt.Errorf("build job must checkout the trusted builder at job.workflow_sha without credentials")
+	}
+	if resolverIndex < 0 || packageCheckoutIndex < 0 || resolverIndex >= packageCheckoutIndex {
+		return fmt.Errorf("source-ref resolver must precede the package source checkout")
 	}
 	if !hasNode24 {
 		return fmt.Errorf("build job must set up Node.js 24")
@@ -498,6 +528,15 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 		return fmt.Errorf("build job must invoke npm-profile-build")
 	}
 	return nil
+}
+
+func containsAll(value string, required ...string) bool {
+	for _, part := range required {
+		if !strings.Contains(value, part) {
+			return false
+		}
+	}
+	return true
 }
 
 func hasWritePermission(permissions map[string]string, names ...string) bool {

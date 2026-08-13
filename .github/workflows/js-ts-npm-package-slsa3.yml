@@ -9,6 +9,10 @@ on:
         description: Repository-relative directory containing the package to build
         required: true
         type: string
+      source-ref:
+        description: Full refs/tags/ ref of the existing release tag whose content is built
+        required: false
+        type: string
       registry-url:
         description: Credential-free HTTPS npm-compatible registry root
         required: false
@@ -63,7 +67,7 @@ jobs:
     permissions:
       contents: read
     concurrency:
-      group: npm-build-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     outputs:
       package-name: ${{ steps.build.outputs.package-name }}
@@ -83,12 +87,6 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Checkout package source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          path: source
-          persist-credentials: false
-
       - name: Checkout trusted builder
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -102,6 +100,27 @@ jobs:
         with:
           go-version: "1.26.5"
           cache: false
+
+      - name: Resolve built source ref
+        id: source-ref
+        working-directory: .slsa-builder
+        env:
+          INVOCATION_REF: ${{ github.ref }}
+          INVOCATION_REF_TYPE: ${{ github.ref_type }}
+          INVOCATION_REVISION: ${{ github.sha }}
+          OBSERVED_REPOSITORY: ${{ github.repository }}
+          SOURCE_REF: ${{ inputs.source-ref }}
+        run: >-
+          go run ./cmd/slsa-builder-internal npm-profile-source-ref --source-ref "$SOURCE_REF" --ref
+          "$INVOCATION_REF" --ref-type "$INVOCATION_REF_TYPE" --revision "$INVOCATION_REVISION"
+          --observed-repository "$OBSERVED_REPOSITORY" --github-output "$GITHUB_OUTPUT"
+
+      - name: Checkout package source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.source-ref.outputs.built-revision }}
+          path: source
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -139,14 +158,17 @@ jobs:
           CALLER_WORKFLOW_REF: ${{ github.workflow_ref }}
           DIST_TAG: ${{ inputs.dist-tag }}
           EVENT_NAME: ${{ github.event_name }}
+          INVOCATION_REF: ${{ github.ref }}
+          INVOCATION_REVISION: ${{ github.sha }}
           OBSERVED_REPOSITORY: ${{ github.repository }}
           OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-build-output
           PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
-          REF: ${{ github.ref }}
+          REF: ${{ steps.source-ref.outputs.built-ref }}
           REF_TYPE: ${{ github.ref_type }}
           REGISTRY_URL: ${{ inputs.registry-url }}
           REPOSITORY_ROOT: ${{ github.workspace }}/source
-          REVISION: ${{ github.sha }}
+          REVISION: ${{ steps.source-ref.outputs.built-revision }}
+          SOURCE_REF: ${{ inputs.source-ref }}
           TARBALL_ARTIFACT_NAME:
             js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
@@ -156,8 +178,10 @@ jobs:
           --output-directory "$OUTPUT_DIRECTORY" --artifact-name "$TARBALL_ARTIFACT_NAME"
           --metadata-artifact-name "$METADATA_ARTIFACT_NAME" --registry-url "$REGISTRY_URL"
           --dist-tag "$DIST_TAG" --access "$ACCESS" --event-name "$EVENT_NAME" --ref-type
-          "$REF_TYPE" --ref "$REF" --revision "$REVISION" --workflow-sha "$WORKFLOW_SHA"
-          --caller-workflow-filename "$(basename "${CALLER_WORKFLOW_REF%@*}")"
+          "$REF_TYPE" --source-ref "$SOURCE_REF" --invocation-ref "$INVOCATION_REF"
+          --invocation-revision "$INVOCATION_REVISION" --ref "$REF" --revision "$REVISION"
+          --workflow-sha "$WORKFLOW_SHA" --caller-workflow-filename "$(basename
+          "${CALLER_WORKFLOW_REF%@*}")"
 
       - name: Upload package tarball handoff
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -186,7 +210,7 @@ jobs:
       contents: read
       id-token: write
     concurrency:
-      group: npm-provenance-sign-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-provenance-sign-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     outputs:
       bundle-name: ${{ steps.sign.outputs.bundle-path }}
@@ -287,7 +311,7 @@ jobs:
       contents: read
       id-token: write
     concurrency:
-      group: release-mutation-${{ github.repository }}-${{ github.ref_name }}
+      group: release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: false
       queue: max
     outputs:

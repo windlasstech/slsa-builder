@@ -19,17 +19,31 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: read}
     concurrency:
-      group: npm-build-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
         with: {egress-policy: audit}
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with: {persist-credentials: false}
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .slsa-builder
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with: {go-version: "1.26.5", cache: false}
+      - id: source-ref
+        working-directory: .slsa-builder
+        run: go run ./cmd/slsa-builder-internal npm-profile-source-ref --source-ref "$SOURCE_REF" --ref "$INVOCATION_REF" --ref-type "$INVOCATION_REF_TYPE" --revision "$INVOCATION_REVISION" --observed-repository "$OBSERVED_REPOSITORY" --github-output "$GITHUB_OUTPUT"
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ steps.source-ref.outputs.built-revision }}
+          path: source
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: "24"}
       - run: corepack enable
-      - run: go run ./cmd/slsa-builder-internal npm-profile-build
+      - run: go run ./cmd/slsa-builder-internal npm-profile-build --source-ref "$SOURCE_REF" --invocation-ref "$INVOCATION_REF" --invocation-revision "$INVOCATION_REVISION" --ref "$REF" --revision "$REVISION"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with: {name: "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

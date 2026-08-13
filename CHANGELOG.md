@@ -10,9 +10,9 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
-- Specified the optional tags-only `source-ref` input that lets a manual dispatch build an existing
-  release tag, extending the npm profile contract to nine inputs and rebinding source-identity
-  verification to signed provenance fields per ADR 0079 and ADR 0080.
+- Added the optional tags-only `source-ref` input to the npm producer workflow for fixed-pipeline
+  release retries, with built-source provenance, signed invocation context, and ADR 0080
+  verification binding.
 - Added Go-native keyless DSSE signing for npm provenance, with digest-verified handoffs and offline
   exact-Statement verification before bundle upload.
 - Added the public npm-only reusable workflow with trusted-publisher preflights, serialized publish
