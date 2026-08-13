@@ -1,0 +1,9 @@
+{
+  "phase": "provenance-inputs",
+  "case": "npm-source-ref-invocation-conflict-rejected",
+  "source-ref": "refs/tags/v1.2.4",
+  "invocation-ref": "refs/tags/v1.2.3",
+  "invocation-revision": "0123456789abcdef0123456789abcdef01234567",
+  "package-version": "1.2.3",
+  "expected-primary-id": "windlass.verify.error.source-ref-invalid"
+}

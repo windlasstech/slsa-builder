@@ -1,0 +1,13 @@
+{
+  "phase": "provenance-inputs",
+  "case": "npm-source-ref-input-ref-mismatch-rejected",
+  "source-ref": "refs/tags/v1.2.4",
+  "invocation-ref": "refs/heads/main",
+  "invocation-revision": "89abcdef0123456789abcdef0123456789abcdef",
+  "package-version": "1.2.3",
+  "expected-primary-id": "windlass.verify.error.source-ref-invalid",
+  "source": {
+    "ref": "refs/tags/v1.2.3",
+    "input_ref": "refs/tags/v1.2.4"
+  }
+}

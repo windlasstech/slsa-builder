@@ -61,7 +61,7 @@ func validateExternalParameterShape(encoded []byte) error {
 		required []string
 		optional []string
 	}{
-		{name: "source", required: []string{"repository", "ref", "revision", "event_name", "ref_type"}},
+		{name: "source", required: []string{"repository", "ref", "revision", "event_name", "ref_type"}, optional: []string{"input_ref", "invocation_ref", "invocation_revision"}},
 		{name: "workflow", required: []string{"path", "sha", "builder_id"}},
 		{name: "runtime", required: []string{"runner", "node_version", "npm_version"}},
 		{name: "package", required: []string{"directory", "workspace_root", "source_manifest", "name", "version", "private", "repository", "tarball_name", "package_url", "packed_name", "packed_version"}, optional: []string{"publish_config_raw", "packed_files", "consumer_surface"}},
@@ -77,6 +77,25 @@ func validateExternalParameterShape(encoded []byte) error {
 		if json.Unmarshal(top[shape.name], &object) != nil || !exactObjectKeys(object, shape.required, shape.optional) {
 			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters."+shape.name, "nested external parameter members are missing or unexpected")
 		}
+	}
+	var sourceObject map[string]json.RawMessage
+	if err := json.Unmarshal(top["source"], &sourceObject); err != nil {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "source parameters must be an object")
+	}
+	conditionalSourceMembers := []string{"input_ref", "invocation_ref", "invocation_revision"}
+	presentSourceMembers := 0
+	for _, name := range conditionalSourceMembers {
+		raw, present := sourceObject[name]
+		if !present {
+			continue
+		}
+		presentSourceMembers++
+		if string(raw) == "null" {
+			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source."+name, "conditional source members must not be null")
+		}
+	}
+	if presentSourceMembers != 0 && presentSourceMembers != len(conditionalSourceMembers) {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "conditional source members must be all present or all absent")
 	}
 	var packageObject map[string]json.RawMessage
 	if err := json.Unmarshal(top["package"], &packageObject); err != nil {
@@ -170,6 +189,9 @@ func validateExternalParameters(parameters ExternalParameters, expectedRepositor
 	if parameters.Package.Repository != parameters.Source.Repository {
 		return npmValidationError("windlass.verify.error.package-repository-identity-mismatch", "externalParameters.package.repository", "package and source repositories must match")
 	}
+	if err := validateSourceParameters(parameters.Source, parameters.Package.Version); err != nil {
+		return err
+	}
 	if identity.ValidateFullSHA(parameters.Source.Revision) != nil || identity.ValidateFullSHA(parameters.Workflow.SHA) != nil {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.revision", "source and workflow revisions must be full lowercase SHAs")
 	}
@@ -215,6 +237,45 @@ func validateExternalParameters(parameters ExternalParameters, expectedRepositor
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.build", "build result must match script presence")
 	}
 	return validateOptionalExternalFields(parameters)
+}
+
+func validateSourceParameters(source SourceParameters, packageVersion string) error {
+	present := boolCount(source.InputRef != nil) + boolCount(source.InvocationRef != nil) + boolCount(source.InvocationRevision != nil)
+	if present == 0 {
+		return nil
+	}
+	if present != 3 {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "conditional source members must be all present or all absent")
+	}
+	if *source.InputRef != source.Ref {
+		return sourceRefError("source input ref differs from the built source ref")
+	}
+	if err := ValidateSourceRefInput(*source.InputRef, *source.InvocationRef, packageVersion); err != nil {
+		return err
+	}
+	if !validFullGitRef(*source.InvocationRef) {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.invocation_ref", "invocation ref must be a well-formed full Git ref")
+	}
+	if identity.ValidateFullSHA(*source.InvocationRevision) != nil {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.invocation_revision", "invocation revision must be a full lowercase SHA")
+	}
+	return nil
+}
+
+func validFullGitRef(ref string) bool {
+	if !strings.HasPrefix(ref, "refs/") || strings.HasSuffix(ref, "/") {
+		return false
+	}
+	components := strings.Split(ref, "/")
+	if len(components) < 3 {
+		return false
+	}
+	for _, component := range components[1:] {
+		if component == "" || strings.HasPrefix(component, ".") || strings.HasSuffix(component, ".") || strings.HasSuffix(component, ".lock") {
+			return false
+		}
+	}
+	return validTagName(strings.TrimPrefix(ref, "refs/"))
 }
 
 func validatePackageParameters(parameters ExternalParameters) error {

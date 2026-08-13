@@ -120,9 +120,11 @@ is the explicit disabled state.
 
 For the initial GitHub Actions reusable workflow contract, an optional string input whose value is
 an empty string after trimming ASCII whitespace is normalized as omitted before intent resolution.
-Empty `registry-url`, `dist-tag`, `access`, `source-ref`, `release-tag`, and `provenance-sidecar`
-inputs are therefore not caller-supplied intent values. A caller-supplied value exists only when the
-normalized input is non-empty.
+Empty `registry-url`, `dist-tag`, `access`, `release-tag`, and `provenance-sidecar` inputs are
+therefore not caller-supplied intent values. A caller-supplied value exists only when the normalized
+input is non-empty. `source-ref` follows the stricter exact-spelling rule defined in the input rules
+section because its raw value participates in job-level concurrency group computation and cannot be
+normalized there.
 
 #### Optional input rules
 
@@ -158,17 +160,20 @@ publish attempt unless a separately proved failure condition below applies.
 - `access` must be one of `public`, `restricted`, or an empty string. An empty `access` value means
   omitted for publish intent resolution; it does not override source `publishConfig.access`.
 - `source-ref` selects the Git ref whose content the profile builds, packs, attests, and publishes
-  (ADR 0079). When omitted, the built ref is the invocation ref and behavior is exactly the
-  single-identity contract. When supplied, it must be a full `refs/tags/<tag-name>` ref; short tag
-  names, branch refs, pull-request refs, arbitrary commit SHAs, and other ref classes are rejected
-  before install, pack, signing, or publish with `windlass.verify.error.source-ref-invalid`. The tag
-  must already exist in the caller repository and must resolve to a commit; an unresolvable or
-  missing ref fails with the same diagnostic. The tag name must equal `v${package.json version}` as
-  proven by the packed artifact metadata; a mismatch fails with the same diagnostic. On a
-  tag-triggered run (`push` of a tag, or dispatch from a tag ref), a supplied `source-ref` that
-  differs from the invocation tag is a conflict and fails with the same diagnostic. `source-ref` is
-  a declared release-source selector, not a runtime override: it changes which existing repository
-  content is built, never how the build runs.
+  (ADR 0079). Omitted means exactly the empty string. Any other value whose spelling differs from
+  its ASCII-whitespace-trimmed canonical form, including whitespace-only and padded spellings, is
+  rejected before install, pack, signing, or publish with
+  `windlass.verify.error.source-ref-invalid`. When omitted, the built ref is the invocation ref and
+  behavior is exactly the single-identity contract. When supplied, it must be a full
+  `refs/tags/<tag-name>` ref; short tag names, branch refs, pull-request refs, arbitrary commit
+  SHAs, and other ref classes are rejected before install, pack, signing, or publish with
+  `windlass.verify.error.source-ref-invalid`. The tag must already exist in the caller repository
+  and must resolve to a commit; an unresolvable or missing ref fails with the same diagnostic. The
+  tag name must equal `v${package.json version}` as proven by the packed artifact metadata; a
+  mismatch fails with the same diagnostic. On a tag-triggered run (`push` of a tag, or dispatch from
+  a tag ref), a supplied `source-ref` that differs from the invocation tag is a conflict and fails
+  with the same diagnostic. `source-ref` is a declared release-source selector, not a runtime
+  override: it changes which existing repository content is built, never how the build runs.
 - `release-asset-mode` must be `false` for npm-only publication and `true` for npm publication plus
   GitHub Release asset distribution. The workflow must not infer release-asset mode from the
   presence of release-related inputs.
@@ -432,16 +437,24 @@ transparency log entry, but verification binds attestations to published artifac
 treating the entry itself as publication.
 
 For each PRE-mutation job, the concurrency group key must consist only of a job-specific namespace,
-`github.repository`, the release source ref, and, when needed to distinguish documented release
-intent, declared workflow inputs. The release source ref component is the accepted built release
-tag: the `source-ref` tag when supplied, `github.ref_name` otherwise. A key that uses any other
-context or omits the repository, release source ref, or job-specific namespace must fail the YAML
-review gate because it can collide across release intents or make jobs within one run contend with
-one another. A dispatch retry that builds a tag through `source-ref` must not share a group with an
-unrelated release intent merely because both were dispatched from the same invocation branch. The
-key must not include `github.workflow`; inside a called reusable workflow that value resolves to the
-caller's workflow name and creates a self-cancellation trap. Any key containing `github.workflow`
-must fail the YAML review gate.
+`github.repository`, the canonical built-ref expression `${{ inputs.source-ref || github.ref }}`,
+and, when needed to distinguish documented release intent, declared workflow inputs. The full ref is
+required because GitHub expressions cannot derive a tag name from a full ref at job scope. The exact
+PRE-mutation groups are:
+
+```text
+npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
+npm-provenance-sign-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
+```
+
+A key that uses any other context or omits the repository, canonical built ref, or job-specific
+namespace must fail the YAML review gate because it can collide across release intents or make jobs
+within one run contend with one another. A dispatch retry and a tag-triggered run for the same built
+tag must share one group, while a dispatch retry that builds a tag through `source-ref` must not
+share a group with an unrelated release intent merely because both were dispatched from the same
+invocation branch. The key must not include `github.workflow`; inside a called reusable workflow
+that value resolves to the caller's workflow name and creates a self-cancellation trap. Any key
+containing `github.workflow` must fail the YAML review gate.
 
 The PRE-mutation/mutation boundary lies after the signed producer bundle has been generated and
 verified and before the npm publish job begins. npm publication is the first registry mutation, and
@@ -457,15 +470,15 @@ The npm publish job, the release-asset upload jobs, and the manifest publish job
 shared mutation concurrency key shape:
 
 ```text
-release-mutation-<repository>-<built release tag name>
+release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
 ```
 
-The `<built release tag name>` component is the tag name of the accepted built release tag — the
-`source-ref` tag when supplied, `github.ref_name` otherwise — so a dispatch retry of a tag
-serializes with every other run of the same release intent regardless of the invocation ref. The
-mutation key must not include `github.workflow`, the invocation ref, or any other component; a
-workflow that uses a different mutation key must fail the YAML review gate. PRE-mutation groups
-retain their job-specific namespaces so jobs within one run do not contend with one another.
+The final component is the canonical full built ref, so a dispatch retry of a tag serializes with
+every other run of the same release intent regardless of the invocation ref. The mutation key must
+not include `github.workflow`, the invocation ref, or any other component; a workflow that uses a
+different mutation key must fail the YAML review gate. PRE-mutation groups retain their job-specific
+namespaces and the same canonical built-ref component so jobs within one run do not contend with one
+another.
 
 Each mutation concurrency group queues contenders in arrival order. A queued run waits instead of
 being silently replaced by a later pending run. When it enters the mutation segment, a retry of the
@@ -802,7 +815,7 @@ release target, weakening provenance verification, or using a custom token.
   `source.ref`/`source.revision` record the built tag identity, and the signed invocation record
   carries the dispatch ref.
 - Positive fixture: omitted `source-ref` on a tag-triggered run produces the single-identity
-  contract: `source.input_ref` is `null`, the invocation record members are absent, and the run
+  contract: `source.input_ref` is absent, the invocation record members are absent, and the run
   behaves exactly as the pre-`source-ref` contract.
 - Positive fixture: valid release-asset mode run that publishes the npm package, uploads the same
   tarball as the GitHub Release primary asset, uploads the unchanged producer provenance sidecar,

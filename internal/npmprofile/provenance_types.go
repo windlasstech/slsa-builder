@@ -25,6 +25,7 @@ const (
 	IDResolvedDependenciesUnexpectedEntry = "windlass.verify.error.resolved-dependencies-unexpected-entry"
 	IDBuilderDependenciesMismatch         = "windlass.verify.error.builder-dependencies-signing-adapter-mismatch"
 	IDReleaseRefMismatch                  = "windlass.verify.error.release-ref-mismatch"
+	IDSourceRefInvalid                    = "windlass.verify.error.source-ref-invalid"
 )
 
 // ExternalParameters is the closed npm v1 buildType external interface.
@@ -42,11 +43,14 @@ type ExternalParameters struct {
 }
 
 type SourceParameters struct {
-	Repository string `json:"repository"`
-	Ref        string `json:"ref"`
-	Revision   string `json:"revision"`
-	EventName  string `json:"event_name"`
-	RefType    string `json:"ref_type"`
+	Repository         string  `json:"repository"`
+	Ref                string  `json:"ref"`
+	Revision           string  `json:"revision"`
+	EventName          string  `json:"event_name"`
+	RefType            string  `json:"ref_type"`
+	InputRef           *string `json:"input_ref,omitempty"`
+	InvocationRef      *string `json:"invocation_ref,omitempty"`
+	InvocationRevision *string `json:"invocation_revision,omitempty"`
 }
 
 type WorkflowParameters struct {

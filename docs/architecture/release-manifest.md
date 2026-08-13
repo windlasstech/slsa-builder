@@ -677,13 +677,14 @@ The concurrency group represents one release intent and is shared by mutation jo
 The exact mutation concurrency group is:
 
 ```text
-release-mutation-${{ github.repository }}-${{ github.ref_name }}
+release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
 ```
 
-It consists only of the common literal namespace, caller-scoped `github.repository`, and
-`github.ref_name`. The namespace distinguishes the mutation segment from PRE-mutation job groups but
-is identical across release mutation jobs so jobs within the same release intent use the same gate.
-Any other component fails conformance review and must not publish.
+It consists only of the common literal namespace, caller-scoped `github.repository`, and the
+canonical full release-source ref `${{ inputs.source-ref || github.ref }}`. The namespace
+distinguishes the mutation segment from PRE-mutation job groups but is identical across release
+mutation jobs so jobs within the same release intent use the same gate. Any other component fails
+conformance review and must not publish.
 
 The group key must never include `github.workflow`; a workflow that includes it fails conformance
 review and must not publish. In a called reusable workflow that value resolves to the caller's

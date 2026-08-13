@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: read
     concurrency:
-      group: npm-build-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
@@ -30,12 +30,25 @@ jobs:
           egress-policy: audit
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .slsa-builder
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with: {go-version: "1.26.5", cache: false}
+      - id: source-ref
+        working-directory: .slsa-builder
+        run: go run ./cmd/slsa-builder-internal npm-profile-source-ref --source-ref "$SOURCE_REF" --ref "$INVOCATION_REF" --ref-type "$INVOCATION_REF_TYPE" --revision "$INVOCATION_REVISION" --observed-repository "$OBSERVED_REPOSITORY" --github-output "$GITHUB_OUTPUT"
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.source-ref.outputs.built-revision }}
+          path: source
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
       - run: corepack enable
-      - run: go run ./cmd/slsa-builder-internal npm-profile-build
+      - run: go run ./cmd/slsa-builder-internal npm-profile-build --source-ref "$SOURCE_REF" --invocation-ref "$INVOCATION_REF" --invocation-revision "$INVOCATION_REVISION" --ref "$REF" --revision "$REVISION"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
@@ -52,6 +65,9 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     permissions: {contents: read}
+    outputs:
+      built-ref: ${{ steps.source-ref.outputs.built-ref }}
+      built-revision: ${{ steps.source-ref.outputs.built-revision }}
     steps: []
   provenance-sign:
     needs: build
@@ -73,7 +89,10 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
-      - run: go run ./cmd/slsa-builder-internal npm-profile-sign
+      - env:
+          BUILT_REF: ${{ needs.build.outputs.built-ref }}
+          BUILT_REVISION: ${{ needs.build.outputs.built-revision }}
+        run: go run ./cmd/slsa-builder-internal npm-profile-sign --built-ref "$BUILT_REF" --built-revision "$BUILT_REVISION"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
@@ -86,6 +105,7 @@ on:
   workflow_call:
     inputs:
       package-directory: {required: true, type: string}
+      source-ref: {required: false, type: string}
       registry-url: {required: false, type: string}
       dist-tag: {required: false, type: string}
       access: {required: false, type: string}
@@ -106,17 +126,34 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: read}
     concurrency:
-      group: npm-build-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-build-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
+    outputs:
+      built-ref: ${{ steps.source-ref.outputs.built-ref }}
+      built-revision: ${{ steps.source-ref.outputs.built-revision }}
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
         with: {egress-policy: audit}
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with: {persist-credentials: false}
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .slsa-builder
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with: {go-version: "1.26.5", cache: false}
+      - id: source-ref
+        working-directory: .slsa-builder
+        run: go run ./cmd/slsa-builder-internal npm-profile-source-ref --source-ref "$SOURCE_REF" --ref "$INVOCATION_REF" --ref-type "$INVOCATION_REF_TYPE" --revision "$INVOCATION_REVISION" --observed-repository "$OBSERVED_REPOSITORY" --github-output "$GITHUB_OUTPUT"
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ steps.source-ref.outputs.built-revision }}
+          path: source
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: "24"}
       - run: corepack enable
-      - run: go run ./cmd/slsa-builder-internal npm-profile-build
+      - run: go run ./cmd/slsa-builder-internal npm-profile-build --source-ref "$SOURCE_REF" --invocation-ref "$INVOCATION_REF" --invocation-revision "$INVOCATION_REVISION" --ref "$REF" --revision "$REVISION"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with: {name: "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -126,7 +163,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: read, id-token: write}
     concurrency:
-      group: npm-provenance-sign-${{ github.repository }}-${{ github.ref_name }}
+      group: npm-provenance-sign-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: true
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
@@ -140,7 +177,10 @@ jobs:
         with: {name: "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with: {name: "js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}"}
-      - run: go run ./cmd/slsa-builder-internal npm-profile-sign
+      - env:
+          BUILT_REF: ${{ needs.build.outputs.built-ref }}
+          BUILT_REVISION: ${{ needs.build.outputs.built-revision }}
+        run: go run ./cmd/slsa-builder-internal npm-profile-sign --built-ref "$BUILT_REF" --built-revision "$BUILT_REVISION"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: "js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}"
@@ -151,7 +191,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: read, id-token: write}
     concurrency:
-      group: release-mutation-${{ github.repository }}-${{ github.ref_name }}
+      group: release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
       cancel-in-progress: false
       queue: max
     outputs:
@@ -266,7 +306,7 @@ func TestCheckPublishJob(t *testing.T) {
 	if result.Result != "pass" || !result.OIDCPermission || result.MutationPermission || !result.AlwaysRunReport {
 		t.Fatalf("unexpected publish result: %#v", result)
 	}
-	if result.MutationKey != "release-mutation-${{ github.repository }}-${{ github.ref_name }}" || result.CancelInProgress || result.Queue != "max" {
+	if result.MutationKey != "release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}" || result.CancelInProgress || result.Queue != "max" {
 		t.Fatalf("unexpected publish concurrency: %#v", result)
 	}
 }
@@ -276,7 +316,7 @@ func TestCheckPublishJobRejectsBoundaryDrift(t *testing.T) {
 		"wrong dependency":     replaceOnce(t, validNPMOnlyWorkflow, "needs: [build, provenance-sign]", "needs: build"),
 		"cancellable mutation": replaceOnce(t, validNPMOnlyWorkflow, "cancel-in-progress: false\n      queue: max", "cancel-in-progress: true\n      queue: max"),
 		"missing queue":        replaceOnce(t, validNPMOnlyWorkflow, "      queue: max\n", ""),
-		"wrong mutation key":   replaceOnce(t, validNPMOnlyWorkflow, "release-mutation-${{ github.repository }}-${{ github.ref_name }}", "release-mutation-${{ github.workflow }}"),
+		"wrong mutation key":   replaceOnce(t, validNPMOnlyWorkflow, "release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}", "release-mutation-${{ github.workflow }}"),
 		"mutation authority": replaceOnce(t, validNPMOnlyWorkflow,
 			"permissions: {contents: read, id-token: write}\n    concurrency:\n      group: release-mutation-",
 			"permissions: {contents: write, id-token: write}\n    concurrency:\n      group: release-mutation-"),

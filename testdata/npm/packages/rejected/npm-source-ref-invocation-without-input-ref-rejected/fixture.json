@@ -1,0 +1,15 @@
+{
+  "phase": "provenance-inputs",
+  "case": "npm-source-ref-invocation-without-input-ref-rejected",
+  "source-ref": "",
+  "invocation-ref": "refs/heads/main",
+  "invocation-revision": "89abcdef0123456789abcdef0123456789abcdef",
+  "package-version": "1.2.3",
+  "expected-primary-id": "windlass.verify.error.unexpected-external-parameters",
+  "source": {
+    "ref": "refs/tags/v1.2.3",
+    "revision": "0123456789abcdef0123456789abcdef01234567",
+    "invocation_ref": "refs/heads/main",
+    "invocation_revision": "89abcdef0123456789abcdef0123456789abcdef"
+  }
+}

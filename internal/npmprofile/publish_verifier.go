@@ -41,11 +41,14 @@ func (verifier *sigstorePublishVerifier) Verify(ctx context.Context, bundleBytes
 	if err != nil {
 		return VerifiedPublishBundle{}, err
 	}
+	expectedIdentity, err := verifier.identityForStatement(statement)
+	if err != nil {
+		return VerifiedPublishBundle{}, err
+	}
 	runInvocation := statement.Predicate.RunDetails.Metadata.InvocationID
 	if _, err := identity.ParseRunInvocationURI(runInvocation, verifier.config.Identity.SourceRepositoryURI); err != nil {
 		return VerifiedPublishBundle{}, err
 	}
-	expectedIdentity := verifier.config.Identity
 	expectedIdentity.RunInvocationURI = runInvocation
 	if _, err := attestation.Verify(ctx, attestation.Request{
 		Mode:                  verifier.config.Mode,
@@ -63,15 +66,40 @@ func (verifier *sigstorePublishVerifier) Verify(ctx context.Context, bundleBytes
 	return VerifiedPublishBundle{Statement: statement, RunInvocationURI: runInvocation}, nil
 }
 
+func (verifier *sigstorePublishVerifier) identityForStatement(statement provenance.Statement) (attestation.IdentityExpectation, error) {
+	parameters, err := DecodeExternalParameters(statement.Predicate.BuildDefinition.ExternalParameters)
+	if err != nil {
+		return attestation.IdentityExpectation{}, err
+	}
+	expected := verifier.config.Identity
+	if parameters.Source.Repository != expected.SourceRepositoryURI {
+		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-identity-mismatch", "externalParameters.source.repository", "signed npm source repository differs from the verified repository identity")
+	}
+	invocationRef := parameters.Source.Ref
+	invocationRevision := parameters.Source.Revision
+	if parameters.Source.InvocationRef != nil {
+		invocationRef = *parameters.Source.InvocationRef
+		invocationRevision = *parameters.Source.InvocationRevision
+	}
+	if expected.SourceRef != invocationRef {
+		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-ref-mismatch", "externalParameters.source.invocation_ref", "signed npm invocation ref differs from the verified invocation identity")
+	}
+	if expected.SourceDigest != invocationRevision {
+		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-digest-mismatch", "externalParameters.source.invocation_revision", "signed npm invocation revision differs from the verified invocation identity")
+	}
+	expected.SourceRef = invocationRef
+	expected.SourceDigest = invocationRevision
+	return expected, nil
+}
+
 func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.Statement) error {
 	parameters, err := DecodeExternalParameters(statement.Predicate.BuildDefinition.ExternalParameters)
 	if err != nil {
 		return err
 	}
 	identityExpectation := verifier.config.Identity
-	if parameters.Source.Repository != identityExpectation.SourceRepositoryURI ||
-		parameters.Source.Revision != identityExpectation.SourceDigest || parameters.Source.Ref != identityExpectation.SourceRef {
-		return errors.New("signed npm source identity differs from verified Fulcio identity")
+	if parameters.Source.Repository != identityExpectation.SourceRepositoryURI {
+		return errors.New("signed npm source repository differs from verified Fulcio identity")
 	}
 	builderID := statement.Predicate.RunDetails.Builder.ID
 	builderPath, builderSHA, builderFound := strings.Cut(builderID, "@")
