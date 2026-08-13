@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/handoff"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
@@ -61,6 +62,9 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	refType := flags.String("ref-type", "", "observed GitHub ref type")
 	ref := flags.String("ref", "", "observed GitHub ref")
 	revision := flags.String("revision", "", "observed source revision")
+	sourceRef := flags.String("source-ref", "", "caller-selected built source tag ref")
+	invocationRef := flags.String("invocation-ref", "", "observed caller invocation ref")
+	invocationRevision := flags.String("invocation-revision", "", "observed caller invocation revision")
 	workflowSHA := flags.String("workflow-sha", "", "immutable reusable workflow revision")
 	callerWorkflow := flags.String("caller-workflow-filename", "", "observed caller workflow filename")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
@@ -97,6 +101,12 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		}
 		return ErrVerificationFailure
 	}
+	if err := npmprofile.ValidateSourceRefInput(*sourceRef, *invocationRef, selection.Package.Version); err != nil {
+		if reportErr := writeNPMBuildPolicyError(out, err); reportErr != nil {
+			return reportErr
+		}
+		return ErrVerificationFailure
+	}
 	publishIntent, err := npmprofile.ResolveWorkflowPublishIntent(selection, *registryURL, *distTag, *access)
 	if err != nil {
 		return err
@@ -123,7 +133,8 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	}
 	metadata, err := npmprofile.FinalizeWorkflowBuildMetadata(selection, result, npmprofile.WorkflowBuildMetadataConfig{
 		ArtifactName: *artifactName, RegistryURLInput: *registryURL, DistTagInput: *distTag, AccessInput: *access,
-		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, WorkflowSHA: *workflowSHA,
+		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, SourceRefInput: *sourceRef,
+		InvocationRef: conditionalSourceIdentity(*sourceRef, *invocationRef), InvocationRevision: conditionalSourceIdentity(*sourceRef, *invocationRevision), WorkflowSHA: *workflowSHA,
 		CallerWorkflowFilename: *callerWorkflow, RegistryState: registryState,
 	})
 	if err != nil {
@@ -158,6 +169,29 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		return err
 	}
 	return writeDiagnostics(out, nil, nil)
+}
+
+func writeNPMBuildPolicyError(out io.Writer, err error) error {
+	var identified interface{ DiagnosticID() string }
+	if !errors.As(err, &identified) || identified.DiagnosticID() != npmprofile.IDSourceRefInvalid {
+		return err
+	}
+	entry, buildErr := diagnostic.New(identified.DiagnosticID(), "source-ref", err.Error())
+	if buildErr != nil {
+		return buildErr
+	}
+	report, buildErr := diagnostic.Build(nil, []diagnostic.Diagnostic{entry}, nil)
+	if buildErr != nil {
+		return buildErr
+	}
+	return WriteReport(out, report)
+}
+
+func conditionalSourceIdentity(sourceRef, value string) string {
+	if sourceRef == "" {
+		return ""
+	}
+	return value
 }
 
 func metadataPackageURL(metadata npmprofile.BuildMetadata) string {
