@@ -111,9 +111,9 @@ jobs:
           REVISION: ${{ github.sha }}
           SOURCE_REF: ${{ inputs.source-ref }}
         run: >-
-          go run ./cmd/slsa-builder-internal npm-profile-source-ref --source-ref "$SOURCE_REF"
-          --ref "$REF" --ref-type "$REF_TYPE" --revision "$REVISION"
-          --observed-repository "$OBSERVED_REPOSITORY"
+          go run ./cmd/slsa-builder-internal npm-profile-source-ref --source-ref "$SOURCE_REF" --ref
+          "$REF" --ref-type "$REF_TYPE" --revision "$REVISION" --observed-repository
+          "$OBSERVED_REPOSITORY"
 
       - name: Checkout package source
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -178,10 +178,9 @@ jobs:
           --output-directory "$OUTPUT_DIRECTORY" --artifact-name "$TARBALL_ARTIFACT_NAME"
           --metadata-artifact-name "$METADATA_ARTIFACT_NAME" --registry-url "$REGISTRY_URL"
           --dist-tag "$DIST_TAG" --access "$ACCESS" --source-ref "$SOURCE_REF" --event-name
-          "$EVENT_NAME" --ref-type "$REF_TYPE" --ref "$REF" --revision "$REVISION"
-          --invocation-ref "$INVOCATION_REF" --invocation-revision "$INVOCATION_REVISION"
-          --workflow-sha "$WORKFLOW_SHA"
-          --caller-workflow-filename "$(basename "${CALLER_WORKFLOW_REF%@*}")"
+          "$EVENT_NAME" --ref-type "$REF_TYPE" --ref "$REF" --revision "$REVISION" --invocation-ref
+          "$INVOCATION_REF" --invocation-revision "$INVOCATION_REVISION" --workflow-sha
+          "$WORKFLOW_SHA" --caller-workflow-filename "$(basename "${CALLER_WORKFLOW_REF%@*}")"
 
       - name: Upload package tarball handoff
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
