@@ -8,9 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
@@ -104,98 +102,33 @@ func TestNPMProfileBuildCommandRejectsSourceRefVersionBeforeBuild(t *testing.T) 
 	}
 }
 
-func TestNPMProfileBuildCommandWhitespaceSourceRefMatchesOmitted(t *testing.T) {
-	realNPM, err := exec.LookPath("npm")
-	if err != nil {
-		t.Fatal(err)
-	}
-	realNode, err := exec.LookPath("node")
-	if err != nil {
-		t.Fatal(err)
-	}
-	registryRequests := 0
-	registry := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if request.Method != http.MethodGet {
-			t.Errorf("registry method = %s", request.Method)
-		}
-		registryRequests++
-		writer.Header().Set("Content-Type", "application/json")
-		if _, writeErr := writer.Write([]byte(`{"name":"windlass-fixture-unscoped","versions":{}}`)); writeErr != nil {
-			t.Errorf("write registry response: %v", writeErr)
-		}
-	}))
-	t.Cleanup(registry.Close)
+func TestNPMProfileBuildCommandRejectsWhitespaceSourceRefBeforeBuild(t *testing.T) {
+	repository := copyNPMBuildFixture(t)
+	outputDirectory := emptyNPMBuildOutput(t)
+	githubOutput := filepath.Join(t.TempDir(), "github-output")
+	marker := filepath.Join(t.TempDir(), "package-manager-ran")
+	t.Setenv("PATH", writeRejectingNPM(t, marker))
+	transport := &countingRejectTransport{}
 
-	type observation struct {
-		externalParameters []byte
-		registryRequests   int
+	dispatcher := NewDispatcher(npmProfileBuildCommand{httpClient: &http.Client{Transport: transport}})
+	var output bytes.Buffer
+	result := dispatcher.Dispatch(context.Background(), append([]string{"npm-profile-build"}, npmBuildSourceRefArgumentsWithBuiltRef(
+		repository, outputDirectory, githubOutput, "https://127.0.0.1:1", " \t\n\r\v\f", "refs/tags/v1.0.0", "refs/tags/v1.0.0", builtRevision)...), &output)
+	if result.ExitCode != ExitCodeVerificationFailure {
+		t.Fatalf("exit code = %d, output = %s", result.ExitCode, output.String())
 	}
-	observations := make([]observation, 0, 2)
-	for _, test := range []struct {
-		name      string
-		sourceRef string
-	}{
-		{name: "omitted", sourceRef: ""},
-		{name: "ASCII whitespace only", sourceRef: " \t\n\r\v\f"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			repository := copyNPMBuildFixture(t)
-			outputDirectory := emptyNPMBuildOutput(t)
-			githubOutput := filepath.Join(t.TempDir(), "github-output")
-			marker := filepath.Join(t.TempDir(), "package-manager-ran")
-			t.Setenv("PATH", writeMarkingNPM(t, marker, realNPM, realNode))
-			beforeRequests := registryRequests
-			var output bytes.Buffer
-			err := npmProfileBuildCommand{httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
-				ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
-			}}.Execute(context.Background(), npmBuildSourceRefArgumentsWithBuiltRef(repository, outputDirectory, githubOutput, registry.URL,
-				test.sourceRef, "refs/tags/v1.0.0", "refs/tags/v1.0.0", builtRevision), &output)
-			if err != nil {
-				t.Fatalf("Execute() error = %v, output = %s", err, output.String())
-			}
-			var report Report
-			if err := json.Unmarshal(output.Bytes(), &report); err != nil {
-				t.Fatal(err)
-			}
-			if report.ExitCode != ExitCodeSuccess || report.PrimaryID != nil {
-				t.Fatalf("report = %#v", report)
-			}
-			if _, err := os.Stat(marker); err != nil {
-				t.Fatalf("package-manager marker: %v", err)
-			}
-			encodedOutputs, err := os.ReadFile(githubOutput)
-			if err != nil {
-				t.Fatal(err)
-			}
-			metadataBytes, err := os.ReadFile(parseGitHubOutputs(t, string(encodedOutputs))["build-metadata-path"])
-			if err != nil {
-				t.Fatal(err)
-			}
-			var metadata npmprofile.BuildMetadata
-			if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
-				t.Fatal(err)
-			}
-			parameters, err := npmprofile.DecodeExternalParameters(metadata.ExternalParameters)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if parameters.Source.InputRef != nil || parameters.Source.InvocationRef != nil || parameters.Source.InvocationRevision != nil {
-				t.Fatalf("conditional source members = %#v", parameters.Source)
-			}
-			observations = append(observations, observation{
-				externalParameters: append([]byte(nil), metadata.ExternalParameters...),
-				registryRequests:   registryRequests - beforeRequests,
-			})
-		})
+	var report Report
+	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+		t.Fatal(err)
 	}
-	if len(observations) != 2 {
-		t.Fatalf("completed observations = %d, want 2", len(observations))
+	if report.PrimaryID == nil || *report.PrimaryID != npmprofile.IDSourceRefInvalid {
+		t.Fatalf("primary ID = %v", report.PrimaryID)
 	}
-	if !bytes.Equal(observations[1].externalParameters, observations[0].externalParameters) {
-		t.Fatalf("whitespace source-ref metadata differs from omitted\n got: %s\nwant: %s", observations[1].externalParameters, observations[0].externalParameters)
+	if transport.requests != 0 {
+		t.Fatalf("registry requests = %d, want 0", transport.requests)
 	}
-	if observations[1].registryRequests != observations[0].registryRequests {
-		t.Fatalf("whitespace registry requests = %d, omitted = %d", observations[1].registryRequests, observations[0].registryRequests)
+	if _, err := os.Stat(marker); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("package-manager subprocess evidence: %v", err)
 	}
 }
 
@@ -248,20 +181,6 @@ func npmBuildSourceRefArgumentsWithBuiltRef(repository, outputDirectory, githubO
 		"--caller-workflow-filename", "release.yml",
 		"--github-output", githubOutput,
 	}
-}
-
-func writeMarkingNPM(t *testing.T, marker, realNPM, realNode string) string {
-	t.Helper()
-	directory := t.TempDir()
-	script := "#!/bin/sh\n: > " + strconv.Quote(marker) + "\nexec " + strconv.Quote(realNPM) + " \"$@\"\n"
-	if err := os.WriteFile(filepath.Join(directory, "npm"), []byte(script), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(realNode, filepath.Join(directory, "node")); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("RUNNER_TOOL_CACHE", directory)
-	return directory + string(os.PathListSeparator) + os.Getenv("PATH")
 }
 
 func writeRejectingNPM(t *testing.T, marker string) string {

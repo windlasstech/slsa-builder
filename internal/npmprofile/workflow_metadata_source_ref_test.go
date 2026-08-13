@@ -1,7 +1,6 @@
 package npmprofile
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -70,7 +69,7 @@ func TestFinalizeWorkflowBuildMetadataSourceRefRequiresInvocationContext(t *test
 	requireNPMDiagnostic(t, err, IDUnexpectedExternalParameters)
 }
 
-func TestFinalizeWorkflowBuildMetadataWhitespaceSourceRefMatchesOmitted(t *testing.T) {
+func TestFinalizeWorkflowBuildMetadataRejectsWhitespaceSourceRef(t *testing.T) {
 	repositoryRoot := t.TempDir()
 	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"https://github.com/example/project"}`)
 	if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
@@ -97,23 +96,7 @@ func TestFinalizeWorkflowBuildMetadataWhitespaceSourceRefMatchesOmitted(t *testi
 		WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml",
 		RegistryState: RegistryPreflightState{PackageExists: true},
 	}
-	omitted, err := FinalizeWorkflowBuildMetadata(selection, build, config)
-	if err != nil {
-		t.Fatal(err)
-	}
 	config.SourceRefInput = " \t\n\r\v\f"
-	whitespace, err := FinalizeWorkflowBuildMetadata(selection, build, config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(whitespace.ExternalParameters, omitted.ExternalParameters) {
-		t.Fatalf("whitespace source-ref metadata differs from omitted\n got: %s\nwant: %s", whitespace.ExternalParameters, omitted.ExternalParameters)
-	}
-	parameters, err := DecodeExternalParameters(whitespace.ExternalParameters)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if parameters.Source.InputRef != nil || parameters.Source.InvocationRef != nil || parameters.Source.InvocationRevision != nil {
-		t.Fatalf("whitespace source-ref emitted conditional source members: %#v", parameters.Source)
-	}
+	_, err := FinalizeWorkflowBuildMetadata(selection, build, config)
+	requireNPMDiagnostic(t, err, IDSourceRefInvalid)
 }

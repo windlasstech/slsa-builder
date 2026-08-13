@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,7 +33,7 @@ func TestNPMProfileSourceRefCommand(t *testing.T) {
 		assertSourceRefOutputs(t, output, "refs/tags/v1.2.3", revision)
 	})
 
-	t.Run("ASCII whitespace source ref is byte-identical to omitted", func(t *testing.T) {
+	t.Run("ASCII whitespace source ref is rejected before resolution", func(t *testing.T) {
 		output := filepath.Join(t.TempDir(), "github-output")
 		command := newNPMProfileSourceRefCommand(func(context.Context, string, string, string) (string, error) {
 			t.Fatal("resolver called for ASCII-whitespace-only source-ref")
@@ -41,10 +42,19 @@ func TestNPMProfileSourceRefCommand(t *testing.T) {
 		result, report := dispatchSourceRef(t, command, output,
 			"--source-ref", " \t\n\r\v\f", "--ref", "refs/tags/v1.2.3", "--ref-type", "tag", "--revision", revision,
 			"--observed-repository", "windlasstech/slsa-builder")
-		if result.ExitCode != ExitCodeSuccess || report != "" {
+		if result.ExitCode != ExitCodeVerificationFailure {
 			t.Fatalf("result = %#v, report = %s", result, report)
 		}
-		assertSourceRefOutputs(t, output, "refs/tags/v1.2.3", revision)
+		var decoded diagnostic.Report
+		if err := json.Unmarshal([]byte(report), &decoded); err != nil {
+			t.Fatal(err)
+		}
+		if decoded.PrimaryID == nil || *decoded.PrimaryID != npmprofile.IDSourceRefInvalid {
+			t.Fatalf("primary ID = %v", decoded.PrimaryID)
+		}
+		if _, err := os.Stat(output); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("GitHub output exists after rejection: %v", err)
+		}
 	})
 
 	t.Run("supplied tag resolves", func(t *testing.T) {

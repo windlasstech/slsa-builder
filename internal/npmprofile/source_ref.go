@@ -19,21 +19,18 @@ const sourceRefResolutionTimeout = 30 * time.Second
 
 const sourceRefGitOutputLimit = 1 << 20
 
-// NormalizeSourceRefInput maps ASCII-whitespace-only input to omission without canonicalizing a
-// supplied ref spelling.
+// NormalizeSourceRefInput preserves the raw spelling used by job-level concurrency expressions.
+// Only the exact empty string represents omission.
 func NormalizeSourceRefInput(sourceRef string) string {
-	if strings.Trim(sourceRef, " \t\n\r\v\f") == "" {
-		return ""
-	}
 	return sourceRef
 }
 
 // ValidateSourceRefInput validates the tags-only caller-selected build source intent.
 func ValidateSourceRefInput(sourceRef, invocationRef, packageVersion string) error {
-	trimmedSourceRef := strings.Trim(sourceRef, " \t\n\r\v\f")
-	if trimmedSourceRef == "" {
+	if sourceRef == "" {
 		return nil
 	}
+	trimmedSourceRef := strings.Trim(sourceRef, " \t\n\r\v\f")
 	if sourceRef != trimmedSourceRef {
 		return sourceRefError("source-ref must use its exact canonical spelling without surrounding whitespace")
 	}
