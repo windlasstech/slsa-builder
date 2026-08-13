@@ -433,15 +433,17 @@ treating the entry itself as publication.
 
 For each PRE-mutation job, the concurrency group key must consist only of a job-specific namespace,
 `github.repository`, the release source ref, and, when needed to distinguish documented release
-intent, declared workflow inputs. The release source ref component is the accepted built release
-tag: the `source-ref` tag when supplied, `github.ref_name` otherwise. A key that uses any other
-context or omits the repository, release source ref, or job-specific namespace must fail the YAML
-review gate because it can collide across release intents or make jobs within one run contend with
-one another. A dispatch retry that builds a tag through `source-ref` must not share a group with an
-unrelated release intent merely because both were dispatched from the same invocation branch. The
-key must not include `github.workflow`; inside a called reusable workflow that value resolves to the
-caller's workflow name and creates a self-cancellation trap. Any key containing `github.workflow`
-must fail the YAML review gate.
+intent, declared workflow inputs. The release source ref component is the accepted built release ref
+in its full form: the `source-ref` value when supplied, `github.ref` otherwise. The full-ref form is
+canonical in both cases because the GitHub Actions expression language cannot derive a tag name from
+a full ref at job scope, and a dispatch retry must share one group with the tag-triggered run of the
+same release intent. A key that uses any other context or omits the repository, release source ref,
+or job-specific namespace must fail the YAML review gate because it can collide across release
+intents or make jobs within one run contend with one another. A dispatch retry that builds a tag
+through `source-ref` must not share a group with an unrelated release intent merely because both
+were dispatched from the same invocation branch. The key must not include `github.workflow`; inside
+a called reusable workflow that value resolves to the caller's workflow name and creates a
+self-cancellation trap. Any key containing `github.workflow` must fail the YAML review gate.
 
 The PRE-mutation/mutation boundary lies after the signed producer bundle has been generated and
 verified and before the npm publish job begins. npm publication is the first registry mutation, and
@@ -457,15 +459,15 @@ The npm publish job, the release-asset upload jobs, and the manifest publish job
 shared mutation concurrency key shape:
 
 ```text
-release-mutation-<repository>-<built release tag name>
+release-mutation-<repository>-<built release ref>
 ```
 
-The `<built release tag name>` component is the tag name of the accepted built release tag — the
-`source-ref` tag when supplied, `github.ref_name` otherwise — so a dispatch retry of a tag
-serializes with every other run of the same release intent regardless of the invocation ref. The
-mutation key must not include `github.workflow`, the invocation ref, or any other component; a
-workflow that uses a different mutation key must fail the YAML review gate. PRE-mutation groups
-retain their job-specific namespaces so jobs within one run do not contend with one another.
+The `<built release ref>` component is the full form of the accepted built release ref — the
+`source-ref` value when supplied, `github.ref` otherwise — so a dispatch retry of a tag serializes
+with every other run of the same release intent regardless of the invocation ref. The mutation key
+must not include `github.workflow`, the invocation ref, or any other component; a workflow that uses
+a different mutation key must fail the YAML review gate. PRE-mutation groups retain their
+job-specific namespaces so jobs within one run do not contend with one another.
 
 Each mutation concurrency group queues contenders in arrival order. A queued run waits instead of
 being silently replaced by a later pending run. When it enters the mutation segment, a retry of the
@@ -802,7 +804,7 @@ release target, weakening provenance verification, or using a custom token.
   `source.ref`/`source.revision` record the built tag identity, and the signed invocation record
   carries the dispatch ref.
 - Positive fixture: omitted `source-ref` on a tag-triggered run produces the single-identity
-  contract: `source.input_ref` is `null`, the invocation record members are absent, and the run
+  contract: `source.input_ref` is absent, the invocation record members are absent, and the run
   behaves exactly as the pre-`source-ref` contract.
 - Positive fixture: valid release-asset mode run that publishes the npm package, uploads the same
   tarball as the GitHub Release primary asset, uploads the unchanged producer provenance sidecar,

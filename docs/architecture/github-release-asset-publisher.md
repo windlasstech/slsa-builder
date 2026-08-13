@@ -172,11 +172,13 @@ Pre-mutation jobs must declare `cancel-in-progress: true` with no `queue` key.
 The exact mutation concurrency group is:
 
 ```text
-release-mutation-${{ github.repository }}-${{ github.ref_name }}
+release-mutation-${{ github.repository }}-${{ github.ref }}
 ```
 
-The key is composed only from the literal namespace plus `github.repository` and `github.ref_name`.
-It must fail static workflow conformance if it uses any other context. In particular, a key must not
+The key is composed only from the literal namespace plus `github.repository` and `github.ref`. The
+full-ref form is canonical so this job shares one group with the npm producer's mutation job, whose
+key carries the accepted built release ref (`source-ref` when supplied, `github.ref` otherwise). It
+must fail static workflow conformance if it uses any other context. In particular, a key must not
 contain `github.workflow`: inside a called reusable workflow that value resolves to the caller's
 workflow name, creating a self-cancellation trap in which the caller and callee can collide. The npm
 publish job, the one release-upload job, and the manifest publish job for one caller repository and
