@@ -120,9 +120,11 @@ is the explicit disabled state.
 
 For the initial GitHub Actions reusable workflow contract, an optional string input whose value is
 an empty string after trimming ASCII whitespace is normalized as omitted before intent resolution.
-Empty `registry-url`, `dist-tag`, `access`, `source-ref`, `release-tag`, and `provenance-sidecar`
-inputs are therefore not caller-supplied intent values. A caller-supplied value exists only when the
-normalized input is non-empty.
+Empty `registry-url`, `dist-tag`, `access`, `release-tag`, and `provenance-sidecar` inputs are
+therefore not caller-supplied intent values. A caller-supplied value exists only when the normalized
+input is non-empty. `source-ref` follows the stricter exact-spelling rule defined in the input rules
+section because its raw value participates in job-level concurrency group computation and cannot be
+normalized there.
 
 #### Optional input rules
 
@@ -158,17 +160,20 @@ publish attempt unless a separately proved failure condition below applies.
 - `access` must be one of `public`, `restricted`, or an empty string. An empty `access` value means
   omitted for publish intent resolution; it does not override source `publishConfig.access`.
 - `source-ref` selects the Git ref whose content the profile builds, packs, attests, and publishes
-  (ADR 0079). When omitted, the built ref is the invocation ref and behavior is exactly the
-  single-identity contract. When supplied, it must be a full `refs/tags/<tag-name>` ref; short tag
-  names, branch refs, pull-request refs, arbitrary commit SHAs, and other ref classes are rejected
-  before install, pack, signing, or publish with `windlass.verify.error.source-ref-invalid`. The tag
-  must already exist in the caller repository and must resolve to a commit; an unresolvable or
-  missing ref fails with the same diagnostic. The tag name must equal `v${package.json version}` as
-  proven by the packed artifact metadata; a mismatch fails with the same diagnostic. On a
-  tag-triggered run (`push` of a tag, or dispatch from a tag ref), a supplied `source-ref` that
-  differs from the invocation tag is a conflict and fails with the same diagnostic. `source-ref` is
-  a declared release-source selector, not a runtime override: it changes which existing repository
-  content is built, never how the build runs.
+  (ADR 0079). Omitted means exactly the empty string. Any other value whose spelling differs from
+  its ASCII-whitespace-trimmed canonical form, including whitespace-only and padded spellings, is
+  rejected before install, pack, signing, or publish with
+  `windlass.verify.error.source-ref-invalid`. When omitted, the built ref is the invocation ref and
+  behavior is exactly the single-identity contract. When supplied, it must be a full
+  `refs/tags/<tag-name>` ref; short tag names, branch refs, pull-request refs, arbitrary commit
+  SHAs, and other ref classes are rejected before install, pack, signing, or publish with
+  `windlass.verify.error.source-ref-invalid`. The tag must already exist in the caller repository
+  and must resolve to a commit; an unresolvable or missing ref fails with the same diagnostic. The
+  tag name must equal `v${package.json version}` as proven by the packed artifact metadata; a
+  mismatch fails with the same diagnostic. On a tag-triggered run (`push` of a tag, or dispatch from
+  a tag ref), a supplied `source-ref` that differs from the invocation tag is a conflict and fails
+  with the same diagnostic. `source-ref` is a declared release-source selector, not a runtime
+  override: it changes which existing repository content is built, never how the build runs.
 - `release-asset-mode` must be `false` for npm-only publication and `true` for npm publication plus
   GitHub Release asset distribution. The workflow must not infer release-asset mode from the
   presence of release-related inputs.
