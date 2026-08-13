@@ -133,15 +133,16 @@ workflow conformance to reject the workflow before release use. `queue: max` com
 The exact mutation concurrency group is:
 
 ```text
-release-mutation-${{ github.repository }}-${{ github.ref_name }}
+release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
 ```
 
 The mutation concurrency group represents one release intent and is composed only from the literal
-namespace plus `github.repository` and `github.ref_name`. PRE-mutation groups retain job-specific
-namespaces. Any other context or input in the mutation key is a conformance failure and must cause
-workflow validation to reject the release configuration. `github.workflow` must not appear in this
-or any called-workflow concurrency key: in a reusable workflow it resolves to the caller's workflow
-name and creates a self-cancellation trap. Detection of `github.workflow` in a key must reject the
+namespace plus `github.repository` and the canonical full built ref
+`${{ inputs.source-ref || github.ref }}`. PRE-mutation groups retain job-specific namespaces. Any
+other context or input in the mutation key is a conformance failure and must cause workflow
+validation to reject the release configuration. `github.workflow` must not appear in this or any
+called-workflow concurrency key: in a reusable workflow it resolves to the caller's workflow name
+and creates a self-cancellation trap. Detection of `github.workflow` in a key must reject the
 workflow before release execution.
 
 All mutation jobs participating in one public profile invocation use the same mutation group, with
@@ -524,7 +525,7 @@ The following focused valid `source` group records a dispatch retry: the run was
     "ref_type": "tag",
     "input_ref": "refs/tags/v1.2.3",
     "invocation_ref": "refs/heads/main",
-    "invocation_revision": "89abcdef0123456789abcdef0123456789abcdef01"
+    "invocation_revision": "89abcdef0123456789abcdef0123456789abcdef"
   }
 }
 ```

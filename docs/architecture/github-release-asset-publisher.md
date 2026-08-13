@@ -172,15 +172,16 @@ Pre-mutation jobs must declare `cancel-in-progress: true` with no `queue` key.
 The exact mutation concurrency group is:
 
 ```text
-release-mutation-${{ github.repository }}-${{ github.ref_name }}
+release-mutation-${{ github.repository }}-${{ inputs.source-ref || github.ref }}
 ```
 
-The key is composed only from the literal namespace plus `github.repository` and `github.ref_name`.
-It must fail static workflow conformance if it uses any other context. In particular, a key must not
-contain `github.workflow`: inside a called reusable workflow that value resolves to the caller's
-workflow name, creating a self-cancellation trap in which the caller and callee can collide. The npm
-publish job, the one release-upload job, and the manifest publish job for one caller repository and
-release source ref use this one shared mutation key.
+The key is composed only from the literal namespace plus `github.repository` and the canonical full
+release-source ref `${{ inputs.source-ref || github.ref }}`. It must fail static workflow
+conformance if it uses any other context. In particular, a key must not contain `github.workflow`:
+inside a called reusable workflow that value resolves to the caller's workflow name, creating a
+self-cancellation trap in which the caller and callee can collide. The npm publish job, the one
+release-upload job, and the manifest publish job for one caller repository and release source ref
+use this one shared mutation key.
 
 The release-asset mutation segment is the one release-upload job's occupancy of this concurrency
 group. It begins when that job enters the group and ends when the job completes. At segment entry,
