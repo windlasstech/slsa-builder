@@ -10,6 +10,10 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
+- Added the optional tags-only `source-ref` input to the npm producer workflow: a failed release can
+  be retried by dispatching from a ref that carries the fixed pipeline with
+  `source-ref: refs/tags/vX.Y.Z`, building and attesting the existing tag's content while the signed
+  invocation record preserves the dispatch context, per ADR 0079 and ADR 0080.
 - Specified the optional tags-only `source-ref` input that lets a manual dispatch build an existing
   release tag, extending the npm profile contract to nine inputs and rebinding source-identity
   verification to signed provenance fields per ADR 0079 and ADR 0080.
