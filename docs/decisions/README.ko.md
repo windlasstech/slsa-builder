@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0080`까지입니다.
+`0081`까지입니다.
 
 | 범위      | 주제                               | 설명                                                                           |
 | --------- | ---------------------------------- | ------------------------------------------------------------------------------ |
@@ -61,6 +61,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0078      | pnpm 설정 전용 루트 패키지 모드    | `packages` 누락은 잘못된 데이터가 아니라 루트 전용 모드.                       |
 | 0079      | 호출자 지정 빌드 소스 ref          | 모든 producer profile의 기본 릴리즈 재시도 경로인 태그 전용 `source-ref` 입력. |
 | 0080      | 인증서 클레임 = 호출 컨텍스트      | 소스 정책은 서명된 provenance 필드에 바인딩; cert 소스 클레임은 호출을 증명.   |
+| 0081      | npm OIDC exchange 응답 계약        | 성공 본문을 실측 형태에 핀; exchange 토큰 수명은 15분.                         |
 
 ## ADR status와 relations
 
@@ -200,6 +201,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0078 | Treat settings-only pnpm-workspace.yaml as standalone root package mode                           | JS/TS npm build and pack, verification policy and fixtures                                                                                                                          |
 | 0079 | Support a tags-only caller-specified build source ref for release retries across profiles         | Core profile contract, JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                |
 | 0080 | Bind source identity policy to signed provenance fields, certificate claims as invocation context | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
+| 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime         | JS/TS npm package profile, JS/TS npm provenance and publish                                                                                                                         |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
