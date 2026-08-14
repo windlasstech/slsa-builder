@@ -20,6 +20,8 @@ const (
 	testPublishToken  = "npm-short-lived-secret-value"
 )
 
+var testExchangeNow = time.Date(2026, 8, 7, 12, 0, 1, 0, time.UTC)
+
 func TestOIDCExchangeSuccess(t *testing.T) {
 	t.Parallel()
 
@@ -36,6 +38,78 @@ func TestOIDCExchangeSuccess(t *testing.T) {
 		t.Fatal("Exchange() did not preserve the exchanged token in memory")
 	}
 	if !result.ExpiresAt.Equal(time.Date(2026, 8, 7, 13, 0, 0, 0, time.UTC)) {
+		t.Fatalf("expires_at = %s", result.ExpiresAt)
+	}
+}
+
+// ADR 0081: the live registry returns created/expires as epoch-second JSON numbers, while npm's
+// documentation example shows RFC 3339 strings. Both representations must be accepted.
+func TestOIDCExchangeSuccessEpochSeconds(t *testing.T) {
+	t.Parallel()
+
+	created := testExchangeNow.Add(-time.Second).Unix()
+	expires := testExchangeNow.Add(15 * time.Minute).Unix()
+	server := newOIDCExchangeServer(t, http.StatusCreated, fmt.Sprintf(
+		`{"token_type":"oidc","token":%q,"created":%d,"expires":%d}`,
+		testPublishToken, created, expires,
+	))
+	defer server.Close()
+
+	result := newTestOIDCClient(t, server).Exchange(context.Background(), "@windlass/slsa-builder", newSecretToken(testIdentityToken))
+	assertOIDCPass(t, result)
+	if result.Token.value() != testPublishToken {
+		t.Fatal("Exchange() did not preserve the exchanged token in memory")
+	}
+	if !result.CreatedAt.Equal(time.Unix(created, 0).UTC()) {
+		t.Fatalf("created_at = %s", result.CreatedAt)
+	}
+	if !result.ExpiresAt.Equal(time.Unix(expires, 0).UTC()) {
+		t.Fatalf("expires_at = %s", result.ExpiresAt)
+	}
+}
+
+// ADR 0081: every other strictness rule is retained; each contract violation must fail before
+// registry mutation with npm-oidc-exchange-indeterminate.
+func TestOIDCExchangeResponseContractRejections(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]string{
+		"unknown member":        `{"token_type":"oidc","token":"x","created":"2026-08-07T12:00:00Z","expires":"2026-08-07T12:15:00Z","scope":"publish"}`,
+		"missing member":        `{"token_type":"oidc","token":"x","created":"2026-08-07T12:00:00Z"}`,
+		"wrong token_type":      `{"token_type":"bearer","token":"x","created":"2026-08-07T12:00:00Z","expires":"2026-08-07T12:15:00Z"}`,
+		"inverted lifetime":     `{"token_type":"oidc","token":"x","created":"2026-08-07T12:15:00Z","expires":"2026-08-07T12:00:00Z"}`,
+		"expired at exchange":   `{"token_type":"oidc","token":"x","created":"2026-08-07T11:45:00Z","expires":"2026-08-07T12:00:00Z"}`,
+		"malformed string":      `{"token_type":"oidc","token":"x","created":"not-a-timestamp","expires":"2026-08-07T12:15:00Z"}`,
+		"fractional epoch":      `{"token_type":"oidc","token":"x","created":1786705013,"expires":1786705913.5}`,
+		"non-positive epoch":    `{"token_type":"oidc","token":"x","created":1786705013,"expires":0}`,
+		"epoch as bare string":  `{"token_type":"oidc","token":"x","created":"1786705013","expires":"2026-08-07T12:15:00Z"}`,
+		"mixed representations": `{"token_type":"oidc","token":"x","created":1786705013,"expires":"not-a-timestamp"}`,
+	}
+	for name, body := range cases {
+		t.Run(name, func(t *testing.T) {
+			assertOIDCExchangeFailure(t, http.StatusCreated, body, IDNPMOIDCExchangeIndeterminate)
+		})
+	}
+}
+
+// ADR 0081: a success body mixing the observed epoch-number and documented RFC 3339
+// representations across created/expires is accepted and normalized to instants.
+func TestOIDCExchangeSuccessMixedTimestamps(t *testing.T) {
+	t.Parallel()
+
+	created := testExchangeNow.Add(-time.Second).Unix()
+	server := newOIDCExchangeServer(t, http.StatusCreated, fmt.Sprintf(
+		`{"token_type":"oidc","token":%q,"created":%d,"expires":"2026-08-07T12:15:00Z"}`,
+		testPublishToken, created,
+	))
+	defer server.Close()
+
+	result := newTestOIDCClient(t, server).Exchange(context.Background(), "@windlass/slsa-builder", newSecretToken(testIdentityToken))
+	assertOIDCPass(t, result)
+	if !result.CreatedAt.Equal(time.Unix(created, 0).UTC()) {
+		t.Fatalf("created_at = %s", result.CreatedAt)
+	}
+	if !result.ExpiresAt.Equal(time.Date(2026, 8, 7, 12, 15, 0, 0, time.UTC)) {
 		t.Fatalf("expires_at = %s", result.ExpiresAt)
 	}
 }
@@ -226,7 +300,7 @@ func newTestOIDCClient(t *testing.T, server *httptest.Server) *OIDCClient {
 		HTTPClient:  server.Client(),
 		RegistryURL: server.URL + "/",
 		Now: func() time.Time {
-			return time.Date(2026, 8, 7, 12, 0, 1, 0, time.UTC)
+			return testExchangeNow
 		},
 	})
 	if err != nil {

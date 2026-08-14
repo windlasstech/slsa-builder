@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -242,10 +243,10 @@ func decodeNPMExchangeResponse(encoded []byte, now time.Time) (SecretToken, time
 	decoder := json.NewDecoder(bytes.NewReader(encoded))
 	decoder.DisallowUnknownFields()
 	var response struct {
-		TokenType string `json:"token_type"`
-		Token     string `json:"token"`
-		Created   string `json:"created"`
-		Expires   string `json:"expires"`
+		TokenType string          `json:"token_type"`
+		Token     string          `json:"token"`
+		Created   json.RawMessage `json:"created"`
+		Expires   json.RawMessage `json:"expires"`
 	}
 	if err := decoder.Decode(&response); err != nil {
 		return SecretToken{}, time.Time{}, time.Time{}, err
@@ -254,13 +255,34 @@ func decodeNPMExchangeResponse(encoded []byte, now time.Time) (SecretToken, time
 	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
 		return SecretToken{}, time.Time{}, time.Time{}, errors.New("multiple JSON values")
 	}
-	createdAt, createdErr := time.Parse(time.RFC3339, response.Created)
-	expiresAt, expiresErr := time.Parse(time.RFC3339, response.Expires)
+	createdAt, createdErr := parseExchangeTimestamp(response.Created)
+	expiresAt, expiresErr := parseExchangeTimestamp(response.Expires)
 	if response.TokenType != "oidc" || response.Token == "" || strings.ContainsAny(response.Token, "\r\n\x00") ||
 		createdErr != nil || expiresErr != nil || !expiresAt.After(createdAt) || !expiresAt.After(now) {
 		return SecretToken{}, time.Time{}, time.Time{}, errors.New("invalid npm OIDC exchange response")
 	}
 	return newSecretToken(response.Token), createdAt, expiresAt, nil
+}
+
+// parseExchangeTimestamp decodes one exchange timestamp per ADR 0081: either an RFC 3339 string
+// (the documented representation) or an integral, positive JSON number of epoch seconds (the
+// observed live-registry representation), normalized to an instant.
+func parseExchangeTimestamp(raw json.RawMessage) (time.Time, error) {
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil {
+		return time.Parse(time.RFC3339, text)
+	}
+	var number json.Number
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	if err := decoder.Decode(&number); err != nil {
+		return time.Time{}, err
+	}
+	seconds, err := strconv.ParseInt(number.String(), 10, 64)
+	if err != nil || seconds <= 0 {
+		return time.Time{}, errors.New("invalid epoch-seconds timestamp")
+	}
+	return time.Unix(seconds, 0).UTC(), nil
 }
 
 func oidcPassReport() diagnostic.Report {
