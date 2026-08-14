@@ -29,7 +29,7 @@ the Go implementation tree has not been added yet.
 
 | Task                     | Location                                                   | Notes                                             |
 | ------------------------ | ---------------------------------------------------------- | ------------------------------------------------- |
-| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0078`.          |
+| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0081`.          |
 | Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`. |
 | Bootstrap / dev setup    | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.                  |
 | CI / workflow security   | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.                |

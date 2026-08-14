@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0078`.
+`0081`.
 
 ## STRUCTURE
 
@@ -20,11 +20,13 @@ docs/decisions/
 ├── 0076-use-observation-preflights-and-first-mutation-classification.md
 ├── 0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md
 ├── 0078-treat-settings-only-pnpm-workspace-yaml-as-standalone-root-package-mode.md
+├── ...                                                  # 0079–0080
+├── 0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0078`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0081`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -53,6 +55,9 @@ groupings.
 | Build-environment recording   | `0070`, `0071`                              | Toolchain distributions, runner image, builder.version, builderDependencies. |
 | Windlass provenance signing   | `0077`                                      | Go-native exact-byte DSSE signing for all profiles and release manifests.    |
 | pnpm settings-only workspaces | `0078`                                      | Missing `packages` selects only the root package.                            |
+| Caller-specified source ref   | `0079`                                      | Tags-only `source-ref` input for fixed-pipeline release retries.             |
+| Source binding model          | `0080`                                      | Signed provenance fields vs certificate invocation claims.                   |
+| npm OIDC exchange contract    | `0081`                                      | Observed response shape; 15-minute exchange token lifetime.                  |
 
 ## CONVENTIONS
 
