@@ -149,6 +149,20 @@ Note that `t.Errorf` inside the handler reports against the test's `*testing.T`;
 constructor helper (`newOIDCExchangeServer` in `internal/npmprofile/oidc_client_test.go`) accepts
 `t` and calls `t.Helper()` for exactly this reason.
 
+### Gated live integration tests
+
+Tests must stay hermetic by default: no real network, no real package-manager toolchain, no mutable
+external state. When a test genuinely exercises the real toolchain or network surface—for example,
+invoking Corepack to acquire pnpm or Yarn and running `npm pack` against a real package—name it with
+a `Live` suffix and gate it twice:
+
+- Skip under `go test -short` with `testing.Short()`.
+- Skip unless the operator explicitly opts in with `SLSA_BUILDER_LIVE_TOOLCHAIN=1`.
+
+Use a helper such as `requireLiveToolchain(t)` that calls `t.Helper()` and then
+`t.Skip("live toolchain test: set SLSA_BUILDER_LIVE_TOOLCHAIN=1 to run")` when the variable is
+absent. These tests never run in CI; they are reserved for manual dogfood verification.
+
 ## Fuzzing
 
 Fuzzing is the centerpiece of testing on this repository's trust boundary. Go 1.18 made Go the first

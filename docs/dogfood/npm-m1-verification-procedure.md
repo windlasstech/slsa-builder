@@ -36,6 +36,8 @@ to the caller workflow is already confirmed working.
   verification exposes a signer defect. This is the ADR 0077 dogfood consequence.
 - Never use a token, OTP, or credential fallback. The successful path is npm OIDC trusted publishing
   only.
+- Before dispatching, optionally run the gated `Live` build/pack tests in `internal/npmprofile` with
+  `SLSA_BUILDER_LIVE_TOOLCHAIN=1` as a manual real-toolchain pre-check.
 
 ## Phase 0: pre-run checks and dispatch
 
