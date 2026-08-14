@@ -217,6 +217,22 @@ func TestCanonicalizePrimitiveValues(t *testing.T) {
 }
 
 func FuzzStrictJSON(f *testing.F) {
+	f.Add([]byte("null false"))
+	f.Add([]byte("{}{}"))
+	f.Add([]byte(`"\ud800"`))
+	f.Add([]byte("1e400"))
+	f.Add([]byte{0xff})
+	f.Add([]byte(`{"predicate":{},"predicate":{}}`))
+	f.Add([]byte(`{"predicate":{"buildType":"first","buildType":"second"}}`))
+	f.Add([]byte(`[{"digest":"first","digest":"second"}]`))
+	f.Add([]byte(`{"extension":{"future":1,"future":2}}`))
+	f.Add([]byte(`{"a":1,"\u0061":2}`))
+	f.Add([]byte(`{"\u0061":1,"a":2}`))
+	f.Add([]byte(`{"\n":1,"\u000a":2}`))
+	f.Add([]byte(`{"😂":1,"\ud83d\ude02":2}`))
+	f.Add([]byte(`{"predicate":{"builder":{"id":"trusted"}}}`))
+	f.Add([]byte("[1,2,3]"))
+
 	f.Fuzz(func(t *testing.T, input []byte) {
 		if err := canonicaljson.Validate(input); err == nil {
 			canonical, err := canonicaljson.Canonicalize(input)
