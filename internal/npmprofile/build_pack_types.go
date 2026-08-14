@@ -81,6 +81,7 @@ type BuildPackConfig struct {
 	ArtifactName         string
 	ExternalParameters   json.RawMessage
 	ResolvedDependencies []provenance.ResourceDescriptor
+	fetcher              distributionFetcher
 }
 
 // BuildPackResult contains the one packed artifact, metadata, and observed tool state.
