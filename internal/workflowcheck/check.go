@@ -298,16 +298,20 @@ func CheckNPMOnlyProfile(path string) (NPMOnlyProfileResult, error) {
 	}, nil
 }
 
+func decodeWorkflow(encoded []byte) (workflowDocument, error) {
+	var document workflowDocument
+	if err := yaml.Unmarshal(encoded, &document); err != nil {
+		return workflowDocument{}, fmt.Errorf("decode workflow: %w", err)
+	}
+	return document, nil
+}
+
 func readWorkflow(path string) (workflowDocument, error) {
 	contents, err := os.ReadFile(path)
 	if err != nil {
 		return workflowDocument{}, fmt.Errorf("read workflow: %w", err)
 	}
-	var document workflowDocument
-	if err := yaml.Unmarshal(contents, &document); err != nil {
-		return workflowDocument{}, fmt.Errorf("decode workflow: %w", err)
-	}
-	return document, nil
+	return decodeWorkflow(contents)
 }
 
 func checkNPMWorkflowCall(call workflowCall) error {
