@@ -2,6 +2,8 @@ package signing
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
@@ -109,6 +111,56 @@ func requiredEnvironment(t *testing.T, name string) string {
 		t.Fatalf("%s is required for online signing", name)
 	}
 	return value
+}
+
+func TestBindOIDCSignerIdentityPinForm(t *testing.T) {
+	workflowSHA := "d2d916c6d6694c82c79d15c0393139b4084d4acc"
+	workflowPath := "windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml"
+	statement, err := (provenance.Statement{
+		Type:          provenance.StatementType,
+		Subject:       []provenance.Subject{},
+		PredicateType: provenance.PredicateType,
+		Predicate: provenance.Predicate{
+			BuildDefinition: provenance.BuildDefinition{ExternalParameters: []byte(`{}`), InternalParameters: []byte(`{}`), ResolvedDependencies: []provenance.ResourceDescriptor{}},
+			RunDetails:      provenance.RunDetails{Builder: provenance.Builder{ID: "https://github.com/" + workflowPath + "@" + workflowSHA, Version: map[string]string{}, BuilderDependencies: []provenance.BuilderDependency{}}},
+		},
+	}).CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := func(ref, sha string) string {
+		payload, err := json.Marshal(map[string]string{"job_workflow_ref": ref, "job_workflow_sha": sha})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return "header." + base64.RawURLEncoding.EncodeToString(payload) + ".signature"
+	}
+	identity := attestation.IdentityExpectation{WorkflowSHA: workflowSHA}
+
+	t.Run("SHA pin form accepted", func(t *testing.T) {
+		bound, err := bindOIDCSignerIdentity(statement, identity, token(workflowPath+"@"+workflowSHA, workflowSHA))
+		if err != nil {
+			t.Fatalf("SHA-pinned signer identity rejected: %v", err)
+		}
+		if bound.SignerURI != "https://github.com/"+workflowPath+"@"+workflowSHA {
+			t.Fatalf("signer URI = %q", bound.SignerURI)
+		}
+	})
+	t.Run("branch ref form rejected before signing", func(t *testing.T) {
+		if _, err := bindOIDCSignerIdentity(statement, identity, token(workflowPath+"@refs/heads/main", workflowSHA)); err == nil {
+			t.Fatal("branch-referenced production invocation was not rejected")
+		}
+	})
+	t.Run("tag ref form rejected before signing", func(t *testing.T) {
+		if _, err := bindOIDCSignerIdentity(statement, identity, token(workflowPath+"@refs/tags/v1.0.0", workflowSHA)); err == nil {
+			t.Fatal("tag-referenced production invocation was not rejected")
+		}
+	})
+	t.Run("ref suffix mismatching SHA rejected", func(t *testing.T) {
+		if _, err := bindOIDCSignerIdentity(statement, identity, token(workflowPath+"@0123456789abcdef0123456789abcdef01234567", workflowSHA)); err == nil {
+			t.Fatal("mismatched ref suffix and job_workflow_sha were not rejected")
+		}
+	})
 }
 
 func TestSignRejectsInvalidStatementBeforeNetwork(t *testing.T) {

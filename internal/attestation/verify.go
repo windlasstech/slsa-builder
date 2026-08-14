@@ -373,8 +373,9 @@ func validateSignerURI(raw string) error {
 		return fmt.Errorf("signer URI does not identify one GitHub workflow")
 	}
 	filename := components[4]
+	canonicalRef := strings.HasPrefix(ref, "refs/") || identity.ValidateFullSHA(ref) == nil
 	if !found || strings.Contains(ref, "@") || (!strings.HasSuffix(filename, ".yml") && !strings.HasSuffix(filename, ".yaml")) ||
-		!strings.HasPrefix(ref, "refs/") {
+		!canonicalRef || strings.TrimSpace(ref) != ref {
 		return fmt.Errorf("signer URI workflow or ref is not canonical")
 	}
 	return nil
