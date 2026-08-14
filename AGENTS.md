@@ -158,8 +158,6 @@ to the ADR whose confirmation criteria or scope produced it.
   surface remains unpinned.
 - **GHES parity watch** (ADR 0075): `queue: max` and artifact attestations are github.com-only;
   watch GHES releases before making any GHES support claim.
-- **Early-exchange preflight dogfood** (ADR 0076 confirmation): the first dogfood publish must
-  empirically exercise the early npm OIDC exchange preflight and record the result against ADR 0076.
 - **Go-signer dogfood confirmation** (ADR 0077 confirmation): before P06, complete a controlled real
   npm publish with registry attestation read-back and pacote consumer verification. The signer is
   already selected for all Windlass profiles and release-manifest signing; if this dogfood surfaces
