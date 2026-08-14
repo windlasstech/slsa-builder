@@ -33,6 +33,12 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Security
 
-- Raised the module Go directive to 1.26.5, clearing exposure to
-  [GO-2026-4970](https://osv.dev/GO-2026-4970) for consumers building from source with older
-  toolchains.
+- Raised the module Go directive to 1.26.6, clearing exposure to
+  [GO-2026-4970](https://osv.dev/GO-2026-4970) and the Go standard library advisories
+  [GO-2026-5026](https://osv.dev/GO-2026-5026), [GO-2026-5942](https://osv.dev/GO-2026-5942),
+  [GO-2026-5972](https://osv.dev/GO-2026-5972), [GO-2026-6088](https://osv.dev/GO-2026-6088),
+  [GO-2026-6089](https://osv.dev/GO-2026-6089), [GO-2026-6090](https://osv.dev/GO-2026-6090),
+  [GO-2026-6091](https://osv.dev/GO-2026-6091), and [GO-2026-6218](https://osv.dev/GO-2026-6218) for
+  consumers building from source with older toolchains.
+- Upgraded `golang.org/x/mod` to v0.40.0, clearing [GO-2026-6179](https://osv.dev/GO-2026-6179) and
+  [GO-2026-6180](https://osv.dev/GO-2026-6180).
