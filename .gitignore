@@ -140,6 +140,8 @@ web_modules/
 
 # Output of 'npm pack'
 *.tgz
+# Except committed hermetic-test fixtures
+!testdata/npm/buildpack/*.tgz
 
 # Yarn Integrity file
 .yarn-integrity

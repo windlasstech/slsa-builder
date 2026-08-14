@@ -2,7 +2,6 @@ package canonicaljson_test
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -214,46 +213,6 @@ func TestCanonicalizePrimitiveValues(t *testing.T) {
 			t.Fatalf("Canonicalize(%q) = %q, want %q", test.input, got, test.want)
 		}
 	}
-}
-
-func FuzzStrictJSON(f *testing.F) {
-	f.Fuzz(func(t *testing.T, input []byte) {
-		if err := canonicaljson.Validate(input); err == nil {
-			canonical, err := canonicaljson.Canonicalize(input)
-			if err != nil {
-				t.Fatalf("valid input failed canonicalization: %v", err)
-			}
-			if err := canonicaljson.Validate(canonical); err != nil {
-				t.Fatalf("canonical output is not strict JSON: %v", err)
-			}
-			equal, err := canonicaljson.Equal(input, canonical)
-			if err != nil {
-				t.Fatalf("compare input with canonical output: %v", err)
-			}
-			if !equal {
-				t.Fatal("canonicalization changed the parsed JSON value")
-			}
-		}
-
-		encodedKey, err := json.Marshal(string(input))
-		if err != nil {
-			t.Fatalf("encode fuzzed object member name: %v", err)
-		}
-		var normalizedKey string
-		if err := json.Unmarshal(encodedKey, &normalizedKey); err != nil {
-			t.Fatalf("decode fuzzed object member name: %v", err)
-		}
-		duplicate := make([]byte, 0, len(encodedKey)*2+9)
-		duplicate = append(duplicate, '{')
-		duplicate = append(duplicate, encodedKey...)
-		duplicate = append(duplicate, ':', '0', ',')
-		duplicate = append(duplicate, encodedKey...)
-		duplicate = append(duplicate, ':', '1', '}')
-
-		requireDuplicateMemberError(t, canonicaljson.Validate(duplicate), normalizedKey)
-		_, err = canonicaljson.Canonicalize(duplicate)
-		requireDuplicateMemberError(t, err, normalizedKey)
-	})
 }
 
 func requireDuplicateMemberError(t *testing.T, err error, member string) {

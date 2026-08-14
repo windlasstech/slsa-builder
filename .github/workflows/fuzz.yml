@@ -1,105 +1,18 @@
-name: Lint
+name: Fuzz
 
 permissions: {}
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"
   workflow_dispatch:
 
 jobs:
-  markdownlint:
-    name: Markdownlint
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
-        with:
-          egress-policy: audit
-
-      - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Lint Markdown
-        uses: DavidAnson/markdownlint-cli2-action@ded1f9488f68a970bc66ea5619e13e9b52e601cd # v23.2.0
-        with:
-          config: .markdownlint-cli2.jsonc
-          globs: "**/*.md"
-
-  actionlint:
-    name: actionlint
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
-        with:
-          egress-policy: audit
-
-      - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Lint workflow files
-        uses: windlasstech/actionlint-hardened-action@39b1442298202b328f0da62908b70c54ab6601b9 # v1.0.0
-        with:
-          paths: |
-            .github/workflows/*.yml
-            .github/workflows/*.yaml
-
-  golangci-lint:
-    name: golangci-lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
-        with:
-          egress-policy: audit
-
-      - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
-        with:
-          go-version: "1.26.6"
-          cache: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "24"
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@db582008a42febd596419635a5abc9d9815daa9c # v9.2.1
-        with:
-          version: v2.12.2
-
-      - name: Run Go tests
-        run: go test ./...
-
-  # Bounded fuzz smoke per docs/testing-guide.md "Fuzzing in CI"; deep runs live in fuzz.yml.
-  fuzz-smoke:
+  # Deep fuzz run per docs/testing-guide.md "Fuzzing in CI"; PR smoke lives in lint.yml.
+  fuzz:
     name: ${{ matrix.package }} / ${{ matrix.target }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
@@ -189,6 +102,22 @@ jobs:
           go-version: "1.26.6"
           cache: false
 
-      - name: Fuzz ${{ matrix.target }} for 30 seconds
+      - name: Fuzz ${{ matrix.target }} for 10 minutes
         run: >-
-          go test "./${{ matrix.package }}" -run '^$' -fuzz '^${{ matrix.target }}$' -fuzztime=30s
+          go test "./${{ matrix.package }}" -run '^$' -fuzz '^${{ matrix.target }}$' -fuzztime=10m
+
+      - name: Resolve fuzz corpus artifact coordinates
+        id: corpus
+        if: always()
+        run: |
+          pkg="${{ matrix.package }}"
+          echo "slug=${pkg##*/}-${{ matrix.target }}" >> "$GITHUB_OUTPUT"
+          echo "path=$(go env GOCACHE)/fuzz" >> "$GITHUB_OUTPUT"
+
+      - name: Upload fuzz corpus
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzz-corpus-${{ steps.corpus.outputs.slug }}
+          path: ${{ steps.corpus.outputs.path }}
+          if-no-files-found: warn

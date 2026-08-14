@@ -93,41 +93,7 @@ func (client *RegistryClient) Preflight(ctx context.Context, packageName, versio
 	if response.status != http.StatusOK {
 		return RegistryPreflightState{}, fmt.Errorf("registry packument returned HTTP %d", response.status)
 	}
-	if err := canonicaljson.Validate(response.body); err != nil {
-		return RegistryPreflightState{}, errors.New("registry packument is malformed")
-	}
-	var packument struct {
-		Name     string                     `json:"name"`
-		Versions map[string]json.RawMessage `json:"versions"`
-	}
-	decoder := json.NewDecoder(bytes.NewReader(response.body))
-	if err := decoder.Decode(&packument); err != nil || packument.Name != packageName || packument.Versions == nil {
-		return RegistryPreflightState{}, errors.New("registry packument identity is malformed")
-	}
-	state := RegistryPreflightState{PackageExists: true}
-	rawVersion, exists := packument.Versions[version]
-	if !exists {
-		return state, nil
-	}
-	var metadata struct {
-		Name    string `json:"name"`
-		Version string `json:"version"`
-		Dist    struct {
-			Integrity string `json:"integrity"`
-			Tarball   string `json:"tarball"`
-		} `json:"dist"`
-	}
-	if err := json.Unmarshal(rawVersion, &metadata); err != nil || metadata.Name != packageName || metadata.Version != version {
-		return RegistryPreflightState{}, errors.New("registry version metadata identity is malformed")
-	}
-	state.VersionExists = true
-	state.Version = &RegistryVersion{
-		Name:      metadata.Name,
-		Version:   metadata.Version,
-		Integrity: metadata.Dist.Integrity,
-		Tarball:   metadata.Dist.Tarball,
-	}
-	return state, nil
+	return decodeRegistryPackumentResponse(response.body, packageName, version)
 }
 
 // URL returns the normalized credential-free registry root used by this client.
@@ -160,10 +126,52 @@ func (client *RegistryClient) Attestations(ctx context.Context, packageName, ver
 	if response.status != http.StatusOK {
 		return RegistryAttestationState{}, fmt.Errorf("registry attestation endpoint returned HTTP %d", response.status)
 	}
-	if err := canonicaljson.Validate(response.body); err != nil {
+	return decodeRegistryAttestationResponse(response.body)
+}
+
+func decodeRegistryPackumentResponse(body []byte, packageName, version string) (RegistryPreflightState, error) {
+	if err := canonicaljson.Validate(body); err != nil {
+		return RegistryPreflightState{}, errors.New("registry packument is malformed")
+	}
+	var packument struct {
+		Name     string                     `json:"name"`
+		Versions map[string]json.RawMessage `json:"versions"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	if err := decoder.Decode(&packument); err != nil || packument.Name != packageName || packument.Versions == nil {
+		return RegistryPreflightState{}, errors.New("registry packument identity is malformed")
+	}
+	state := RegistryPreflightState{PackageExists: true}
+	rawVersion, exists := packument.Versions[version]
+	if !exists {
+		return state, nil
+	}
+	var metadata struct {
+		Name    string `json:"name"`
+		Version string `json:"version"`
+		Dist    struct {
+			Integrity string `json:"integrity"`
+			Tarball   string `json:"tarball"`
+		} `json:"dist"`
+	}
+	if err := json.Unmarshal(rawVersion, &metadata); err != nil || metadata.Name != packageName || metadata.Version != version {
+		return RegistryPreflightState{}, errors.New("registry version metadata identity is malformed")
+	}
+	state.VersionExists = true
+	state.Version = &RegistryVersion{
+		Name:      metadata.Name,
+		Version:   metadata.Version,
+		Integrity: metadata.Dist.Integrity,
+		Tarball:   metadata.Dist.Tarball,
+	}
+	return state, nil
+}
+
+func decodeRegistryAttestationResponse(body []byte) (RegistryAttestationState, error) {
+	if err := canonicaljson.Validate(body); err != nil {
 		return RegistryAttestationState{}, errors.New("registry attestation response is malformed")
 	}
-	decoder := json.NewDecoder(bytes.NewReader(response.body))
+	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 	var document struct {
 		Attestations []struct {

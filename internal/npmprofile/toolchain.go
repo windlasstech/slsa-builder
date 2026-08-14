@@ -36,7 +36,7 @@ const (
 	downloadDigestSource = "download-hash"
 )
 
-func prepareToolchain(ctx context.Context, selection Result, root string, environment []string) (ToolchainCapture, string, error) {
+func prepareToolchain(ctx context.Context, selection Result, root string, environment []string, fetcher distributionFetcher) (ToolchainCapture, string, error) {
 	nodePath, err := exec.LookPath("node")
 	if err != nil {
 		return ToolchainCapture{}, "", errors.New("node executable is unavailable")
@@ -94,7 +94,7 @@ func prepareToolchain(ctx context.Context, selection Result, root string, enviro
 	if managerVersion != selection.Manager.Version {
 		return ToolchainCapture{}, "", fmt.Errorf("selected %s@%s but Corepack executed %s", selection.Manager.Name, selection.Manager.Version, managerVersion)
 	}
-	distribution, err := captureDistribution(ctx, filepath.Join(root, "corepack"), selection.Manager.Name, managerVersion, managerOutput)
+	distribution, err := captureDistribution(ctx, filepath.Join(root, "corepack"), selection.Manager.Name, managerVersion, managerOutput, fetcher)
 	if err != nil {
 		return ToolchainCapture{}, "", err
 	}
@@ -109,7 +109,7 @@ func lastOutputLine(output string) string {
 	return strings.TrimSpace(lines[len(lines)-1])
 }
 
-func captureDistribution(ctx context.Context, corepackHome string, manager Manager, version, commandOutput string) (*DistributionCapture, error) {
+func captureDistribution(ctx context.Context, corepackHome string, manager Manager, version, commandOutput string, fetcher distributionFetcher) (*DistributionCapture, error) {
 	distributionURL, err := corepackDistributionURL(commandOutput, manager, version)
 	if err != nil {
 		return nil, err
@@ -146,10 +146,10 @@ func captureDistribution(ctx context.Context, corepackHome string, manager Manag
 	authoritativeHash := ""
 	switch manager {
 	case ManagerPNPM:
-		authoritativeHash, err = pnpmRegistryIntegrity(ctx, version, distributionURL)
+		authoritativeHash, err = pnpmRegistryIntegrity(ctx, version, distributionURL, fetcher)
 	case ManagerYarn:
 		authority = downloadDigestSource
-		authoritativeHash, err = hashYarnDistribution(ctx, distributionURL)
+		authoritativeHash, err = hashYarnDistribution(ctx, distributionURL, fetcher)
 	default:
 		err = errors.New("unsupported Corepack package manager")
 	}
@@ -193,9 +193,9 @@ func expectedDistributionURL(manager Manager, version string) string {
 	return "https://registry.npmjs.org/pnpm/-/pnpm-" + version + ".tgz"
 }
 
-func pnpmRegistryIntegrity(ctx context.Context, version, distributionURL string) (string, error) {
+func pnpmRegistryIntegrity(ctx context.Context, version, distributionURL string, fetcher distributionFetcher) (string, error) {
 	metadataURL := "https://registry.npmjs.org/pnpm/" + url.PathEscape(version)
-	encoded, err := fetchHTTPS(ctx, metadataURL, maxRegistryMetadata, "application/json")
+	encoded, err := fetcher(ctx, metadataURL, maxRegistryMetadata, "application/json")
 	if err != nil {
 		return "", fmt.Errorf("fetch pnpm registry metadata: %w", err)
 	}
@@ -222,13 +222,16 @@ func pnpmRegistryIntegrity(ctx context.Context, version, distributionURL string)
 	return hex.EncodeToString(digestBytes), nil
 }
 
-func hashYarnDistribution(ctx context.Context, distributionURL string) (string, error) {
-	encoded, err := fetchHTTPS(ctx, distributionURL, maxYarnDistribution, "application/octet-stream")
+func hashYarnDistribution(ctx context.Context, distributionURL string, fetcher distributionFetcher) (string, error) {
+	encoded, err := fetcher(ctx, distributionURL, maxYarnDistribution, "application/octet-stream")
 	if err != nil {
 		return "", fmt.Errorf("download Yarn distribution evidence: %w", err)
 	}
 	return digest.SumSHA512(encoded).String(), nil
 }
+
+//nolint:unused // parameter names document the fetcher contract
+type distributionFetcher func(ctx context.Context, rawURL string, maximum int64, accept string) ([]byte, error)
 
 func fetchHTTPS(ctx context.Context, rawURL string, maximum int64, accept string) ([]byte, error) {
 	requestContext, cancel := context.WithTimeout(ctx, distributionTimeout)

@@ -3,6 +3,7 @@ package policy
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"time"
@@ -89,7 +90,11 @@ func DecodeReleaseManifestExpectation(data []byte, registry ProducerProfileRegis
 
 func decodeClosed(data []byte, target any) error {
 	if err := canonicaljson.Validate(data); err != nil {
-		return err
+		var duplicateErr *canonicaljson.DuplicateMemberError
+		if errors.As(err, &duplicateErr) {
+			return err
+		}
+		return policySchemaError("policy", "decode closed policy schema: %v", err)
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
