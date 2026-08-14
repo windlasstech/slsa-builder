@@ -1,12 +1,12 @@
 module github.com/windlasstech/slsa-builder
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
 	github.com/goccy/go-yaml v1.19.2
 	github.com/sigstore/sigstore-go v1.3.0
-	golang.org/x/mod v0.38.0
+	golang.org/x/mod v0.40.0
 )
 
 require (

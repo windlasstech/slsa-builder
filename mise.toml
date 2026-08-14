@@ -4,7 +4,7 @@
 [tools]
 # Runtimes
 node = { version = "24", postinstall = "corepack enable" }
-go = "1.26.5"
+go = "1.26.6"
 
 # Go ecosystem tools
 "aqua:golangci/golangci-lint" = "2"
