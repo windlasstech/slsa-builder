@@ -195,6 +195,23 @@ func TestSignerURIExpectationSHAPinForm(t *testing.T) {
 	requireDiagnosticID(t, err, idSignerIdentityUntrusted)
 }
 
+func TestSignerURIExpectationCanonicalForms(t *testing.T) {
+	base := "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml"
+	cases := map[string]string{
+		"branch full ref": base + "@refs/heads/main",
+		"tag full ref":    base + "@refs/tags/v1.0.0",
+		"yaml filename":   "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yaml@refs/heads/main",
+	}
+	for name, uri := range cases {
+		t.Run(name, func(t *testing.T) {
+			request := offlineRequest(t, fixtureBundle(t))
+			request.Identity.SignerURI = uri
+			_, err := verifyAt(context.Background(), request, fixtureTime)
+			requireDiagnosticID(t, err, idSignerIdentityUntrusted)
+		})
+	}
+}
+
 func TestSignerURIExpectationGrammarRejections(t *testing.T) {
 	base := "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@"
 	cases := map[string]string{
@@ -204,8 +221,15 @@ func TestSignerURIExpectationGrammarRejections(t *testing.T) {
 		"41-hex SHA":         base + "d2d916c6d6694c82c79d15c0393139b4084d4acca",
 		"uppercase SHA":      base + "D2D916C6D6694C82C79D15C0393139B4084D4ACC",
 		"empty ref":          base,
+		"missing at-sign":    "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml",
 		"double at":          base + "refs/heads/main@extra",
 		"ref trailing space": base + "refs/heads/main ",
+		"http scheme":        "http://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@refs/heads/main",
+		"userinfo":           "https://user@github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@refs/heads/main",
+		"query":              base + "refs/heads/main?foo=bar",
+		"fragment":           base + "refs/heads/main#frag",
+		"non-yaml filename":  "https://github.com/windlasstech/slsa-builder/.github/workflows/build.json@refs/heads/main",
+		"extra path segment": "https://github.com/windlasstech/slsa-builder/.github/workflows/sub/js-ts-npm-package-slsa3.yml@refs/heads/main",
 		"non-workflow path":  "https://github.com/windlasstech/slsa-builder/actions/build.yml@refs/heads/main",
 		"non-github host":    "https://ghe.example.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@refs/heads/main",
 	}
