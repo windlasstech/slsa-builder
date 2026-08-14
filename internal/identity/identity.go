@@ -143,12 +143,15 @@ func splitRepositoryPath(path string, allowTrailingSlash, allowGitSuffix, requir
 	if allowTrailingSlash && strings.HasSuffix(path, "/") {
 		path = strings.TrimSuffix(path, "/")
 	}
-	hasGitSuffix := strings.HasSuffix(path, ".git")
+	// The canonical form lowercases both segments, so the .git suffix rule must
+	// match case-insensitively; otherwise a mixed-case suffix would survive into
+	// a "canonical" URI that fails re-validation, breaking idempotency.
+	hasGitSuffix := strings.HasSuffix(strings.ToLower(path), ".git")
 	if requireGitSuffix && !hasGitSuffix || !allowGitSuffix && hasGitSuffix {
 		return "", "", false
 	}
 	if allowGitSuffix && hasGitSuffix {
-		path = strings.TrimSuffix(path, ".git")
+		path = path[:len(path)-len(".git")]
 	}
 	parts := strings.Split(path, "/")
 	if len(parts) != 2 || !validRepositorySegment(parts[0]) || !validRepositorySegment(parts[1]) {
