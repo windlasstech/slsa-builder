@@ -19,6 +19,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore-go/pkg/sign"
 	"github.com/windlasstech/slsa-builder/internal/attestation"
+	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
 
@@ -116,7 +117,7 @@ func SignGitHubActions(ctx context.Context, request Request) (Result, error) {
 	return Result{Statement: append([]byte(nil), content.Data...), Bundle: serialized}, nil
 }
 
-func bindOIDCSignerIdentity(statementBytes []byte, identity attestation.IdentityExpectation, token string) (attestation.IdentityExpectation, error) {
+func bindOIDCSignerIdentity(statementBytes []byte, expectation attestation.IdentityExpectation, token string) (attestation.IdentityExpectation, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
 		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC token shape is invalid")
@@ -136,12 +137,19 @@ func bindOIDCSignerIdentity(statementBytes []byte, identity attestation.Identity
 	}
 	workflowRef := claims.JobWorkflowRef
 	workflowSHA := claims.JobWorkflowSHA
-	if workflowRef == "" && workflowSHA == "" {
+	production := workflowRef != "" || workflowSHA != ""
+	if !production {
 		workflowRef = claims.WorkflowRef
 		workflowSHA = claims.WorkflowSHA
 	}
-	if workflowRef == "" || workflowSHA == "" || workflowSHA != identity.WorkflowSHA {
+	if workflowRef == "" || workflowSHA == "" || workflowSHA != expectation.WorkflowSHA {
 		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC workflow revision differs from trusted runtime")
+	}
+	if production {
+		at := strings.LastIndex(workflowRef, "@")
+		if at < 0 || workflowRef[at+1:] != workflowSHA || identity.ValidateFullSHA(workflowSHA) != nil {
+			return attestation.IdentityExpectation{}, errors.New("called workflow reference is not pinned by its full commit SHA")
+		}
 	}
 	signerURI := "https://github.com/" + workflowRef
 	statement, err := provenance.DecodeStatement(statementBytes)
@@ -153,8 +161,8 @@ func bindOIDCSignerIdentity(statementBytes []byte, identity attestation.Identity
 	if !builderFound || !signerFound || builderPath != signerPath {
 		return attestation.IdentityExpectation{}, errors.New("OIDC signer workflow differs from the Statement builder identity")
 	}
-	identity.SignerURI = signerURI
-	return identity, nil
+	expectation.SignerURI = signerURI
+	return expectation, nil
 }
 
 func githubActionsOIDCToken(ctx context.Context) (string, error) {

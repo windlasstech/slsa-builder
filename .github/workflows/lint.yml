@@ -112,6 +112,8 @@ jobs:
             target: FuzzParseBundle
           - package: internal/attestation
             target: FuzzCompareStatement
+          - package: internal/attestation
+            target: FuzzValidateSignerURI
           - package: internal/policy
             target: FuzzDecodeExplicitPolicy
           - package: internal/policy
