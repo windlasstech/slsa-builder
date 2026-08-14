@@ -168,6 +168,10 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 		}
 		return ErrVerificationFailure
 	}
+	statementSHA256 := digest.SumSHA256(signingInput.StatementJSON).String()
+	recordStatementHash := func(err error) error {
+		return fmt.Errorf("%w (statement-sha256=%s)", err, statementSHA256)
+	}
 	identity, err := githubSigningIdentity(runInvocation)
 	if err != nil {
 		return err
@@ -178,14 +182,14 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 	}
 	result, err := sign(ctx, signing.Request{Statement: signingInput.StatementJSON, Identity: identity})
 	if err != nil {
-		return err
+		return recordStatementHash(err)
 	}
 	if err := ensureEmptyDirectory(*outputDirectory); err != nil {
-		return err
+		return recordStatementHash(err)
 	}
 	bundlePath := filepath.Join(*outputDirectory, metadata.PrimaryArtifact.PayloadFileName+".intoto.jsonl")
 	if err := WriteFileAtomic(bundlePath, result.Bundle, 0o600); err != nil {
-		return fmt.Errorf("write verified provenance bundle: %w", err)
+		return recordStatementHash(fmt.Errorf("write verified provenance bundle: %w", err))
 	}
 	if err := WriteGitHubOutputs(*githubOutput, npmProfileSignOutputs, map[string]string{
 		"bundle-path":      bundlePath,

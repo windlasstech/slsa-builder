@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -300,6 +301,51 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 		},
 		ExternalParameters: externalParameters, ResolvedDependencies: dependencies,
 	}, tarball
+}
+
+func TestNPMProfileSignRecordsStatementHashOnSignFailure(t *testing.T) {
+	metadata, tarball := signSingleIdentityMetadata(t)
+	metadataBytes := mustMarshalSignJSON(t, metadata)
+	metadataDirectory := writeSignHandoff(t, "build-metadata.json", metadataBytes)
+	tarballDirectory := writeSignHandoff(t, signTarballName, tarball)
+	githubOutput := filepath.Join(t.TempDir(), "github-output")
+	setSignGitHubEnvironment(t, signBuiltRef, signBuiltRevision, githubOutput)
+
+	var signedStatement []byte
+	command := npmProfileSignCommand{
+		preflight: func(context.Context, string, string) npmprofile.OIDCExchangeResult {
+			return npmprofile.OIDCExchangeResult{WorkflowFilename: "release.yml"}
+		},
+		sign: func(ctx context.Context, request signing.Request) (signing.Result, error) {
+			if err := ctx.Err(); err != nil {
+				return signing.Result{}, err
+			}
+			signedStatement = append([]byte(nil), request.Statement...)
+			return signing.Result{}, errors.New("post-sign offline verification: injected failure")
+		},
+	}
+
+	var output bytes.Buffer
+	err := command.Execute(context.Background(), signSourceRefArguments(
+		metadataDirectory,
+		tarballDirectory,
+		t.TempDir(),
+		githubOutput,
+		digest.SumSHA256(metadataBytes).String(),
+		digest.SumSHA256(tarball).String(),
+		"",
+		"",
+	), &output)
+	if err == nil {
+		t.Fatal("Execute() succeeded with a failing signer")
+	}
+	if len(signedStatement) == 0 {
+		t.Fatal("failing signer never received the assembled Statement")
+	}
+	want := "statement-sha256=" + digest.SumSHA256(signedStatement).String()
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("failure error does not record the assembled Statement digest %q: %v", want, err)
+	}
 }
 
 func signSingleIdentityMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
