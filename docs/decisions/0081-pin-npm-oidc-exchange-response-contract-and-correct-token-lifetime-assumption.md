@@ -8,9 +8,9 @@ relations:
   - type: amends
     target: ADR-0076
     scope:
-      "the npm OIDC exchange success-response contract (unpinned there; pinned here to the
-      empirically observed shape) and the exchange-token lifetime assumption (the 'typically 1 hour'
-      documentation note; the observed lifetime is 15 minutes)"
+      "the npm OIDC exchange success-response contract (unpinned in ADR-0076; pinned in ADR-0081 to
+      the empirically observed shape) and the exchange-token lifetime assumption (the 'typically 1
+      hour' documentation note cited in ADR-0076; the observed lifetime is 15 minutes)"
 ---
 
 # Pin the npm OIDC Exchange Response Contract to the Observed Shape and Correct the Token Lifetime Assumption
@@ -28,11 +28,12 @@ decoder against the npm API documentation example: exactly four members (`token_
 `created`, `expires`), RFC 3339 timestamp strings, unknown-member rejection, and semantic validation
 (`expires` after `created` and after the exchange time).
 
-On 12026-08-13 the first live M1 dogfood retry
+On 12026-08-13 the second live M1 dogfood run — the first retry, following the 12026-08-12 first
+attempt that failed at build-and-pack and never reached this path —
 ([vers-js run 31737001312](https://github.com/windlasstech/vers-js/actions/runs/31737001312))
-exercised this path against the real registry. The exchange returned **HTTP 201** — the
-trusted-publisher configuration is valid and a publish token was minted — but the strict decoder
-rejected the response body, and the pipeline failed closed with
+exercised this path against the real registry for the first time. The exchange returned **HTTP 201**
+— the trusted-publisher configuration is valid and a publish token was minted — but the strict
+decoder rejected the response body, and the pipeline failed closed with
 `windlass.verify.error.npm-oidc-exchange-indeterminate` ("npm OIDC exchange returned a malformed
 response"). No token fallback was attempted and no registry mutation occurred; the publish job's
 mutation steps were all skipped for want of the provenance-bundle handoff. This is the ADR 0076
@@ -142,11 +143,12 @@ The npm OIDC exchange contract is pinned as follows:
   positive) **or** an RFC 3339 string, and are normalized internally to instants. Semantic
   validation is unchanged: `expires` must be after `created`, and `expires` must be after the
   exchange time.
-- Token lifetime assumption: **15 minutes (observed)**, superseding the "typically 1 hour"
-  documentation note for all timing purposes. The publish-time exchange must occur immediately
-  before the publish mutation, and token expiry must be re-validated at use time; an exchange
-  performed as an early preflight validates configuration only and its token is never assumed usable
-  later.
+- Token lifetime assumption: **15 minutes (observed)**, superseding for all timing purposes the
+  "typically 1 hour" note in npm's official API documentation (<https://api-docs.npmjs.com/>,
+  Authentication & Authorization section) — the note ADR 0076 cites from the same source. The
+  publish-time exchange must occur immediately before the publish mutation, and token expiry must be
+  re-validated at use time; an exchange performed as an early preflight validates configuration only
+  and its token is never assumed usable later.
 - Diagnostics: no diagnostic ID, classification mapping, or fixture identifier changes. Failure
   messages may name the failed aspect (for example, timestamp representation) without ever including
   token material.
