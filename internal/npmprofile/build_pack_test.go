@@ -88,6 +88,8 @@ func runBuildPackFixture(t *testing.T, fixture string) BuildPackResult {
 
 func runBuildPackFixtureWithSetup(t *testing.T, fixture string, setup func(*testing.T, string)) BuildPackResult {
 	t.Helper()
+	clearToolchainRootEnvironment(t)
+	installFakeToolchain(t)
 	repository := filepath.Join(t.TempDir(), "repository")
 	source := filepath.Join(testRepositoryRoot(t), "testdata", "npm", "packages", fixture)
 	if err := os.CopyFS(repository, os.DirFS(source)); err != nil {
@@ -108,6 +110,7 @@ func runBuildPackFixtureWithSetup(t *testing.T, fixture string, setup func(*test
 		OutputDirectory:    output,
 		ArtifactName:       "js-ts-npm-package-tarball-123456789-1",
 		ExternalParameters: json.RawMessage(`{"test_case":"real-tool-build-pack"}`),
+		fetcher:            fakeDistributionFetcher(t),
 	})
 	if err != nil {
 		t.Fatalf("BuildPack() error: %v", err)
