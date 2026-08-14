@@ -14,7 +14,7 @@ The caller workflow is `.github/workflows/publish.yml`. Earlier planning materia
 | --------------------------------- | ----------------------------------------------------------------- |
 | Caller repository                 | `windlasstech/vers-js`                                            |
 | Caller workflow                   | `.github/workflows/publish.yml`                                   |
-| Reusable workflow pin             | `496e40e5ea983cd6933de0dec6b2658c6ccb4db6`                        |
+| Reusable workflow pin             | `5964b19c5e4fa704595acbbe2ae30cc99fcbeb41`                        |
 | Package                           | `@windlass/vers-js@0.1.2`                                         |
 | Built source ref                  | `refs/tags/v0.1.2`                                                |
 | Annotated tag object              | `518569c61b8f52ddf22b3fa98f2a145a03048f68`                        |
@@ -73,7 +73,7 @@ to the caller workflow is already confirmed working.
    ```
 
    Record the observed workflow-file blob SHA as supporting evidence, the fixed reusable-workflow
-   pin `496e40e5ea983cd6933de0dec6b2658c6ccb4db6`, the operator identity, and the timestamp. The
+   pin `5964b19c5e4fa704595acbbe2ae30cc99fcbeb41`, the operator identity, and the timestamp. The
    `main` commit is invocation context only, not the expected built-source revision.
 
 4. Dispatch the retry from `main`.
@@ -234,7 +234,7 @@ fallback if online TUF acquisition fails.
      --bundle registry-bundle.json \
      --repo windlasstech/vers-js \
      --signer-workflow \
-       windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@496e40e5ea983cd6933de0dec6b2658c6ccb4db6 \
+       windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@5964b19c5e4fa704595acbbe2ae30cc99fcbeb41 \
      --cert-oidc-issuer https://token.actions.githubusercontent.com \
      --predicate-type https://slsa.dev/provenance/v1 \
      --format json > gh-verified.json
@@ -326,7 +326,7 @@ date: <ISO-8601 UTC timestamp>
 ## Run identity
 
 - Caller: `windlasstech/vers-js/.github/workflows/publish.yml`
-- Reusable workflow pin: `496e40e5ea983cd6933de0dec6b2658c6ccb4db6`
+- Reusable workflow pin: `5964b19c5e4fa704595acbbe2ae30cc99fcbeb41`
 - Invocation ref and revision: `<refs/heads/main>`, `<headSha>`
 - Tag object and peeled commit: `518569c61b8f52ddf22b3fa98f2a145a03048f68`,
   `68e6f0018d6824167ec490243b17a9edd6ba8fc7`
