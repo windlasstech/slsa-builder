@@ -23,7 +23,9 @@ profile.
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
   [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
-  [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)
+  [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
+  and
+  [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -356,9 +358,13 @@ Remote npm trusted publisher settings remain registry-side publish authorization
 are not signed. Before signing and before any publish attempt, the publish job must perform the npm
 OIDC token exchange, `POST /-/npm/v1/oidc/token/exchange/package/{pkg}`. This early exchange
 validates the caller's OIDC token against the package's trusted publisher configuration and is not a
-registry mutation. It mints a short-lived publish token with a documented TTL of typically 1 hour,
-which covers the preflight-to-publish gap by a wide margin. A preflight-to-publish gap approaching
-that TTL must re-exchange or fail, not publish with an expired token.
+registry mutation. It mints a short-lived publish token whose empirically observed lifetime is 15
+minutes (ADR 0081). The publish-time exchange must occur immediately before the publish mutation,
+token expiry must be re-validated at use time, and a preflight-to-publish gap approaching that
+lifetime must re-exchange or fail — never publish with an expired token. The exchange success-status
+and response-body contract, including the `201`-only success status, the pinned four-member body
+shape, and the union timestamp decoding, is defined in
+[JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md#npm-oidc-exchange-response-contract).
 
 An exchange authentication or configuration failure observed as HTTP 401 or 404 must fail before
 registry mutation with `windlass.verify.error.trusted-publisher-mismatch`. An unreadable or erroring
