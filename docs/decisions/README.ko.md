@@ -201,7 +201,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0078 | Treat settings-only pnpm-workspace.yaml as standalone root package mode                           | JS/TS npm build and pack, verification policy and fixtures                                                                                                                          |
 | 0079 | Support a tags-only caller-specified build source ref for release retries across profiles         | Core profile contract, JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                |
 | 0080 | Bind source identity policy to signed provenance fields, certificate claims as invocation context | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
-| 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime         | JS/TS npm package profile, JS/TS npm provenance and publish                                                                                                                         |
+| 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime         | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

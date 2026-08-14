@@ -29,7 +29,8 @@ the package to an npm registry through a three-job digest-verified graph.
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
   [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   and
-  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
+  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
+  [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -1633,6 +1634,76 @@ failed rather than silently claim convergence.
 - A missing caller OIDC permission, npm trusted publisher mismatch, or unavailable caller workflow
   identity must fail before `npm publish` with `windlass.verify.error.trusted-publisher-mismatch`;
   the profile must not fall back to publish credentials or npm automatic provenance.
+
+### npm OIDC exchange response contract
+
+The exchange request itself is defined in
+[JS/TS npm package profile](js-ts-npm-package-profile.md#caller-trusted-publishing-requirements):
+`POST /-/npm/v1/oidc/token/exchange/package/{pkg}` with a Bearer OIDC `id_token` minted with
+audience `npm:registry.npmjs.org`, performed early — before signing and before any publish attempt.
+This section pins the success-status and response-body contract the exchange client must enforce
+(ADR 0081).
+
+- HTTP `201` is the only success status. HTTP `401` and `404` must fail before registry mutation
+  with `windlass.verify.error.trusted-publisher-mismatch`. Every other status, an unreadable or
+  malformed body, or a success body violating any rule in this section must fail before registry
+  mutation as `indeterminate` with `windlass.verify.error.npm-oidc-exchange-indeterminate`.
+- The success body must contain exactly the four members `token_type`, `token`, `created`, and
+  `expires`. An additional or missing member is a contract violation and fails as above.
+- `token_type` must be exactly `"oidc"`, and `token` must be a non-empty string free of CR, LF, and
+  NUL characters. Any other value fails as above.
+- `created` and `expires` must each be either a JSON number interpreted as epoch seconds (integral
+  and positive) or an RFC 3339 timestamp string; both representations are accepted and normalized
+  internally to instants. Any other type or value fails as above.
+- `expires` must be later than `created`, and `expires` must be later than the exchange time. An
+  inverted or already-expired lifetime fails as above.
+- The exchange-token lifetime observed from the live registry is 15 minutes, and all timing must
+  follow it: the publish-time exchange must occur immediately before the publish mutation, token
+  expiry must be re-validated at use time, and a token minted by an early preflight exchange
+  validates configuration only — it must never be assumed usable at publish time.
+- Token material is secret: token values must never appear in logs, diagnostics, reports, or
+  artifacts. Failure diagnostics may name the violated rule (for example, the timestamp
+  representation) but must never include token material.
+
+A valid observed-shape success body (epoch-second numeric timestamps):
+
+```json
+{
+  "created": 1786705013,
+  "expires": 1786705913,
+  "token": "<token>",
+  "token_type": "oidc"
+}
+```
+
+A valid documented-shape success body (RFC 3339 string timestamps):
+
+```json
+{
+  "token_type": "oidc",
+  "token": "<token>",
+  "created": "2025-07-18T10:30:00.000Z",
+  "expires": "2025-07-18T11:30:00.000Z"
+}
+```
+
+An invalid success body (the additional member `scope` is a contract violation, rejected before any
+registry mutation):
+
+```json
+{
+  "created": 1786705013,
+  "expires": 1786705913,
+  "token": "<token>",
+  "token_type": "oidc",
+  "scope": "publish"
+}
+```
+
+The fixture set proving this contract is defined in
+[Verification policy and fixtures](verification-policy-and-fixtures.md) as part of the
+exchange-preflight fixture matrix. No diagnostic ID, classification mapping, or fixture identifier
+changes under this contract.
 
 ## Registry metadata checks
 

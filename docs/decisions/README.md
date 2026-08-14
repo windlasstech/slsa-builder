@@ -204,7 +204,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0078 | Treat settings-only pnpm-workspace.yaml as standalone root package mode                           | JS/TS npm build and pack, verification policy and fixtures                                                                                                                          |
 | 0079 | Support a tags-only caller-specified build source ref for release retries across profiles         | Core profile contract, JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                |
 | 0080 | Bind source identity policy to signed provenance fields, certificate claims as invocation context | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
-| 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime         | JS/TS npm package profile, JS/TS npm provenance and publish                                                                                                                         |
+| 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime         | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 
 ### Superseded or deprecated ADRs (historical only)
 
