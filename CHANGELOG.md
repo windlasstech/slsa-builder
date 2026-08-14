@@ -10,6 +10,14 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
+- Added a Go testing and fuzzing guide (`docs/testing-guide.md`) defining test organization,
+  security-negative testing, quality gates, and the fuzzing policy for trust-boundary parsers.
+- Added property-based fuzz targets for all trust-boundary parsers and validators (attestation
+  bundle parsing, verification policy decoding, handoff contracts, npm provenance inputs, registry
+  and OIDC response decoding, workspace and package-manager selection parsing, identity and digest
+  validators, and workflow decoding), with seed corpora ported from existing negative tests, a
+  30-second per-target fuzz smoke job on pull requests, and a scheduled weekly long-run fuzz
+  workflow that uploads the fuzz corpus as an artifact.
 - Added the optional tags-only `source-ref` input to the npm producer workflow for fixed-pipeline
   release retries, with built-source provenance, signed invocation context, and ADR 0080
   verification binding.
@@ -28,6 +36,11 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Fixed
 
+- Fixed verification policy and release-manifest expectation decoding to classify every JSON parse
+  failure as `windlass.verify.error.policy-schema-invalid` (duplicate members remain
+  `windlass.verify.error.duplicate-json-member`), matching the documented evaluation contract.
+- Fixed canonical repository URI normalization to reject or strip mixed-case `.git` suffixes,
+  keeping `CanonicalRepository` output idempotent and acceptable to the canonical-form validator.
 - Fixed pnpm package resolution for standalone root packages whose `pnpm-workspace.yaml` contains
   policy settings but omits the optional `packages` member.
 
