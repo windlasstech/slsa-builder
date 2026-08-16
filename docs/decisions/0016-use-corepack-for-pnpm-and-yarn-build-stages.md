@@ -4,6 +4,9 @@ nav_order: 16
 status: accepted
 date: 12026-06-28
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0082
 ---
 
 # Use Corepack for pnpm and Yarn Build Stages
