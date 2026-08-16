@@ -133,12 +133,64 @@ jobs:
         run: corepack enable
 
       - name: Log npm configuration diagnostics
+        env:
+          PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
+          REPOSITORY_ROOT: ${{ github.workspace }}/source
         run: |
+          redact() {
+            # shellcheck disable=SC2016 # node script is intentionally single-quoted.
+            node -e '
+              const sensitive = /(_authtoken|_password|:_auth|npmauthtoken|npmauthident)/i;
+              let input = "";
+              process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
+                const out = input.split("\n").map((line) => {
+                  if (sensitive.test(line)) {
+                    if (line.includes("{") || line.trimStart().startsWith(String.fromCharCode(34))) {
+                      line = line.replace(
+                        /("[^"]*(?:_authToken|_password|_auth|npmAuthToken|npmAuthIdent)[^"]*"\s*:\s*")[^"]*(")/gi,
+                        "$1<redacted>$2",
+                      );
+                    } else {
+                      const idx = line.search(/[=:]/);
+                      if (idx >= 0) line = line.slice(0, idx + 1) + " <redacted>";
+                    }
+                  }
+                  return line.replace(/(:\/\/)[^/@\s]+:[^/@\s]+@/g, "$1<redacted>@");
+                });
+                process.stdout.write(out.join("\n"));
+              });
+            '
+          }
           echo "node: $(node --version), npm: $(npm --version)"
           echo "ambient NPM_CONFIG_* variables: $(env | grep -c '^NPM_CONFIG_' || true)"
-          npm config ls 2>&1 | sed -E '/_authToken|_password|:_auth/Is/=.*/=<redacted>/'
+          npm config ls 2>&1 | redact
           echo "--- provenance/registry keys across all config layers ---"
           npm config ls -l 2>&1 | grep -iE '^(provenance|provenance-file|registry|access|tag)\b' || true
+          echo "--- selected package manager (packageManager field, package then root) ---"
+          pm_spec=$(node -e '
+            const fs = require("fs");
+            for (const candidate of [process.argv[1], process.argv[2]]) {
+              try {
+                const pm = JSON.parse(fs.readFileSync(candidate, "utf8")).packageManager;
+                if (typeof pm === "string" && pm.length > 0) { console.log(pm); process.exit(0); }
+              } catch {}
+            }
+          ' "$REPOSITORY_ROOT/$PACKAGE_DIRECTORY/package.json" "$REPOSITORY_ROOT/package.json")
+          pm_name="${pm_spec%%@*}"
+          echo "packageManager: ${pm_spec:-<none declared; npm default>}"
+          case "$pm_name" in
+            pnpm)
+              echo "--- pnpm config list (auth hidden by pnpm v11+; redacted again defensively) ---"
+              (cd "$REPOSITORY_ROOT/$PACKAGE_DIRECTORY" && pnpm config list 2>&1) | redact || true
+              ;;
+            yarn)
+              echo "--- yarn config (redacted) ---"
+              (cd "$REPOSITORY_ROOT/$PACKAGE_DIRECTORY" && yarn config 2>&1) | redact || true
+              ;;
+            *)
+              echo "package manager is npm (or unspecified); npm configuration shown above"
+              ;;
+          esac
 
       - name: Create trusted output directory
         env:
