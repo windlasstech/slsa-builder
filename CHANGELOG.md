@@ -10,6 +10,12 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
+- Added npm configuration diagnostics logging to the JS/TS npm reusable workflow's build and publish
+  jobs: node/npm versions, ambient `NPM_CONFIG_*` variable count, redacted `npm config ls` output,
+  and the provenance/registry key view across all config layers, to aid trusted-publishing and
+  provenance triage in caller runs. The build job additionally logs the selected non-npm package
+  manager's configuration (pnpm `config list` or `yarn config`, resolved from the `packageManager`
+  field) with the same redaction of credential-shaped values.
 - Added a Go testing and fuzzing guide (`docs/testing-guide.md`) defining test organization,
   security-negative testing, quality gates, and the fuzzing policy for trust-boundary parsers.
 - Added property-based fuzz targets for all trust-boundary parsers and validators (attestation
