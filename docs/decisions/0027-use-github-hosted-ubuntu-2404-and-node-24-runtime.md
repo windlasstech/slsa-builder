@@ -4,6 +4,14 @@ nav_order: 27
 status: accepted
 date: 12026-07-04
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0082
+    scope:
+      "the npm provisioning clause (the npm CLI is provided by the selected Node.js 24 toolchain,
+      floating with the node-24 image); the Node.js 24 runtime selection, the runner and OS image
+      constraints, the caller-input prohibitions, and the remaining npm clauses (floor check,
+      actual-version recording) remain in force"
 ---
 
 # Use GitHub-Hosted Ubuntu 24.04 and Node.js 24 Runtime

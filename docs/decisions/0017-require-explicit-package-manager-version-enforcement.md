@@ -7,6 +7,8 @@ decision-makers: Yunseo Kim
 relations:
   - type: see-also
     target: ADR-0070
+  - type: see-also
+    target: ADR-0082
 ---
 
 # Require Explicit Package Manager Version Enforcement
