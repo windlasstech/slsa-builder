@@ -14,6 +14,8 @@ relations:
       before registry mutation by an early OIDC token exchange preflight; residual publish-time
       authorization failures are classified, and the absolute must-stop-before-registry-mutation
       wording is scoped to what the exchange and observation preflights can establish"
+  - type: see-also
+    target: ADR-0083
 ---
 
 # Use OIDC Trusted Publishing Without Publish Secrets

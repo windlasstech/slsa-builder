@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0081`.
+`0083`.
 
 ## STRUCTURE
 
@@ -22,11 +22,13 @@ docs/decisions/
 ├── 0078-treat-settings-only-pnpm-workspace-yaml-as-standalone-root-package-mode.md
 ├── ...                                                  # 0079–0080
 ├── 0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md
+├── ...                                                  # 0082
+├── 0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0081`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0083`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -58,6 +60,8 @@ groupings.
 | Caller-specified source ref   | `0079`                                      | Tags-only `source-ref` input for fixed-pipeline release retries.             |
 | Source binding model          | `0080`                                      | Signed provenance fields vs certificate invocation claims.                   |
 | npm OIDC exchange contract    | `0081`                                      | Observed response shape; 15-minute exchange token lifetime.                  |
+| Publish-stage npm version pin | `0082`                                      | Integrity-verified provisioning and a reviewed allowlist.                    |
+| npm M1 remediation deferral   | `0083`                                      | Wait for npm/cli#9882; fixed release opens the allowlist.                    |
 
 ## CONVENTIONS
 

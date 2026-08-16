@@ -20,6 +20,15 @@ relations:
     target: ADR-0029
   - type: see-also
     target: ADR-0081
+  - type: amended-by
+    target: ADR-0083
+    scope:
+      "the identification of the initial pinned publish-stage npm version: ADR-0082 records the
+      allowlist as initially a single version pinned when the #97 fix lands; ADR-0083 defines the
+      #97 remediation as adopting the upstream npm/cli#9882 fix and selects the initial pin as the
+      first reviewed npm release containing that fix. ADR-0082's provisioning,
+      integrity-verification, allowlist, and bump-procedure clauses are unchanged and remain in
+      force"
 ---
 
 # Pin the Publish-Stage npm CLI Version with Integrity-Verified Provisioning and a Reviewed Allowlist
