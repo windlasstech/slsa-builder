@@ -8,10 +8,10 @@ relations:
   - type: partially-superseded-by
     target: ADR-0082
     scope:
-      "the npm provisioning clause (the npm CLI is provided by the selected Node.js 24 toolchain,
-      floating with the node-24 image); the Node.js 24 runtime selection, the runner and OS image
-      constraints, the caller-input prohibitions, and the remaining npm clauses (floor check,
-      actual-version recording) remain in force"
+      "the npm provisioning clause for the publish stage (the publish job uses the npm CLI provided
+      by the selected Node.js 24 toolchain, floating with the node-24 image); the Node.js 24 runtime
+      selection, the runner and OS image constraints, the caller-input prohibitions, the build-stage
+      npm clauses, and the floor check and actual-version recording clauses remain in force"
 ---
 
 # Use GitHub-Hosted Ubuntu 24.04 and Node.js 24 Runtime
