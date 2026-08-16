@@ -62,7 +62,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0079      | 호출자 지정 빌드 소스 ref          | 모든 producer profile의 기본 릴리즈 재시도 경로인 태그 전용 `source-ref` 입력. |
 | 0080      | 인증서 클레임 = 호출 컨텍스트      | 소스 정책은 서명된 provenance 필드에 바인딩; cert 소스 클레임은 호출을 증명.   |
 | 0081      | npm OIDC exchange 응답 계약        | 성공 본문을 실측 형태에 핀; exchange 토큰 수명은 15분.                         |
-| 0082      | 빌더 소유 npm 버전 핀              | 무결성 검증된 npm 프로비저닝 + 검토 allowlist와 bump 체크리스트.               |
+| 0082      | publish 단계 npm 버전 핀           | 무결성 검증된 publish npm 프로비저닝 + 검토 allowlist.                         |
 
 ## ADR status와 relations
 
@@ -203,7 +203,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0079 | Support a tags-only caller-specified build source ref for release retries across profiles           | Core profile contract, JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                |
 | 0080 | Bind source identity policy to signed provenance fields, certificate claims as invocation context   | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
 | 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime           | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
-| 0082 | Pin the builder-owned npm CLI version with integrity-verified provisioning and a reviewed allowlist | JS/TS npm build and pack, JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                             |
+| 0082 | Pin the publish-stage npm CLI version with integrity-verified provisioning and a reviewed allowlist | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

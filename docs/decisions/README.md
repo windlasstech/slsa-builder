@@ -63,7 +63,7 @@ sequence currently runs from `0000` through `0082`.
 | 0079      | Caller-specified build source ref           | Tags-only `source-ref` input as the default release-retry path for all producer profiles. |
 | 0080      | Certificate claims as invocation context    | Source policy binds signed provenance fields; cert source claims prove invocation.        |
 | 0081      | npm OIDC exchange response contract         | Success body pinned to the observed shape; exchange token lifetime is 15 minutes.         |
-| 0082      | Builder-owned npm version pinning           | Pinned, integrity-verified npm provisioning with a reviewed allowlist and bump checklist. |
+| 0082      | Publish-stage npm version pinning           | Pinned, integrity-verified publish npm provisioning with a reviewed allowlist.            |
 
 ## ADR status and relations
 
@@ -206,7 +206,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0079 | Support a tags-only caller-specified build source ref for release retries across profiles           | Core profile contract, JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                |
 | 0080 | Bind source identity policy to signed provenance fields, certificate claims as invocation context   | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
 | 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime           | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
-| 0082 | Pin the builder-owned npm CLI version with integrity-verified provisioning and a reviewed allowlist | JS/TS npm build and pack, JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                             |
+| 0082 | Pin the publish-stage npm CLI version with integrity-verified provisioning and a reviewed allowlist | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 
 ### Superseded or deprecated ADRs (historical only)
 
