@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0083`까지입니다.
+`0084`까지입니다.
 
 | 범위      | 주제                                  | 설명                                                                           |
 | --------- | ------------------------------------- | ------------------------------------------------------------------------------ |
@@ -64,6 +64,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0081      | npm OIDC exchange 응답 계약           | 성공 본문을 실측 형태에 핀; exchange 토큰 수명은 15분.                         |
 | 0082      | publish 단계 npm 버전 핀              | 무결성 검증된 publish npm 프로비저닝 + 검토 allowlist.                         |
 | 0083      | npm M1 remediation 업스트림 수정 대기 | 초기 publish npm 핀은 npm/cli#9882를 포함하는 첫 검토 릴리스.                  |
+| 0084      | publish npm 프로비저닝 메커니즘       | 커밋된 SHA-512로 검증하는 npm registry tarball 프로비저닝.                     |
 
 ## ADR status와 relations
 
@@ -206,6 +207,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime           | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 | 0082 | Pin the publish-stage npm CLI version with integrity-verified provisioning and a reviewed allowlist | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 | 0083 | Defer the npm M1 publish remediation to the upstream provenance-file fix                            | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
+| 0084 | Provision the publish-stage npm CLI from a digest-verified registry tarball                         | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

@@ -12,6 +12,8 @@ relations:
       by the selected Node.js 24 toolchain, floating with the node-24 image); the Node.js 24 runtime
       selection, the runner and OS image constraints, the caller-input prohibitions, the build-stage
       npm clauses, and the floor check and actual-version recording clauses remain in force"
+  - type: see-also
+    target: ADR-0084
 ---
 
 # Use GitHub-Hosted Ubuntu 24.04 and Node.js 24 Runtime
