@@ -132,6 +132,14 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      - name: Log npm configuration diagnostics
+        run: |
+          echo "node: $(node --version), npm: $(npm --version)"
+          echo "ambient NPM_CONFIG_* variables: $(env | grep -c '^NPM_CONFIG_' || true)"
+          npm config ls 2>&1 | sed -E '/_authToken|_password|:_auth/Is/=.*/=<redacted>/'
+          echo "--- provenance/registry keys across all config layers ---"
+          npm config ls -l 2>&1 | grep -iE '^(provenance|provenance-file|registry|access|tag)\b' || true
+
       - name: Create trusted output directory
         env:
           OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-build-output
@@ -352,6 +360,15 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+
+      - name: Log npm configuration diagnostics
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        run: |
+          echo "node: $(node --version), npm: $(npm --version)"
+          echo "ambient NPM_CONFIG_* variables: $(env | grep -c '^NPM_CONFIG_' || true)"
+          npm config ls 2>&1 | sed -E '/_authToken|_password|:_auth/Is/=.*/=<redacted>/'
+          echo "--- provenance/registry keys across all config layers ---"
+          npm config ls -l 2>&1 | grep -iE '^(provenance|provenance-file|registry|access|tag)\b' || true
 
       - name: Download package tarball handoff
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
