@@ -1,44 +1,81 @@
 # PROJECT KNOWLEDGE BASE
 
-- **Generated:** 12026-08-05
-- **Commit:** b2a368f
-- **Branch:** docs/adr-traceability-and-architecture-specs
+- **Generated:** 12026-08-17
+- **Commit:** 16285c8
+- **Branch:** main
 
 ## OVERVIEW
 
-Reusable, profile-extensible SLSA provenance builder foundation. Currently a docs/tooling scaffold;
-the Go implementation tree has not been added yet.
+Reusable, profile-extensible SLSA provenance builder foundation. The Go trusted core (`internal/`)
+and the JS/TS npm reusable workflow are implemented through the publish path; the M1 live npm
+dogfood (plan task P06) is in progress. Release-manifest, publisher, and composition surfaces are
+spec'd but not yet implemented.
 
 ## STRUCTURE
 
 ```text
 .
-├── AGENTS.md              # this file
+├── AGENTS.md                    # this file
 ├── README.md / README.ko.md
-├── docs/decisions/        # architecture ADRs (see docs/decisions/AGENTS.md)
-├── docs/architecture/     # behavior specs (see docs/architecture/AGENTS.md)
-├── .github/workflows/     # CI/CD workflows (see .github/workflows/AGENTS.md)
-├── .golangci.yml          # Go format/lint policy
-├── lefthook.yml           # git hooks
-├── mise.toml / mise.lock  # pinned runtimes and tools
-├── package.json / pnpm-*  # dev-only Node tooling
+├── cmd/slsa-builder-internal/   # sole internal executable; subcommand registry only
+├── internal/                    # trusted-core Go packages (see internal/AGENTS.md)
+│   ├── command/                 # typed dispatcher + adapters (see internal/command/AGENTS.md)
+│   └── npmprofile/              # npm profile domain (see internal/npmprofile/AGENTS.md)
+├── testdata/                    # governed byte-exact fixture corpus (see testdata/AGENTS.md)
+├── docs/decisions/              # MADR ADRs 0000-0085 (see docs/decisions/AGENTS.md)
+├── docs/architecture/           # behavior specs (see docs/architecture/AGENTS.md)
+├── docs/dogfood/                # live M1 npm evidence + verification procedure
+├── docs/testing-guide.md        # normative Go test/fuzz/fixture policy
+├── .github/workflows/           # CI + production reusable workflow (see .github/workflows/AGENTS.md)
+├── assets/                      # logo + generated badge SVGs
+├── .agents/skills/              # project skills: adr-relations-check, badge-generator
+├── go.mod / go.sum              # vetted deps: sigstore-go, cyberphone JCS, goccy/go-yaml
+├── .golangci.yml                # Go format/lint policy
+├── lefthook.yml                 # git hooks (DCO commit-msg check)
+├── mise.toml / mise.lock        # pinned runtimes (Go 1.26.6, Node 24, pnpm 11.9.0)
+├── package.json / pnpm-*        # dev-only Node tooling (Prettier, markdownlint)
 └── .cursor/ .claude/ .gemini/ .kiro/  # editor/AI tool configs
 ```
 
 ## WHERE TO LOOK
 
-| Task                     | Location                                                   | Notes                                                                 |
-| ------------------------ | ---------------------------------------------------------- | --------------------------------------------------------------------- |
-| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0081`.                              |
-| Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`.                     |
-| Writing Go tests         | `docs/testing-guide.md`                                    | Test organization, fuzzing policy, quality gates, gated `Live` tests. |
-| Bootstrap / dev setup    | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.                                      |
-| CI / workflow security   | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.                                    |
-| Lint/format policy       | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                                                  |
-| Git hooks / DCO          | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.                                    |
-| ADR relations check      | `.agents/skills/adr-relations-check/`                      | Status grammar + relations symmetry.                                  |
-| Badge regeneration       | `.agents/skills/badge-generator/`                          | shields-style badge SVG pipeline.                                     |
-| Dependency security      | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile.                              |
+| Task                     | Location                                                   | Notes                                                              |
+| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0085`.                           |
+| Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`.                  |
+| Trusted-core Go code     | `internal/`                                                | Shared rules in `internal/AGENTS.md`; sub-packages have their own. |
+| CLI subcommands          | `cmd/slsa-builder-internal/main.go`                        | 10 subcommands; adapter rules in `internal/command/AGENTS.md`.     |
+| npm profile domain       | `internal/npmprofile/`                                     | See `internal/npmprofile/AGENTS.md`.                               |
+| Fixture corpus rules     | `testdata/`                                                | See `testdata/AGENTS.md`; byte-exact, prettier-excluded.           |
+| Writing Go tests         | `docs/testing-guide.md`                                    | Hermetic default, fuzz policy, gated `Live` tests.                 |
+| Live dogfood evidence    | `docs/dogfood/`                                            | M1 verification procedure + evidence record.                       |
+| Bootstrap / dev setup    | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.                                   |
+| CI / workflow security   | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.                                 |
+| Lint/format policy       | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                                               |
+| Git hooks / DCO          | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.                                 |
+| ADR relations check      | `.agents/skills/adr-relations-check/`                      | Status grammar + relations symmetry.                               |
+| Badge regeneration       | `.agents/skills/badge-generator/`                          | shields-style badge SVG pipeline.                                  |
+| Dependency security      | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile.                           |
+
+## COMMANDS
+
+```bash
+mise install && pnpm install        # bootstrap (MISE_LOCKED=1 mise install in CI)
+go test ./...                       # unit + fixture tests (hermetic, replays fuzz corpus)
+go test -race ./...                 # race gate
+golangci-lint run ./...             # lint; formatting via golangci-lint fmt --diff
+actionlint .github/workflows/       # workflow static lint
+pnpm exec prettier --check .        # Markdown/YAML/JSON format gate
+pnpm exec markdownlint-cli2 "**/*.md"
+
+# Executable contract gates
+go run ./cmd/slsa-builder-internal fixture-check --index testdata/fixtures/index.json
+go run ./cmd/slsa-builder-internal workflow-check --workflow .github/workflows/js-ts-npm-package-slsa3.yml --profile npm-only
+```
+
+Test-only env gates (never in CI): `WINDLASS_TEST_ONLINE=1` (real Sigstore online paths),
+`SLSA_BUILDER_LIVE_TOOLCHAIN=1` with no `-short` (real npm/pnpm/Yarn), `UPDATE_*_GOLDEN=1` /
+`UPDATE_*_FIXTURE=1` (golden regeneration).
 
 ## CONVENTIONS
 
@@ -56,7 +93,8 @@ Do not implement before reading the specs.
   (`0001-title.md`).
 - **ADR immutability**: Existing accepted ADRs are immutable. Never edit the body of an accepted ADR
   after the fact. The only permitted post-acceptance change is updating the `status` field (e.g., to
-  `superseded`, `deprecated`). If a decision changes, write a new ADR rather than rewriting history.
+  `superseded`, `deprecated`) and the `relations` frontmatter field. If a decision changes, write a
+  new ADR rather than rewriting history.
 - **Dates in human-facing documents**: Use Holocene Era / Human Era year format for prose, changelog
   headings, ADR dates, and other human-reader dates (e.g., `12026-06-23`). Machine-readable
   timestamps and protocol/schema fields, such as JSON `generated_at`, SLSA `startedOn`, and
@@ -66,6 +104,12 @@ Do not implement before reading the specs.
   `README.ko.md` in the same directory as part of the same change.
 - **CodeGraph MCP**: `opencode.jsonc` configures a local CodeGraph MCP server. Other AI tool configs
   (`.cursor/`, `.claude/`, `.kiro/`, `.gemini/`) also reference CodeGraph.
+- **Trusted-core Go rules**: closed diagnostic registry with spec-parity tests, RFC 8785 canonical
+  reports, strict duplicate-rejecting JSON, digest-rebound handoffs, offline verification with zero
+  network, redacted secrets, fail-closed mutation. Details: `internal/AGENTS.md`.
+- **Fixture byte-exactness**: never run formatters over `testdata/**/*.json|jsonl|yaml|yml`
+  (`.prettierignore` exclusions exist because formatter bots broke JCS vectors). Details:
+  `testdata/AGENTS.md`.
 
 ## Commits
 
@@ -152,23 +196,34 @@ to the ADR whose confirmation criteria or scope produced it.
 
 - **npm attestation propagation polling bound** (ADR 0073 confirmation): the specification pins a
   conservative publish-to-attestations-API polling bound; measure the real propagation delay at the
-  first dogfood publish and tighten the bound if warranted.
+  first successful dogfood publish and tighten the bound if warranted.
 - **Queue-overflow rejection surface** (ADR 0075): pin from documentation or a spike whether GitHub
   rejects or cancels arrivals beyond the 100-pending `queue: max` limit; the
   `windlass.verify.error.mutation-queue-overflow` diagnostic is registered, but the exact platform
   surface remains unpinned.
 - **GHES parity watch** (ADR 0075): `queue: max` and artifact attestations are github.com-only;
   watch GHES releases before making any GHES support claim.
-- **Go-signer dogfood confirmation** (ADR 0077 confirmation): before P06, complete a controlled real
-  npm publish with registry attestation read-back and pacote consumer verification. The signer is
-  already selected for all Windlass profiles and release-manifest signing; if this dogfood surfaces
-  defects, a follow-up ADR must evaluate remediation or rollback.
+- **Go-signer dogfood confirmation** (ADR 0077 confirmation): the signer has signed live in dogfood
+  attempts 3-4, but full confirmation (real publish + registry attestation read-back + pacote
+  consumer verification) completes only with P06. If the dogfood surfaces signer defects, a
+  follow-up ADR must evaluate remediation or rollback.
 - **actions/attest multi-digest subject request** (ADR 0077 consequence): file the non-blocking
-  upstream request for one subject carrying multiple digest algorithms; P02 does not wait for it.
-- **pnpm settings-only package resolution** (ADR 0078 confirmation): N02 must treat an omitted
-  `pnpm-workspace.yaml#packages` member as root-only package mode, add accepted settings-only and
-  rejected wrong-type fixtures without changing diagnostic IDs, then retry the `vers-js` dogfood
-  with `workflow_dispatch` and `release_tag=v0.1.2` and confirm package resolution passes.
+  upstream request for one subject carrying multiple digest algorithms; implementation does not wait
+  for it.
+- **npm CLI upstream fix watch** (ADRs 0082-0085): the publish-stage npm CLI is pinned and
+  provisioned from a digest-verified registry tarball; the initial pinned version is the first
+  reviewed npm release containing the npm/cli#9882 `--provenance-file` fix (ADR 0083). Watch npm
+  releases; the M1 dogfood retry (v0.1.3) waits on it.
+- **M1 dogfood completion** (P06, issue #30): attempts 1-4 failed closed with no unintended
+  mutation; attempt 4 published `@windlass/vers-js@0.1.2` but read-back rejected npm's
+  auto-generated provenance. Retry as v0.1.3 after the pinned npm CLI carries the upstream fix.
+
+Resolved standing items (kept for traceability):
+
+- **pnpm settings-only package resolution** (ADR 0078 confirmation): resolved 12026-08-14 — N02
+  treats an omitted `pnpm-workspace.yaml#packages` member as root-only mode, fixtures added without
+  diagnostic-ID changes, and the `vers-js` dogfood retry (attempt 2) confirmed package resolution
+  passes live.
 
 <!-- CODEGRAPH_START -->
 
