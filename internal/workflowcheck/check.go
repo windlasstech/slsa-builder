@@ -2,6 +2,7 @@
 package workflowcheck
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -116,13 +117,9 @@ type workflowStep struct {
 
 // CheckBuildJob verifies the permission, runtime, hardening, and handoff contract for job build.
 func CheckBuildJob(path string) (BuildJobResult, error) {
-	contents, err := os.ReadFile(path)
+	document, err := readWorkflow(path)
 	if err != nil {
-		return BuildJobResult{}, fmt.Errorf("read workflow: %w", err)
-	}
-	var document workflowDocument
-	if err := yaml.Unmarshal(contents, &document); err != nil {
-		return BuildJobResult{}, fmt.Errorf("decode workflow: %w", err)
+		return BuildJobResult{}, err
 	}
 	if document.Permissions == nil || len(document.Permissions) != 0 {
 		return BuildJobResult{}, fmt.Errorf("top-level permissions must be an explicit empty mapping")
@@ -165,13 +162,9 @@ func CheckBuildJob(path string) (BuildJobResult, error) {
 
 // CheckProvenanceSignJob verifies the isolated authority and handoff contract for provenance-sign.
 func CheckProvenanceSignJob(path string) (ProvenanceSignJobResult, error) {
-	contents, err := os.ReadFile(path)
+	document, err := readWorkflow(path)
 	if err != nil {
-		return ProvenanceSignJobResult{}, fmt.Errorf("read workflow: %w", err)
-	}
-	var document workflowDocument
-	if err := yaml.Unmarshal(contents, &document); err != nil {
-		return ProvenanceSignJobResult{}, fmt.Errorf("decode workflow: %w", err)
+		return ProvenanceSignJobResult{}, err
 	}
 	if document.Permissions == nil || len(document.Permissions) != 0 {
 		return ProvenanceSignJobResult{}, fmt.Errorf("top-level permissions must be an explicit empty mapping")
@@ -298,8 +291,18 @@ func CheckNPMOnlyProfile(path string) (NPMOnlyProfileResult, error) {
 	}, nil
 }
 
-func decodeWorkflow(encoded []byte) (workflowDocument, error) {
-	var document workflowDocument
+func decodeWorkflow(encoded []byte) (document workflowDocument, err error) {
+	// goccy/go-yaml v1.19.2 historically panicked when a tagged scalar was
+	// decoded into a slice field (TagNode.ArrayRange nil iterator). The pinned
+	// module revision includes upstream fix goccy/go-yaml#862, but workflow YAML
+	// is attacker-controlled input (see docs/testing-guide.md), so keep this
+	// recover as defense in depth and convert any decoder panic into an error.
+	defer func() {
+		if recover() != nil {
+			document = workflowDocument{}
+			err = errors.New("decode workflow: decoder panic")
+		}
+	}()
 	if err := yaml.Unmarshal(encoded, &document); err != nil {
 		return workflowDocument{}, fmt.Errorf("decode workflow: %w", err)
 	}

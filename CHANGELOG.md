@@ -49,6 +49,11 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   keeping `CanonicalRepository` output idempotent and acceptable to the canonical-form validator.
 - Fixed pnpm package resolution for standalone root packages whose `pnpm-workspace.yaml` contains
   policy settings but omits the optional `packages` member.
+- Fixed a panic in the workflow conformance decoder when workflow YAML maps a tagged scalar (for
+  example `!!str`) into a sequence field, by pinning goccy/go-yaml to the upstream fix commit
+  ([goccy/go-yaml#862](https://github.com/goccy/go-yaml/pull/862)) so such input decodes to an
+  ordinary type error; as defense in depth, the decoder also converts any residual decoder panic
+  into a bounded `decode workflow: decoder panic` error instead of crashing.
 
 ### Security
 

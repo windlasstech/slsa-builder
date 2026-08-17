@@ -49,6 +49,8 @@ func FuzzDecodeWorkflow(f *testing.F) {
 	f.Add([]byte("permissions:\n  contents: read\npermissions:\n  contents: write\n"))
 	f.Add([]byte("permissions: null"))
 	f.Add([]byte("jobs:\n  build:\n    steps: [{uses: a/b@c"))
+	f.Add([]byte("jobs:\n  build:\n    steps: !!str x\n"))
+	f.Add([]byte("jobs:\n  build:\n    steps: !foo bar\n"))
 	f.Add([]byte("anchor: &a [x, x, x]\nalias: [*a, *a, *a]"))
 	f.Add([]byte("%YAML 1.1\n---\nyes: no\n...\n---\nsecond: document\n"))
 	f.Add([]byte(""))
