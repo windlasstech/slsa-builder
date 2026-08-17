@@ -3,7 +3,7 @@
 ## OVERVIEW
 
 Exact observable-behavior specifications for the SLSA builder. This is the **what** layer of SDD,
-between ADRs in `docs/decisions/` and future implementation.
+between ADRs in `docs/decisions/` and the implementation in `internal/`.
 
 ## STRUCTURE
 
@@ -38,6 +38,10 @@ docs/architecture/
 | Producer-publisher composition     | `composed-workflow-internal-handoff.md`, `npm-to-release-asset-composition.md` | Internal mapping and public composition.      |
 | Release metadata signing           | `release-manifest.md`                                                          | Manifest schema and three-job boundary.       |
 | Verification behavior              | `verification-policy-and-fixtures.md`                                          | Trust roots, rejection cases, fixtures.       |
+| pnpm settings-only workspace mode  | `js-ts-npm-build-pack.md`                                                      | ADR 0078 root-only resolution.                |
+| Caller-specified source ref retry  | `js-ts-npm-package-profile.md`                                                 | ADRs 0079/0080 dispatch-retry contract.       |
+| npm OIDC exchange response shape   | `js-ts-npm-provenance-publish.md`                                              | ADR 0081 union timestamps, 15-minute token.   |
+| Live operational evidence          | `../dogfood/`                                                                  | M1 dogfood record/procedure; not normative.   |
 
 ## CONVENTIONS
 
