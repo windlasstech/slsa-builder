@@ -24,39 +24,42 @@ docs/decisions/
 ADR numbering is sequential from `0000` through `0085`. See the WHERE TO LOOK table below for topic
 groupings.
 
+Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
+confirms ADR/spec behavior but is not decision material and does not live here.
+
 ## WHERE TO LOOK
 
-| Topic                         | ADR                                         | Notes                                                                        |
-| ----------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------- |
-| Why the repo exists           | `0001`                                      | Clean-repository foundation.                                                 |
-| Trusted workflow architecture | `0002`, `0003`                              | Core vs. profile-owned reusable workflows.                                   |
-| Implementation language       | `0004`                                      | Go for trusted core; shell stays glue.                                       |
-| Linter choices                | `0005`, `0006`, `0007`                      | golangci-lint, ShellCheck, no universal bundle.                              |
-| Formatter choices             | `0008`                                      | gofmt/goimports, shfmt, Prettier for Markdown.                               |
-| Dev tooling runtime           | `0009`, `0010`, `0011`, `0012`              | Node/pnpm, Lefthook, mise bootstrap.                                         |
-| JS/TS npm package profile     | `0013`–`0037`, `0055`–`0064`, `0077`–`0078` | Package manager selection, OIDC publishing, SLSA3 npm workflow.              |
-| GitHub release asset profile  | `0038`–`0052`, `0057`–`0062`                | Release asset subject handling, attestation distribution.                    |
-| Release manifest metadata     | `0053`, `0054`, `0062`                      | Signing boundary, predicate URI, producer policy conflicts.                  |
-| ADR lifecycle metadata        | `0065`                                      | Closed status grammar and relations field.                                   |
-| Release run ownership         | `0066`                                      | Job-class concurrency and mutation segment serialization.                    |
-| Repeated run recovery         | `0067`                                      | Run-identity convergence, outcome states, binding proofs.                    |
-| Release asset run ownership   | `0072`                                      | Sidecar-first pair binding and custody non-attribution.                      |
-| npm run-ownership proof       | `0073`                                      | Published-attestation run identity for same-run convergence.                 |
-| Mutation segment atomicity    | `0074`                                      | Single-job segments and detection-based cross-run safety.                    |
-| Mutation queue policy         | `0075`                                      | `queue: max` FIFO waiting for mutation segment contenders.                   |
-| Preflight and classification  | `0076`                                      | Observation preflights; first-mutation classification otherwise.             |
-| Verifier identity binding     | `0068`                                      | Immutable builder/source identities for verification.                        |
-| Transparency and trust root   | `0069`                                      | Rekor inclusion, offline verification, trust root governance.                |
-| Build-environment recording   | `0070`, `0071`                              | Toolchain distributions, runner image, builder.version, builderDependencies. |
-| Windlass provenance signing   | `0077`                                      | Go-native exact-byte DSSE signing for all profiles and release manifests.    |
-| pnpm settings-only workspaces | `0078`                                      | Missing `packages` selects only the root package.                            |
-| Caller-specified source ref   | `0079`                                      | Tags-only `source-ref` input for fixed-pipeline release retries.             |
-| Source binding model          | `0080`                                      | Signed provenance fields vs certificate invocation claims.                   |
-| npm OIDC exchange contract    | `0081`                                      | Observed response shape; 15-minute exchange token lifetime.                  |
-| Publish-stage npm version pin | `0082`                                      | Integrity-verified provisioning and a reviewed allowlist.                    |
-| npm M1 remediation deferral   | `0083`                                      | Wait for npm/cli#9882; fixed release opens the allowlist.                    |
-| Publish npm provisioning      | `0084`                                      | Digest-verified npm registry tarball with a committed SHA-512.               |
-| Build toolchain pair pin      | `0085`                                      | Exact Node.js 24 patch per builder release; bundled npm asserted pre-use.    |
+| Topic                         | ADR                                         | Notes                                                                                                                          |
+| ----------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Why the repo exists           | `0001`                                      | Clean-repository foundation.                                                                                                   |
+| Trusted workflow architecture | `0002`, `0003`                              | Core vs. profile-owned reusable workflows.                                                                                     |
+| Implementation language       | `0004`                                      | Go for trusted core; shell stays glue.                                                                                         |
+| Linter choices                | `0005`, `0006`, `0007`                      | golangci-lint, ShellCheck, no universal bundle.                                                                                |
+| Formatter choices             | `0008`                                      | gofmt/goimports, shfmt, Prettier for Markdown.                                                                                 |
+| Dev tooling runtime           | `0009`, `0010`, `0011`, `0012`              | Node/pnpm, Lefthook, mise bootstrap.                                                                                           |
+| JS/TS npm package profile     | `0013`–`0037`, `0055`–`0064`, `0077`–`0085` | Package manager selection, OIDC publishing, SLSA3 npm workflow.                                                                |
+| GitHub release asset profile  | `0038`–`0052`, `0057`–`0062`                | Release asset subject handling, attestation distribution.                                                                      |
+| Release manifest metadata     | `0053`, `0054`, `0062`                      | Signing boundary, predicate URI, producer policy conflicts.                                                                    |
+| ADR lifecycle metadata        | `0065`                                      | Closed status grammar and relations field.                                                                                     |
+| Release run ownership         | `0066`                                      | Job-class concurrency and mutation segment serialization.                                                                      |
+| Repeated run recovery         | `0067`                                      | Run-identity convergence, outcome states, binding proofs.                                                                      |
+| Release asset run ownership   | `0072`                                      | Sidecar-first pair binding and custody non-attribution.                                                                        |
+| npm run-ownership proof       | `0073`                                      | Published-attestation run identity for same-run convergence.                                                                   |
+| Mutation segment atomicity    | `0074`                                      | Single-job segments and detection-based cross-run safety.                                                                      |
+| Mutation queue policy         | `0075`                                      | `queue: max` FIFO waiting for mutation segment contenders.                                                                     |
+| Preflight and classification  | `0076`                                      | Observation preflights; first-mutation classification otherwise.                                                               |
+| Verifier identity binding     | `0068`                                      | Immutable builder/source identities for verification.                                                                          |
+| Transparency and trust root   | `0069`                                      | Rekor inclusion, offline verification, trust root governance.                                                                  |
+| Build-environment recording   | `0070`, `0071`                              | Toolchain distributions, runner image, builder.version, builderDependencies.                                                   |
+| Windlass provenance signing   | `0077`                                      | Go-native exact-byte DSSE signing for all profiles and release manifests. Supersedes `0035`/`0055`, which are historical only. |
+| pnpm settings-only workspaces | `0078`                                      | Missing `packages` selects only the root package.                                                                              |
+| Caller-specified source ref   | `0079`                                      | Tags-only `source-ref` input for fixed-pipeline release retries.                                                               |
+| Source binding model          | `0080`                                      | Signed provenance fields vs certificate invocation claims.                                                                     |
+| npm OIDC exchange contract    | `0081`                                      | Observed response shape; 15-minute exchange token lifetime.                                                                    |
+| Publish-stage npm version pin | `0082`                                      | Integrity-verified provisioning and a reviewed allowlist.                                                                      |
+| npm M1 remediation deferral   | `0083`                                      | Wait for npm/cli#9882; fixed release opens the allowlist.                                                                      |
+| Publish npm provisioning      | `0084`                                      | Digest-verified npm registry tarball with a committed SHA-512.                                                                 |
+| Build toolchain pair pin      | `0085`                                      | Exact Node.js 24 patch per builder release; bundled npm asserted pre-use.                                                      |
 
 ## CONVENTIONS
 
