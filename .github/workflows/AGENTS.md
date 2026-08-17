@@ -76,8 +76,10 @@ Also: `.github/actionlint.yaml` — scoped suppressions, see below.
 - Do not reference third-party reusable workflows by mutable branch or tag; the
   `windlasstech/.github` `@main` refs are the sanctioned org exception.
 - Do not add long-lived cloud or registry credentials; prefer OIDC where elevation is required.
-- Do not remove or broaden the three scoped actionlint suppressions; they pin intentional platform
-  behavior.
+- Do not remove or broaden the three scoped actionlint suppressions without sufficient evidence;
+  they pin intentional platform behavior. If a scope change appears justified (for example, a future
+  actionlint release natively supporting the suppressed syntax), report the evidence to a human
+  maintainer and obtain approval before modifying them.
 - Do not change the publish job's `cancel-in-progress`/`queue: max` pair; mutation ordering depends
   on it.
 - Do not add `actions/attest` to the production workflow (superseded signing adapter, ADR 0077).
