@@ -7,6 +7,8 @@ decision-makers: Yunseo Kim
 relations:
   - type: see-also
     target: ADR-0082
+  - type: see-also
+    target: ADR-0085
 ---
 
 # Use Corepack for pnpm and Yarn Build Stages

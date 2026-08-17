@@ -13,6 +13,8 @@ relations:
       hour' documentation note cited in ADR-0076; the observed lifetime is 15 minutes)"
   - type: see-also
     target: ADR-0082
+  - type: see-also
+    target: ADR-0083
 ---
 
 # Pin the npm OIDC Exchange Response Contract to the Observed Shape and Correct the Token Lifetime Assumption

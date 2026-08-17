@@ -28,6 +28,8 @@ relations:
       "the npm OIDC exchange success-response contract (unpinned in ADR-0076; pinned in ADR-0081 to
       the empirically observed shape) and the exchange-token lifetime assumption (the 'typically 1
       hour' documentation note cited in ADR-0076; the observed lifetime is 15 minutes)"
+  - type: see-also
+    target: ADR-0083
 ---
 
 # Use Observation Preflights and First-Mutation Classification

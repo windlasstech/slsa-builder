@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0081`.
+`0085`.
 
 ## STRUCTURE
 
@@ -13,20 +13,15 @@ docs/decisions/
 ├── 0000-use-markdown-architectural-decision-records.md  # MADR template
 ├── 0001-start-slsa-builder-as-clean-repository.md
 ├── 0002-use-extensible-trusted-reusable-workflow-foundation.md
-├── ...                                                  # 0003–0072
-├── 0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md
-├── 0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md
-├── 0075-queue-mutation-segment-contenders-with-queue-max.md
-├── 0076-use-observation-preflights-and-first-mutation-classification.md
-├── 0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md
-├── 0078-treat-settings-only-pnpm-workspace-yaml-as-standalone-root-package-mode.md
-├── ...                                                  # 0079–0080
-├── 0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md
+├── ...                                                  # 0003–0082
+├── 0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md
+├── 0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md
+├── 0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0081`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0085`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -58,6 +53,10 @@ groupings.
 | Caller-specified source ref   | `0079`                                      | Tags-only `source-ref` input for fixed-pipeline release retries.             |
 | Source binding model          | `0080`                                      | Signed provenance fields vs certificate invocation claims.                   |
 | npm OIDC exchange contract    | `0081`                                      | Observed response shape; 15-minute exchange token lifetime.                  |
+| Publish-stage npm version pin | `0082`                                      | Integrity-verified provisioning and a reviewed allowlist.                    |
+| npm M1 remediation deferral   | `0083`                                      | Wait for npm/cli#9882; fixed release opens the allowlist.                    |
+| Publish npm provisioning      | `0084`                                      | Digest-verified npm registry tarball with a committed SHA-512.               |
+| Build toolchain pair pin      | `0085`                                      | Exact Node.js 24 patch per builder release; bundled npm asserted pre-use.    |
 
 ## CONVENTIONS
 

@@ -20,6 +20,32 @@ relations:
     target: ADR-0029
   - type: see-also
     target: ADR-0081
+  - type: amended-by
+    target: ADR-0083
+    scope:
+      "the identification of the initial pinned publish-stage npm version: ADR-0082 records the
+      allowlist as initially a single version pinned when the #97 fix lands; ADR-0083 defines the
+      #97 remediation as adopting the upstream npm/cli#9882 fix and selects the initial pin as the
+      first reviewed npm release containing that fix. ADR-0082's provisioning,
+      integrity-verification, allowlist, and bump-procedure clauses are unchanged and remain in
+      force"
+  - type: partially-superseded-by
+    target: ADR-0084
+    scope:
+      "the designation of SHA-256 as the publish-stage npm distribution digest algorithm in the
+      provisioning clause ('one shared definition of version plus distribution SHA-256'): the pinned
+      digest is SHA-512 in SRI form, byte-identical to the registry-native dist.integrity field. The
+      pre-use digest-verification obligation, the single shared definition, the allowlist, and the
+      bump procedure are unaffected and remain in force"
+  - type: amended-by
+    target: ADR-0084
+    scope:
+      "the selection of the concrete publish-stage npm provisioning mechanism, which ADR-0082 left
+      unspecified: ADR-0082 mandates explicit provisioning before any npm invocation with the
+      distribution digest verified before first use but does not name the mechanism; ADR-0084
+      narrows the open choice to the digest-verified npm registry tarball mechanism"
+  - type: see-also
+    target: ADR-0085
 ---
 
 # Pin the Publish-Stage npm CLI Version with Integrity-Verified Provisioning and a Reviewed Allowlist
