@@ -11,14 +11,14 @@ does not implement production verification, canonicalization, or workflow checks
 | --------------------- | -------------------------------------------------------------------------------- | ---------- |
 | Sigstore verification | `github.com/sigstore/sigstore-go v1.3.0`                                         | Apache-2.0 |
 | RFC 8785 JCS          | `github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467` | Apache-2.0 |
-| Workflow YAML parsing | `github.com/goccy/go-yaml v1.19.2`                                               | MIT        |
+| Workflow YAML parsing | `github.com/goccy/go-yaml v1.19.3-0.20260407131736-edee2f91616c`                 | MIT        |
 
 Apache-2.0 and MIT are OSI-approved licenses. No direct dependency with an unapproved, ambiguous, or
 copyleft license was accepted.
 
 The module graph is intentionally pinned by `go.mod` and `go.sum`. At selection time,
-`go list -m all` resolves 369 entries including this module, or 368 dependencies. `go.mod` retains
-69 indirect requirements needed by the imported Sigstore proof APIs. The JCS module adds no new
+`go list -m all` resolves 372 entries including this module, or 371 dependencies. `go.mod` retains
+80 indirect requirements needed by the imported Sigstore proof APIs. The JCS module adds no new
 module to the build list because this exact version is already required by `sigstore-go`; the JCS
 and YAML modules otherwise declare no third-party module requirements. The Sigstore footprint is
 large: its `v1.3.0` module declares 88 module requirements, which expand through the cryptographic,
@@ -36,7 +36,7 @@ implementation. Dependency Review and OSV Scanner are required gates for the ful
   Sigstore conformance testing.
 - **Release and compatibility:** `v1.3.0` was released on 12026-07-30. The preceding `v1.2.0`,
   `v1.2.1`, and `v1.2.2` releases were published during 12026-06 and 12026-07, showing active
-  maintenance. Its module requires Go 1.25.8, which is compatible with the repository's Go 1.26.4
+  maintenance. Its module requires Go 1.25.8, which is compatible with the repository's Go 1.26.6
   toolchain.
 - **Capability fit:** the library parses Sigstore bundles and verifies message signatures or DSSE
   envelopes, Fulcio certificate chains, embedded SCTs, Rekor inclusion proofs or SETs, observer
@@ -114,16 +114,25 @@ values that do require JCS, duplicate rejection must happen before canonicalizat
 the verification policy. The selected transformer provides defense in depth but does not replace the
 general duplicate-aware Statement parser.
 
-## YAML: `github.com/goccy/go-yaml v1.19.2`
+## YAML: `github.com/goccy/go-yaml v1.19.3-0.20260407131736-edee2f91616c`
 
 ### Rationale
 
 - **License:** MIT, confirmed by the repository
-  [license](https://github.com/goccy/go-yaml/blob/v1.19.2/LICENSE).
+  [license](https://github.com/goccy/go-yaml/blob/edee2f91616c6d73112a13e7c0dbde72ce938877/LICENSE).
 - **Maintainer and reputation:** this is an established, actively maintained Go YAML implementation
   with parser and AST APIs used independently of struct unmarshalling.
-- **Release and compatibility:** `v1.19.2` is a stable release and its module requires Go 1.21,
-  which is compatible with Go 1.26.4.
+- **Release and compatibility:** the selected pseudo-version pins upstream commit `edee2f91616c`
+  exactly, keeping the pin reproducible under the same convention as the JCS module's pseudo-version
+  approval above. It is the earliest upstream revision containing the fix for goccy/go-yaml issue
+  #735, merged as PR #862 on 12026-04-07: a fuzz-discovered nil-pointer panic in
+  `Decoder.decodeSlice` when a tagged scalar maps into a Go slice field, reachable from
+  attacker-controlled workflow YAML. No tagged release contains the fix yet; `v1.19.2` is the latest
+  tag and predates it. The pin is five commits ahead of the `v1.19.2` tag, and those commits
+  additionally touch parser, token, context, and encoder files, which was accepted after review of
+  the upstream diff. The module still requires Go 1.21, which is compatible with this repository's
+  Go 1.26.6 toolchain. When a tagged release containing PR #862 ships, the pin should move to that
+  release.
 - **Capability fit:** `parser.ParseBytes` preserves a syntax tree suitable for static GitHub Actions
   conformance checks. Duplicate mapping keys are rejected by default; the trusted core must not use
   the `AllowDuplicateMapKey` opt-out. The parser can inspect workflow structure without coercing it
@@ -132,6 +141,10 @@ general duplicate-aware Statement parser.
 
 This dependency parses YAML syntax only. It does not define GitHub Actions semantics; the future
 workflow checker must apply the repository's closed conformance rules to the AST.
+
+The version review required by this document's final paragraph was repeated on 12026-08-17 for this
+revision. The license was re-confirmed MIT at the pinned commit, no new module requirements were
+introduced, and the Dependency Review and OSV gates are unchanged.
 
 ## Official test-vector inventory
 
@@ -166,9 +179,9 @@ serialization samples.
 
 ### YAML
 
-`go-yaml v1.19.2` includes an integration harness for the community-maintained
-[`yaml-test-suite`](https://github.com/yaml/yaml-test-suite) in
-[`yaml_test_suite_test.go`](https://github.com/goccy/go-yaml/blob/v1.19.2/yaml_test_suite_test.go).
+`go-yaml v1.19.3-0.20260407131736-edee2f91616c` includes an integration harness for the
+community-maintained [`yaml-test-suite`](https://github.com/yaml/yaml-test-suite) in
+[`yaml_test_suite_test.go`](https://github.com/goccy/go-yaml/blob/edee2f91616c6d73112a13e7c0dbde72ce938877/yaml_test_suite_test.go).
 The repository also carries unit tests for lexer, parser, AST, decoder, encoder, anchors, aliases,
 merge keys, comments, and duplicate mapping keys. Workflow-specific accepted and rejected fixtures
 will be project-owned because the YAML standard suite does not define GitHub Actions semantics.
