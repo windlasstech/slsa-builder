@@ -24,6 +24,8 @@ relations:
     target: ADR-0081
   - type: see-also
     target: ADR-0084
+  - type: see-also
+    target: ADR-0085
 ---
 
 # Defer the npm M1 Publish Remediation to the Upstream provenance-file Fix and Adopt the Fixed Release as the Initial Publish npm Pin

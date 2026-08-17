@@ -44,6 +44,8 @@ relations:
       unspecified: ADR-0082 mandates explicit provisioning before any npm invocation with the
       distribution digest verified before first use but does not name the mechanism; ADR-0084
       narrows the open choice to the digest-verified npm registry tarball mechanism"
+  - type: see-also
+    target: ADR-0085
 ---
 
 # Pin the Publish-Stage npm CLI Version with Integrity-Verified Provisioning and a Reviewed Allowlist

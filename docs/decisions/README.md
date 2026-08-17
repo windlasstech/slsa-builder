@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0084`.
+sequence currently runs from `0000` through `0085`.
 
 | Range     | Topic                                       | Notes                                                                                     |
 | --------- | ------------------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -66,6 +66,7 @@ sequence currently runs from `0000` through `0084`.
 | 0082      | Publish-stage npm version pinning           | Pinned, integrity-verified publish npm provisioning with a reviewed allowlist.            |
 | 0083      | npm M1 remediation deferred to upstream fix | Initial publish npm pin is the first reviewed release containing npm/cli#9882.            |
 | 0084      | Publish npm provisioning mechanism          | Digest-verified npm registry tarball with a committed SHA-512.                            |
+| 0085      | Build-stage Node.js patch and npm pair pin  | Exact Node.js 24 patch per builder release; bundled npm asserted before first use.        |
 
 ## ADR status and relations
 
@@ -211,6 +212,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0082 | Pin the publish-stage npm CLI version with integrity-verified provisioning and a reviewed allowlist | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 | 0083 | Defer the npm M1 publish remediation to the upstream provenance-file fix                            | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 | 0084 | Provision the publish-stage npm CLI from a digest-verified registry tarball                         | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
+| 0085 | Pin the Node.js 24 patch version and assert the expected bundled npm pair                           | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                                                             |
 
 ### Superseded or deprecated ADRs (historical only)
 

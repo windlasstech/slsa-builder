@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0084`.
+`0085`.
 
 ## STRUCTURE
 
@@ -16,11 +16,12 @@ docs/decisions/
 ├── ...                                                  # 0003–0082
 ├── 0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md
 ├── 0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md
+├── 0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0084`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0085`. See the WHERE TO LOOK table below for topic
 groupings.
 
 ## WHERE TO LOOK
@@ -55,6 +56,7 @@ groupings.
 | Publish-stage npm version pin | `0082`                                      | Integrity-verified provisioning and a reviewed allowlist.                    |
 | npm M1 remediation deferral   | `0083`                                      | Wait for npm/cli#9882; fixed release opens the allowlist.                    |
 | Publish npm provisioning      | `0084`                                      | Digest-verified npm registry tarball with a committed SHA-512.               |
+| Build toolchain pair pin      | `0085`                                      | Exact Node.js 24 patch per builder release; bundled npm asserted pre-use.    |
 
 ## CONVENTIONS
 

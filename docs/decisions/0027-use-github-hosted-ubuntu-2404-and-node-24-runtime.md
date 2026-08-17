@@ -12,6 +12,14 @@ relations:
       by the selected Node.js 24 toolchain, floating with the node-24 image); the Node.js 24 runtime
       selection, the runner and OS image constraints, the caller-input prohibitions, the build-stage
       npm clauses, and the floor check and actual-version recording clauses remain in force"
+  - type: partially-superseded-by
+    target: ADR-0085
+    scope:
+      "the toolchain resolution clause under which the exact Node.js patch version, and therefore
+      the bundled npm CLI, floats within the Node.js 24 major line between runs of the same builder
+      release; the Node.js 24 major selection, the runner and OS image constraints, the caller-input
+      prohibitions, the build-stage bundled-npm coupling, the npm floor check, and the
+      actual-version recording clauses remain in force"
   - type: see-also
     target: ADR-0084
 ---
