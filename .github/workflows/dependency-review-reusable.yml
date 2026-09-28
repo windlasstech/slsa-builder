@@ -1,0 +1,60 @@
+name: Dependency Review
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      config-file:
+        description: "Path to the dependency review configuration file"
+        required: false
+        type: string
+        default: "windlasstech/.github/.github/dependency-review-config.yml@main"
+      fail-on-severity:
+        description: "Minimum severity to fail the check (low, moderate, high, critical)"
+        required: false
+        type: string
+        default: ""
+      comment-summary-in-pr:
+        description: "Post summary comment to PR (always, on-failure, never)"
+        required: false
+        type: string
+        default: "on-failure"
+      warn-only:
+        description: "Report only, never fail"
+        required: false
+        type: boolean
+        default: false
+      external-repo-token:
+        description: "Token for accessing external repository config files"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required when comment-summary-in-pr is enabled
+      pull-requests: write
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          config-file: ${{ inputs.config-file }}
+          comment-summary-in-pr: ${{ inputs.comment-summary-in-pr }}
+          warn-only: ${{ inputs.warn-only }}
+          fail-on-severity: ${{ inputs.fail-on-severity }}
+          external-repo-token: ${{ inputs.external-repo-token }}
