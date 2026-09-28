@@ -1,0 +1,39 @@
+name: OSV Scanner Smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/osv-scanner-*.yml"
+      - "README.md"
+      - "SECURITY.md"
+      - "bun.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pr-smoke:
+    if: github.event_name == 'pull_request'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/osv-scanner-pr-reusable.yml
+    with:
+      scan-args: |-
+        --lockfile=./bun.lock
+      upload-sarif: true
+
+  full-smoke:
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/osv-scanner-full-reusable.yml
+    with:
+      scan-args: |-
+        --lockfile=./bun.lock
+      upload-sarif: true
+      fail-on-vuln: false

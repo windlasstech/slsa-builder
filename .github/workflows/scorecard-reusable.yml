@@ -1,0 +1,127 @@
+# This workflow uses actions that are not certified by GitHub. They are provided
+# by a third-party and are governed by separate terms of service, privacy
+# policy, and support documentation.
+
+name: Scorecard supply-chain security
+
+on:
+  workflow_call:
+    inputs:
+      results-file:
+        description: "Path to the SARIF results file"
+        required: false
+        type: string
+        default: "results.sarif"
+      results-format:
+        description: "Results format (sarif, json, csv, etc.)"
+        required: false
+        type: string
+        default: "sarif"
+      publish-results:
+        description: "Publish results to OpenSSF REST API for public repositories"
+        required: false
+        type: boolean
+        default: true
+      repo-token:
+        description: "Fine-grained PAT token for Branch-Protection check on public repos or private repo installation"
+        required: false
+        type: string
+        default: ""
+      file-mode:
+        description: "File mode for .gitattributes with export-ignore (e.g., git)"
+        required: false
+        type: string
+        default: ""
+      retention-days:
+        description: "Artifact retention days"
+        required: false
+        type: number
+        default: 5
+      upload-artifact:
+        description: "Upload results as artifact"
+        required: false
+        type: boolean
+        default: true
+      upload-code-scanning:
+        description: "Upload results to GitHub code scanning dashboard"
+        required: false
+        type: boolean
+        default: true
+
+# Declare default permissions as read only.
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  checks: read
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    # `publish_results: true` only works when run from the default branch. conditional can be removed if disabled.
+    if: github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request'
+    permissions:
+      # Needed for Scorecard to read repository contents.
+      contents: read
+      # Needed for Scorecard to query issues and pull requests.
+      issues: read
+      pull-requests: read
+      # Needed for Scorecard to check configured SAST tools.
+      checks: read
+      # Needed to upload the results to code-scanning dashboard.
+      security-events: write
+      # Needed to publish results and get a badge (see publish_results below).
+      id-token: write
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: "Checkout code"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "Run analysis"
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: ${{ inputs.results-file }}
+          results_format: ${{ inputs.results-format }}
+          # (Optional) "write" PAT token. Uncomment the `repo_token` line below if:
+          # - you want to enable the Branch-Protection check on a *public* repository, or
+          # - you are installing Scorecard on a *private* repository
+          # To create the PAT, follow the steps in https://github.com/ossf/scorecard-action?tab=readme-ov-file#authentication-with-fine-grained-pat-optional.
+          repo_token: ${{ inputs.repo-token }}
+
+          # Public repositories:
+          #   - Publish results to OpenSSF REST API for easy access by consumers
+          #   - Allows the repository to include the Scorecard badge.
+          #   - See https://github.com/ossf/scorecard-action#publishing-results.
+          # For private repositories:
+          #   - `publish_results` will always be set to `false`, regardless
+          #   of the value entered here.
+          publish_results: ${{ inputs.publish-results }}
+
+          # (Optional) Uncomment file_mode if you have a .gitattributes with files marked export-ignore
+          file_mode: ${{ inputs.file-mode }}
+
+      # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
+      # format to the repository Actions tab.
+      - name: "Upload artifact"
+        if: ${{ inputs.upload-artifact }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: SARIF file
+          path: ${{ inputs.results-file }}
+          retention-days: ${{ inputs.retention-days }}
+
+      # Upload the results to GitHub's code scanning dashboard (optional).
+      # Commenting out will disable upload of results to your repo's Code Scanning dashboard
+      - name: "Upload to code-scanning"
+        if: ${{ inputs.upload-code-scanning }}
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: ${{ inputs.results-file }}
