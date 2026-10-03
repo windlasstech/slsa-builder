@@ -79,7 +79,7 @@ Test-only env gates (never in CI): `WINDLASS_TEST_ONLINE=1` (real Sigstore onlin
 
 ## CONVENTIONS
 
-### Spec-Driven Development (SDD)
+### Decision-Driven Software Engineering (DSSE) & Spec-Driven Development (SDD)
 
 Do not implement before reading the specs.
 
@@ -87,10 +87,23 @@ Do not implement before reading the specs.
 2. **Specs second** (`docs/architecture/`): define _exact observable behavior_.
 3. **Implementation third**: build against the specifications.
 
+- **ADR authority**: ADRs are the human operator's exclusive decision records. An agent may
+  recommend a new ADR with supporting grounds; it may draft an ADR only with the operator's explicit
+  permission or direction, and it may finalize and commit an ADR body only with the operator's
+  explicit permission or direction. Never begin, conclude, or finalize an ADR autonomously.
+- **Evidence-bound claims**: when asserting that a document — an ADR, a spec, a runbook, or an
+  external source — contains specific content, read the source and quote it accurately. Never assert
+  the contents of an unread document by inference.
+
 ### Repo Conventions
 
 - **ADRs**: Use MADR 4.0.0 format. Store in `docs/decisions/` with sequential numbering
   (`0001-title.md`).
+- **ADR atomicity**: One ADR decides exactly one decision axis or topic. Because accepted ADRs are
+  immutable, write each ADR as small and focused as possible: decide only the question at hand,
+  defer sibling questions to follow-on ADRs, and do not bake in premature specifics (e.g., a
+  particular vendor, plan, or parameter) that belong to a later decision — record such candidates in
+  More Information as investigated-but-undecided notes instead.
 - **ADR immutability**: Existing accepted ADRs are immutable. Never edit the body of an accepted ADR
   after the fact. The only permitted post-acceptance change is updating the `status` field (e.g., to
   `superseded`, `deprecated`) and the `relations` frontmatter field. If a decision changes, write a
@@ -210,20 +223,15 @@ to the ADR whose confirmation criteria or scope produced it.
 - **actions/attest multi-digest subject request** (ADR 0077 consequence): file the non-blocking
   upstream request for one subject carrying multiple digest algorithms; implementation does not wait
   for it.
-- **npm CLI upstream fix watch** (ADRs 0082-0085): the publish-stage npm CLI is pinned and
-  provisioned from a digest-verified registry tarball; the initial pinned version is the first
-  reviewed npm release containing the npm/cli#9882 `--provenance-file` fix (ADR 0083). Watch npm
-  releases; the M1 dogfood retry (v0.1.3) waits on it.
+- **Registry revisions watch** (issue #105): pnpm 12 / pnpr registry revisions (a replacement
+  tarball under an unchanged `name@version`) would break the publish design's 1:1 `name@version` ↔
+  tarball binding (digest-rebound handoffs, foreign-conflict classification). npmjs does not serve
+  revisions today; tracked in [#105](https://github.com/windlasstech/slsa-builder/issues/105).
 - **M1 dogfood completion** (P06, issue #30): attempts 1-4 failed closed with no unintended
   mutation; attempt 4 published `@windlass/vers-js@0.1.2` but read-back rejected npm's
-  auto-generated provenance. Retry as v0.1.3 after the pinned npm CLI carries the upstream fix.
-
-Resolved standing items (kept for traceability):
-
-- **pnpm settings-only package resolution** (ADR 0078 confirmation): resolved 12026-08-14 — N02
-  treats an omitted `pnpm-workspace.yaml#packages` member as root-only mode, fixtures added without
-  diagnostic-ID changes, and the `vers-js` dogfood retry (attempt 2) confirmed package resolution
-  passes live.
+  auto-generated provenance. The upstream fix has shipped (npm 12.1.0 / 11.20.0; #97 closed); retry
+  as v0.1.3 after the ADR 0082 initial pin is selected (preferring npm 11.20.0 per ADR 0083) and the
+  pinned npm CLI is provisioned.
 
 <!-- CODEGRAPH_START -->
 
