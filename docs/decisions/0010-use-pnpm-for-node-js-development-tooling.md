@@ -4,6 +4,15 @@ nav_order: 10
 status: accepted
 date: 12026-06-24
 decision-makers: Yunseo Kim
+relations:
+  - type: amended-by
+    target: ADR-0086
+    scope:
+      "the pinned installation path clause ('pinned through the packageManager field in
+      package.json, with Corepack or an equivalent pinned installation path used in CI'): ADR-0086
+      designates mise's packageManager-field resolution as the equivalent pinned installation path
+      for both local development and CI, and withdraws Corepack from that role. The choice of pnpm
+      itself and every other ADR 0010 clause remain in force"
 ---
 
 # Use pnpm for Node.js Development Tooling

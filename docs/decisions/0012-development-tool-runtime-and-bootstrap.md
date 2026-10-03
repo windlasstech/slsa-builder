@@ -4,6 +4,19 @@ nav_order: 12
 status: accepted
 date: 12026-06-24
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0086
+    scope:
+      'the pnpm provisioning mechanism implied by the Decision Outcome''s declaration that a root
+      mise.toml pins the pnpm version (''pnpm version (matching package.json)'') and by the
+      Confirmation criterion that mise.toml pins pnpm: under ADR-0086 the pnpm version pin lives
+      solely in package.json''s devEngines.packageManager and mise resolves and installs pnpm
+      through its packageManager-field resolution (idiomatic version file) mode; the
+      Corepack-mediated installation used at ADR 0012 implementation time (the node tool''s
+      ''postinstall = "corepack enable"'' in mise.toml) is withdrawn. mise as the unified
+      development-tool runtime, the mise/pnpm tool-management boundary, the aqua/ubi CLI tool
+      backends, and the lockfile policy all remain in force'
 ---
 
 # Adopt mise as the Unified Development-Tool Runtime and Bootstrap
