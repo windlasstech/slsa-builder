@@ -1,0 +1,33 @@
+docs/decisions/0010-use-pnpm-for-node-js-development-tooling.md
+  s_1a32130c89aa1b::t_320fd4522964f4 16-22
+docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md
+  s_1a32130c89aa1b::t_f04f29e9cf83bd 30-31
+docs/decisions/README.ko.md
+  s_dcdfae84daa946::t_ad3cbc430f26d0 31,69-70,215-216
+docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md
+  s_dcdfae84daa946::t_14635f3c9d95f6 1-191
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d46a47eb859c25e5fa5fe91a7b6e07e695ca2a09",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_dcdfae84daa946": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
