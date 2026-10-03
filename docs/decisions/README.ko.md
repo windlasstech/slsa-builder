@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0085`까지입니다.
+`0087`까지입니다.
 
 | 범위      | 주제                                  | 설명                                                                           |
 | --------- | ------------------------------------- | ------------------------------------------------------------------------------ |
@@ -66,6 +66,8 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0083      | npm M1 remediation 업스트림 수정 대기 | 초기 publish npm 핀은 npm/cli#9882를 포함하는 첫 검토 릴리스.                  |
 | 0084      | publish npm 프로비저닝 메커니즘       | 커밋된 SHA-512로 검증하는 npm registry tarball 프로비저닝.                     |
 | 0085      | 빌드 단계 Node.js 패치·npm 쌍 핀      | 빌더 릴리스당 정확한 Node.js 24 패치; 첫 사용 전 번들 npm 버전 단언.           |
+| 0086      | mise 필드 해석 기반 pnpm 프로비저닝   | mise packageManager 필드 해석이 Corepack을 대체; package.json 단일 핀 진원지.  |
+| 0087      | 개발 툴 pnpm 12 채택                  | pnpm 12 라인 채택; 설정 호환 검증 완료; 개발 전용, 한 줄 롤백.                 |
 
 ## ADR status와 relations
 
@@ -210,6 +212,8 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0083 | Defer the npm M1 publish remediation to the upstream provenance-file fix                            | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 | 0084 | Provision the publish-stage npm CLI from a digest-verified registry tarball                         | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
 | 0085 | Pin the Node.js 24 patch version and assert the expected bundled npm pair                           | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                                                             |
+| 0086 | Provision pnpm through mise packageManager-field resolution instead of Corepack                     | 도구 전용                                                                                                                                                                           |
+| 0087 | Adopt pnpm 12 for Node.js development tooling                                                       | 도구 전용                                                                                                                                                                           |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

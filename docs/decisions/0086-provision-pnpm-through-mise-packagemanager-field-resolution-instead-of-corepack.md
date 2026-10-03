@@ -27,6 +27,8 @@ relations:
       itself and every other ADR 0010 clause remain in force"
   - type: see-also
     target: ADR-0009
+  - type: see-also
+    target: ADR-0087
 ---
 
 # Provision pnpm Through mise packageManager-Field Resolution Instead of Corepack

@@ -13,6 +13,13 @@ relations:
       designates mise's packageManager-field resolution as the equivalent pinned installation path
       for both local development and CI, and withdraws Corepack from that role. The choice of pnpm
       itself and every other ADR 0010 clause remain in force"
+  - type: amended-by
+    target: ADR-0087
+    scope:
+      "the pnpm version line in force for development tooling: ADR 0010 chose pnpm and its
+      implementation initially ran the pnpm 11 line (pinned via devEngines.packageManager); ADR-0087
+      adopts the pnpm 12 line as the development-tooling pnpm major. The choice of pnpm itself, the
+      committed-lockfile and cooldown policies, and every other ADR 0010 clause remain in force"
 ---
 
 # Use pnpm for Node.js Development Tooling
