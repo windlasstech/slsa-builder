@@ -1,0 +1,21 @@
+docs/decisions/0012-development-tool-runtime-and-bootstrap.md
+  s_dcdfae84daa946::t_005c16329110c0 7-19
+docs/decisions/0009-use-node-js-as-development-tool-runtime.md
+  s_dcdfae84daa946::t_dc1fcbfabede7f 7-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4f758e58057cc77a608384845f038cc2eca9b344",
+  "prompts": {},
+  "sessions": {
+    "s_dcdfae84daa946": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
