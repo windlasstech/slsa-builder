@@ -40,6 +40,12 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   feature tables, an expanded security and trust model, badge usage documentation, contributing
   links, and a license section.
 
+### Changed
+
+- Documented the fail-closed package-manager support boundary: consumer manifests pinning pnpm 12+
+  or Yarn 6+ are rejected with a diagnostic while Corepack remains the production provisioning path;
+  supported package managers are npm, pnpm 11.x, and Yarn Berry v4/v5.
+
 ### Fixed
 
 - Fixed verification policy and release-manifest expectation decoding to classify every JSON parse
