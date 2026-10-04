@@ -3,3 +3,7 @@ testdata/**/*.json
 testdata/**/*.jsonl
 testdata/**/*.yaml
 testdata/**/*.yml
+
+# Generated lockfile: pnpm 12 emits its own YAML style and rewrites it on every
+# install; formatting it would fight the generator.
+pnpm-lock.yaml

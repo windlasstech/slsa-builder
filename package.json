@@ -4,9 +4,14 @@
     "prettier": "^3.8.4"
   },
   "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24",
+      "onFail": "download"
+    },
     "packageManager": {
       "name": "pnpm",
-      "version": "11.9.0",
+      "version": "12.9.0",
       "onFail": "download"
     }
   }

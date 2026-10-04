@@ -580,7 +580,7 @@ tooling such as Prettier and Lefthook.
 
 ### Prerequisites
 
-- [mise](https://mise.jdx.dev/getting-started.html) installed
+- [mise](https://mise.jdx.dev/getting-started.html) v2026.8.7 or newer installed
 - Git with a configured user name and email
 
 ### Bootstrap
@@ -590,10 +590,11 @@ mise install
 pnpm install
 ```
 
-This installs the pinned versions of Go, Node.js, pnpm, and the CLI tools defined in `mise.toml`.
-Lefthook hooks are installed automatically as a `postinstall` step when mise installs Lefthook. The
-`pnpm install` step then installs the project-local development dependencies declared in
-`package.json`.
+This installs the pinned versions of Go, Node.js, and the CLI tools defined in `mise.toml`, and
+provisions the development pnpm from the `devEngines.packageManager` declaration in `package.json`
+(no Corepack). Lefthook hooks are installed automatically as a `postinstall` step when mise installs
+Lefthook. The `pnpm install` step then installs the project-local development dependencies declared
+in `package.json`.
 
 In CI, run mise with locked mode to avoid API calls to registries:
 
@@ -619,7 +620,8 @@ actionlint --version
 
 mise installs language runtimes and standalone CLI binaries:
 
-- Go, Node.js, and pnpm
+- Go and Node.js
+- pnpm, resolved from the `devEngines.packageManager` declaration in `package.json`
 - `golangci-lint`, `shellcheck`, `shfmt`, `lefthook`, `actionlint`
 
 Go source formatting and import normalization is handled by `golangci-lint` formatters (`gofmt`,
@@ -637,13 +639,18 @@ organization's dependency-review workflow.
 
 ### Tool versions
 
-Tool versions are declared in `mise.toml`. A `mise.lock` file is committed to ensure reproducible
-installs across platforms. If you change a tool version in `mise.toml`, regenerate the lockfile
-with:
+Tool versions are declared in `mise.toml`, except pnpm and the Node.js development runtime, which
+are declared solely in `package.json` (`devEngines.packageManager` and `devEngines.runtime`). A
+`mise.lock` file is committed to ensure reproducible installs across platforms, and the resolved
+pnpm and runtime versions are recorded in `pnpm-lock.yaml`. If you change a tool version in
+`mise.toml`, regenerate the lockfile with:
 
 ```bash
 mise lock
 ```
+
+If you change the pnpm version declaration in `package.json`, regenerate both lockfiles with
+`mise lock` and `pnpm install`.
 
 ### Commit conventions and sign-off
 
