@@ -1,0 +1,22 @@
+docs/decisions/AGENTS.md
+  s_1a32130c89aa1b::t_a83c512ccf27aa 7
+  s_1a32130c89aa1b::t_bd215a03487e2e 27
+  s_1a32130c89aa1b::t_0e3157f3976fb6 66-68
+  s_1a32130c89aa1b::t_0a9a2c8baafd42 20-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3bbc5de5d921605fa6caad8bef8c7e3082750f73",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
