@@ -1,0 +1,42 @@
+docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md
+  s_1a32130c89aa1b::t_24344ab0f07588 17-18
+docs/decisions/README.md
+  s_1a32130c89aa1b::t_3a6fd3b44979b0 223
+  s_1a32130c89aa1b::t_48c48f8b33c788 73
+  s_1a32130c89aa1b::t_a22f23e9b13f34 32
+docs/decisions/0012-development-tool-runtime-and-bootstrap.md
+  s_1a32130c89aa1b::t_a223632e32fd3c 20-22,24
+  s_1a32130c89aa1b::t_42fb83bebe54bd 23,25-28
+docs/decisions/0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md
+  s_1a32130c89aa1b::t_42fb83bebe54bd 11,13-16,29-30,34-39,42-44,51-52,54-55,60-63,71-72,77-79,83-85,88-89,94-105,111-112,117-118,125-126,131-133,138-139,146-149
+  s_1a32130c89aa1b::t_ea2c531c711695 1-10,12,17-28,31-33,40-41,45-50,53,56-59,64-70,73-76,80-82,86-87,90-93,106-110,113-116,119-124,127-130,134-137,140-145
+docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md
+  s_1a32130c89aa1b::t_a7f3ecc2fff85b 34-35
+docs/decisions/README.ko.md
+  s_1a32130c89aa1b::t_1521a0387acca2 31
+  s_1a32130c89aa1b::t_42fb83bebe54bd 72
+  s_1a32130c89aa1b::t_f509f5984b4866 220
+AGENTS.md
+  s_1a32130c89aa1b::t_14e1c0472b6bd3 25
+  s_1a32130c89aa1b::t_722a8c2b13fe8c 44
+docs/decisions/AGENTS.md
+  s_1a32130c89aa1b::t_daa72bcfef72bd 70
+  s_1a32130c89aa1b::t_4b6e7b2db2eda7 7
+  s_1a32130c89aa1b::t_c773d078bf9561 23,28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7e9cb93a01fa1640d04369c61ac0a10f9798c338",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
