@@ -22,7 +22,7 @@ spec'd but not yet implemented.
 │   ├── command/                 # typed dispatcher + adapters (see internal/command/AGENTS.md)
 │   └── npmprofile/              # npm profile domain (see internal/npmprofile/AGENTS.md)
 ├── testdata/                    # governed byte-exact fixture corpus (see testdata/AGENTS.md)
-├── docs/decisions/              # MADR ADRs 0000-0085 (see docs/decisions/AGENTS.md)
+├── docs/decisions/              # MADR ADRs 0000-0088 (see docs/decisions/AGENTS.md)
 ├── docs/architecture/           # behavior specs (see docs/architecture/AGENTS.md)
 ├── docs/dogfood/                # live M1 npm evidence + verification procedure
 ├── docs/testing-guide.md        # normative Go test/fuzz/fixture policy
@@ -41,7 +41,7 @@ spec'd but not yet implemented.
 
 | Task                     | Location                                                   | Notes                                                              |
 | ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------ |
-| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0085`.                           |
+| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0088`.                           |
 | Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`.                  |
 | Trusted-core Go code     | `internal/`                                                | Shared rules in `internal/AGENTS.md`; sub-packages have their own. |
 | CLI subcommands          | `cmd/slsa-builder-internal/main.go`                        | 10 subcommands; adapter rules in `internal/command/AGENTS.md`.     |
@@ -135,9 +135,9 @@ Do not implement before reading the specs.
 
 ## Changelog Management
 
-- Maintain `CHANGELOG.md` according to
-  [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), but use the organization's Human
-  Era date convention for release headings (for example, `## [0.1.0] - 12026-06-13`).
+- Maintain `CHANGELOG.md` according to [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), but
+  use the organization's Human Era date convention for release headings (for example,
+  `## [0.1.0] - 12026-06-13`).
 - Changelog entries are for users and downstream integrators. Summarize notable upgrade-relevant
   behavior; do not generate changelog entries by dumping commit logs.
 - For every PR, complete the organization PR template's `Changelog` section with:
