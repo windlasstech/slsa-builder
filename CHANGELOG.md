@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and this
-project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Release headings use
-Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Release headings use Human
+Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ## [Unreleased]
 
@@ -39,36 +39,9 @@ Human Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   provenance primers (including the Mini Shai-Hulud caution), an alternatives comparison, profile
   feature tables, an expanded security and trust model, badge usage documentation, contributing
   links, and a license section.
-
-### Changed
-
-- Documented the fail-closed package-manager support boundary: consumer manifests pinning pnpm 12+
-  or Yarn 6+ are rejected with a diagnostic while Corepack remains the production provisioning path;
+- Added the documented fail-closed package-manager support boundary: consumer manifests pinning pnpm
+  12+ or Yarn 6+ are rejected with a diagnostic while Corepack is the production provisioning path;
   supported package managers are npm, pnpm 11.x, and Yarn Berry v4/v5.
-
-### Fixed
-
-- Fixed verification policy and release-manifest expectation decoding to classify every JSON parse
-  failure as `windlass.verify.error.policy-schema-invalid` (duplicate members remain
-  `windlass.verify.error.duplicate-json-member`), matching the documented evaluation contract.
-- Fixed canonical repository URI normalization to reject or strip mixed-case `.git` suffixes,
-  keeping `CanonicalRepository` output idempotent and acceptable to the canonical-form validator.
-- Fixed pnpm package resolution for standalone root packages whose `pnpm-workspace.yaml` contains
-  policy settings but omits the optional `packages` member.
-- Fixed a panic in the workflow conformance decoder when workflow YAML maps a tagged scalar (for
-  example `!!str`) into a sequence field, by pinning goccy/go-yaml to the upstream fix commit
-  ([goccy/go-yaml#862](https://github.com/goccy/go-yaml/pull/862)) so such input decodes to an
-  ordinary type error; as defense in depth, the decoder also converts any residual decoder panic
-  into a bounded `decode workflow: decoder panic` error instead of crashing.
-
-### Security
-
-- Raised the module Go directive to 1.26.6, clearing exposure to
-  [GO-2026-4970](https://osv.dev/GO-2026-4970) and the Go standard library advisories
-  [GO-2026-5026](https://osv.dev/GO-2026-5026), [GO-2026-5942](https://osv.dev/GO-2026-5942),
-  [GO-2026-5972](https://osv.dev/GO-2026-5972), [GO-2026-6088](https://osv.dev/GO-2026-6088),
-  [GO-2026-6089](https://osv.dev/GO-2026-6089), [GO-2026-6090](https://osv.dev/GO-2026-6090),
-  [GO-2026-6091](https://osv.dev/GO-2026-6091), and [GO-2026-6218](https://osv.dev/GO-2026-6218) for
-  consumers building from source with older toolchains.
-- Upgraded `golang.org/x/mod` to v0.40.0, clearing [GO-2026-6179](https://osv.dev/GO-2026-6179) and
-  [GO-2026-6180](https://osv.dev/GO-2026-6180).
+- Added support for standalone root packages whose `pnpm-workspace.yaml` contains policy settings
+  but omits the optional `packages` member (settings-only workspace files resolve to the root
+  package).
