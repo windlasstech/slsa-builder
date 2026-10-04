@@ -60,3 +60,6 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   [GO-2026-6091](https://osv.dev/GO-2026-6091), and [GO-2026-6218](https://osv.dev/GO-2026-6218).
 - Pin `golang.org/x/mod` at v0.40.0 or newer so that builds are not exposed to
   [GO-2026-6179](https://osv.dev/GO-2026-6179) and [GO-2026-6180](https://osv.dev/GO-2026-6180).
+- Pin `golang.org/x/crypto` at v0.56.0 or newer so that builds are not exposed to the SSH
+  denial-of-service advisories [GO-2026-6354](https://osv.dev/GO-2026-6354) and
+  [GO-2026-6355](https://osv.dev/GO-2026-6355).
