@@ -236,12 +236,13 @@ because both the selected package and the workspace root may have manifests with
 For as long as the ADR 0016 Corepack mechanism is the production provisioning path for pnpm and
 Yarn, the profile supports only a bounded set of package-manager versions:
 
-- pnpm must be an exact version in the 11.x line. A manifest pinning pnpm 12 or newer is rejected
-  before install with `windlass.verify.error.pnpm-version-unsupported`. Under Corepack provisioning,
-  a pnpm 12 consumer's executed native binary arrives through the shim's first-use download outside
-  the profile's distribution capture, so the build would emit a `package-manager-distribution`
-  record that does not cover the executed artifact. The profile must not execute a package manager
-  whose executed distribution it cannot record.
+- pnpm must be an exact version in the 11.x line. A manifest pinning a pnpm version outside the 11.x
+  line — 12 or newer, or older than 11 — is rejected before install with
+  `windlass.verify.error.pnpm-version-unsupported`. Under Corepack provisioning, a pnpm 12
+  consumer's executed native binary arrives through the shim's first-use download outside the
+  profile's distribution capture, so the build would emit a `package-manager-distribution` record
+  that does not cover the executed artifact; older majors are outside the tested support set. The
+  profile must not execute a package manager whose executed distribution it cannot record.
 - Yarn must be Yarn Berry v4 or newer and lower than `6.0.0`. A manifest pinning Yarn 6 or newer is
   rejected before install with `windlass.verify.error.yarn-version-unsupported`. Yarn 6 is
   unreleased and its acquisition and integrity semantics are unknown, so it must not silently enter
@@ -257,11 +258,11 @@ restate the supported version set in this section before release builds may use 
 
 ### `packageManager` field
 
-- Format: `name@version`, for example `pnpm@9.1.0` or `yarn@4.1.0`.
+- Format: `name@version`, for example `pnpm@11.0.0` or `yarn@4.1.0`.
 - If the field selects pnpm or Yarn, the profile must use the exact package manager and version.
-- If the field selects pnpm, the descriptor must additionally use an exact version lower than
-  `12.0.0`. pnpm 12 or newer is rejected before install with
-  `windlass.verify.error.pnpm-version-unsupported`.
+- If the field selects pnpm, the descriptor must additionally use an exact version in the 11.x line,
+  greater than or equal to `11.0.0` and lower than `12.0.0`. A pnpm version outside the 11.x line is
+  rejected before install with `windlass.verify.error.pnpm-version-unsupported`.
 - If the field selects Yarn, the descriptor must use an exact SemVer version greater than or equal
   to `4.0.0` and lower than `6.0.0`. Yarn Classic 1.x, Yarn Berry v2, Yarn Berry v3, Yarn 6 or
   newer, ranges, tags, URLs, hash-suffixed descriptors, and omitted versions are rejected before
@@ -281,11 +282,11 @@ restate the supported version set in this section before release builds may use 
 - `onFail`, when present, must be `ignore`, `warn`, `error`, or `download`. The value is diagnostic
   metadata only for this production profile and must not weaken release-build enforcement.
 - Unknown members are rejected.
-- If the field selects pnpm, `version` is required and must be an exact SemVer version lower than
-  `12.0.0`. Ranges, tags, URLs, hash-suffixed package-manager descriptors, and omitted versions are
-  rejected because ADR 0017 prohibits release-time range resolution and Corepack Known Good Release
-  fallback. pnpm 12 or newer is rejected before install with
-  `windlass.verify.error.pnpm-version-unsupported`.
+- If the field selects pnpm, `version` is required and must be an exact SemVer version in the 11.x
+  line, greater than or equal to `11.0.0` and lower than `12.0.0`. Ranges, tags, URLs, hash-suffixed
+  package-manager descriptors, and omitted versions are rejected because ADR 0017 prohibits
+  release-time range resolution and Corepack Known Good Release fallback. A pnpm version outside the
+  11.x line is rejected before install with `windlass.verify.error.pnpm-version-unsupported`.
 - If the field selects Yarn, the stable initial profile rejects it before install. Yarn support
   requires an exact Yarn Berry v4 or newer descriptor in a top-level `packageManager` field;
   `devEngines.packageManager` alone is not a Yarn selection source.
@@ -378,10 +379,11 @@ workspace metadata:
 
 Examples of conflicts:
 
-- `packageManager` says `pnpm@9.1.0` but no `pnpm-lock.yaml` exists.
+- `packageManager` says `pnpm@11.0.0` but no `pnpm-lock.yaml` exists.
 - `packageManager` says `npm` but no `package-lock.json` exists.
 - `packageManager` says `yarn@4.1.0` but no `yarn.lock` exists.
-- The selected package manifest says `pnpm@9.1.0` but the workspace root manifest says `yarn@4.1.0`.
+- The selected package manifest says `pnpm@11.0.0` but the workspace root manifest says
+  `yarn@4.1.0`.
 - Multiple lockfiles exist and no `packageManager` field resolves the ambiguity.
 
 When the result is a package-manager conflict, provenance must not be emitted. When lockfile
@@ -743,7 +745,7 @@ must emit the canonical diagnostic ID.
 | Package-manager selection is ambiguous or conflicting.                                                                                                                                                                                                                             | `windlass.verify.error.package-manager-conflict`                           | `package-manager-conflict`                           | policy       | `1`       | `false`             |
 | An exact package-manager version cannot be determined for pnpm or Yarn.                                                                                                                                                                                                            | `windlass.verify.error.package-manager-version-required`                   | `package-manager-version-required`                   | policy       | `1`       | `false`             |
 | Yarn is selected from a source other than top-level `packageManager`, or its exact version is lower than `4.0.0`.                                                                                                                                                                  | `windlass.verify.error.yarn-selection-invalid`                             | `yarn-selection-invalid`                             | policy       | `1`       | `false`             |
-| The selected manifest metadata pins pnpm 12 or newer.                                                                                                                                                                                                                              | `windlass.verify.error.pnpm-version-unsupported`                           | `pnpm-version-unsupported`                           | policy       | `1`       | `false`             |
+| The selected manifest metadata pins a pnpm version outside the 11.x line (12 or newer, or older than 11).                                                                                                                                                                          | `windlass.verify.error.pnpm-version-unsupported`                           | `pnpm-version-unsupported`                           | policy       | `1`       | `false`             |
 | The selected top-level `packageManager` field pins Yarn 6 or newer.                                                                                                                                                                                                                | `windlass.verify.error.yarn-version-unsupported`                           | `yarn-version-unsupported`                           | policy       | `1`       | `false`             |
 | The selected manager's lockfile is missing for npm `npm ci`, pnpm `--frozen-lockfile`, or Yarn `--immutable`.                                                                                                                                                                      | `windlass.verify.error.required-lockfile-missing`                          | `required-lockfile-missing`                          | policy       | `1`       | `false`             |
 | Required package-manager distribution or runner-image capture evidence is unavailable before predicate construction.                                                                                                                                                               | `windlass.verify.error.input-unavailable`                                  | `input-unavailable`                                  | invocation   | `2`       | `false`             |
@@ -784,7 +786,7 @@ signing or publishing. Exit code `2` identifies unusable locally required captur
   entering SLSA `internalParameters` or `externalParameters`.
 - Workspace package using root package-manager metadata and root lockfile.
 - Corepack exact version enforcement failure.
-- pnpm 12 and pnpm 13 pins rejected before install with
+- pnpm 10, pnpm 12, and pnpm 13 pins rejected before install with
   `windlass.verify.error.pnpm-version-unsupported` from both the top-level `packageManager` field
   and `devEngines.packageManager`; pnpm 11.x pins remain accepted from both manifest sources.
 - Yarn 6 pins rejected before install with `windlass.verify.error.yarn-version-unsupported` from the

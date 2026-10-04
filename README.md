@@ -346,9 +346,9 @@ distribution targets will continue to be added over time.
   and
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)).
 - **Manifest-first package manager selection:** Supports npm, pnpm 11.x, and Yarn Berry v4/v5
-  through Corepack, the production provisioning path. Consumer manifests pinning pnpm 12 or newer,
-  or Yarn 6 or newer, are rejected with a diagnostic, and build scripts run only when declared (see
-  [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
+  through Corepack, the production provisioning path. Consumer manifests pinning a pnpm version
+  outside the 11.x line, or Yarn 6 or newer, are rejected with a diagnostic, and build scripts run
+  only when declared (see [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
 - **Secretless trusted publishing:** Authenticates with npm OIDC trusted publishing, so no
   long-lived publish secrets are needed. The SLSA v1 provenance slsa-builder generates carries both
   SHA-512 and SHA-256 digests of the same tarball bytes in a single npm Package URL subject, is

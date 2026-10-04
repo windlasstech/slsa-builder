@@ -1352,7 +1352,7 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `workspace-command-mismatch`                         | Workspace package targeting command can affect the wrong package.                                                              |
 | `package-manager-manifest-shape-error`               | `devEngines.packageManager` uses an unsupported shape, member, or release version form.                                        |
 | `unsupported-yarn-version`                           | Yarn is Classic 1.x, Berry v2, Berry v3, non-exact, or selected from an unsupported source.                                    |
-| `pnpm-version-unsupported`                           | Consumer manifest pins pnpm 12 or newer while Corepack is the production provisioning path.                                    |
+| `pnpm-version-unsupported`                           | Consumer manifest pins a pnpm version outside the 11.x line while Corepack is the production provisioning path.                |
 | `yarn-version-unsupported`                           | Consumer top-level `packageManager` field pins Yarn 6 or newer while Corepack is the production provisioning path.             |
 | `resolved-dependencies-lockfile`                     | Selected lockfile `resolvedDependencies` descriptor is missing, malformed, or mismatched.                                      |
 | `release-asset-mode-schema-error`                    | Public npm release-asset mode input or output schema is invalid.                                                               |
@@ -1562,11 +1562,11 @@ accepted by the JS/TS npm build and pack spec. Accepted fixtures must include ex
 versions in `devEngines.packageManager.version` and exact Yarn Berry v4 or v5 versions in top-level
 `packageManager`. Rejected fixtures must cover string-form `devEngines.packageManager`, array-form
 `devEngines.packageManager`, unknown object members, missing pnpm versions, range versions, tag
-versions, URL descriptors, hash-suffixed descriptors, pnpm 12 or newer pins from either manifest
-source, and `onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken
+versions, URL descriptors, hash-suffixed descriptors, pnpm pins outside the 11.x line from either
+manifest source, and `onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken
 release-build policy. These failures use `package-manager-manifest-shape-error` unless a narrower
-package-manager selection, version-bound, Yarn support, or lockfile category applies; pnpm 12 or
-newer pins fail with `pnpm-version-unsupported`.
+package-manager selection, version-bound, Yarn support, or lockfile category applies; pnpm pins
+outside the 11.x line fail with `pnpm-version-unsupported`.
 
 The Yarn support fixture set must prove ADR 0063's stable boundary. Accepted fixtures must cover a
 root package and workspace package selected by top-level exact `packageManager` values such as
