@@ -336,8 +336,9 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)와
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
   참고).
-- **매니페스트 우선 패키지 매니저 선택:** npm, pnpm, Corepack을 통한 Yarn Berry v4+를 지원하며, 빌드
-  스크립트는 선언된 경우에만 실행합니다
+- **매니페스트 우선 패키지 매니저 선택:** npm, pnpm 11.x, Corepack을 통한 Yarn Berry v4/v5를
+  지원합니다. Corepack은 프로덕션 프로비저닝 경로이며, pnpm 12 이상이나 Yarn 6 이상을 고정한 소비자
+  매니페스트는 진단과 함께 거부됩니다. 빌드 스크립트는 선언된 경우에만 실행합니다
   ([JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md) 참고).
 - **비밀 없는 신뢰 게시:** npm OIDC trusted publishing으로 인증하므로 장기 보관 publish secret이
   필요 없습니다. slsa-builder가 생성하는 SLSA v1 출처 증명은 하나의 npm Package URL subject에 동일
