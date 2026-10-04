@@ -35,7 +35,8 @@ func buildRegistry() map[string]Definition {
 		// docs/architecture/js-ts-npm-build-pack.md:694-701,705.
 		"package-manifest-invalid", "package-metadata-required", "package-private",
 		"package-resolution-invalid", "package-manager-conflict", "package-manager-version-required",
-		"yarn-selection-invalid", "required-lockfile-missing", "package-repository-identity-mismatch")
+		"yarn-selection-invalid", "required-lockfile-missing", "package-repository-identity-mismatch",
+		"pnpm-version-unsupported", "yarn-version-unsupported")
 
 	setPrecedence(definitions, 1,
 		"diagnostics-contract-invalid", "digest-encoding-invalid", "digest-mismatch",
@@ -192,6 +193,7 @@ package-resolution-invalid
 package-url-mismatch
 package-version-mismatch
 packed-package-metadata-mismatch
+pnpm-version-unsupported
 policy-schema-invalid
 predicate-type-invalid
 prepublish-registry-metadata-required
@@ -270,4 +272,5 @@ wrong-manifest-predicate-type
 wrong-predicate-type
 wrong-producer-signer
 yarn-selection-invalid
+yarn-version-unsupported
 `)
