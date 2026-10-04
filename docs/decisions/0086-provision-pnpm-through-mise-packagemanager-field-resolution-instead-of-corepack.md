@@ -58,9 +58,16 @@ and the conditions around that choice have shifted:
    CLI itself stopped pointing users at Corepack for updates
    ([pnpm/pnpm#14115](https://github.com/pnpm/pnpm/pull/14115), merged 2026-08-24: the update
    notification no longer prints `corepack use pnpm@<version>`, and `pnpm self-update` under
-   Corepack now names the standalone install script instead). pnpm 12's native-executable package no
-   longer contains the `bin/pnpm.mjs` entry point Corepack expects, making it structurally
-   incompatible with Corepack's installation model.
+   Corepack now names the standalone install script instead). pnpm 12's move to native-executable
+   packaging initially broke Corepack dispatch — Corepack hardcodes the `bin/pnpm.mjs` entry point
+   and neither installs optional dependencies nor runs lifecycle scripts
+   ([pnpm/pnpm#13018](https://github.com/pnpm/pnpm/issues/13018)) — but pnpm restored compatibility
+   on its own side: since 12.0.0-rc.6 the package ships `bin/pnpm.mjs` shims that download the
+   pinned native binary on first use ([pnpm/pnpm#13922](https://github.com/pnpm/pnpm/pull/13922),
+   merged 2026-08-15), while the Corepack-side fix
+   ([nodejs/corepack#887](https://github.com/nodejs/corepack/pull/887)) was closed unmerged.
+   Corepack dispatch of pnpm 12 therefore works today, but only through a shim the pnpm project
+   itself does not recommend.
 3. **mise closed the gap itself (after ADR 0012).** Since v2026.8.7, mise reads
    `devEngines.packageManager` (then the top-level `packageManager` field) as a version source for
    npm, pnpm, and Yarn when the idiomatic version file is enabled
@@ -210,9 +217,10 @@ Retain `postinstall = "corepack enable"` (Node.js 24 bundled Corepack, or
 
 - Good, because it requires no change today on Node.js 24.
 - Bad, because Node.js 25+ no longer distributes Corepack, so the mechanism has a known expiry.
-- Bad, because the pnpm project has removed Corepack from its recommended install and update paths,
-  and pnpm 12's native package is structurally incompatible with it — this option silently
-  forecloses the pnpm-12 follow-on decision.
+- Bad, because the pnpm project has removed Corepack from its recommended install and update paths —
+  pnpm 12 runs under Corepack again, but only via a first-use-download shim that is not a supported
+  acquisition path — so this option would keep the bootstrap on a trajectory the upstream project is
+  actively abandoning.
 - Bad, because Corepack's Known Good Release fallback and signature-verification history
   (outdated-signature incidents) keep a verification surface this project otherwise closes.
 
