@@ -60,3 +60,10 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   [GO-2026-6091](https://osv.dev/GO-2026-6091), and [GO-2026-6218](https://osv.dev/GO-2026-6218).
 - Pin `golang.org/x/mod` at v0.40.0 or newer so that builds are not exposed to
   [GO-2026-6179](https://osv.dev/GO-2026-6179) and [GO-2026-6180](https://osv.dev/GO-2026-6180).
+- Pin `golang.org/x/crypto` at v0.56.0 or newer so that builds are not exposed to the SSH
+  denial-of-service advisories [GO-2026-6354](https://osv.dev/GO-2026-6354) and
+  [GO-2026-6355](https://osv.dev/GO-2026-6355).
+- Pin `google.golang.org/grpc` at v1.83.2 (holding `grpc-ecosystem/grpc-gateway/v2` at v2.30.0) so
+  that builds are not exposed to the xDS server panic advisory
+  [GO-2026-6443](https://osv.dev/GO-2026-6443); v1.84.0 is the latest stable release but remains
+  affected, with the fix not yet shipped in a stable v1.85.0.
