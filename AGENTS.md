@@ -79,7 +79,7 @@ Test-only env gates (never in CI): `WINDLASS_TEST_ONLINE=1` (real Sigstore onlin
 
 ## CONVENTIONS
 
-### Decision-Driven Software Engineering (DSSE) & Spec-Driven Development (SDD)
+### Decision-Driven Software Engineering & Spec-Driven Development (SDD)
 
 Do not implement before reading the specs.
 
