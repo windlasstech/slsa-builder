@@ -1,0 +1,22 @@
+internal/diagnostic/diagnostic_test.go
+  s_1a32130c89aa1b::t_cfff704d1845b2 162-163
+internal/diagnostic/registry.go
+  s_1a32130c89aa1b::t_361b73d5f38d05 38-39
+  s_1a32130c89aa1b::t_e208593d6498ba 196,275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b8a5d426e2df0b66c06aeedccc8c8af3ed3a6606",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
