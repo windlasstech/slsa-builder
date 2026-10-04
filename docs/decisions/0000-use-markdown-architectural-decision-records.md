@@ -183,7 +183,9 @@ optional, it is included in many ADRs.}
 
 - Good, because {argument a}
 - Good, because {argument b}
+
 <!-- use "neutral" if the given argument weights neither for good nor bad -->
+
 - Neutral, because {argument c}
 - Bad, because {argument d}
 - … <!-- numbers of pros and cons can vary -->
