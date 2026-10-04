@@ -1,0 +1,29 @@
+docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+  s_1a32130c89aa1b::t_2f2fed750ec295 156-160
+docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md
+  s_1a32130c89aa1b::t_948603a23ba689 99-101
+docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md
+  s_1a32130c89aa1b::t_43346e32ac6df7 133-137
+  s_1a32130c89aa1b::t_cdde44c1f008dc 176-177
+docs/decisions/0012-development-tool-runtime-and-bootstrap.md
+  s_1a32130c89aa1b::t_00894035ec499b 23-24
+docs/decisions/0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md
+  s_1a32130c89aa1b::t_d5470ce288549c 95-98
+  s_1a32130c89aa1b::t_281062fafef2fc 11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "78ac243aa61b14cb35bae547ac5e2ccdf9cf6275",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
