@@ -1,0 +1,19 @@
+CHANGELOG.md
+  s_85403277ad2f2e::t_d1fdba66b6ad09 43-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e12792ed11fe3b0987649d306ca5e9ef6bad918",
+  "prompts": {},
+  "sessions": {
+    "s_85403277ad2f2e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef933c8a2ffe4RNLVbJMKXIZ20",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
