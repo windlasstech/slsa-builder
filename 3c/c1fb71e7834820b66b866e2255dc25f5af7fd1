@@ -1,0 +1,41 @@
+internal/command/verify_attestation_source_ref_test.go
+  s_059df880bccd8e::t_3d115a6d4a7333 143
+internal/diagnostic/diagnostic.go
+  s_059df880bccd8e::t_3d115a6d4a7333 214,255,547-548,569
+internal/attestation/attestation_test.go
+  s_059df880bccd8e::t_3d115a6d4a7333 64,281
+internal/identity/identity.go
+  s_059df880bccd8e::t_3d115a6d4a7333 202
+internal/command/verify_attestation.go
+  s_059df880bccd8e::t_3d115a6d4a7333 186,195
+internal/provenance/provenance_test.go
+  s_059df880bccd8e::t_3d115a6d4a7333 142
+internal/provenance/validate.go
+  s_059df880bccd8e::t_3d115a6d4a7333 6,136
+internal/command/npm_profile_source_ref_test.go
+  s_059df880bccd8e::t_3d115a6d4a7333 137
+internal/policy/intersection.go
+  s_059df880bccd8e::t_3d115a6d4a7333 178-179
+internal/diagnostic/diagnostic_test.go
+  s_059df880bccd8e::t_3d115a6d4a7333 88,95
+internal/command/fixture_check_test.go
+  s_059df880bccd8e::t_3d115a6d4a7333 37,83
+internal/diagnostic/registry_spec_test.go
+  s_059df880bccd8e::t_3d115a6d4a7333 5,152,170-171,174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3cc1fb71e7834820b66b866e2255dc25f5af7fd1",
+  "prompts": {},
+  "sessions": {
+    "s_059df880bccd8e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef7fd6bdfffehHE5iGpFZGNcr5",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
