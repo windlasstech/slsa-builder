@@ -1,0 +1,31 @@
+go.mod
+  s_0e35bfce4182c6::t_6dc6cce6714cbd 47,88
+CHANGELOG.md
+  s_0e35bfce4182c6::t_54f9aafb68ba4b 66-69
+go.sum
+  s_e6138241aaec7b::t_666989156f0951 121,183-184,316-319,328-329,374-375
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6c2a4687cc86988c69d27315779a90a03090fd5a",
+  "prompts": {},
+  "sessions": {
+    "s_0e35bfce4182c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef7aeda73ffe3M9W9ig1IYlscI",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_e6138241aaec7b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef7aeda73ffe3M9W9ig1IYlscI",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
