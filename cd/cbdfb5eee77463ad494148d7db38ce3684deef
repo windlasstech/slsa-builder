@@ -1,0 +1,67 @@
+docs/decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md
+  s_1a32130c89aa1b::t_e31970aba4abad 29-30
+docs/decisions/README.md
+  s_1a32130c89aa1b::t_a878565f3d7015 32
+  s_1a32130c89aa1b::t_25950c03a00370 72
+  s_1a32130c89aa1b::t_3484070f4e17f2 221
+docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md
+  s_1a32130c89aa1b::t_ecd0eaa945346f 28-29
+docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md
+  s_1a32130c89aa1b::t_a0947785ea007c 32-33
+docs/decisions/0017-require-explicit-package-manager-version-enforcement.md
+  s_1a32130c89aa1b::t_4a5446dda61d64 14-15
+docs/decisions/0016-use-corepack-for-pnpm-and-yarn-build-stages.md
+  s_1a32130c89aa1b::t_c1a3d3a96599e9 12-15
+  s_1a32130c89aa1b::t_c1b46c1fa7f9e2 16-19
+docs/decisions/README.ko.md
+  s_1a32130c89aa1b::t_1aa7fcca913683 71
+  s_1a32130c89aa1b::t_c1b46c1fa7f9e2 33-70
+  s_1a32130c89aa1b::t_ec643dc4c7d8e4 218
+  s_1a32130c89aa1b::t_8983d074201292 31
+  s_dcdfae84daa946::t_fb1af9cb4156b9 32
+docs/decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md
+  s_1a32130c89aa1b::t_8aca650cd338e9 23-24
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_1a32130c89aa1b::t_36f3c4635580d8 20-21,23-29
+  s_1a32130c89aa1b::t_c3ea42824e9790 19
+  s_1a32130c89aa1b::t_3b159599bb0030 16-18
+  s_1a32130c89aa1b::t_34c5beee583291 22
+docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+  s_1a32130c89aa1b::t_1a5c15e2da88a1 29
+  s_1a32130c89aa1b::t_656416e15d9694 12-15,53-56,61-62,81-84,116-117,133-134,153-154,160-161,183-184,192-198,200-201,208-213,218-219,235-236,258-260,281-287,289-290,299-300,306-313,316-318,339,342-343
+  s_1a32130c89aa1b::t_d06794f66e2ed9 241-242
+  s_1a32130c89aa1b::t_f5b5025f4b326c 122-126,131-132,135-136,138-139,146-152,164-171,231,249-257,261-280,288,291-298,301-305,314-315,319-331
+  s_1a32130c89aa1b::t_b378a197a519d6 224-226
+  s_1a32130c89aa1b::t_36f3c4635580d8 30-36
+  s_1a32130c89aa1b::t_46ed792181d696 1-3,5-11,16-25,37-52,57-60,63-80,85-115,118-121,127-130,137,140-145,155-159,162-163,172-179,203-207,214-217,220-223,227-230,232-234,237-240,243-248,332-338,340-341,344-354
+  s_1a32130c89aa1b::t_4f59afb6d304a1 180-182,185-189,202
+  s_1a32130c89aa1b::t_9525a098c0a264 190-191,199
+  s_1a32130c89aa1b::t_bac36c7bb6a494 4
+  s_dcdfae84daa946::t_4176fd1da4b44f 26-28
+docs/decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md
+  s_1a32130c89aa1b::t_f5d038dfd221b6 17-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cdcbdfb5eee77463ad494148d7db38ce3684deef",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_dcdfae84daa946": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
