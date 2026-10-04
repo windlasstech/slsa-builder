@@ -183,8 +183,7 @@ func (err *identityPolicyBindingError) Error() string        { return err.messag
 func (err *identityPolicyBindingError) DiagnosticID() string { return err.id }
 
 func emitTypedVerificationFailure(out io.Writer, err error) error {
-	var attestationError *attestation.VerificationError
-	if errors.As(err, &attestationError) {
+	if attestationError, ok := errors.AsType[*attestation.VerificationError](err); ok {
 		if writeErr := writeDiagnostics(out, nil, []diagnostic.Diagnostic{attestationError.Diagnostic}); writeErr != nil {
 			return writeErr
 		}
@@ -193,8 +192,7 @@ func emitTypedVerificationFailure(out io.Writer, err error) error {
 		}
 		return ErrVerificationFailure
 	}
-	var policyError *policy.ValidationError
-	if errors.As(err, &policyError) {
+	if policyError, ok := errors.AsType[*policy.ValidationError](err); ok {
 		if writeErr := writeDiagnostics(out, nil, []diagnostic.Diagnostic{policyError.Diagnostic}); writeErr != nil {
 			return writeErr
 		}

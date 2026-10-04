@@ -85,14 +85,14 @@ func TestExitCodes(t *testing.T) {
 			diagnostics: []Diagnostic{mustDiagnostic(t, IDSignatureMismatch, "bundle.signature", "Signature mismatch.")},
 			wantResult:  ResultFail,
 			wantCode:    ExitCodePolicyFailure,
-			wantPrimary: testStringPointer(IDSignatureMismatch),
+			wantPrimary: new(IDSignatureMismatch),
 		},
 		{
 			name:        "invocation failure",
 			diagnostics: []Diagnostic{mustDiagnostic(t, IDInputUnavailable, "input.bundle", "Bundle is unavailable.")},
 			wantResult:  ResultFail,
 			wantCode:    ExitCodeInvocationFailure,
-			wantPrimary: testStringPointer(IDInputUnavailable),
+			wantPrimary: new(IDInputUnavailable),
 		},
 	}
 
@@ -282,8 +282,4 @@ func assertGolden(t *testing.T, report Report, name string) {
 	if !bytes.Equal(got, want) {
 		t.Fatalf("canonical report mismatch\ngot:  %s\nwant: %s", got, want)
 	}
-}
-
-func testStringPointer(value string) *string {
-	return &value
 }

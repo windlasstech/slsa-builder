@@ -34,7 +34,7 @@ func TestFixtureCheck(t *testing.T) {
 		wantPrimaryID *string
 	}{
 		{name: "pass", contents: `{"fixtures":[` + validManifest + `]}`, wantExitCode: 0, wantResult: "pass"},
-		{name: "policy failure", contents: `{"fixtures":[],"fixtures":[]}`, wantExitCode: 1, wantResult: "fail", wantPrimaryID: testStringPointer(diagnosticsContractInvalidID)},
+		{name: "policy failure", contents: `{"fixtures":[],"fixtures":[]}`, wantExitCode: 1, wantResult: "fail", wantPrimaryID: new(diagnosticsContractInvalidID)},
 	}
 
 	for _, test := range tests {
@@ -80,13 +80,9 @@ func TestFixtureCheckMissingIndex(t *testing.T) {
 	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
 		t.Fatalf("decode report: %v; output=%s", err, output.String())
 	}
-	if !equalOptionalString(report.PrimaryID, testStringPointer(inputUnavailableID)) {
+	if !equalOptionalString(report.PrimaryID, new(inputUnavailableID)) {
 		t.Errorf("primary ID = %v, want %q", report.PrimaryID, inputUnavailableID)
 	}
-}
-
-func testStringPointer(value string) *string {
-	return &value
 }
 
 func equalOptionalString(left, right *string) bool {

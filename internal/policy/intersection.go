@@ -175,10 +175,8 @@ func normalizeAllowed(allowed []string) ([]string, error) {
 		return nil, errors.New("constraint must allow at least one value")
 	}
 	normalized := slices.Clone(allowed)
-	for _, value := range normalized {
-		if value == "" {
-			return nil, &constraintValueError{message: "constraint allowed values must be non-empty"}
-		}
+	if slices.Contains(normalized, "") {
+		return nil, &constraintValueError{message: "constraint allowed values must be non-empty"}
 	}
 	sort.Strings(normalized)
 	for index := 1; index < len(normalized); index++ {

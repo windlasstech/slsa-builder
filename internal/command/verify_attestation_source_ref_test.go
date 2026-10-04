@@ -140,7 +140,7 @@ func sourceBindingStatement(t *testing.T, options sourceBindingStatementOptions)
 		parameters.Package.Repository = options.repository
 	}
 	if options.invocationRef != "" {
-		parameters.Source.InvocationRef = stringPointerForSourceBinding(options.invocationRef)
+		parameters.Source.InvocationRef = new(options.invocationRef)
 	}
 	predicate.BuildDefinition.ExternalParameters, err = npmprofile.EncodeExternalParameters(parameters)
 	if err != nil {
@@ -203,5 +203,3 @@ func writeSourceBindingInputs(t *testing.T, explicit policy.ExplicitPolicy, iden
 	}
 	return paths
 }
-
-func stringPointerForSourceBinding(value string) *string { return &value }
