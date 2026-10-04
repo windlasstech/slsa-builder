@@ -49,3 +49,14 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   pnpm (12.9.0), with both versions declared solely in `package.json` (`devEngines.runtime` and
   `devEngines.packageManager`) and Corepack removed from the bootstrap; requires mise v2026.8.7 or
   newer.
+
+### Security
+
+- Pin the module Go directive at 1.26.6 or newer so that source builds are not exposed to
+  [GO-2026-4970](https://osv.dev/GO-2026-4970) or the Go standard library advisories
+  [GO-2026-5026](https://osv.dev/GO-2026-5026), [GO-2026-5942](https://osv.dev/GO-2026-5942),
+  [GO-2026-5972](https://osv.dev/GO-2026-5972), [GO-2026-6088](https://osv.dev/GO-2026-6088),
+  [GO-2026-6089](https://osv.dev/GO-2026-6089), [GO-2026-6090](https://osv.dev/GO-2026-6090),
+  [GO-2026-6091](https://osv.dev/GO-2026-6091), and [GO-2026-6218](https://osv.dev/GO-2026-6218).
+- Pin `golang.org/x/mod` at v0.40.0 or newer so that builds are not exposed to
+  [GO-2026-6179](https://osv.dev/GO-2026-6179) and [GO-2026-6180](https://osv.dev/GO-2026-6180).
