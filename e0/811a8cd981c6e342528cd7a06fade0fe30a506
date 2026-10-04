@@ -1,0 +1,19 @@
+.github/workflows/js-ts-npm-package-slsa3.yml
+  s_059df880bccd8e::t_567c3ed8bb912d 103,297,407
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e0811a8cd981c6e342528cd7a06fade0fe30a506",
+  "prompts": {},
+  "sessions": {
+    "s_059df880bccd8e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef7fd6bdfffehHE5iGpFZGNcr5",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
