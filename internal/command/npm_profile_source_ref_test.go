@@ -134,7 +134,7 @@ func assertSourceRefOutputs(t *testing.T, path, wantRef, wantRevision string) {
 	if string(data) != want {
 		t.Fatalf("outputs = %q, want %q", data, want)
 	}
-	for _, line := range strings.Split(strings.TrimSuffix(string(data), "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSuffix(string(data), "\n"), "\n") {
 		if strings.ContainsAny(line, "\r\x00") {
 			t.Fatalf("output is not single-line: %q", line)
 		}

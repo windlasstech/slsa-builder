@@ -199,7 +199,7 @@ func validReleaseRef(ref string) bool {
 		strings.HasSuffix(tag, ".") {
 		return false
 	}
-	for _, component := range strings.Split(tag, "/") {
+	for component := range strings.SplitSeq(tag, "/") {
 		if component == "" || strings.HasPrefix(component, ".") || strings.HasSuffix(component, ".lock") {
 			return false
 		}

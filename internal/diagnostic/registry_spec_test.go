@@ -2,6 +2,7 @@ package diagnostic
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -148,9 +149,7 @@ func parseSpecTaxonomy(specs map[string]string) (map[string]specTaxonomyEntry, e
 	if metadataTables == 0 {
 		return nil, fmt.Errorf("no diagnostic metadata tables found")
 	}
-	for id, entry := range explicit {
-		entries[id] = entry
-	}
+	maps.Copy(entries, explicit)
 
 	return entries, nil
 }
@@ -168,11 +167,11 @@ func validPhase(phase Phase) bool {
 }
 
 func markdownSection(markdown, heading string) (string, error) {
-	start := strings.Index(markdown, heading)
-	if start < 0 {
+	_, after, ok := strings.Cut(markdown, heading)
+	if !ok {
 		return "", fmt.Errorf("heading %q not found", heading)
 	}
-	section := markdown[start+len(heading):]
+	section := after
 	for _, prefix := range []string{"\n## ", "\n### "} {
 		if end := strings.Index(section, prefix); end >= 0 {
 			section = section[:end]

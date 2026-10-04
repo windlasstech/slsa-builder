@@ -139,7 +139,7 @@ func TestBuilderFields(t *testing.T) {
 		corepackVersion *string
 	}{
 		{name: "direct npm", fixture: "valid-statement.json"},
-		{name: "corepack", fixture: "valid-statement-corepack.json", corepackVersion: stringPointer("0.29.4")},
+		{name: "corepack", fixture: "valid-statement-corepack.json", corepackVersion: new("0.29.4")},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -216,10 +216,6 @@ func requireDiagnosticID(t *testing.T, err error, want string) {
 	if got := identified.DiagnosticID(); got != want {
 		t.Fatalf("diagnostic ID = %q, want %q: %v", got, want, err)
 	}
-}
-
-func stringPointer(value string) *string {
-	return &value
 }
 
 type mutatingProfileValidator struct{}

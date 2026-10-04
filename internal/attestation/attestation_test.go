@@ -61,7 +61,7 @@ func TestVerifyOfflineBundle(t *testing.T) {
 func TestMissingSCT(t *testing.T) {
 	request := offlineRequest(t, fixtureBundle(t))
 	request.PinnedRoot = removeJSONMember(t, request.PinnedRoot, "ctlogs")
-	request.TrustRoot.SHA256 = stringPointer(sha256Hex(request.PinnedRoot))
+	request.TrustRoot.SHA256 = new(sha256Hex(request.PinnedRoot))
 
 	_, err := verifyAt(context.Background(), request, fixtureTime)
 	requireDiagnosticID(t, err, idMissingSCT)
@@ -278,7 +278,7 @@ func TestDuplicatePinnedRootMember(t *testing.T) {
 		[]byte(`{"mediaType":"application/vnd.dev.sigstore.trustedroot+json;version=0.1",`),
 		request.PinnedRoot[1:]...,
 	)
-	request.TrustRoot.SHA256 = stringPointer(sha256Hex(request.PinnedRoot))
+	request.TrustRoot.SHA256 = new(sha256Hex(request.PinnedRoot))
 	_, err := verifyAt(context.Background(), request, fixtureTime)
 	requireDiagnosticID(t, err, idDuplicateJSONMember)
 }
@@ -413,8 +413,6 @@ func requireDiagnosticID(t *testing.T, err error, want string) {
 		t.Fatalf("diagnostic ID = %s, want %s: %v", got, want, err)
 	}
 }
-
-func stringPointer(value string) *string { return &value }
 
 type countingDenyTransport struct{ calls atomic.Int64 }
 

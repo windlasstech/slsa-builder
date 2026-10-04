@@ -32,7 +32,7 @@ spec'd but not yet implemented.
 ├── go.mod / go.sum              # vetted deps: sigstore-go, cyberphone JCS, goccy/go-yaml
 ├── .golangci.yml                # Go format/lint policy
 ├── lefthook.yml                 # git hooks (DCO commit-msg check)
-├── mise.toml / mise.lock        # pinned runtimes (Go 1.26.6, Node 24, pnpm 11.9.0)
+├── mise.toml / mise.lock        # pinned runtimes (Go 1.27, Node 24, pnpm 12)
 ├── package.json / pnpm-*        # dev-only Node tooling (Prettier, markdownlint)
 └── .cursor/ .claude/ .gemini/ .kiro/  # editor/AI tool configs
 ```

@@ -211,7 +211,7 @@ func Build(runInvocation *string, diagnostics []Diagnostic, metadata *Diagnostic
 			continue
 		}
 		report.Result = ResultFail
-		report.PrimaryID = stringPointer(ordered[i].ID)
+		report.PrimaryID = new(ordered[i].ID)
 		report.ExitCode = definition.ExitCode
 		break
 	}
@@ -252,7 +252,7 @@ func (r Report) Validate() error {
 		if definition.Severity == SeverityError {
 			wantResult = ResultFail
 			wantExitCode = definition.ExitCode
-			wantPrimary = stringPointer(r.Diagnostics[i].ID)
+			wantPrimary = new(r.Diagnostics[i].ID)
 			break
 		}
 	}
@@ -544,10 +544,8 @@ func containsSecret(value any) bool {
 			}
 		}
 	case []any:
-		for _, nested := range typed {
-			if containsSecret(nested) {
-				return true
-			}
+		if slices.ContainsFunc(typed, containsSecret) {
+			return true
 		}
 	case []string:
 		for _, nested := range typed {
@@ -568,11 +566,7 @@ func cloneString(value *string) *string {
 	if value == nil {
 		return nil
 	}
-	return stringPointer(*value)
-}
-
-func stringPointer(value string) *string {
-	return &value
+	return new(*value)
 }
 
 func equalStringPointers(left, right *string) bool {

@@ -3,6 +3,7 @@ package provenance
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"regexp"
 	"time"
 
@@ -132,9 +133,7 @@ func cloneResourceDescriptors(descriptors []ResourceDescriptor) []ResourceDescri
 
 func cloneStringMap(values map[string]string) map[string]string {
 	cloned := make(map[string]string, len(values))
-	for key, value := range values {
-		cloned[key] = value
-	}
+	maps.Copy(cloned, values)
 	return cloned
 }
 
