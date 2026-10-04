@@ -590,9 +590,9 @@ mise install
 pnpm install
 ```
 
-This installs the pinned versions of Go, Node.js, and the CLI tools defined in `mise.toml`, and
-provisions the development pnpm from the `devEngines.packageManager` declaration in `package.json`
-(no Corepack). Lefthook hooks are installed automatically as a `postinstall` step when mise installs
+This installs the pinned versions of Go and the CLI tools defined in `mise.toml`, and provisions the
+development Node.js runtime and pnpm from the `devEngines` declarations in `package.json` (no
+Corepack). Lefthook hooks are installed automatically as a `postinstall` step when mise installs
 Lefthook. The `pnpm install` step then installs the project-local development dependencies declared
 in `package.json`.
 
@@ -620,7 +620,8 @@ actionlint --version
 
 mise installs language runtimes and standalone CLI binaries:
 
-- Go and Node.js
+- Go
+- Node.js, resolved from the `devEngines.runtime` declaration in `package.json`
 - pnpm, resolved from the `devEngines.packageManager` declaration in `package.json`
 - `golangci-lint`, `shellcheck`, `shfmt`, `lefthook`, `actionlint`
 

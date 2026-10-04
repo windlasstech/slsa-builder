@@ -170,7 +170,7 @@ importers:
         specifier: ^0.22.1
         version: 0.22.1
       node:
-        specifier: runtime:24
+        specifier: runtime:24.21.0
         version: runtime:24.21.0
       prettier:
         specifier: ^3.8.4

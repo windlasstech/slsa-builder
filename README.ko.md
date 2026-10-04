@@ -580,10 +580,10 @@ mise install
 pnpm install
 ```
 
-이 명령은 `mise.toml`에서 정의한 Go, Node.js, CLI 도구의 고정된 버전을 설치하고, 개발용 pnpm은
-`package.json`의 `devEngines.packageManager` 선언에서 프로비저닝합니다(Corepack 미사용). Lefthook
-hook은 mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치합니다. 그 후 `pnpm install`
-단계에서 `package.json`에 선언된 프로젝트 로컬 개발 의존성을 설치합니다.
+이 명령은 `mise.toml`에서 정의한 Go와 CLI 도구의 고정된 버전을 설치하고, 개발용 Node.js 런타임과
+pnpm은 `package.json`의 `devEngines` 선언에서 프로비저닝합니다(Corepack 미사용). Lefthook hook은
+mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치합니다. 그 후 `pnpm install` 단계에서
+`package.json`에 선언된 프로젝트 로컬 개발 의존성을 설치합니다.
 
 CI에서는 레지스트리에 대한 API 호출을 방지하기 위해 잠금 모드로 mise를 실행하세요.
 
@@ -609,7 +609,8 @@ actionlint --version
 
 mise는 언어 런타임과 독립 실행형 CLI 바이너리를 설치합니다.
 
-- Go, Node.js
+- Go
+- Node.js(`package.json`의 `devEngines.runtime` 선언에서 해석)
 - pnpm(`package.json`의 `devEngines.packageManager` 선언에서 해석)
 - `golangci-lint`, `shellcheck`, `shfmt`, `lefthook`, `actionlint`
 

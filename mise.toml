@@ -3,7 +3,6 @@
 
 [tools]
 # Runtimes
-node = "24"
 go = "1.26.6"
 
 # Go ecosystem tools
@@ -37,10 +36,10 @@ lockfile = true
 # Explicitly pinned versions above are not affected.
 minimum_release_age = "1d"
 
-# Resolve the development pnpm from package.json (devEngines.packageManager is
-# read first, then the top-level packageManager field) instead of Corepack.
-# Requires mise v2026.8.7 or newer (ADR 0086).
-idiomatic_version_file_enable_tools = ["pnpm"]
+# Resolve the development Node.js runtime and pnpm from package.json
+# (devEngines.runtime and devEngines.packageManager) instead of [tools]
+# entries or Corepack. Requires mise v2026.8.7 or newer (ADR 0086, ADR 0089).
+idiomatic_version_file_enable_tools = ["node", "pnpm"]
 
 [settings.aqua]
 # Keep aqua registry metadata fresh enough to pick up new tool releases,

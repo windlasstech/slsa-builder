@@ -45,6 +45,7 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Added support for standalone root packages whose `pnpm-workspace.yaml` contains policy settings
   but omits the optional `packages` member (settings-only workspace files resolve to the root
   package).
-- Added mise packageManager-field provisioning for the development pnpm (12.9.0), with the pnpm
-  version declared solely in `package.json` (`devEngines.packageManager`), a `devEngines.runtime`
-  Node.js 24 declaration, and Corepack removed from the bootstrap; requires mise v2026.8.7 or newer.
+- Added mise packageManager-field provisioning for the development Node.js runtime (24.21.0) and
+  pnpm (12.9.0), with both versions declared solely in `package.json` (`devEngines.runtime` and
+  `devEngines.packageManager`) and Corepack removed from the bootstrap; requires mise v2026.8.7 or
+  newer.
