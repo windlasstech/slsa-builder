@@ -1,0 +1,19 @@
+docs/decisions/0000-use-markdown-architectural-decision-records.md
+  s_e6d807d3208493::t_11889e8a827866 186,188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0e59d17dffc25c0623bb8814f46407457471e2cc",
+  "prompts": {},
+  "sessions": {
+    "s_e6d807d3208493": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef777db40ffemBp1Sv7BeM0nau",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
