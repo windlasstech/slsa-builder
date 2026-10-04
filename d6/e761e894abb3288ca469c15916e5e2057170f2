@@ -1,0 +1,20 @@
+package.json
+  s_e6d807d3208493::t_b064451c4fe168 4
+  s_e6d807d3208493::t_60b63d592ce3e8 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6e761e894abb3288ca469c15916e5e2057170f2",
+  "prompts": {},
+  "sessions": {
+    "s_e6d807d3208493": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef777db40ffemBp1Sv7BeM0nau",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
