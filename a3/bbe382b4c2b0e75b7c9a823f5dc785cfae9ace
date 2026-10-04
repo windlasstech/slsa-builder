@@ -1,0 +1,19 @@
+docs/decisions/0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md
+  s_1a32130c89aa1b::t_1f280e94d2e1f9 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a3bbe382b4c2b0e75b7c9a823f5dc785cfae9ace",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
