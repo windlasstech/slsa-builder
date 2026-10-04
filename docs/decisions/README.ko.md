@@ -215,7 +215,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0085 | Pin the Node.js 24 patch version and assert the expected bundled npm pair                           | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                                                             |
 | 0086 | Provision pnpm through mise packageManager-field resolution instead of Corepack                     | 도구 전용                                                                                                                                                                           |
 | 0087 | Adopt pnpm 12 for Node.js development tooling                                                       | 도구 전용                                                                                                                                                                           |
-| 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                      | JS/TS npm 빌드·팩(목표 설계; 롤아웃 전까지 ADR 0016이 프로덕션 메커니즘)                                                                                                            |
+| 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                      | JS/TS npm build and pack, verification policy and fixtures(현재는 Corepack 지원 윈도우 경계만 명세됨; registry tarball 메커니즘은 후속 명세 작업(B01/#106)으로 유보됨)              |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
