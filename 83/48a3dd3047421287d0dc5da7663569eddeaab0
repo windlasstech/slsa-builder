@@ -1,0 +1,19 @@
+docs/architecture/js-ts-npm-package-profile.md
+  s_95b0178da81ab5::t_c15352cf26ff18 745-749
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8348a3dd3047421287d0dc5da7663569eddeaab0",
+  "prompts": {},
+  "sessions": {
+    "s_95b0178da81ab5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef9412a7dffel1atHs1uOURxHR",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
