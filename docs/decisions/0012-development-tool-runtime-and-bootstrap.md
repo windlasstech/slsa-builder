@@ -20,7 +20,8 @@ relations:
   - type: partially-superseded-by
     target: ADR-0089
     scope:
-      "the Node.js development-runtime version declaration implied by the Confirmation criterion
+      "the Node.js development-runtime version declaration recorded in the Decision Outcome's root
+      mise.toml declaration list (''Node.js version'') and implied by the Confirmation criterion
       that a root mise.toml pins Go, Node.js, pnpm, and required CLI tools: under ADR-0089 the
       Node.js development-runtime version is declared solely in package.json's devEngines.runtime
       and mise resolves and installs Node.js through its idiomatic package.json resolution. The Go

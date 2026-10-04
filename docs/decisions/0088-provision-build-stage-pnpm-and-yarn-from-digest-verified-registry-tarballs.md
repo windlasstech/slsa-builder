@@ -153,9 +153,11 @@ contract is:
 - pnpm 11.x: the single JS-bundle tarball is executed through a `node` launcher — the same shape as
   ADR 0084's publish-stage npm.
 - pnpm 12 and newer: a dual artifact — the `@pnpm/exe.<platform>-<arch>` native-binary tarball and
-  the `pnpm` package's `dist/` payload tarball, each SRI-verified, assembled following the model
-  pnpm's own installer (`get-pnpm` / `install.sh`) implements. Platforms outside a reviewed matrix
-  fail closed with a diagnostic until added.
+  the `pnpm` package's `dist/` payload tarball. The trusted core must verify each package's npm
+  registry signature over its version metadata before trusting its `dist.integrity`, then SRI-verify
+  both tarballs and assemble them following the model pnpm's own installer (`get-pnpm` /
+  `install.sh`) implements. Platforms outside a reviewed matrix fail closed with a diagnostic until
+  added.
 - Yarn Berry 4+: the `@yarnpkg/cli-dist` tarball is SRI-verified and its `bin/yarn.js` is executed
   through a `node` launcher. Because acquisition itself becomes SRI-verified, Yarn's recorded digest
   authority can upgrade from ADR 0070's `download-hash` to `registry-integrity`; the final

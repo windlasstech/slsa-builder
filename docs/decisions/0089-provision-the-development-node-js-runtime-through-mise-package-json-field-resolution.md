@@ -8,7 +8,8 @@ relations:
   - type: partially-supersedes
     target: ADR-0012
     scope:
-      "the Node.js development-runtime version declaration implied by the Confirmation criterion
+      "the Node.js development-runtime version declaration recorded in the Decision Outcome's root
+      mise.toml declaration list (''Node.js version'') and implied by the Confirmation criterion
       that a root mise.toml pins Go, Node.js, pnpm, and required CLI tools: under this ADR the
       Node.js development-runtime version is declared solely in package.json's devEngines.runtime
       and mise resolves and installs Node.js through its idiomatic package.json resolution. The Go
@@ -91,8 +92,10 @@ Configuration consequences (implementation detail, recorded here for the impleme
 
 ### Consequences
 
-- Good, because the runtime version is declared exactly once (`package.json`), making divergence
-  between the two lockfiles structurally impossible rather than procedurally policed.
+- Good, because the runtime version is declared exactly once (`package.json`), so divergence between
+  the two independently committed lockfiles can only arise from regenerating one without the other —
+  a single edit point rather than two declarations to keep in sync; the Confirmation criteria keep
+  the lockfile-equality check explicit.
 - Good, because every invocation path — the mise shim, `pnpm exec`, lifecycle scripts, and pnpm's
   bare-`node` handoff — executes the same recorded Node.js version.
 - Good, because the mechanism is identical to the one ADR 0086 established for pnpm, so contributors

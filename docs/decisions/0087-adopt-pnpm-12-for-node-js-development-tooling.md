@@ -96,7 +96,9 @@ Configuration consequences (implementation detail, recorded here for the impleme
   separately as a migration artifact, not silently absorbed.
 - The Prettier and markdownlint gates are smoke-tested locally and in CI; `CHANGELOG.md` records the
   change under `[Unreleased]` → `Changed`.
-- Rollback path: revert the version declaration to an explicit 11.28.x version.
+- Rollback path: revert the version declaration to an explicit 11.28.x version, regenerate
+  `mise.lock` so it records the rolled-back pnpm with checksum and provenance metadata (CI installs
+  in locked mode), and re-run `pnpm install` so `pnpm-lock.yaml` re-records the matching resolution.
 
 ### Consequences
 

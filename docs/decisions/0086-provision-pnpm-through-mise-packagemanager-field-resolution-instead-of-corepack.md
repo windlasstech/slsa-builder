@@ -130,19 +130,11 @@ Chosen option: "Use mise's packageManager-field resolution mode", because it kee
 source in `package.json` while preserving mise's verified-download and committed-lockfile
 guarantees, and because it removes the Corepack dependency without waiting on any other decision.
 
-Configuration consequences (implementation detail, recorded here for the implementer):
-
-- `mise.toml`: remove `postinstall = "corepack enable"` from the `node` tool; add
-  `idiomatic_version_file_enable_tools = ["pnpm"]` under `[settings]`; keep
-  `[settings.npm] package_manager = "pnpm"` (it governs mise's `npm:` backend behavior); declare no
-  `pnpm` entry under `[tools]`.
-- `package.json`: `devEngines.packageManager` remains the sole declaration of the pnpm version. This
-  ADR does not change its value.
-- `mise.lock` records the resolved pnpm with checksum and provenance metadata;
-  `locked_verify_provenance = true` re-verifies at install time.
-- CI keeps running `MISE_LOCKED=1 mise install`; no workflow change is required.
-- pnpm's own `devEngines.packageManager` / `onFail: download` self-provisioning remains as a
-  complementary safety net inside the project, not as the primary provisioning path.
+Configuration consequences: the concrete settings realizing this decision live in the
+development-tooling configuration and its documentation (`mise.toml`, `package.json`, `mise.lock`,
+and the README bootstrap section) rather than in this ADR. CI continues to install in locked mode
+with no workflow change, and pnpm's own `devEngines.packageManager` self-provisioning remains as a
+complementary safety net inside the project, not as the primary provisioning path.
 
 ### Consequences
 
@@ -181,7 +173,8 @@ This decision is confirmed when:
 - `mise.lock` records pnpm with checksum and provenance metadata, and `MISE_LOCKED=1 mise install`
   succeeds in CI.
 - `pnpm --version` after bootstrap matches the `package.json` pin, and `pnpm install` succeeds.
-- No `corepack` invocation remains in repository configuration or documentation.
+- The mise bootstrap provisions pnpm without invoking Corepack; build-stage Corepack usage remains
+  governed by ADR 0016 and the ADR 0088 rollout plan.
 
 ## Pros and Cons of the Options
 
