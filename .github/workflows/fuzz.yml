@@ -98,11 +98,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+      - name: Set up mise
+        uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
         with:
-          go-version: "1.26.6"
-          cache: false
+          install_args: "--locked"
 
       - name: Fuzz ${{ matrix.target }} for 10 minutes
         run: >-

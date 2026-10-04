@@ -33,13 +33,13 @@
 | [Identity and build types](identity-and-buildtypes.md)                      | `builder.id`, `buildType` URI, 릴리즈 메타데이터 연결 | 0028, 0031, 0042, 0049, 0053, 0068, 0080                                                                             |
 | [SLSA provenance v1](slsa-provenance-v1.md)                                 | 공통 in-toto Statement와 SLSA v1 predicate 계약       | 0002, 0003, 0028, 0029, 0037, 0042, 0061, 0064, 0070, 0071, 0077, 0079, 0080                                         |
 | [JS/TS npm package profile](js-ts-npm-package-profile.md)                   | npm 패키지용 공개 reusable workflow 계약              | 0013, 0018, 0022, 0023, 0024, 0026, 0027, 0030, 0032, 0034, 0060, 0064, 0077, 0079, 0081                             |
-| [JS/TS npm build and pack](js-ts-npm-build-pack.md)                         | 패키지 선택, 패키지 매니저 규칙, install/build/pack   | 0014, 0015, 0016, 0017, 0018, 0019, 0023, 0027, 0033, 0056, 0063, 0064, 0070, 0078                                   |
+| [JS/TS npm build and pack](js-ts-npm-build-pack.md)                         | 패키지 선택, 패키지 매니저 규칙, install/build/pack   | 0014, 0015, 0016, 0017, 0018, 0019, 0023, 0027, 0033, 0056, 0063, 0064, 0070, 0078, 0088                             |
 | [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md)         | 출처, 3단계 publish 그래프, npm publish               | 0024, 0025, 0028, 0029, 0030, 0036, 0037, 0052, 0056–0057, 0059–0061, 0063, 0064, 0070, 0071, 0077, 0079, 0080, 0081 |
 | [GitHub Release asset publisher](github-release-asset-publisher.md)         | 검증된 배포자(distributor) publisher 계약             | 0039, 0043, 0045, 0046, 0048, 0049, 0050, 0051, 0052, 0057–0060, 0062, 0064, 0077                                    |
 | [Composed workflow internal handoff](composed-workflow-internal-handoff.md) | 같은 실행 내 producer-to-publisher 내부 핸드오프      | 0036, 0050, 0052, 0057–0060, 0064                                                                                    |
 | [npm-to-release-asset composition](npm-to-release-asset-composition.md)     | 첫 번째 producer-to-publisher 조합                    | 0013–0019, 0022–0037, 0049, 0050, 0051, 0052, 0057–0060, 0064, 0077                                                  |
 | [Release manifest](release-manifest.md)                                     | 서명된 릴리즈 매니페스트와 3단계 서명 경계            | 0028, 0031, 0042, 0053, 0054, 0062, 0077                                                                             |
-| [Verification policy and fixtures](verification-policy-and-fixtures.md)     | 검증자 정책, 픽스처 분류, 참조 명령어                 | 0028, 0029, 0030, 0036, 0037, 0049, 0050, 0051, 0052–0054, 0056–0064, 0070, 0071, 0077, 0078, 0079, 0080, 0081       |
+| [Verification policy and fixtures](verification-policy-and-fixtures.md)     | 검증자 정책, 픽스처 분류, 참조 명령어                 | 0028, 0029, 0030, 0036, 0037, 0049, 0050, 0051, 0052–0054, 0056–0064, 0070, 0071, 0077, 0078, 0079, 0080, 0081, 0088 |
 
 ## ADR 추적성
 
@@ -64,6 +64,9 @@
 | 0079 | Support a tags-only caller-specified build source ref for release retries across profiles         | Core profile contract, JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                |
 | 0080 | Bind source identity policy to signed provenance fields, certificate claims as invocation context | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
 | 0081 | Pin the npm OIDC exchange response contract to the observed shape, correct token lifetime         | JS/TS npm package profile, JS/TS npm provenance and publish, verification policy and fixtures                                                                                       |
+| 0086 | Provision pnpm through mise packageManager-field resolution instead of Corepack                   | 도구 전용(저장소 개발 도구; 아키텍처 명세 없음)                                                                                                                                     |
+| 0087 | Adopt pnpm 12 for Node.js development tooling                                                     | 도구 전용(저장소 개발 도구; 아키텍처 명세 없음)                                                                                                                                     |
+| 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                    | JS/TS npm build and pack, verification policy and fixtures(현재는 Corepack 지원 윈도우 경계만 명세됨; registry tarball 메커니즘은 후속 명세 작업(B01/#106)으로 유보됨)              |
 
 자세한 ADR 추적성 표는 [`../decisions/README.ko.md`](../decisions/README.ko.md#adr-추적성)를
 참조하세요.

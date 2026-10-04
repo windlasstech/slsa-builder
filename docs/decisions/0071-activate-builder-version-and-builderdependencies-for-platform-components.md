@@ -20,6 +20,8 @@ relations:
     target: ADR-0055
   - type: see-also
     target: ADR-0070
+  - type: see-also
+    target: ADR-0088
 ---
 
 # Activate builder.version and builderDependencies for Build Platform Components

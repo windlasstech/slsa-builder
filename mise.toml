@@ -3,7 +3,6 @@
 
 [tools]
 # Runtimes
-node = { version = "24", postinstall = "corepack enable" }
 go = "1.26.6"
 
 # Go ecosystem tools
@@ -36,6 +35,11 @@ lockfile = true
 # after a release before allowing a fuzzy version match to resolve to it.
 # Explicitly pinned versions above are not affected.
 minimum_release_age = "1d"
+
+# Resolve the development Node.js runtime and pnpm from package.json
+# (devEngines.runtime and devEngines.packageManager) instead of [tools]
+# entries or Corepack. Requires mise v2026.8.7 or newer (ADR 0086, ADR 0089).
+idiomatic_version_file_enable_tools = ["node", "pnpm"]
 
 [settings.aqua]
 # Keep aqua registry metadata fresh enough to pick up new tool releases,

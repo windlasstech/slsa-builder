@@ -4,6 +4,9 @@ nav_order: 9
 status: accepted
 date: 12026-06-24
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0086
 ---
 
 # Use Node.js as the Development Tool Runtime

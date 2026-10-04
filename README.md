@@ -345,9 +345,10 @@ distribution targets will continue to be added over time.
   [ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)
   and
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)).
-- **Manifest-first package manager selection:** Supports npm, pnpm, and Yarn Berry v4+ through
-  Corepack, and runs build scripts only when declared (see
-  [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
+- **Manifest-first package manager selection:** Supports npm, pnpm 11.x, and Yarn Berry v4/v5
+  through Corepack, the production provisioning path. Consumer manifests pinning a pnpm version
+  outside the 11.x line, or Yarn 6 or newer, are rejected with a diagnostic, and build scripts run
+  only when declared (see [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
 - **Secretless trusted publishing:** Authenticates with npm OIDC trusted publishing, so no
   long-lived publish secrets are needed. The SLSA v1 provenance slsa-builder generates carries both
   SHA-512 and SHA-256 digests of the same tarball bytes in a single npm Package URL subject, is
@@ -579,7 +580,7 @@ tooling such as Prettier and Lefthook.
 
 ### Prerequisites
 
-- [mise](https://mise.jdx.dev/getting-started.html) installed
+- [mise](https://mise.jdx.dev/getting-started.html) v2026.8.7 or newer installed
 - Git with a configured user name and email
 
 ### Bootstrap
@@ -589,10 +590,11 @@ mise install
 pnpm install
 ```
 
-This installs the pinned versions of Go, Node.js, pnpm, and the CLI tools defined in `mise.toml`.
-Lefthook hooks are installed automatically as a `postinstall` step when mise installs Lefthook. The
-`pnpm install` step then installs the project-local development dependencies declared in
-`package.json`.
+This installs the pinned versions of Go and the CLI tools defined in `mise.toml`, and provisions the
+development Node.js runtime and pnpm from the `devEngines` declarations in `package.json` (no
+Corepack). Lefthook hooks are installed automatically as a `postinstall` step when mise installs
+Lefthook. The `pnpm install` step then installs the project-local development dependencies declared
+in `package.json`.
 
 In CI, run mise with locked mode to avoid API calls to registries:
 
@@ -618,7 +620,9 @@ actionlint --version
 
 mise installs language runtimes and standalone CLI binaries:
 
-- Go, Node.js, and pnpm
+- Go
+- Node.js, resolved from the `devEngines.runtime` declaration in `package.json`
+- pnpm, resolved from the `devEngines.packageManager` declaration in `package.json`
 - `golangci-lint`, `shellcheck`, `shfmt`, `lefthook`, `actionlint`
 
 Go source formatting and import normalization is handled by `golangci-lint` formatters (`gofmt`,
@@ -636,13 +640,18 @@ organization's dependency-review workflow.
 
 ### Tool versions
 
-Tool versions are declared in `mise.toml`. A `mise.lock` file is committed to ensure reproducible
-installs across platforms. If you change a tool version in `mise.toml`, regenerate the lockfile
-with:
+Tool versions are declared in `mise.toml`, except pnpm and the Node.js development runtime, which
+are declared solely in `package.json` (`devEngines.packageManager` and `devEngines.runtime`). A
+`mise.lock` file is committed to ensure reproducible installs across platforms, and the resolved
+pnpm and runtime versions are recorded in `pnpm-lock.yaml`. If you change a tool version in
+`mise.toml`, regenerate the lockfile with:
 
 ```bash
 mise lock
 ```
+
+If you change the pnpm version declaration in `package.json`, regenerate both lockfiles with
+`mise lock` and `pnpm install`.
 
 ### Commit conventions and sign-off
 

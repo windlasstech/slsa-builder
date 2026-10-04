@@ -336,8 +336,9 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)와
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
   참고).
-- **매니페스트 우선 패키지 매니저 선택:** npm, pnpm, Corepack을 통한 Yarn Berry v4+를 지원하며, 빌드
-  스크립트는 선언된 경우에만 실행합니다
+- **매니페스트 우선 패키지 매니저 선택:** npm, pnpm 11.x, Corepack을 통한 Yarn Berry v4/v5를
+  지원합니다. Corepack은 프로덕션 프로비저닝 경로이며, 11.x 라인 밖의 pnpm 버전이나 Yarn 6 이상을
+  고정한 소비자 매니페스트는 진단과 함께 거부됩니다. 빌드 스크립트는 선언된 경우에만 실행합니다
   ([JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md) 참고).
 - **비밀 없는 신뢰 게시:** npm OIDC trusted publishing으로 인증하므로 장기 보관 publish secret이
   필요 없습니다. slsa-builder가 생성하는 SLSA v1 출처 증명은 하나의 npm Package URL subject에 동일
@@ -569,7 +570,7 @@ HTML:
 
 ### 필수 조건
 
-- [mise](https://mise.jdx.dev/getting-started.html) 설치
+- [mise](https://mise.jdx.dev/getting-started.html) v2026.8.7 이상 설치
 - 사용자 이름과 이메일을 설정한 Git
 
 ### 부트스트랩
@@ -579,9 +580,10 @@ mise install
 pnpm install
 ```
 
-이 명령은 `mise.toml`에 정의된 Go, Node.js, pnpm, CLI 도구의 고정된 버전을 설치합니다. Lefthook
-hook은 mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치됩니다. 그 후 `pnpm install`
-단계에서 `package.json`에 선언된 프로젝트 로컬 개발 의존성을 설치합니다.
+이 명령은 `mise.toml`에서 정의한 Go와 CLI 도구의 고정된 버전을 설치하고, 개발용 Node.js 런타임과
+pnpm은 `package.json`의 `devEngines` 선언에서 프로비저닝합니다(Corepack 미사용). Lefthook hook은
+mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치합니다. 그 후 `pnpm install` 단계에서
+`package.json`에 선언된 프로젝트 로컬 개발 의존성을 설치합니다.
 
 CI에서는 레지스트리에 대한 API 호출을 방지하기 위해 잠금 모드로 mise를 실행하세요.
 
@@ -607,7 +609,9 @@ actionlint --version
 
 mise는 언어 런타임과 독립 실행형 CLI 바이너리를 설치합니다.
 
-- Go, Node.js, pnpm
+- Go
+- Node.js(`package.json`의 `devEngines.runtime` 선언에서 해석)
+- pnpm(`package.json`의 `devEngines.packageManager` 선언에서 해석)
 - `golangci-lint`, `shellcheck`, `shfmt`, `lefthook`, `actionlint`
 
 Go 소스 포매팅과 import 정규화는 독립 실행형 포매터 바이너리가 아닌, `.golangci.yml`에 구성된
@@ -623,13 +627,17 @@ Prettier와 `markdownlint-cli2`를 프로젝트 로컬 pnpm 의존성으로 유�
 
 ### 도구 버전
 
-도구 버전은 `mise.toml`에 선언되어 있습니다. 플랫폼 간 재현 가능한 설치를 보장하기 위해 `mise.lock`
-파일이 커밋되어 있습니다. `mise.toml`에서 도구 버전을 변경한 경우 다음 명령으로 잠금 파일을 다시
-생성하세요.
+도구 버전은 `mise.toml`에서 선언합니다. 단 pnpm과 Node.js 개발 런타임은 `package.json`에만
+선언합니다(각각 `devEngines.packageManager`, `devEngines.runtime`). 플랫폼 간 재현 가능한 설치를
+보장하기 위해 `mise.lock` 파일이 커밋되어 있고, 해석된 pnpm과 런타임 버전은 `pnpm-lock.yaml`에
+기록합니다. `mise.toml`에서 도구 버전을 변경한 경우 다음 명령으로 잠금 파일을 다시 생성하세요.
 
 ```bash
 mise lock
 ```
+
+`package.json`의 pnpm 버전 선언을 변경한 경우 `mise lock`과 `pnpm install`로 두 잠금 파일을 모두
+다시 생성하세요.
 
 ### 커밋 규약 및 서명
 

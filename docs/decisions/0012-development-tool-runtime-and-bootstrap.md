@@ -4,6 +4,29 @@ nav_order: 12
 status: accepted
 date: 12026-06-24
 decision-makers: Yunseo Kim
+relations:
+  - type: partially-superseded-by
+    target: ADR-0086
+    scope:
+      'the pnpm provisioning mechanism implied by the Decision Outcome''s declaration that a root
+      mise.toml pins the pnpm version (''pnpm version (matching package.json)'') and by the
+      Confirmation criterion that mise.toml pins pnpm: under ADR-0086 the pnpm version pin lives
+      solely in package.json''s devEngines.packageManager and mise resolves and installs pnpm
+      through its packageManager-field resolution (idiomatic version file) mode; the
+      Corepack-mediated installation used at ADR 0012 implementation time (the node tool''s
+      ''postinstall = "corepack enable"'' in mise.toml) is withdrawn. mise as the unified
+      development-tool runtime, the mise/pnpm tool-management boundary, the aqua/ubi CLI tool
+      backends, and the lockfile policy all remain in force'
+  - type: partially-superseded-by
+    target: ADR-0089
+    scope:
+      "the Node.js development-runtime version declaration recorded in the Decision Outcome's root
+      mise.toml declaration list (''Node.js version'') and implied by the Confirmation criterion
+      that a root mise.toml pins Go, Node.js, pnpm, and required CLI tools: under ADR-0089 the
+      Node.js development-runtime version is declared solely in package.json's devEngines.runtime
+      and mise resolves and installs Node.js through its idiomatic package.json resolution. The Go
+      and CLI tool declarations in mise.toml, mise as the unified development-tool runtime, the
+      aqua/ubi backends, and the lockfile policy all remain in force"
 ---
 
 # Adopt mise as the Unified Development-Tool Runtime and Bootstrap

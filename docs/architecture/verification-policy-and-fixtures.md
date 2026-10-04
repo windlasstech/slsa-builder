@@ -495,12 +495,12 @@ When `externalParameters.package_manager.name` is `yarn`, verifier policy must a
 
 - `externalParameters.package_manager.selection_source` is `packageManager`;
 - `externalParameters.package_manager.version` is an exact SemVer version greater than or equal to
-  `4.0.0`;
+  `4.0.0` and lower than `6.0.0`;
 - `externalParameters.package_manager.yarn_install_mode` is `immutable`;
 - the name-keyed `lockfile` descriptor identifies the selected `yarn.lock`;
-- no policy accepts Yarn Classic 1.x, Yarn Berry v2, Yarn Berry v3, `devEngines.packageManager`-only
-  Yarn selection, lockfile-only Yarn inference, ambient global Yarn, or Corepack Known Good Release
-  fallback.
+- no policy accepts Yarn Classic 1.x, Yarn Berry v2, Yarn Berry v3, Yarn 6 or newer,
+  `devEngines.packageManager`-only Yarn selection, lockfile-only Yarn inference, ambient global
+  Yarn, or Corepack Known Good Release fallback.
 
 For the v1 npm profile, verifier policy additionally requires the closed `distribution` and `caller`
 groups defined by the [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md) contract.
@@ -1352,6 +1352,8 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `workspace-command-mismatch`                         | Workspace package targeting command can affect the wrong package.                                                              |
 | `package-manager-manifest-shape-error`               | `devEngines.packageManager` uses an unsupported shape, member, or release version form.                                        |
 | `unsupported-yarn-version`                           | Yarn is Classic 1.x, Berry v2, Berry v3, non-exact, or selected from an unsupported source.                                    |
+| `pnpm-version-unsupported`                           | Consumer manifest pins a pnpm version outside the 11.x line while Corepack is the production provisioning path.                |
+| `yarn-version-unsupported`                           | Consumer top-level `packageManager` field pins Yarn 6 or newer while Corepack is the production provisioning path.             |
 | `resolved-dependencies-lockfile`                     | Selected lockfile `resolvedDependencies` descriptor is missing, malformed, or mismatched.                                      |
 | `release-asset-mode-schema-error`                    | Public npm release-asset mode input or output schema is invalid.                                                               |
 | `release-asset-mode-disabled-conflict`               | Release-asset-only inputs are supplied while release-asset mode is disabled.                                                   |
@@ -1556,24 +1558,26 @@ pnpm `packages` member must not appear in the rejected corpus.
 
 The package-manager manifest fixture set must prove that top-level `packageManager` uses the
 `name@version` descriptor form while `devEngines.packageManager` uses the closed object form
-accepted by the JS/TS npm build and pack spec. Accepted fixtures must include exact pnpm versions in
-`devEngines.packageManager.version` and exact Yarn Berry v4+ versions in top-level `packageManager`.
-Rejected fixtures must cover string-form `devEngines.packageManager`, array-form
+accepted by the JS/TS npm build and pack spec. Accepted fixtures must include exact pnpm 11.x
+versions in `devEngines.packageManager.version` and exact Yarn Berry v4 or v5 versions in top-level
+`packageManager`. Rejected fixtures must cover string-form `devEngines.packageManager`, array-form
 `devEngines.packageManager`, unknown object members, missing pnpm versions, range versions, tag
-versions, URL descriptors, hash-suffixed descriptors, and `onFail: "ignore"` or `onFail: "warn"`
-attempts that would otherwise weaken release-build policy. These failures use
-`package-manager-manifest-shape-error` unless a narrower package-manager selection, Yarn support, or
-lockfile category applies.
+versions, URL descriptors, hash-suffixed descriptors, pnpm pins outside the 11.x line from either
+manifest source, and `onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken
+release-build policy. These failures use `package-manager-manifest-shape-error` unless a narrower
+package-manager selection, version-bound, Yarn support, or lockfile category applies; pnpm pins
+outside the 11.x line fail with `pnpm-version-unsupported`.
 
 The Yarn support fixture set must prove ADR 0063's stable boundary. Accepted fixtures must cover a
 root package and workspace package selected by top-level exact `packageManager` values such as
-`yarn@4.0.0` or newer, with `yarn.lock`, Corepack exact-version execution, and
-`package_manager.yarn_install_mode: "immutable"` in provenance. Rejected fixtures must cover
-`yarn@1.x`, `yarn@2.x`, `yarn@3.x`, Yarn version ranges, Yarn tags, Yarn URL descriptors,
-hash-suffixed Yarn descriptors, missing `packageManager` with only `yarn.lock`, Yarn selected only
-by `devEngines.packageManager`, Corepack Known Good Release fallback, and ambient global Yarn
-execution. Unsupported Yarn generation, descriptor, or selection-source failures use
-`unsupported-yarn-version` unless the failure is more specifically a malformed manifest shape,
+`yarn@4.0.0` or another exact version lower than `6.0.0`, with `yarn.lock`, Corepack exact-version
+execution, and `package_manager.yarn_install_mode: "immutable"` in provenance. Rejected fixtures
+must cover `yarn@1.x`, `yarn@2.x`, `yarn@3.x`, `yarn@6.x` or newer, Yarn version ranges, Yarn tags,
+Yarn URL descriptors, hash-suffixed Yarn descriptors, missing `packageManager` with only
+`yarn.lock`, Yarn selected only by `devEngines.packageManager`, Corepack Known Good Release
+fallback, and ambient global Yarn execution. Unsupported Yarn generation, descriptor, or
+selection-source failures use `unsupported-yarn-version`, and Yarn 6 or newer pins use
+`yarn-version-unsupported`, unless the failure is more specifically a malformed manifest shape,
 lockfile mismatch, or Corepack enforcement error.
 
 The npm Go-signer fixture set must prove the ADR 0077 contract. The accepted production fixture must
@@ -1670,7 +1674,7 @@ or trust-root fixture and fails before signed predicate contents can grant trust
 The `resolvedDependencies` lockfile fixture set must prove that the initial JS/TS npm profile emits
 exactly one selected lockfile `ResourceDescriptor` and no generated transitive dependency list.
 Accepted fixtures must cover manifest-selected npm with `package-lock.json`, manifest-selected pnpm
-with `pnpm-lock.yaml`, manifest-selected Yarn Berry v4+ from top-level `packageManager` with
+with `pnpm-lock.yaml`, manifest-selected Yarn Berry v4 or v5 from top-level `packageManager` with
 `yarn.lock`, and lockfile-inferred npm with `package-lock.json`. Accepted stale-lockfile fixtures
 must record stale non-selected lockfiles in both
 `externalParameters.package_manager.ignored_lockfile_paths` and the `lockfile` descriptor's
