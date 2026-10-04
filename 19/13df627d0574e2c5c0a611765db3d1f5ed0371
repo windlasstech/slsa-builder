@@ -1,0 +1,19 @@
+go.mod
+  s_059df880bccd8e::t_56e8d16b4d2ad0 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1913df627d0574e2c5c0a611765db3d1f5ed0371",
+  "prompts": {},
+  "sessions": {
+    "s_059df880bccd8e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef7fd6bdfffehHE5iGpFZGNcr5",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
