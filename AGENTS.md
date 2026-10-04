@@ -250,3 +250,11 @@ it BEFORE grep/find or reading files when you need to understand or locate code:
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
 
 <!-- CODEGRAPH_END -->
+
+## cubic review workflow
+
+Before committing, run `cubic review` to review uncommitted changes. Fix the validated issues and
+run the local review again. Repeat until the local review is clean or only disputed issues remain.
+
+After pushing, wait for cubic's GitHub review and check its comments. Fix the validated issues and
+push the changes. Use GitHub review as the final pass; it may find issues the local review misses.
