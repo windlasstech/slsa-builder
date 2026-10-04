@@ -1,7 +1,7 @@
 ---
 parent: Decisions
 nav_order: 89
-status: proposed
+status: accepted
 date: 12026-10-04
 decision-makers: Yunseo Kim
 relations:
