@@ -1,0 +1,22 @@
+docs/architecture/js-ts-npm-build-pack.md
+  s_a29003923c3dc3::t_3c82c80be56e0f 787-789
+  s_a29003923c3dc3::t_7affa13fe4063c 240-250,254-256,746-747,790-791
+  s_a29003923c3dc3::t_c9a76157afabeb 234-239,251-253,257,262-264,266-268
+  s_a29003923c3dc3::t_7f0a74c3d11f2c 284-288
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "51b23ddb0350ea7b100a605d8d8c03a1ba0f5a60",
+  "prompts": {},
+  "sessions": {
+    "s_a29003923c3dc3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef947edf7ffeNDhwgrfcL8YMvT",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
