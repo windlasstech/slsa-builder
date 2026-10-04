@@ -1,0 +1,20 @@
+docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md
+  s_1a32130c89aa1b::t_84ca6aceabca42 220-223
+  s_1a32130c89aa1b::t_e5631f668c9cd9 61-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e64326b40608069fe6117224287a345bbd12dc06",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
