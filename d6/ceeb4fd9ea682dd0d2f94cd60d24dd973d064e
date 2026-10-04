@@ -1,0 +1,24 @@
+.github/workflows/fuzz.yml
+  s_1a32130c89aa1b::t_db363bf210765c 101-102,104
+.github/workflows/autofix.yml
+  s_1a32130c89aa1b::t_f88e5b73dec052 30-31,33
+.github/workflows/lint.yml
+  s_1a32130c89aa1b::t_ed05079acf4d1d 76-77,79
+  s_1a32130c89aa1b::t_a3731d1cc58657 179-180,182
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6ceeb4fd9ea682dd0d2f94cd60d24dd973d064e",
+  "prompts": {},
+  "sessions": {
+    "s_1a32130c89aa1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_efdbd08f0ffe2Y3tg8a7U9ms6X",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
