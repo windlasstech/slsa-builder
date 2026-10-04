@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0088`.
+`0089`.
 
 ## STRUCTURE
 
@@ -20,11 +20,12 @@ docs/decisions/
 ├── 0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md
 ├── 0087-adopt-pnpm-12-for-node-js-development-tooling.md
 ├── 0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+├── 0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0088`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0089`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -66,6 +67,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | pnpm provisioning via mise    | `0086`                                      | mise packageManager-field resolution replaces Corepack; single pin source in package.json.                                     |
 | pnpm 12 for dev tooling       | `0087`                                      | Adopt the pnpm 12 line for Node.js development tooling.                                                                        |
 | Build-stage PM provisioning   | `0088`                                      | Digest-verified npm registry tarballs replace Corepack for pnpm/Yarn; rollout release is open.                                 |
+| Dev Node.js runtime pin       | `0089`                                      | package.json devEngines.runtime is the sole declaration; mise resolves it via idiomatic package.json resolution.               |
 
 ## CONVENTIONS
 

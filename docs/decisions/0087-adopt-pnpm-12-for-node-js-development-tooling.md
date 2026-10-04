@@ -14,6 +14,8 @@ relations:
       committed-lockfile and cooldown policies, and every other ADR 0010 clause remain in force"
   - type: see-also
     target: ADR-0086
+  - type: see-also
+    target: ADR-0089
 ---
 
 # Adopt pnpm 12 for Node.js Development Tooling

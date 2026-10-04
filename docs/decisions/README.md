@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0088`.
+sequence currently runs from `0000` through `0089`.
 
 | Range     | Topic                                       | Notes                                                                                      |
 | --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -70,6 +70,7 @@ sequence currently runs from `0000` through `0088`.
 | 0086      | pnpm provisioning via mise field resolution | mise packageManager-field resolution replaces Corepack; single pin source in package.json. |
 | 0087      | pnpm 12 for development tooling             | Adopt the pnpm 12 line; verified settings compatibility; dev-only, one-line rollback.      |
 | 0088      | Build-stage pnpm/Yarn registry provisioning | Digest-verified npm registry tarballs replace Corepack; rollout release is open.           |
+| 0089      | Dev Node.js runtime via field resolution    | package.json devEngines.runtime is the sole development-runtime pin; mise resolves it.     |
 
 ## ADR status and relations
 
@@ -219,6 +220,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0086 | Provision pnpm through mise packageManager-field resolution instead of Corepack                     | Tooling-only                                                                                                                                                                                     |
 | 0087 | Adopt pnpm 12 for Node.js development tooling                                                       | Tooling-only                                                                                                                                                                                     |
 | 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                      | JS/TS npm build and pack, verification policy and fixtures (only the Corepack-window support boundary is specified; the registry-tarball mechanism is deferred to follow-on spec work, B01/#106) |
+| 0089 | Provision the development Node.js runtime through mise package.json field resolution                | Tooling-only                                                                                                                                                                                     |
 
 ### Superseded or deprecated ADRs (historical only)
 

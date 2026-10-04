@@ -17,6 +17,15 @@ relations:
       ''postinstall = "corepack enable"'' in mise.toml) is withdrawn. mise as the unified
       development-tool runtime, the mise/pnpm tool-management boundary, the aqua/ubi CLI tool
       backends, and the lockfile policy all remain in force'
+  - type: partially-superseded-by
+    target: ADR-0089
+    scope:
+      "the Node.js development-runtime version declaration implied by the Confirmation criterion
+      that a root mise.toml pins Go, Node.js, pnpm, and required CLI tools: under ADR-0089 the
+      Node.js development-runtime version is declared solely in package.json's devEngines.runtime
+      and mise resolves and installs Node.js through its idiomatic package.json resolution. The Go
+      and CLI tool declarations in mise.toml, mise as the unified development-tool runtime, the
+      aqua/ubi backends, and the lockfile policy all remain in force"
 ---
 
 # Adopt mise as the Unified Development-Tool Runtime and Bootstrap
