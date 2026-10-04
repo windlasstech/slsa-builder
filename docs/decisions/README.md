@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0087`.
+sequence currently runs from `0000` through `0088`.
 
 | Range     | Topic                                       | Notes                                                                                      |
 | --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -69,6 +69,7 @@ sequence currently runs from `0000` through `0087`.
 | 0085      | Build-stage Node.js patch and npm pair pin  | Exact Node.js 24 patch per builder release; bundled npm asserted before first use.         |
 | 0086      | pnpm provisioning via mise field resolution | mise packageManager-field resolution replaces Corepack; single pin source in package.json. |
 | 0087      | pnpm 12 for development tooling             | Adopt the pnpm 12 line; verified settings compatibility; dev-only, one-line rollback.      |
+| 0088      | Build-stage pnpm/Yarn registry provisioning | Digest-verified npm registry tarballs replace Corepack; rollout release is open.           |
 
 ## ADR status and relations
 
@@ -217,6 +218,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0085 | Pin the Node.js 24 patch version and assert the expected bundled npm pair                           | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                                                             |
 | 0086 | Provision pnpm through mise packageManager-field resolution instead of Corepack                     | Tooling-only                                                                                                                                                                        |
 | 0087 | Adopt pnpm 12 for Node.js development tooling                                                       | Tooling-only                                                                                                                                                                        |
+| 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                      | JS/TS npm build and pack (target design; ADR 0016 remains the production mechanism until rollout)                                                                                   |
 
 ### Superseded or deprecated ADRs (historical only)
 

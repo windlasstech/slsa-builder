@@ -9,6 +9,14 @@ relations:
     target: ADR-0082
   - type: see-also
     target: ADR-0085
+  - type: partially-superseded-by
+    target: ADR-0088
+    scope:
+      "the Corepack provisioning mechanism clauses for pnpm and Yarn: the requirement to use
+      Corepack in strict mode for pnpm and Yarn install, build, and pack stages, and the prohibition
+      on disabling Corepack project-spec enforcement. The npm-from-toolchain clause, the
+      fail-on-version-mismatch clause, the package-manager selection deference to ADR 0015, and the
+      provenance recording clause remain in force"
 ---
 
 # Use Corepack for pnpm and Yarn Build Stages

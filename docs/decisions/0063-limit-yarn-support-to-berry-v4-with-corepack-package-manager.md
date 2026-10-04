@@ -14,6 +14,13 @@ relations:
     target: ADR-0015
     scope:
       "lockfile-based Yarn inference fallback; Yarn requires an explicit packageManager declaration"
+  - type: partially-superseded-by
+    target: ADR-0088
+    scope:
+      "condition 3 of the Yarn support boundary (that Corepack can prepare and dispatch the exact
+      Yarn version without Known Good Release or global fallback): Yarn is provisioned from the
+      digest-verified npm registry tarball instead. The Berry v4+ version boundary, the top-level
+      packageManager metadata requirement, and the immutable install requirement remain in force"
 ---
 
 # Limit Yarn Support to Berry v4 with Corepack Package Manager Metadata

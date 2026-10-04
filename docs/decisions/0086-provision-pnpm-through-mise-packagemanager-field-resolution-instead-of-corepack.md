@@ -29,6 +29,8 @@ relations:
     target: ADR-0009
   - type: see-also
     target: ADR-0087
+  - type: see-also
+    target: ADR-0088
 ---
 
 # Provision pnpm Through mise packageManager-Field Resolution Instead of Corepack

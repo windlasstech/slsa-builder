@@ -13,6 +13,20 @@ relations:
     target: ADR-0029
   - type: see-also
     target: ADR-0071
+  - type: partially-superseded-by
+    target: ADR-0088
+    scope:
+      "the acquisition-path clauses are replaced: Corepack as the acquiring agent (the clause
+      recording the actual distribution URL used by Corepack), the COREPACK_NPM_REGISTRY routing of
+      Yarn through @yarnpkg/cli-dist, the acquisition source annotation value 'corepack', and the v1
+      prohibition on changing acquisition paths. Under ADR-0088 the trusted core fetches the
+      digest-verified npm registry tarballs directly, records the registry tarball URL and its SRI,
+      and the acquisition source annotation takes a new value fixed in the specification phase. The
+      recording obligation, the closed-descriptor-set discipline with strict producer-side
+      verification, the lockfile and runner-image descriptors, the absence of npm CLI and Node.js
+      distribution descriptors, and the source-native digest-authority discipline remain in force;
+      the concrete descriptor shape — the pnpm 12 dual-artifact record and the Yarn authority value
+      — is re-specified in the specification phase under that discipline"
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies
