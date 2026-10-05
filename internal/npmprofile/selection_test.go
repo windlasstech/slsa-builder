@@ -183,7 +183,9 @@ func TestManagerSelection(t *testing.T) {
 	}{
 		{name: "npm", packageDirectory: "testdata/npm/packages/npm-root-valid", manager: ManagerNPM, version: ""},
 		{name: "pnpm", packageDirectory: "testdata/npm/packages/scoped-valid", manager: ManagerPNPM, version: "11.28.3"},
+		{name: "pnpm devEngines", packageDirectory: "testdata/npm/packages/pnpm-devengines-valid", manager: ManagerPNPM, version: "11.28.3"},
 		{name: "yarn", packageDirectory: "testdata/npm/packages/yarn-valid", manager: ManagerYarn, version: "4.9.2"},
+		{name: "yarn 5", packageDirectory: "testdata/npm/packages/yarn-5-valid", manager: ManagerYarn, version: "5.0.0"},
 	}
 	for _, test := range tests {
 		test := test
