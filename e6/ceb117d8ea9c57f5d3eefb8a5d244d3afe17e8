@@ -1,0 +1,78 @@
+testdata/npm/packages/rejected/pnpm-13-devengines-unsupported/fixture.json
+  s_5828ef616dd44f::t_10f195829cf8fa 1
+testdata/npm/packages/yarn-5-valid/build.mjs
+  s_5828ef616dd44f::t_1378dc244c85a8 1-4
+testdata/npm/packages/rejected/pnpm-13-devengines-unsupported/package.json
+  s_5828ef616dd44f::t_afdf7dc0bc9630 1
+testdata/npm/packages/rejected/pnpm-12-devengines-unsupported/fixture.json
+  s_5828ef616dd44f::t_28938cc5f62adf 1
+testdata/npm/packages/pnpm-devengines-valid/fixture.json
+  s_5828ef616dd44f::t_0ccfbdacd03fc9 1-18
+testdata/npm/packages/rejected/pnpm-12-unsupported/package.json
+  s_5828ef616dd44f::t_df037e5d1d1688 1
+testdata/npm/packages/rejected/pnpm-10-unsupported/package.json
+  s_5828ef616dd44f::t_429118a6f64bea 1
+testdata/npm/packages/rejected/pnpm-12-unsupported/fixture.json
+  s_5828ef616dd44f::t_1c66047f73e3c9 1
+testdata/npm/packages/rejected/pnpm-13-unsupported/fixture.json
+  s_5828ef616dd44f::t_ed8bdbe9dfeb47 1
+testdata/npm/packages/rejected/pnpm-10-devengines-unsupported/package.json
+  s_5828ef616dd44f::t_15dc5e157ba620 1
+testdata/npm/packages/pnpm-devengines-valid/package.json
+  s_5828ef616dd44f::t_86469c76e63455 1-14
+testdata/npm/packages/yarn-5-valid/fixture.json
+  s_5828ef616dd44f::t_b3263dd1ba160b 1-19
+testdata/fixtures/index.json
+  s_5828ef616dd44f::t_f4b8cdaf41dd0b 418-534
+testdata/npm/packages/rejected/yarn-6-unsupported/package.json
+  s_5828ef616dd44f::t_fd8e114809d1e6 1
+testdata/npm/packages/rejected/pnpm-13-unsupported/package.json
+  s_5828ef616dd44f::t_d349abf2a3b3e3 1
+testdata/npm/packages/yarn-5-valid/package.json
+  s_5828ef616dd44f::t_1eb0d3e8aef89d 1-14
+testdata/npm/packages/rejected/yarn-6-unsupported/fixture.json
+  s_5828ef616dd44f::t_ffd783a5cf5c18 1
+testdata/npm/packages/rejected/pnpm-10-unsupported/fixture.json
+  s_5828ef616dd44f::t_cea95aab34795e 1
+internal/npmprofile/selection_test.go
+  s_5828ef616dd44f::t_17cd735f9ed759 186,188
+testdata/npm/packages/rejected/pnpm-10-devengines-unsupported/fixture.json
+  s_5828ef616dd44f::t_761dba6754dfc5 1
+testdata/npm/packages/rejected/pnpm-12-devengines-unsupported/package.json
+  s_5828ef616dd44f::t_5d5f83f1431d96 1
+internal/fixture/registry.go
+  s_5828ef616dd44f::t_d24aa362b13f06 22
+  s_bb11e2d5dfaf36::t_7a5fd68d212da6 38,45,59
+internal/fixture/npm_fixtures_test.go
+  s_bb11e2d5dfaf36::t_64b3312681f427 33-41
+testdata/npm/packages/rejected/pnpm-12-unsupported/pnpm-lock.yaml
+  s_5828ef616dd44f::t_7f31b717d82cd2 1-3
+testdata/npm/packages/rejected/pnpm-13-unsupported/pnpm-lock.yaml
+  s_5828ef616dd44f::t_0f1556186912a8 1-3
+testdata/npm/packages/rejected/yarn-6-unsupported/yarn.lock
+  s_bb11e2d5dfaf36::t_f2e0c74be20cbc 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6ceb117d8ea9c57f5d3eefb8a5d244d3afe17e8",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bb11e2d5dfaf36": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
