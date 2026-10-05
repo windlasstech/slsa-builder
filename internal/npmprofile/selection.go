@@ -134,10 +134,16 @@ func parsePackageManager(raw jsonRaw, manifestPath string) (managerCandidate, st
 		if !exactSemver(version) {
 			return managerCandidate{}, IDPackageManagerVersionRequired
 		}
+		if pnpmVersionUnsupported(version) {
+			return managerCandidate{}, IDPnpmVersionUnsupported
+		}
 		return candidate, ""
 	case ManagerYarn:
 		if !exactSemver(version) || semver.Compare("v"+version, "v4.0.0") < 0 {
 			return managerCandidate{}, IDYarnSelectionInvalid
+		}
+		if yarnVersionUnsupported(version) {
+			return managerCandidate{}, IDYarnVersionUnsupported
 		}
 		return candidate, ""
 	default:
@@ -188,6 +194,9 @@ func parseDevEngines(raw jsonRaw, manifestPath string) (managerCandidate, bool, 
 	case ManagerPNPM:
 		if !exactSemver(version) || strings.Contains(version, "+") {
 			return managerCandidate{}, false, IDPackageManagerVersionRequired
+		}
+		if pnpmVersionUnsupported(version) {
+			return managerCandidate{}, false, IDPnpmVersionUnsupported
 		}
 		return candidate, true, ""
 	case ManagerYarn:
@@ -307,6 +316,10 @@ func rejectionMessage(id string) string {
 		return "An exact pnpm package-manager version is required from manifest metadata."
 	case IDYarnSelectionInvalid:
 		return "Yarn requires top-level packageManager metadata selecting an exact Yarn v4 or newer version."
+	case IDPnpmVersionUnsupported:
+		return "The selected pnpm version is outside the 11.x line supported while Corepack is the production provisioning path."
+	case IDYarnVersionUnsupported:
+		return "Yarn 6 or newer is not supported while Corepack is the production provisioning path."
 	case IDRequiredLockfileMissing:
 		return "The selected package manager's required lockfile is missing."
 	case IDPackageRepositoryIdentityMismatch:
@@ -321,6 +334,25 @@ func effectiveVersion(candidate managerCandidate) string {
 		return ""
 	}
 	return candidate.version
+}
+
+// pnpmVersionUnsupported reports whether an exact pnpm version falls outside
+// the 11.x line supported while the ADR 0016 Corepack mechanism is the
+// production provisioning path (the ADR 0088 Corepack-window support
+// boundary). Prereleases of the 11.0.0 lower boundary and of the 12.0.0 upper
+// boundary fail closed with the out-of-line set.
+func pnpmVersionUnsupported(version string) bool {
+	return semver.Compare("v"+version, "v11.0.0") < 0 || semver.Major("v"+version) != "v11"
+}
+
+// yarnVersionUnsupported reports whether an exact Yarn version selects Yarn 6
+// or newer, whose acquisition and integrity semantics are unknown and which is
+// excluded for as long as the ADR 0016 Corepack mechanism is the production
+// provisioning path (the ADR 0088 Corepack-window support boundary). Callers
+// have already enforced the exact-v4-or-newer lower bound.
+func yarnVersionUnsupported(version string) bool {
+	major := semver.Major("v" + version)
+	return major != "v4" && major != "v5"
 }
 
 func exactSemver(version string) bool {

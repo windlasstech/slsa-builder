@@ -44,7 +44,7 @@ func TestBuildPackPNPMLive(t *testing.T) {
 	if result.Toolchain.CorepackVersion == "" {
 		t.Fatal("Corepack version was not captured")
 	}
-	assertDistributionCapture(t, result.Toolchain.Distribution, ManagerPNPM, "10.14.0", "registry-integrity")
+	assertDistributionCapture(t, result.Toolchain.Distribution, ManagerPNPM, "11.28.3", "registry-integrity")
 }
 
 func TestBuildPackYarnLive(t *testing.T) {

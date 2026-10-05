@@ -3,7 +3,7 @@
   "package-directory": "testdata/npm/packages/scoped-valid",
   "package-manager": {
     "name": "pnpm",
-    "version": "10.14.0",
+    "version": "11.28.3",
     "selection-source": "packageManager",
     "selected-lockfile": "pnpm-lock.yaml",
     "distribution-digest-authority": "registry-integrity"

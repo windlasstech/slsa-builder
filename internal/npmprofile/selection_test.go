@@ -134,7 +134,7 @@ func TestWorkspaceDiscovery(t *testing.T) {
 	t.Run("pnpm recursive pattern", func(t *testing.T) {
 		t.Parallel()
 		root := createRepository(t, map[string]string{
-			"package.json":                   `{"name":"root","version":"1.0.0","private":true,"repository":"windlasstech/slsa-builder","packageManager":"pnpm@10.14.0"}`,
+			"package.json":                   `{"name":"root","version":"1.0.0","private":true,"repository":"windlasstech/slsa-builder","packageManager":"pnpm@11.28.3"}`,
 			"pnpm-workspace.yaml":            "packages:\n  - packages/**\nsharedWorkspaceLockfile: true\n",
 			"pnpm-lock.yaml":                 "lockfileVersion: '9.0'\n",
 			"packages/nested/a/package.json": `{"name":"a","version":"1.0.0","repository":"windlasstech/slsa-builder"}`,
@@ -160,7 +160,7 @@ func TestWorkspaceDiscovery(t *testing.T) {
 	t.Run("workspace metadata symlink escape", func(t *testing.T) {
 		t.Parallel()
 		root := createRepository(t, map[string]string{
-			"package.json":            `{"name":"root","version":"1.0.0","private":true,"repository":"windlasstech/slsa-builder","packageManager":"pnpm@10.14.0"}`,
+			"package.json":            `{"name":"root","version":"1.0.0","private":true,"repository":"windlasstech/slsa-builder","packageManager":"pnpm@11.28.3"}`,
 			"pnpm-lock.yaml":          "lockfileVersion: '9.0'\n",
 			"packages/a/package.json": `{"name":"a","version":"1.0.0","repository":"windlasstech/slsa-builder"}`,
 		})
@@ -182,7 +182,7 @@ func TestManagerSelection(t *testing.T) {
 		version          string
 	}{
 		{name: "npm", packageDirectory: "testdata/npm/packages/npm-root-valid", manager: ManagerNPM, version: ""},
-		{name: "pnpm", packageDirectory: "testdata/npm/packages/scoped-valid", manager: ManagerPNPM, version: "10.14.0"},
+		{name: "pnpm", packageDirectory: "testdata/npm/packages/scoped-valid", manager: ManagerPNPM, version: "11.28.3"},
 		{name: "yarn", packageDirectory: "testdata/npm/packages/yarn-valid", manager: ManagerYarn, version: "4.9.2"},
 	}
 	for _, test := range tests {
@@ -200,9 +200,9 @@ func TestManagerSelection(t *testing.T) {
 	t.Run("pnpm version conflict", func(t *testing.T) {
 		t.Parallel()
 		root := createRepository(t, map[string]string{
-			"package.json":            `{"name":"root","version":"1.0.0","private":true,"repository":"windlasstech/slsa-builder","packageManager":"pnpm@10.15.0","workspaces":["packages/*"]}`,
+			"package.json":            `{"name":"root","version":"1.0.0","private":true,"repository":"windlasstech/slsa-builder","packageManager":"pnpm@11.28.3","workspaces":["packages/*"]}`,
 			"pnpm-lock.yaml":          "lockfileVersion: '9.0'\n",
-			"packages/a/package.json": `{"name":"a","version":"1.0.0","repository":"windlasstech/slsa-builder","packageManager":"pnpm@10.14.0"}`,
+			"packages/a/package.json": `{"name":"a","version":"1.0.0","repository":"windlasstech/slsa-builder","packageManager":"pnpm@11.0.0"}`,
 		})
 		result := analyze(t, root, "packages/a")
 		assertRejected(t, result, IDPackageManagerConflict)
@@ -303,6 +303,106 @@ func TestYarnV4(t *testing.T) {
 			assertRejected(t, result, IDYarnSelectionInvalid)
 		})
 	}
+}
+
+func TestPackageManagerVersionBounds(t *testing.T) {
+	t.Parallel()
+
+	t.Run("pnpm 11.x accepted from both manifest sources", func(t *testing.T) {
+		t.Parallel()
+		for _, version := range []string{"11.0.0", "11.28.3"} {
+			for _, declaration := range []string{
+				`"packageManager":"pnpm@` + version + `"`,
+				`"devEngines":{"packageManager":{"name":"pnpm","version":"` + version + `"}}`,
+			} {
+				root := createRepository(t, map[string]string{
+					"package.json":   `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + declaration + `}`,
+					"pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+				})
+				result := analyze(t, root, ".")
+				assertPass(t, result)
+				if result.Manager.Name != ManagerPNPM || result.Manager.Version != version {
+					t.Fatalf("manager = %#v, want pnpm@%s", result.Manager, version)
+				}
+			}
+		}
+	})
+
+	t.Run("pnpm outside the 11.x line rejected from both manifest sources", func(t *testing.T) {
+		t.Parallel()
+		for _, version := range []string{"9.15.9", "10.14.0", "12.0.0", "12.0.0-rc.6", "13.0.0"} {
+			for _, declaration := range []string{
+				`"packageManager":"pnpm@` + version + `"`,
+				`"devEngines":{"packageManager":{"name":"pnpm","version":"` + version + `"}}`,
+			} {
+				root := createRepository(t, map[string]string{
+					"package.json":   `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + declaration + `}`,
+					"pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+				})
+				result := analyze(t, root, ".")
+				assertRejected(t, result, IDPnpmVersionUnsupported)
+			}
+		}
+	})
+
+	t.Run("pnpm non-exact versions keep version-required", func(t *testing.T) {
+		t.Parallel()
+		for _, declaration := range []string{
+			`"packageManager":"pnpm@^11.0.0"`,
+			`"packageManager":"pnpm@latest"`,
+			`"devEngines":{"packageManager":{"name":"pnpm","version":"^11.0.0"}}`,
+			`"devEngines":{"packageManager":{"name":"pnpm"}}`,
+		} {
+			root := createRepository(t, map[string]string{
+				"package.json":   `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + declaration + `}`,
+				"pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+			})
+			result := analyze(t, root, ".")
+			assertRejected(t, result, IDPackageManagerVersionRequired)
+		}
+	})
+
+	t.Run("yarn Berry v4 and v5 accepted", func(t *testing.T) {
+		t.Parallel()
+		for _, version := range []string{"4.9.2", "5.0.0"} {
+			root := createRepository(t, map[string]string{
+				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder","packageManager":"yarn@` + version + `"}`,
+				"yarn.lock":    "# yarn lockfile\n",
+			})
+			result := analyze(t, root, ".")
+			assertPass(t, result)
+			if result.Manager.Name != ManagerYarn || result.Manager.Version != version {
+				t.Fatalf("manager = %#v, want yarn@%s", result.Manager, version)
+			}
+		}
+	})
+
+	t.Run("yarn 6 or newer rejected", func(t *testing.T) {
+		t.Parallel()
+		for _, version := range []string{"6.0.0", "6.0.0-alpha.1", "6.1.0", "7.0.0", "10.0.0"} {
+			root := createRepository(t, map[string]string{
+				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder","packageManager":"yarn@` + version + `"}`,
+				"yarn.lock":    "# yarn lockfile\n",
+			})
+			result := analyze(t, root, ".")
+			assertRejected(t, result, IDYarnVersionUnsupported)
+		}
+	})
+
+	t.Run("yarn below v4 keeps selection-invalid", func(t *testing.T) {
+		t.Parallel()
+		for _, declaration := range []string{
+			`"packageManager":"yarn@3.6.4"`,
+			`"packageManager":"yarn@^4.0.0"`,
+		} {
+			root := createRepository(t, map[string]string{
+				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + declaration + `}`,
+				"yarn.lock":    "# yarn lockfile\n",
+			})
+			result := analyze(t, root, ".")
+			assertRejected(t, result, IDYarnSelectionInvalid)
+		}
+	})
 }
 
 func loadRejectedFixtures(t *testing.T) []struct {
