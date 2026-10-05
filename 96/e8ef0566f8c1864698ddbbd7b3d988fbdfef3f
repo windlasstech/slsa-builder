@@ -1,0 +1,19 @@
+CHANGELOG.md
+  s_bb11e2d5dfaf36::t_69457bb3518f2e 13-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "96e8ef0566f8c1864698ddbbd7b3d988fbdfef3f",
+  "prompts": {},
+  "sessions": {
+    "s_bb11e2d5dfaf36": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
