@@ -300,8 +300,8 @@ func FuzzValidateWorkspacePattern(f *testing.F) {
 // managers satisfy the npm/pnpm/yarn version rules.
 func FuzzParsePackageManager(f *testing.F) {
 	for _, seed := range []string{
-		`"npm@11.5.1"`, `"pnpm@10.14.0"`, `"yarn@4.9.2"`,
-		`"yarn@3.6.0"`, `"pnpm@latest"`, `42`, `"pnpm@"`,
+		`"npm@11.5.1"`, `"pnpm@11.28.3"`, `"yarn@4.9.2"`,
+		`"yarn@3.6.0"`, `"pnpm@12.9.0"`, `"yarn@6.1.0"`, `"pnpm@latest"`, `42`, `"pnpm@"`,
 	} {
 		f.Add([]byte(seed))
 	}
@@ -320,6 +320,9 @@ func FuzzParsePackageManager(f *testing.F) {
 			if !exactSemver(candidate.version) {
 				t.Fatalf("accepted pnpm with non-exact version %q", candidate.version)
 			}
+			if pnpmVersionUnsupported(candidate.version) {
+				t.Fatalf("accepted pnpm outside the 11.x line %q", candidate.version)
+			}
 		case ManagerYarn:
 			if !exactSemver(candidate.version) {
 				t.Fatalf("accepted yarn with non-exact version %q", candidate.version)
@@ -330,6 +333,9 @@ func FuzzParsePackageManager(f *testing.F) {
 			major, _, _ := strings.Cut(candidate.version, ".")
 			if len(major) == 1 && major < "4" {
 				t.Fatalf("accepted yarn with pre-v4 version %q", candidate.version)
+			}
+			if yarnVersionUnsupported(candidate.version) {
+				t.Fatalf("accepted yarn outside the v4/v5 lines %q", candidate.version)
 			}
 		default:
 			t.Fatalf("accepted unknown package manager %q", candidate.name)
@@ -345,7 +351,7 @@ func FuzzParseDevEngines(f *testing.F) {
 		`{}`,
 		`{"packageManager":{"name":"pnpm","version":"10.14.0"}}`,
 		`{"packageManager":{"name":"yarn","version":"4.9.2"}}`,
-		`{"packageManager":{"name":"pnpm","version":"10.14.0","onFail":"download"}}`,
+		`{"packageManager":{"name":"pnpm","version":"11.28.3","onFail":"download"}}`,
 		`{"unknown":1}`,
 	} {
 		f.Add([]byte(seed))
@@ -373,6 +379,9 @@ func FuzzParseDevEngines(f *testing.F) {
 		case ManagerPNPM:
 			if !exactSemver(candidate.version) || strings.Contains(candidate.version, "+") {
 				t.Fatalf("devEngines accepted pnpm with non-exact version %q", candidate.version)
+			}
+			if pnpmVersionUnsupported(candidate.version) {
+				t.Fatalf("devEngines accepted pnpm outside the 11.x line %q", candidate.version)
 			}
 		default:
 			t.Fatalf("devEngines accepted package manager %q", candidate.name)

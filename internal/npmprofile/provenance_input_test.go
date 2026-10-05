@@ -286,7 +286,7 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 func validExternalParameters(manager Manager) ExternalParameters {
 	builderID := "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@" + testSourceSHA
 	selectionManifest := testStringPointer("package.json")
-	packageManagerVersion := "10.14.0"
+	packageManagerVersion := "11.28.3"
 	if manager == ManagerNPM {
 		packageManagerVersion = "11.5.1"
 	}
@@ -334,7 +334,7 @@ func validDependencies(manager Manager, parameters ExternalParameters) []provena
 	}}
 	if manager != ManagerNPM {
 		authority := "registry-integrity"
-		uri := "https://registry.npmjs.org/pnpm/-/pnpm-10.14.0.tgz"
+		uri := "https://registry.npmjs.org/pnpm/-/pnpm-11.28.3.tgz"
 		if manager == ManagerYarn {
 			authority = "download-hash"
 			uri = "https://repo.yarnpkg.com/4.9.2/packages/yarnpkg-cli/bin/yarn.js"
