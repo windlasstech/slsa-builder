@@ -1,0 +1,20 @@
+internal/npmprofile/provenance_validate.go
+  s_5828ef616dd44f::t_88f47197635d73 507-518
+  s_5828ef616dd44f::t_bda8b2613f4a1b 312-313
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "daf442f54bfb160090e63da5a3ab049539306481",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
