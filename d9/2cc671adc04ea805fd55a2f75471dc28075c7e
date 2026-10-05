@@ -1,0 +1,69 @@
+internal/npmprofile/build_pack_hermetic_test.go
+  s_5828ef616dd44f::t_8d5f828c165c35 24
+testdata/npm/packages/scoped-valid/package.json
+  s_5828ef616dd44f::t_e963488927e82d 7
+internal/npmprofile/build_pack_test.go
+  s_5828ef616dd44f::t_c16980e086dd78 38
+internal/npmprofile/types.go
+  s_5828ef616dd44f::t_9445dbf56d42f8 14-15
+testdata/npm/buildpack/README.md
+  s_5828ef616dd44f::t_4c86c47cdf07e6 11
+  s_5828ef616dd44f::t_f63c785263564d 52-53
+testdata/npm/packages/rejected/selected-lockfile-missing/package.json
+  s_5828ef616dd44f::t_65fb61ea025b42 1
+testdata/npm/packages/stale-lockfiles/pnpm/fixture.json
+  s_5828ef616dd44f::t_4bea002b2d28b2 4
+testdata/npm/packages/pnpm-settings-only-valid/fixture.json
+  s_5828ef616dd44f::t_57493c8d819113 6
+testdata/npm/packages/rejected/pnpm-settings-only-subdirectory/package.json
+  s_5828ef616dd44f::t_dfc87c38aff0f5 6
+testdata/npm/packages/rejected/pnpm-workspace-packages-wrong-type/package.json
+  s_5828ef616dd44f::t_cc9f41cfd613d2 5
+testdata/npm/packages/scoped-valid/fixture.json
+  s_5828ef616dd44f::t_e14620c3e1d33d 6
+internal/npmprofile/selection.go
+  s_5828ef616dd44f::t_28c4835647d281 137-139,145-146
+  s_5828ef616dd44f::t_1c468dcaf41d95 319-322
+  s_5828ef616dd44f::t_6d759f3982e1e2 147,198-200
+  s_5828ef616dd44f::t_c33892510af006 339-357
+testdata/npm/packages/pnpm-settings-only-valid/package.json
+  s_5828ef616dd44f::t_65a7e26c02908a 7
+internal/npmprofile/build_pack_live_test.go
+  s_5828ef616dd44f::t_ed5356902303ca 47
+testdata/npm/packages/stale-lockfiles/pnpm/package.json
+  s_5828ef616dd44f::t_2141d16fd84fe0 6
+internal/npmprofile/selection_test.go
+  s_5828ef616dd44f::t_5671d7777672da 137
+  s_5828ef616dd44f::t_1a8b9995b75712 203,205
+  s_5828ef616dd44f::t_1da94fa1fc228b 308-351,353-407
+  s_5828ef616dd44f::t_7e76ed33169539 185
+  s_5828ef616dd44f::t_ffc0c59caef72e 352
+.omo/plans/implementation-plan.md
+  s_448974f384cc60::t_6599fd9f50d541 1-628
+docs/dogfood/npm-m1.md
+  s_448974f384cc60::t_b7cc227a23ec9c 1-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d92cc671adc04ea805fd55a2f75471dc28075c7e",
+  "prompts": {},
+  "sessions": {
+    "s_448974f384cc60": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef777db40ffemBp1Sv7BeM0nau",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
