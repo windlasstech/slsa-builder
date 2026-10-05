@@ -11,6 +11,8 @@ const (
 	IDPackageManagerConflict            = "windlass.verify.error.package-manager-conflict"
 	IDPackageManagerVersionRequired     = "windlass.verify.error.package-manager-version-required"
 	IDYarnSelectionInvalid              = "windlass.verify.error.yarn-selection-invalid"
+	IDPnpmVersionUnsupported            = "windlass.verify.error.pnpm-version-unsupported"
+	IDYarnVersionUnsupported            = "windlass.verify.error.yarn-version-unsupported"
 	IDRequiredLockfileMissing           = "windlass.verify.error.required-lockfile-missing"
 	IDPackageRepositoryIdentityMismatch = "windlass.verify.error.package-repository-identity-mismatch"
 	IDPackedPackageMetadataMismatch     = "windlass.verify.error.packed-package-metadata-mismatch"

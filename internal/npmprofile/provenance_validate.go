@@ -309,8 +309,8 @@ func validatePackageManagerParameters(parameters PackageManagerParameters) error
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "manifest selection paths have the wrong shape")
 	}
 	if parameters.Name == ManagerYarn {
-		if parameters.SelectionSource != SelectionPackageManager || !minimumVersion(parameters.Version, 4, 0, 0) || parameters.YarnInstallMode != "immutable" {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "Yarn requires packageManager selection, v4+, and immutable mode")
+		if parameters.SelectionSource != SelectionPackageManager || !minimumVersion(parameters.Version, 4, 0, 0) || !majorVersionBelow(parameters.Version, 6) || parameters.YarnInstallMode != "immutable" {
+			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "Yarn requires packageManager selection, an exact v4 or v5 version, and immutable mode")
 		}
 	} else if parameters.YarnInstallMode != "" {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager.yarn_install_mode", "Yarn install mode is forbidden for npm and pnpm")
@@ -502,6 +502,18 @@ func minimumVersion(value string, minimumMajor, minimumMinor, minimumPatch int) 
 		return minor > minimumMinor
 	}
 	return patch >= minimumPatch
+}
+
+func majorVersionBelow(value string, maximumMajor int) bool {
+	matches := exactSemverPattern.FindStringSubmatch(value)
+	if len(matches) != 4 {
+		return false
+	}
+	major, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return false
+	}
+	return major < maximumMajor
 }
 
 func digestEncodingInvalid(value string, length int) bool {

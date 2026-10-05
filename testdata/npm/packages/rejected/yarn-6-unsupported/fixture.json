@@ -1,0 +1,1 @@
+{"phase":"build-pack","package-directory":"testdata/npm/packages/rejected/yarn-6-unsupported","commands":{},"expected-primary-id":"windlass.verify.error.yarn-version-unsupported"}

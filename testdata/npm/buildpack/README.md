@@ -8,7 +8,7 @@ network access or real package-manager installs.
 
 | File                       | Role                                                                                                      |
 | -------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `pnpm-10.14.0.tgz`         | Stand-in pnpm distribution tarball. Bytes are only hashed (SHA-512) and never unpacked.                   |
+| `pnpm-11.28.3.tgz`         | Stand-in pnpm distribution tarball. Bytes are only hashed (SHA-512) and never unpacked.                   |
 | `yarn-4.9.2.js`            | Stand-in Yarn CLI bundle. Bytes are only hashed (SHA-512) and never executed.                             |
 | `npm-root-valid-1.0.0.tgz` | `npm pack` output for `windlass-fixture-unscoped@1.0.0` (fixture `testdata/npm/packages/npm-root-valid`). |
 | `scoped-1.0.0.tgz`         | `pnpm pack` output for `@windlass-fixtures/scoped@1.0.0` (fixture `testdata/npm/packages/scoped-valid`).  |
@@ -49,8 +49,8 @@ func main() {
 	if err := os.MkdirAll(outputDirectory, 0o755); err != nil {
 		fail(err)
 	}
-	writeFile("pnpm-10.14.0.tgz", tarball(map[string]string{
-		"package/index.js": "// pnpm 10.14.0 distribution placeholder; bytes are only hashed.\n",
+	writeFile("pnpm-11.28.3.tgz", tarball(map[string]string{
+		"package/index.js": "// pnpm 11.28.3 distribution placeholder; bytes are only hashed.\n",
 	}))
 	writeFile("yarn-4.9.2.js", []byte("#!/usr/bin/env node\n// Yarn 4.9.2 CLI placeholder; bytes are only hashed.\n"))
 	writeFile("npm-root-valid-1.0.0.tgz", packTarball("windlass-fixture-unscoped", "1.0.0"))

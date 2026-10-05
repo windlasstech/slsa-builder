@@ -4,7 +4,7 @@
   "description": "Root pnpm build-pack fixture",
   "license": "Apache-2.0",
   "repository": "github:windlasstech/slsa-builder",
-  "packageManager": "pnpm@10.14.0",
+  "packageManager": "pnpm@11.28.3",
   "scripts": {
     "build": "node build.mjs"
   },

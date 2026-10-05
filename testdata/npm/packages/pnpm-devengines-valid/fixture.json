@@ -1,10 +1,10 @@
 {
   "phase": "build-pack",
-  "package-directory": "testdata/npm/packages/pnpm-settings-only-valid",
+  "package-directory": "testdata/npm/packages/pnpm-devengines-valid",
   "package-manager": {
     "name": "pnpm",
     "version": "11.28.3",
-    "selection-source": "packageManager",
+    "selection-source": "devEngines.packageManager",
     "selected-lockfile": "pnpm-lock.yaml",
     "distribution-digest-authority": "registry-integrity"
   },
@@ -13,6 +13,6 @@
     "build": [],
     "pack": ["pnpm", "pack", "--pack-destination", "<pack-output-directory>"]
   },
-  "expected-subject": "pkg:npm/%40windlass-fixtures/pnpm-settings-only@1.0.0",
+  "expected-subject": "pkg:npm/windlass-fixture-pnpm-devengines@1.0.0",
   "required-digests": ["sha512", "sha256"]
 }

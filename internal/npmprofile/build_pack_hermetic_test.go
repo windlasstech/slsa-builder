@@ -21,7 +21,7 @@ const (
 	fakeNodeVersion     = "v24.11.0"
 	fakeNPMVersion      = "11.5.1"
 	fakeCorepackVersion = "0.34.1"
-	fakePNPMVersion     = "10.14.0"
+	fakePNPMVersion     = "11.28.3"
 	fakeYarnVersion     = "4.9.2"
 
 	fakePNPMDistributionURL = "https://registry.npmjs.org/pnpm/-/pnpm-" + fakePNPMVersion + ".tgz"

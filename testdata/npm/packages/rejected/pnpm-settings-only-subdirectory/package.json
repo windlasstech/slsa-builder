@@ -3,5 +3,5 @@
   "version": "1.0.0",
   "private": true,
   "repository": "github:windlasstech/slsa-builder",
-  "packageManager": "pnpm@10.14.0"
+  "packageManager": "pnpm@11.28.3"
 }

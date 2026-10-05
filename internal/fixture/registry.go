@@ -19,6 +19,7 @@ var requirementRegistry = map[string]string{
 	"ADR-0056.stale-lockfile-diagnostics":                           "non-selected lockfiles are recorded stale diagnostics",
 	"ADR-0056.stale-lockfile-rejections":                            "ambiguous and missing selected lockfiles are rejected",
 	"ADR-0063.yarn-v4-selection":                                    "Yarn requires top-level exact Berry v4 packageManager metadata",
+	"ADR-0088.corepack-window-version-bounds":                       "Corepack-window pnpm 11.x and Yarn v4/v5 version bounds",
 	"ADR-0064.npm-purl-subject-digests":                             "npm PURL subjects require SHA-512 and SHA-256",
 	"ARCH-js-ts-npm-provenance-publish.signing-inputs":              "npm provenance signing inputs use the closed profile predicate contract",
 	"ARCH-slsa-provenance-v1.subject-cardinality":                   "SLSA provenance statements contain exactly one subject",
@@ -34,12 +35,14 @@ var failureCategoryRegistry = map[string]struct{}{
 	"package-private":                  {},
 	"package-resolution-invalid":       {},
 	"policy-schema-invalid":            {},
+	"pnpm-version-unsupported":         {},
 	"required-lockfile-missing":        {},
 	"source-digest-mismatch":           {},
 	"source-ref-mismatch":              {},
 	"source-ref-invalid":               {},
 	"unexpected-external-parameters":   {},
 	"yarn-selection-invalid":           {},
+	"yarn-version-unsupported":         {},
 }
 
 var fixturePhaseRequirements = map[string]map[string]struct{}{
@@ -53,6 +56,7 @@ var fixturePhaseRequirements = map[string]map[string]struct{}{
 		"ADR-0063.yarn-v4-selection":               {},
 		"ADR-0064.npm-purl-subject-digests":        {},
 		"ADR-0078.pnpm-settings-only-root-package": {},
+		"ADR-0088.corepack-window-version-bounds":  {},
 	},
 	"provenance-inputs": {
 		"ARCH-js-ts-npm-provenance-publish.signing-inputs": {},

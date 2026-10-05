@@ -1,0 +1,14 @@
+{
+  "name": "windlass-fixture-pnpm-devengines",
+  "version": "1.0.0",
+  "description": "Root pnpm build-pack fixture selected through devEngines.packageManager",
+  "license": "Apache-2.0",
+  "repository": "github:windlasstech/slsa-builder",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.28.3",
+      "onFail": "error"
+    }
+  }
+}
