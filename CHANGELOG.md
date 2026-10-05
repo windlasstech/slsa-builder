@@ -10,6 +10,14 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
+- Added the ADR 0088 Corepack-window package-manager version bounds to the JS/TS npm profile: while
+  Corepack remains the production provisioning path, consumer manifests pinning a pnpm version
+  outside the 11.x line are rejected before install with
+  `windlass.verify.error.pnpm-version-unsupported` (enforced from both the top-level
+  `packageManager` field and `devEngines.packageManager`), and manifests pinning Yarn 6 or newer are
+  rejected before install with `windlass.verify.error.yarn-version-unsupported`. Yarn
+  externalParameters in signed provenance are likewise bounded to exact v4/v5 versions, matching the
+  revised verification policy.
 - Added npm configuration diagnostics logging to the JS/TS npm reusable workflow's build and publish
   jobs: node/npm versions, ambient `NPM_CONFIG_*` variable count, redacted `npm config ls` output,
   and the provenance/registry key view across all config layers, to aid trusted-publishing and
