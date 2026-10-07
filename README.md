@@ -364,12 +364,14 @@ Build-stage pnpm and Yarn are provisioned through Corepack, the current producti
 Corepack remains the production path, the JS/TS npm profile supports a bounded package-manager
 version set, enforced before install:
 
-- **pnpm** must be an exact version in the 11.x line, declared in the top-level `packageManager`
+- **pnpm** must be an exact version in the 11.x line — a full three-part SemVer version such as
+  `11.2.0`, not a shortened form like `11` or `11.0` — declared in the top-level `packageManager`
   field or in `devEngines.packageManager`. A manifest pinning a pnpm version outside the 11.x line —
   12 or newer, or older than 11 — is rejected before install with
   `windlass.verify.error.pnpm-version-unsupported`.
-- **Yarn** must be an exact Yarn Berry v4 or v5 version (`>= 4.0.0, < 6.0.0`), declared in the
-  top-level `packageManager` field. Yarn 6 or newer is rejected before install with
+- **Yarn** must be an exact Yarn Berry v4 or v5 version (`>= 4.0.0, < 6.0.0`) — likewise a full
+  three-part SemVer version such as `4.1.0`, not `4` — declared in the top-level `packageManager`
+  field. Yarn 6 or newer is rejected before install with
   `windlass.verify.error.yarn-version-unsupported`.
 - **npm** is unaffected by these bounds; the profile uses the npm CLI bundled with the pinned
   Node.js 24 toolchain.

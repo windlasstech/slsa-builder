@@ -355,10 +355,12 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
 버전 집합만을 지원합니다.
 
 - **pnpm**은 최상위 `packageManager` 필드 또는 `devEngines.packageManager`에 선언된 11.x 라인의
-  정확한 버전이어야 합니다. 11.x 라인 밖의 pnpm 버전(12 이상 또는 11 미만)을 고정한 매니페스트는
-  설치 전에 `windlass.verify.error.pnpm-version-unsupported` 진단과 함께 거부됩니다.
+  정확한 버전(`11.2.0`처럼 세 부분으로 이뤄진 완전한 SemVer 버전이며, `11`이나 `11.0` 같은 축약형은
+  불가)이어야 합니다. 11.x 라인 밖의 pnpm 버전(12 이상 또는 11 미만)을 고정한 매니페스트는 설치 전에
+  `windlass.verify.error.pnpm-version-unsupported` 진단과 함께 거부됩니다.
 - **Yarn**은 최상위 `packageManager` 필드에 선언된 정확한 Yarn Berry v4 또는 v5
-  버전(`>= 4.0.0, < 6.0.0`)이어야 합니다. Yarn 6 이상은 설치 전에
+  버전(`>= 4.0.0, < 6.0.0`, 마찬가지로 `4.1.0`처럼 세 부분의 완전한 SemVer 버전이며 `4` 같은
+  축약형은 불가)이어야 합니다. Yarn 6 이상은 설치 전에
   `windlass.verify.error.yarn-version-unsupported` 진단과 함께 거부됩니다.
 - **npm**은 이 경계의 영향을 받지 않습니다. 프로파일은 고정된 Node.js 24 도구체인에 번들된 npm CLI를
   사용합니다.
