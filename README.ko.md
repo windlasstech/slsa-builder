@@ -44,6 +44,7 @@
   - [slsa-builder의 강점](#slsa-builder의-강점)
 - [기능](#기능)
   - [출처 증명 발급 및 게시](#출처-증명-발급-및-게시)
+  - [패키지 매니저 프로비저닝 및 지원 윈도우](#패키지-매니저-프로비저닝-및-지원-윈도우)
   - [릴리스 에셋 모드](#릴리스-에셋-모드)
   - [출처 증명 검증](#출처-증명-검증)
 - [보안 및 신뢰 모델](#보안-및-신뢰-모델)
@@ -336,15 +337,52 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)와
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
   참고).
-- **매니페스트 우선 패키지 매니저 선택:** npm, pnpm 11.x, Corepack을 통한 Yarn Berry v4/v5를
-  지원합니다. Corepack은 프로덕션 프로비저닝 경로이며, 11.x 라인 밖의 pnpm 버전이나 Yarn 6 이상을
-  고정한 소비자 매니페스트는 진단과 함께 거부됩니다. 빌드 스크립트는 선언된 경우에만 실행합니다
-  ([JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md) 참고).
+- **매니페스트 우선 패키지 매니저 선택:** 패키지 매니저와 버전은 소비자 매니페스트에서 선택하며,
+  빌드 스크립트는 선언된 경우에만 실행합니다. 지원 버전 집합, 거부 동작, 프로비저닝 롤아웃은
+  [패키지 매니저 프로비저닝 및 지원 윈도우](#패키지-매니저-프로비저닝-및-지원-윈도우)를 참고하세요
+  (명세: [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
 - **비밀 없는 신뢰 게시:** npm OIDC trusted publishing으로 인증하므로 장기 보관 publish secret이
   필요 없습니다. slsa-builder가 생성하는 SLSA v1 출처 증명은 하나의 npm Package URL subject에 동일
   tarball 바이트의 SHA-512와 SHA-256 digest를 함께 담고, Go-native Sigstore DSSE signer로 서명한 뒤
   세 job으로 구성된 publish graph를 거쳐 게시합니다
   ([JS/TS npm provenance and publish](docs/architecture/js-ts-npm-provenance-publish.md) 참고).
+
+### 패키지 매니저 프로비저닝 및 지원 윈도우
+
+빌드 단계 pnpm과 Yarn은 현재 프로덕션 프로비저닝 경로인 Corepack을 통해 프로비저닝합니다
+([ADR 0016](docs/decisions/0016-use-corepack-for-pnpm-and-yarn-build-stages.md)). Corepack이
+프로덕션 경로로 유지되는 동안, JS/TS npm 프로파일은 설치 전에 강제되는 다음의 제한된 패키지 매니저
+버전 집합만을 지원합니다.
+
+- **pnpm**은 최상위 `packageManager` 필드 또는 `devEngines.packageManager`에 선언된 11.x 라인의
+  정확한 버전이어야 합니다. 11.x 라인 밖의 pnpm 버전(12 이상 또는 11 미만)을 고정한 매니페스트는
+  설치 전에 `windlass.verify.error.pnpm-version-unsupported` 진단과 함께 거부됩니다.
+- **Yarn**은 최상위 `packageManager` 필드에 선언된 정확한 Yarn Berry v4 또는 v5
+  버전(`>= 4.0.0, < 6.0.0`)이어야 합니다. Yarn 6 이상은 설치 전에
+  `windlass.verify.error.yarn-version-unsupported` 진단과 함께 거부됩니다.
+- **npm**은 이 경계의 영향을 받지 않습니다. 프로파일은 고정된 Node.js 24 도구체인에 번들된 npm CLI를
+  사용합니다.
+
+이 윈도우는 프로파일이 실행하는 모든 패키지 매니저가 출처 증명 레코드가 커버하는 배포본을 갖도록
+하기 위해 존재합니다. Corepack 하에서 pnpm 12 소비자가 실제로 실행하는 네이티브 바이너리는 빌더의
+배포 캡처 밖에서 첫 사용 시 shim 다운로드를 통해 도착하므로, `package-manager-distribution` 레코드가
+실행된 비트를 커버하지 못하게 됩니다. 프로젝트는 스스로 책임질 수 없는 출처 증명은 발급하지
+않습니다. Yarn 6는 아직 릴리스되지 않았으며 무결성을 보장하는 배포 채널이 확인되지 않았습니다.
+서명된 출처 증명에 기록되고 다운스트림 검증자가 확인하는 내용도 동일한 이 경계입니다
+([JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md) 참고).
+
+향후 빌더 릴리스에서는 빌드 단계 pnpm과 Yarn을 다이제스트 검증된 npm 레지스트리 tarball에서
+프로비저닝하는 방식으로 전환할 예정입니다. Go 신뢰 코어가 버전 메타데이터에 대한 npm 레지스트리
+서명과 tarball의 무결성을 실행 전에 검증합니다
+([ADR 0088](docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md)).
+롤아웃은 강제 일정 없이 릴리스 관리로 결정되며, 새 메커니즘을 탑재한 릴리스가 나올 때까지는
+Corepack이 프로덕션 경로로 유지됩니다. pnpm 12 지원은 실행된 네이티브 바이너리를 기록하는 이중
+아티팩트 캡처를 갖춘 해당 릴리스와 함께 시작됩니다. Yarn 6 지원은 자동으로 시작되지 않으며, Yarn 6이
+실제로 릴리스될 때 동작 방식과 무결성 보장 채널 확인 등을 거쳐 지원 여부와 시기를 결정할 것입니다.
+
+이 지원 윈도우는 소비자 빌드에만 적용됩니다. 이 저장소 자체의 개발 도구는 pnpm 12 라인을
+사용합니다([ADR 0087](docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md)).
+[개발 환경 설정](#개발-환경-설정)을 참고하세요.
 
 ### 릴리스 에셋 모드
 
@@ -581,9 +619,11 @@ pnpm install
 ```
 
 이 명령은 `mise.toml`에서 정의한 Go와 CLI 도구의 고정된 버전을 설치하고, 개발용 Node.js 런타임과
-pnpm은 `package.json`의 `devEngines` 선언에서 프로비저닝합니다(Corepack 미사용). Lefthook hook은
-mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치합니다. 그 후 `pnpm install` 단계에서
-`package.json`에 선언된 프로젝트 로컬 개발 의존성을 설치합니다.
+pnpm은 `package.json`의 `devEngines` 선언에서 프로비저닝합니다(Corepack 미사용;
+[ADR 0086](docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md),
+[ADR 0089](docs/decisions/0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md)).
+Lefthook hook은 mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치합니다. 그 후
+`pnpm install` 단계에서 `package.json`에 선언된 프로젝트 로컬 개발 의존성을 설치합니다.
 
 CI에서는 레지스트리에 대한 API 호출을 방지하기 위해 잠금 모드로 mise를 실행하세요.
 
@@ -628,9 +668,11 @@ Prettier와 `markdownlint-cli2`를 프로젝트 로컬 pnpm 의존성으로 유�
 ### 도구 버전
 
 도구 버전은 `mise.toml`에서 선언합니다. 단 pnpm과 Node.js 개발 런타임은 `package.json`에만
-선언합니다(각각 `devEngines.packageManager`, `devEngines.runtime`). 플랫폼 간 재현 가능한 설치를
-보장하기 위해 `mise.lock` 파일이 커밋되어 있고, 해석된 pnpm과 런타임 버전은 `pnpm-lock.yaml`에
-기록합니다. `mise.toml`에서 도구 버전을 변경한 경우 다음 명령으로 잠금 파일을 다시 생성하세요.
+선언합니다(각각 `devEngines.packageManager`, `devEngines.runtime`). 개발 도구는 pnpm 12
+라인([ADR 0087](docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md))과 Node.js 24
+런타임을 사용합니다. 플랫폼 간 재현 가능한 설치를 보장하기 위해 `mise.lock` 파일이 커밋되어 있고,
+해석된 pnpm과 런타임 버전은 `pnpm-lock.yaml`에 기록합니다. `mise.toml`에서 도구 버전을 변경한 경우
+다음 명령으로 잠금 파일을 다시 생성하세요.
 
 ```bash
 mise lock

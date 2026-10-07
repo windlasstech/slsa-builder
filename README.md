@@ -44,6 +44,7 @@ builder foundation.
   - [Strengths of slsa-builder](#strengths-of-slsa-builder)
 - [Features](#features)
   - [Provenance issuance and publishing](#provenance-issuance-and-publishing)
+  - [Package manager provisioning and support window](#package-manager-provisioning-and-support-window)
   - [Release-asset mode](#release-asset-mode)
   - [Provenance verification](#provenance-verification)
 - [Security and trust model](#security-and-trust-model)
@@ -345,15 +346,55 @@ distribution targets will continue to be added over time.
   [ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)
   and
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)).
-- **Manifest-first package manager selection:** Supports npm, pnpm 11.x, and Yarn Berry v4/v5
-  through Corepack, the production provisioning path. Consumer manifests pinning a pnpm version
-  outside the 11.x line, or Yarn 6 or newer, are rejected with a diagnostic, and build scripts run
-  only when declared (see [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
+- **Manifest-first package manager selection:** Package manager and version are selected from the
+  consumer manifest, and build scripts run only when declared. For the supported version set,
+  rejection behavior, and provisioning rollout, see
+  [Package manager provisioning and support window](#package-manager-provisioning-and-support-window)
+  (spec: [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
 - **Secretless trusted publishing:** Authenticates with npm OIDC trusted publishing, so no
   long-lived publish secrets are needed. The SLSA v1 provenance slsa-builder generates carries both
   SHA-512 and SHA-256 digests of the same tarball bytes in a single npm Package URL subject, is
   signed with the Go-native Sigstore DSSE signer, and is published through a three-job publish graph
   (see [JS/TS npm provenance and publish](docs/architecture/js-ts-npm-provenance-publish.md)).
+
+### Package manager provisioning and support window
+
+Build-stage pnpm and Yarn are provisioned through Corepack, the current production path
+([ADR 0016](docs/decisions/0016-use-corepack-for-pnpm-and-yarn-build-stages.md)). For as long as
+Corepack remains the production path, the JS/TS npm profile supports a bounded package-manager
+version set, enforced before install:
+
+- **pnpm** must be an exact version in the 11.x line, declared in the top-level `packageManager`
+  field or in `devEngines.packageManager`. A manifest pinning a pnpm version outside the 11.x line —
+  12 or newer, or older than 11 — is rejected before install with
+  `windlass.verify.error.pnpm-version-unsupported`.
+- **Yarn** must be an exact Yarn Berry v4 or v5 version (`>= 4.0.0, < 6.0.0`), declared in the
+  top-level `packageManager` field. Yarn 6 or newer is rejected before install with
+  `windlass.verify.error.yarn-version-unsupported`.
+- **npm** is unaffected by these bounds; the profile uses the npm CLI bundled with the pinned
+  Node.js 24 toolchain.
+
+The window exists so that every package manager the profile executes is one whose distribution the
+provenance record covers. Under Corepack, a pnpm 12 consumer's executed native binary arrives
+through a first-use shim download outside the builder's distribution capture, so the
+`package-manager-distribution` record would not cover the executed bits — and the project does not
+issue provenance it cannot stand behind. Yarn 6 is unreleased, with no confirmed integrity-bearing
+distribution channel. These same bounds are what signed provenance records and what downstream
+verifiers check (see [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
+
+A future builder release will transition build-stage pnpm and Yarn provisioning to digest-verified
+npm registry tarballs: the Go trusted core verifies the npm registry signature over the version
+metadata and the tarball's integrity before executing them
+([ADR 0088](docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md)).
+The rollout is release-managed, with no forced calendar; Corepack remains the production path until
+the release that carries the new mechanism. pnpm 12 support begins with that release, whose
+dual-artifact capture records the executed native binary. Yarn 6 support does not begin
+automatically — whether and when it arrives will be decided when Yarn 6 actually releases, after
+evaluating its behavior and confirming an integrity-bearing distribution channel.
+
+This support window governs consumer builds only. This repository's own development tooling runs the
+pnpm 12 line ([ADR 0087](docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md)); see
+[Development setup](#development-setup).
 
 ### Release-asset mode
 
@@ -592,9 +633,12 @@ pnpm install
 
 This installs the pinned versions of Go and the CLI tools defined in `mise.toml`, and provisions the
 development Node.js runtime and pnpm from the `devEngines` declarations in `package.json` (no
-Corepack). Lefthook hooks are installed automatically as a `postinstall` step when mise installs
-Lefthook. The `pnpm install` step then installs the project-local development dependencies declared
-in `package.json`.
+Corepack;
+[ADR 0086](docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md),
+[ADR 0089](docs/decisions/0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md)).
+Lefthook hooks are installed automatically as a `postinstall` step when mise installs Lefthook. The
+`pnpm install` step then installs the project-local development dependencies declared in
+`package.json`.
 
 In CI, run mise with locked mode to avoid API calls to registries:
 
@@ -641,10 +685,12 @@ organization's dependency-review workflow.
 ### Tool versions
 
 Tool versions are declared in `mise.toml`, except pnpm and the Node.js development runtime, which
-are declared solely in `package.json` (`devEngines.packageManager` and `devEngines.runtime`). A
-`mise.lock` file is committed to ensure reproducible installs across platforms, and the resolved
-pnpm and runtime versions are recorded in `pnpm-lock.yaml`. If you change a tool version in
-`mise.toml`, regenerate the lockfile with:
+are declared solely in `package.json` (`devEngines.packageManager` and `devEngines.runtime`).
+Development tooling runs the pnpm 12 line
+([ADR 0087](docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md)) and the Node.js
+24 runtime. A `mise.lock` file is committed to ensure reproducible installs across platforms, and
+the resolved pnpm and runtime versions are recorded in `pnpm-lock.yaml`. If you change a tool
+version in `mise.toml`, regenerate the lockfile with:
 
 ```bash
 mise lock
