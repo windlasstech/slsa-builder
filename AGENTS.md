@@ -232,6 +232,11 @@ to the ADR whose confirmation criteria or scope produced it.
   auto-generated provenance. The upstream fix has shipped (npm 12.1.0 / 11.20.0; #97 closed); retry
   as v0.1.3 after the ADR 0082 initial pin is selected (preferring npm 11.20.0 per ADR 0083) and the
   pinned npm CLI is provisioned.
+- **pnpm 10.x support horizon** (ADR 0090 confirmation): pnpm's official security policy lists the
+  10.x line as supported through 2027-04-30 (the same horizon as 11.x). At that horizon, re-apply
+  the ADR 0090 boundary rule and restate the supported pnpm floor — expected to revert to the 11.x
+  line unless upstream extends 10.x support — and update the bound, fixtures, and diagnostics
+  accordingly.
 
 <!-- CODEGRAPH_START -->
 
