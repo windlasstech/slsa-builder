@@ -21,6 +21,15 @@ relations:
       Yarn version without Known Good Release or global fallback): Yarn is provisioned from the
       digest-verified npm registry tarball instead. The Berry v4+ version boundary, the top-level
       packageManager metadata requirement, and the immutable install requirement remain in force"
+  - type: partially-superseded-by
+    target: ADR-0091
+    scope:
+      "the exclusion of devEngines.packageManager alone as a Yarn selection source (the Confirmation
+      clause that Yarn release builds never proceed from devEngines.packageManager alone, and the
+      top-level packageManager metadata requirement as the sole Yarn selection path): Yarn becomes
+      selectable from devEngines.packageManager with an exact version in the supported Berry range.
+      The Berry v4+ version boundary, the rejection of version ranges and yarn.lock-only inference,
+      and the immutable install requirement remain in force"
 ---
 
 # Limit Yarn Support to Berry v4 with Corepack Package Manager Metadata

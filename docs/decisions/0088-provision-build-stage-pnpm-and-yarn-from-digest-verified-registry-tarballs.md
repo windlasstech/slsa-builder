@@ -44,6 +44,19 @@ relations:
     target: ADR-0085
   - type: see-also
     target: ADR-0086
+  - type: partially-superseded-by
+    target: ADR-0090
+    scope:
+      "the supported pnpm consumer set boundary in the Rollout section and the
+      package-manager-specific acquisition-shape list: the framing of pnpm 11.x as the sole
+      supported pnpm line during the Corepack window ('pnpm 11 and Yarn Berry consumers are
+      unaffected by this boundary'; the 'pnpm 11.x' acquisition-shape entry; the 'pnpm 11' dogfood
+      entry in Confirmation). The supported pnpm range becomes [10.0.0, 12.0.0). The
+      registry-tarball provisioning mechanism design, the pnpm 12+ exclusion during the Corepack
+      window and its record/execution-gap rationale, the Yarn 6+ pre-emptive exclusion, the Yarn
+      Berry v4+ boundary, and the remaining confirmation criteria stay in force"
+  - type: see-also
+    target: ADR-0090
 ---
 
 # Provision Build-Stage pnpm and Yarn from Digest-Verified npm Registry Tarballs
