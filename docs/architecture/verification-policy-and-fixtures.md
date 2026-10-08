@@ -496,11 +496,24 @@ When `externalParameters.package_manager.name` is `yarn`, verifier policy must a
 - `externalParameters.package_manager.selection_source` is `packageManager` or
   `devEngines.packageManager`;
 - `externalParameters.package_manager.version` is an exact SemVer version greater than or equal to
-  `4.0.0` and lower than `6.0.0`;
+  `4.0.0` and lower than `6.0.0`, optionally followed by one integrity digest suffix;
 - `externalParameters.package_manager.yarn_install_mode` is `immutable`;
 - the name-keyed `lockfile` descriptor identifies the selected `yarn.lock`;
 - no policy accepts Yarn Classic 1.x, Yarn Berry v2, Yarn Berry v3, Yarn 6 or newer, lockfile-only
   Yarn inference, ambient global Yarn, or Corepack Known Good Release fallback.
+
+When `externalParameters.package_manager.version` carries an integrity digest suffix, verifier
+policy requires the suffix to be the closed `+<algorithm>.<hex>` form defined by the
+[JS/TS npm build and pack](js-ts-npm-build-pack.md#integrity-digest-declarations) spec: `sha256`,
+`sha384`, or `sha512` with lowercase hex of exactly that algorithm's digest length, and no other
+build-metadata identifiers. A malformed suffix fails with
+`windlass.verify.error.package-manager-digest-malformed`. When the declared algorithm is `sha512`,
+the declared hex must equal the `package-manager-distribution` descriptor's `digest.sha512`; a
+disagreement fails with `windlass.verify.error.resolved-dependencies-package-manager-distribution`.
+Declared `sha256` or `sha384` digests cannot be recomputed from the recorded SHA-512 distribution
+evidence, so verifier policy accepts them as build-time-reconciled declared input (ADR 0092): the
+producer failed closed before install on any mismatch, and the suffix changes neither the
+descriptor's name and exact-version identity nor the recorded observed digest authority.
 
 For the v1 npm profile, verifier policy additionally requires the closed `distribution` and `caller`
 groups defined by the [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md) contract.
@@ -1351,6 +1364,8 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `workspace-pattern-base-mismatch`                    | Workspace patterns were evaluated against the wrong base directory.                                                                      |
 | `workspace-command-mismatch`                         | Workspace package targeting command can affect the wrong package.                                                                        |
 | `package-manager-manifest-shape-error`               | `devEngines.packageManager` uses an unsupported shape, member, or release version form.                                                  |
+| `package-manager-digest-malformed`                   | A declared package-manager integrity digest suffix violates the closed `+<algorithm>.<hex>` grammar or appears on an npm descriptor.     |
+| `package-manager-digest-mismatch`                    | A declared package-manager integrity digest disagrees with the acquired distribution bytes before install.                               |
 | `unsupported-yarn-version`                           | Yarn is Classic 1.x, Berry v2, Berry v3, non-exact, or inferred from `yarn.lock` without manifest metadata.                              |
 | `pnpm-version-unsupported`                           | Consumer manifest pins a pnpm version outside the supported `[10.0.0, 12.0.0)` range while Corepack is the production provisioning path. |
 | `yarn-version-unsupported`                           | Consumer manifest metadata pins Yarn 6 or newer while Corepack is the production provisioning path.                                      |
@@ -1560,14 +1575,20 @@ The package-manager manifest fixture set must prove that top-level `packageManag
 `name@version` descriptor form while `devEngines.packageManager` uses the closed object form
 accepted by the JS/TS npm build and pack spec. Accepted fixtures must include exact pnpm 10.x and
 11.x versions and exact Yarn Berry v4 or v5 versions from both the top-level `packageManager` field
-and `devEngines.packageManager`. Rejected fixtures must cover string-form
+and `devEngines.packageManager`, including descriptors carrying a grammar-valid integrity digest
+suffix for each supported algorithm (`sha256`, `sha384`, `sha512`) from either manifest source, with
+provenance recording the descriptor verbatim. Rejected fixtures must cover string-form
 `devEngines.packageManager`, array-form `devEngines.packageManager`, unknown object members, missing
-pnpm versions, range versions, tag versions, URL descriptors, hash-suffixed descriptors, pnpm pins
-outside the supported `[10.0.0, 12.0.0)` range — including pre-10 majors — from either manifest
-source, and `onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken
-release-build policy. These failures use `package-manager-manifest-shape-error` unless a narrower
-package-manager selection, version-bound, Yarn support, or lockfile category applies; pnpm pins
-outside the supported range fail with `pnpm-version-unsupported`.
+pnpm versions, range versions, tag versions, URL descriptors, malformed digest suffixes — an
+unsupported algorithm, non-lowercase or wrong-length hex, missing hex, additional build-metadata
+identifiers, and a digest suffix on an npm descriptor — pnpm pins outside the supported
+`[10.0.0, 12.0.0)` range — including pre-10 majors — from either manifest source, and
+`onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken release-build policy.
+These failures use `package-manager-manifest-shape-error` unless a narrower package-manager
+selection, version-bound, digest, Yarn support, or lockfile category applies; malformed digest
+suffixes fail with `package-manager-digest-malformed`, a declared digest that disagrees with the
+acquired distribution bytes fails before install with `package-manager-digest-mismatch`, and pnpm
+pins outside the supported range fail with `pnpm-version-unsupported`.
 
 The Yarn support fixture set must prove ADR 0063's stable boundary. Accepted fixtures must cover a
 root package and workspace package selected by top-level exact `packageManager` values such as
@@ -1575,11 +1596,11 @@ root package and workspace package selected by top-level exact `packageManager` 
 `devEngines.packageManager` Yarn descriptor (ADR 0091), with `yarn.lock`, Corepack exact-version
 execution, and `package_manager.yarn_install_mode: "immutable"` in provenance. Rejected fixtures
 must cover `yarn@1.x`, `yarn@2.x`, `yarn@3.x`, `yarn@6.x` or newer, Yarn version ranges, Yarn tags,
-Yarn URL descriptors, hash-suffixed Yarn descriptors, missing `packageManager` with only
-`yarn.lock`, Corepack Known Good Release fallback, and ambient global Yarn execution. Unsupported
-Yarn generation, descriptor, or selection-source failures use `unsupported-yarn-version`, and Yarn 6
-or newer pins use `yarn-version-unsupported`, unless the failure is more specifically a malformed
-manifest shape, lockfile mismatch, or Corepack enforcement error.
+Yarn URL descriptors, missing `packageManager` with only `yarn.lock`, Corepack Known Good Release
+fallback, and ambient global Yarn execution. Unsupported Yarn generation, descriptor, or
+selection-source failures use `unsupported-yarn-version`, and Yarn 6 or newer pins use
+`yarn-version-unsupported`, unless the failure is more specifically a malformed manifest shape,
+lockfile mismatch, or Corepack enforcement error.
 
 The npm Go-signer fixture set must prove the ADR 0077 contract. The accepted production fixture must
 be a bundle named `<package-tarball-name>.intoto.jsonl` with GitHub Actions OIDC identity, a Fulcio

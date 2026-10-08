@@ -240,13 +240,15 @@ Yarn, the profile supports only a bounded set of package-manager versions:
   pnpm version outside the supported range — 12 or newer, or older than 10 — is rejected before
   install with `windlass.verify.error.pnpm-version-unsupported`. Throughout this section, an "exact"
   version is a full three-part SemVer 2.0.0 version (`MAJOR.MINOR.PATCH` with an optional prerelease
-  suffix); shortened forms such as `pnpm@11` or `yarn@4` are not exact versions. The supported set
-  follows ADR 0090's boundary rule — majors officially supported in pnpm's security policy that have
-  the registry JS-bundle acquisition shape: pnpm 9 and older are explicitly unsupported upstream,
-  and under Corepack provisioning, a pnpm 12 consumer's executed native binary arrives through the
-  shim's first-use download outside the profile's distribution capture, so the build would emit a
-  `package-manager-distribution` record that does not cover the executed artifact. The profile must
-  not execute a package manager whose executed distribution it cannot record.
+  suffix), optionally followed by one integrity digest suffix as defined in
+  [Integrity digest declarations](#integrity-digest-declarations) below; shortened forms such as
+  `pnpm@11` or `yarn@4` are not exact versions. The supported set follows ADR 0090's boundary rule —
+  majors officially supported in pnpm's security policy that have the registry JS-bundle acquisition
+  shape: pnpm 9 and older are explicitly unsupported upstream, and under Corepack provisioning, a
+  pnpm 12 consumer's executed native binary arrives through the shim's first-use download outside
+  the profile's distribution capture, so the build would emit a `package-manager-distribution`
+  record that does not cover the executed artifact. The profile must not execute a package manager
+  whose executed distribution it cannot record.
 - Yarn must be Yarn Berry v4 or newer and lower than `6.0.0`. A manifest pinning Yarn 6 or newer is
   rejected before install with `windlass.verify.error.yarn-version-unsupported`. Yarn 6 is
   unreleased and its acquisition and integrity semantics are unknown, so it must not silently enter
@@ -261,7 +263,9 @@ supported version set in this section before release builds may use it.
 
 ### `packageManager` field
 
-- Format: `name@version`, for example `pnpm@11.0.0` or `yarn@4.1.0`.
+- Format: `name@version`, for example `pnpm@11.0.0` or `yarn@4.1.0`, optionally with one integrity
+  digest suffix, for example `pnpm@11.0.0+sha512.<hex>` — see
+  [Integrity digest declarations](#integrity-digest-declarations).
 - If the field selects pnpm or Yarn, the profile must use the exact package manager and version.
 - If the field selects pnpm, the descriptor must additionally use an exact version in the 10.x or
   11.x line, greater than or equal to `10.0.0` and lower than `12.0.0`. Shortened version forms such
@@ -270,11 +274,12 @@ supported version set in this section before release builds may use it.
   range is rejected before install with `windlass.verify.error.pnpm-version-unsupported`.
 - If the field selects Yarn, the descriptor must use an exact SemVer version greater than or equal
   to `4.0.0` and lower than `6.0.0`. Yarn Classic 1.x, Yarn Berry v2, Yarn Berry v3, Yarn 6 or
-  newer, ranges, tags, URLs, hash-suffixed descriptors, shortened version forms such as `yarn@4` or
-  `yarn@4.9`, and omitted versions are rejected before install; Yarn 6 or newer is rejected with
+  newer, ranges, tags, URLs, shortened version forms such as `yarn@4` or `yarn@4.9`, and omitted
+  versions are rejected before install; Yarn 6 or newer is rejected with
   `windlass.verify.error.yarn-version-unsupported`.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
-  Node.js 24 toolchain; the manifest npm version must not override the builder-owned npm runtime.
+  Node.js 24 toolchain; the manifest npm version must not override the builder-owned npm runtime,
+  and an npm descriptor must not carry an integrity digest suffix (ADR 0092).
 - If the field is absent in the current manifest source, the profile falls back to the next source.
 
 ### `devEngines.packageManager` field
@@ -289,22 +294,22 @@ supported version set in this section before release builds may use it.
   metadata only for this production profile and must not weaken release-build enforcement.
 - Unknown members are rejected.
 - If the field selects pnpm, `version` is required and must be an exact SemVer version in the 10.x
-  or 11.x line, greater than or equal to `10.0.0` and lower than `12.0.0`. Ranges, tags, URLs,
-  hash-suffixed package-manager descriptors, shortened version forms such as `"11"` or `"11.0"`, and
-  omitted versions are rejected because ADR 0017 prohibits release-time range resolution and
-  Corepack Known Good Release fallback, and because a shortened form is not an exact version. A pnpm
-  version outside the supported range is rejected before install with
+  or 11.x line, greater than or equal to `10.0.0` and lower than `12.0.0`, optionally followed by
+  one integrity digest suffix. Ranges, tags, URLs, shortened version forms such as `"11"` or
+  `"11.0"`, and omitted versions are rejected because ADR 0017 prohibits release-time range
+  resolution and Corepack Known Good Release fallback, and because a shortened form is not an exact
+  version. A pnpm version outside the supported range is rejected before install with
   `windlass.verify.error.pnpm-version-unsupported`.
 - If the field selects Yarn, `version` is required and must be an exact SemVer version in the
   supported Berry range, greater than or equal to `4.0.0` and lower than `6.0.0` — the same contract
-  as the top-level `packageManager` field (ADR 0091). Yarn Classic 1.x, Yarn Berry v2 or v3, Yarn 6
-  or newer, ranges, tags, URLs, hash-suffixed descriptors, shortened version forms, and omitted
-  versions are rejected before install; Yarn 6 or newer is rejected with
+  as the top-level `packageManager` field (ADR 0091) — optionally followed by one integrity digest
+  suffix. Yarn Classic 1.x, Yarn Berry v2 or v3, Yarn 6 or newer, ranges, tags, URLs, shortened
+  version forms, and omitted versions are rejected before install; Yarn 6 or newer is rejected with
   `windlass.verify.error.yarn-version-unsupported`. Only `yarn.lock` inference without manifest
   metadata remains excluded as a Yarn selection path.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
   Node.js 24 toolchain; `devEngines.packageManager.version` must not override the builder-owned npm
-  runtime.
+  runtime, and an npm descriptor must not carry an integrity digest suffix (ADR 0092).
 - If `onFail` is `ignore` or `warn`, the profile still fails closed on package-manager policy
   violations such as an unsupported name, missing exact pnpm/Yarn version, package-manager mismatch,
   or required lockfile mismatch.
@@ -332,6 +337,55 @@ Rejected examples:
   builds must not resolve ranges.
 - `"devEngines": { "packageManager": [{ "name": "pnpm", "version": "11.9.0" }] }` because array form
   is ambiguous for a one-package-manager release profile.
+
+### Integrity digest declarations
+
+A pnpm or Yarn descriptor in either manifest selection source may carry one optional integrity
+digest that declares the expected digest of the package-manager distribution (ADRs 0092, 0093,
+0094). The declaration is optional and never required; omitting it never weakens any other
+selection, provisioning, or recording rule.
+
+- Format: a SemVer 2.0.0 build-metadata suffix of exactly two identifiers, `+<algorithm>.<hex>`,
+  appended to the exact version — for example `pnpm@11.9.0+sha512.<hex>` in the top-level
+  `packageManager` field, or `"version": "4.1.0+sha256.<hex>"` in `devEngines.packageManager`. The
+  build metadata must be exactly this algorithm-hex pair; no other build-metadata identifiers are
+  accepted.
+- `<algorithm>` must be one of `sha256`, `sha384`, or `sha512` — the W3C Subresource Integrity token
+  set (ADR 0093). `<hex>` must be the lowercase hexadecimal encoding of that algorithm's digest:
+  exactly 64 characters for `sha256`, 96 for `sha384`, or 128 for `sha512`.
+- The suffix never relaxes the exact-version requirement: the version part without the suffix must
+  still be a full exact version inside the supported bounds.
+- A descriptor that selects npm must not carry a digest suffix; npm is bound to the builder-owned
+  Node.js 24 toolchain and has no declared distribution (ADR 0092).
+- A descriptor whose suffix violates any of these rules — an unknown algorithm, non-lowercase or
+  wrong-length hex, missing hex, additional build-metadata identifiers, or a suffix on an npm
+  descriptor — is rejected before install with
+  `windlass.verify.error.package-manager-digest-malformed`.
+- When a digest is declared, the profile must, after exact-version acquisition and before install,
+  compute the declared algorithm's digest over the acquired distribution bytes — the same bytes the
+  [Corepack distribution capture](#corepack-distribution-capture) records: the npm registry tarball
+  bytes for pnpm, or the `repo.yarnpkg.com` bundle bytes for Yarn. Any disagreement between the
+  declared and computed digests must stop the build before install with
+  `windlass.verify.error.package-manager-digest-mismatch`.
+- A declared digest is a selection-time input, not evidence. It does not alter the
+  `package-manager-distribution` record: the recorded `digest.sha512` and its `digest_authority`
+  (`registry-integrity` for pnpm, `download-hash` for Yarn) remain the source-native observed
+  authorities defined by ADR 0070.
+
+Accepted examples:
+
+- `"packageManager": "pnpm@11.9.0+sha512.<128 lowercase hex characters>"`.
+- `"devEngines": { "packageManager": { "name": "yarn", "version": "4.1.0+sha256.<64 lowercase hex characters>" } }`.
+
+Rejected examples:
+
+- `"packageManager": "yarn@4.1.0+sha1.<hex>"` because the algorithm set is closed (ADR 0093).
+- `"packageManager": "pnpm@11.9.0+sha512.<uppercase hex>"` because the hex encoding must be
+  lowercase.
+- `"packageManager": "pnpm@11.9.0+sha512.<hex>.build1"` because the build metadata must be exactly
+  the algorithm-hex pair.
+- `"packageManager": "npm@11.5.1+sha512.<hex>"` because npm is toolchain-bound and takes no declared
+  digest (ADR 0092).
 
 ### Lockfile inference
 
@@ -484,6 +538,12 @@ disagrees with the selected manager and exact version is a captured disagreement
   `windlass.verify.error.input-unavailable` and exit code `2`; a captured wrong authority, wrong
   version, or malformed descriptor stops with
   `windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`.
+
+When the selected descriptor declared an integrity digest, the profile must reconcile it before
+install as defined in [Integrity digest declarations](#integrity-digest-declarations): the declared
+algorithm's digest is computed over the same acquisition bytes this section records — the registry
+tarball bytes for pnpm, the `repo.yarnpkg.com` bundle bytes for Yarn — so a consumer who declares a
+digest must compute it over the same artifact the build downloads.
 
 The Corepack path must not use a Known Good Release fallback, an ambient pnpm or ambient Yarn
 installation, or a registry override that changes the ADR-selected acquisition path. Each condition
