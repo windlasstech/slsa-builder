@@ -1,0 +1,22 @@
+README.ko.md
+  s_5828ef616dd44f::t_5423aba70b452f 362-365
+  s_5828ef616dd44f::t_2296ada068b2ae 357-361
+README.md
+  s_5828ef616dd44f::t_b155b41077e058 367-370,374-376
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed0388c8b67a82868a029d2d28d8aeb457a46904",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
