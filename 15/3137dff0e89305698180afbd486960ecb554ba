@@ -1,0 +1,40 @@
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_5828ef616dd44f::t_fc50c56d12ebcf 590,592
+  s_5828ef616dd44f::t_8a79c48ef14230 591
+docs/architecture/js-ts-npm-build-pack.md
+  s_5828ef616dd44f::t_5423aba70b452f 759-761
+  s_5828ef616dd44f::t_836040555759bc 800,802-805
+  s_5828ef616dd44f::t_f65ba53eb72410 780
+  s_5828ef616dd44f::t_103d35ed00d270 291-296,298-304
+  s_5828ef616dd44f::t_ec2a1e9c215d5b 432-435
+  s_5828ef616dd44f::t_43b5aa8ecdfd7d 239-249
+  s_5828ef616dd44f::t_bc2a74a871c77f 257-260
+  s_5828ef616dd44f::t_7160d6b97f3bf4 266-270
+docs/architecture/verification-policy-and-fixtures.md
+  s_5828ef616dd44f::t_181e2439b1c49d 1355
+  s_5828ef616dd44f::t_3b11e916b2af0e 496-497,502-503
+  s_5828ef616dd44f::t_6b99d3b7a28c09 1574-1575,1579-1582
+  s_5828ef616dd44f::t_5423aba70b452f 1296-1354,1356-1425
+  s_5828ef616dd44f::t_76022e35fdd516 1561-1567,1570
+docs/architecture/js-ts-npm-package-profile.md
+  s_5828ef616dd44f::t_e236f51fd826a4 746-747
+docs/architecture/README.md
+  s_5828ef616dd44f::t_8dde371b0ce97a 42
+  s_5828ef616dd44f::t_5423aba70b452f 30-41,71-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "153137dff0e89305698180afbd486960ecb554ba",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
