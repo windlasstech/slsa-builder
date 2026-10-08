@@ -1,0 +1,45 @@
+docs/architecture/README.ko.md
+  s_5828ef616dd44f::t_355c26f8d30010 30-42,70-74
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_5828ef616dd44f::t_fc59d4e0cf7b59 585-589,591
+docs/architecture/verification-policy-and-fixtures.md
+  s_5828ef616dd44f::t_b3c9a3457a2542 499,505-516
+  s_5828ef616dd44f::t_13d3b8e061a4e8 1367-1368
+  s_5828ef616dd44f::t_b0391970d38e73 1578-1580,1582-1591
+  s_5828ef616dd44f::t_50ff4432c3b731 1599-1603
+  s_bb11e2d5dfaf36::t_e6395a9b27aab1 517
+docs/architecture/js-ts-npm-build-pack.md
+  s_5828ef616dd44f::t_4be20c63a5152a 243-244
+  s_5828ef616dd44f::t_6112bf60a0c435 341-377,379-389
+  s_5828ef616dd44f::t_bf4a2ac8691a36 245-251,378
+  s_5828ef616dd44f::t_641538b4968767 297-301,305-307,312
+  s_5828ef616dd44f::t_3d17e713061444 266-268,277-278,281-282
+  s_5828ef616dd44f::t_33f8bc9f9edfce 542-547
+docs/architecture/README.md
+  s_5828ef616dd44f::t_355c26f8d30010 30-35,37-41,73-75
+  s_5828ef616dd44f::t_319b650375351e 36,42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fdbcfe8ca43abaa055c182e414e1689c7eee2e6e",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bb11e2d5dfaf36": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
