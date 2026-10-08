@@ -385,6 +385,33 @@ issue provenance it cannot stand behind. Yarn 6 is unreleased, with no confirmed
 distribution channel. These same bounds are what signed provenance records and what downstream
 verifiers check (see [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
 
+**Optional integrity digests.** A pnpm or Yarn descriptor in either manifest field may additionally
+declare the expected digest of the package-manager distribution, as a SemVer build-metadata suffix
+of the form `+<algorithm>.<hex>` — for example `packageManager: "pnpm@11.9.0+sha512.<hex>"`, or
+`"version": "4.1.0+sha256.<hex>"` in `devEngines.packageManager`. The declaration is optional and
+never required; supported algorithms are `sha256`, `sha384`, and `sha512`, with lowercase hex. When
+a digest is declared, the builder recomputes it over the acquired distribution bytes and fails
+closed before install on any mismatch
+([ADR 0092](docs/decisions/0092-accept-optional-integrity-digests-in-package-manager-descriptors.md),
+[ADR 0093](docs/decisions/0093-pin-descriptor-digest-algorithms-to-the-sri-set.md),
+[ADR 0094](docs/decisions/0094-pin-descriptor-digest-format-to-a-hex-suffix.md); spec:
+[JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md#integrity-digest-declarations)).
+
+The declared digest is computed over the actual distribution artifact, which differs by package
+manager. pnpm's distribution is its npm registry tarball, and the registry publishes an SRI
+integrity value over those exact bytes, so a declared pnpm digest can be derived from the registry
+metadata —
+`pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256`
+(equivalently `npm view`, or `yarn npm info pnpm@<version> --json | jq -r .dist.integrity` followed
+by the same base64-to-hex conversion). Yarn's distribution during the Corepack window is the single
+`yarn.js` bundle served from `repo.yarnpkg.com`, which publishes no integrity metadata, so hash the
+download directly —
+`curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1`.
+npm is bound to the builder-owned Node.js 24 toolchain and takes no digest. A declared digest is a
+selection-time input, not evidence: signed provenance still records the observed distribution digest
+with its source-native authority (`registry-integrity` for pnpm, `download-hash` for Yarn), which a
+declared digest does not change.
+
 A future builder release will transition build-stage pnpm and Yarn provisioning to digest-verified
 npm registry tarballs: the Go trusted core verifies the npm registry signature over the version
 metadata and the tarball's integrity before executing them

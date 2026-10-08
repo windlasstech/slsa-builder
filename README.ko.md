@@ -374,6 +374,31 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
 서명된 출처 증명에 기록되고 다운스트림 검증자가 확인하는 내용도 동일한 이 경계입니다
 ([JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md) 참고).
 
+**선택적 무결성 다이제스트.** 두 매니페스트 필드 어디에서든 pnpm 또는 Yarn 디스크립터에
+`+<algorithm>.<hex>` 형태의 SemVer 빌드 메타데이터 접미사로 패키지 매니저 배포본의 기대 다이제스트를
+추가로 선언할 수 있습니다 — 예: `packageManager: "pnpm@11.9.0+sha512.<hex>"` 또는
+`devEngines.packageManager`의 `"version": "4.1.0+sha256.<hex>"`. 이 선언은 선택 사항이며 결코 필수가
+아닙니다. 지원 알고리즘은 `sha256`, `sha384`, `sha512`이며 16진수는 소문자여야 합니다. 다이제스트가
+선언되면 빌더는 취득한 배포 바이트에 대해 다이제스트를 다시 계산하고, 불일치 시 설치 전에
+fail-closed로 실패합니다
+([ADR 0092](docs/decisions/0092-accept-optional-integrity-digests-in-package-manager-descriptors.md),
+[ADR 0093](docs/decisions/0093-pin-descriptor-digest-algorithms-to-the-sri-set.md),
+[ADR 0094](docs/decisions/0094-pin-descriptor-digest-format-to-a-hex-suffix.md); 명세:
+[JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md#integrity-digest-declarations)).
+
+선언된 다이제스트는 실제 배포 아티팩트에 대해 계산되며, 이는 패키지 매니저마다 다릅니다. pnpm의
+배포본은 npm 레지스트리 tarball이며, 레지스트리가 정확히 그 바이트에 대한 SRI 무결성 값을 게시하므로
+선언할 pnpm 다이제스트를 레지스트리 메타데이터에서 유도할 수 있습니다 —
+`pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256`
+(`npm view` 또는 `yarn npm info pnpm@<version> --json | jq -r .dist.integrity`에 동일한 base64→hex
+변환을 적용해도 동일). Corepack 윈도우에서 Yarn의 배포본은 `repo.yarnpkg.com`이 제공하는 단일
+`yarn.js` 번들로, 무결성 메타데이터를 게시하지 않으므로 다운로드를 직접 해시합니다 —
+`curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1`.
+npm은 빌더 소유 Node.js 24 도구체인에 바인딩되므로 다이제스트를 받지 않습니다. 선언된 다이제스트는
+증거가 아닌 선택 시점의 입력입니다. 서명된 출처 증명에는 여전히 소스 고유 권위와 함께 관측된 배포
+다이제스트가 기록되며(pnpm은 `registry-integrity`, Yarn은 `download-hash`), 선언된 다이제스트는 이를
+변경하지 않습니다.
+
 향후 빌더 릴리스에서는 빌드 단계 pnpm과 Yarn을 다이제스트 검증된 npm 레지스트리 tarball에서
 프로비저닝하는 방식으로 전환할 예정입니다. Go 신뢰 코어가 버전 메타데이터에 대한 npm 레지스트리
 서명과 tarball의 무결성을 실행 전에 검증합니다
