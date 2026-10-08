@@ -57,6 +57,8 @@ relations:
       Berry v4+ boundary, and the remaining confirmation criteria stay in force"
   - type: see-also
     target: ADR-0090
+  - type: see-also
+    target: ADR-0092
 ---
 
 # Provision Build-Stage pnpm and Yarn from Digest-Verified npm Registry Tarballs

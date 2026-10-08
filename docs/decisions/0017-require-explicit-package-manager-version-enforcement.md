@@ -17,6 +17,8 @@ relations:
     target: ADR-0090
   - type: see-also
     target: ADR-0091
+  - type: see-also
+    target: ADR-0092
 ---
 
 # Require Explicit Package Manager Version Enforcement

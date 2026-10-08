@@ -28,6 +28,8 @@ relations:
     target: ADR-0015
   - type: see-also
     target: ADR-0017
+  - type: see-also
+    target: ADR-0092
 ---
 
 # Accept devEngines.packageManager as a Uniform Selection Source
