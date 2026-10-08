@@ -1,0 +1,67 @@
+docs/decisions/0078-treat-settings-only-pnpm-workspace-yaml-as-standalone-root-package-mode.md
+  s_5828ef616dd44f::t_9d322ae56ecfcc 13-14
+docs/decisions/README.md
+  s_5828ef616dd44f::t_4eef19167c2478 34-74,227
+  s_5828ef616dd44f::t_a39f13c319f3e1 32
+  s_5828ef616dd44f::t_3fe4c8f1501032 75
+  s_5828ef616dd44f::t_4e6095de669484 226
+  s_bb11e2d5dfaf36::t_6e207c65335c9d 33
+docs/decisions/0017-require-explicit-package-manager-version-enforcement.md
+  s_5828ef616dd44f::t_709323258f68a9 18-19
+  s_5828ef616dd44f::t_d45ee2dff3dc27 16-17
+docs/decisions/0091-accept-devengines-package-manager-as-a-uniform-selection-source.md
+  s_5828ef616dd44f::t_4eef19167c2478 11-17,21-26,40-44,69-71,83-84,88-89,108-109,130-131,168-170,181-182,184-185,188-190,199-201,209-210
+  s_5828ef616dd44f::t_e914472682e691 219
+  s_5828ef616dd44f::t_e87a1939e421a0 138-142,217-218,220-221
+  s_5828ef616dd44f::t_9bd9177a439fa5 136-137
+  s_5828ef616dd44f::t_d3a534d85d45a2 1-3,5-10,18-20,27-39,45-68,72-82,85-87,90-107,110-129,132-135,143-167,171-180,183,186-187,191-198,202-208,211-216,222-226
+  s_bb11e2d5dfaf36::t_dd81bec998a288 4
+docs/decisions/0015-use-manifest-first-package-manager-selection.md
+  s_5828ef616dd44f::t_f09e226951daa5 21-22
+  s_5828ef616dd44f::t_92b91fab895510 19-20
+docs/decisions/0090-extend-the-supported-pnpm-range-to-the-10x-line.md
+  s_5828ef616dd44f::t_1968637fd737ba 1-3,5-14,19-26,37-60,64-74,80-85,90,92-94,100-108,113-121,126,129-148,155-176,181-188,193-199,202-216,219-224,229-234
+  s_5828ef616dd44f::t_4e6095de669484 95-99
+  s_5828ef616dd44f::t_d21ded75eef851 27,36
+  s_5828ef616dd44f::t_0a69e52398e7a4 15-18,61-63,75-79,88,109-112,122-125,127-128,150-154,177-180,189-192,200-201,217-218,225-228,235-236
+  s_5828ef616dd44f::t_eee9ca68035a2b 28-29
+  s_5828ef616dd44f::t_b36cc6f77722fe 30-32
+  s_5828ef616dd44f::t_95439f827b8da8 33-35
+  s_5828ef616dd44f::t_46970b4271cdda 149
+  s_5828ef616dd44f::t_c5705fa6b49bc3 4
+  s_5828ef616dd44f::t_0c068dac013507 86-87
+  s_5828ef616dd44f::t_3b4bf86d42171b 89
+  s_5828ef616dd44f::t_6e9d57b63717b4 91
+docs/decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md
+  s_5828ef616dd44f::t_fa1428a28cf58d 25
+  s_5828ef616dd44f::t_4eef19167c2478 27-32
+  s_5828ef616dd44f::t_2397dcccb87a95 24,26
+docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+  s_5828ef616dd44f::t_de8dd00597cc67 58-59
+  s_5828ef616dd44f::t_0a69e52398e7a4 54-57
+  s_5828ef616dd44f::t_13c198f3d9f366 47-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "23ea1fdd93cff8ea2ad2df601d4573c47dd101e9",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bb11e2d5dfaf36": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
