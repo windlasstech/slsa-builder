@@ -587,9 +587,9 @@ absent, violating the conditional-presence rule; it fails with
   greater than or equal to `4.0.0`.
 - `package_manager.selection_source` must be one of `packageManager`, `devEngines.packageManager`,
   or `lockfile`.
-- When `package_manager.name` is `yarn`, `package_manager.selection_source` must be
-  `packageManager`; Yarn releases selected from `devEngines.packageManager` or lockfile inference
-  are invalid for the stable initial profile.
+- When `package_manager.name` is `yarn`, `package_manager.selection_source` must be `packageManager`
+  or `devEngines.packageManager` (ADR 0091); Yarn releases selected from lockfile inference are
+  invalid.
 - `package_manager.selection_manifest` must identify the manifest whose metadata selected the
   package manager by basename, or be `null` when `selection_source` is `lockfile`.
 - `package_manager.selection_manifest_path` must identify the repository-root-relative manifest path
