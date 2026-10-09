@@ -1,0 +1,27 @@
+docs/decisions/0092-accept-optional-integrity-digests-in-package-manager-descriptors.md
+  s_5828ef616dd44f::t_79b6627e644707 29-30
+  s_5828ef616dd44f::t_52c4d2e85a76e2 23-28
+docs/decisions/0091-accept-devengines-package-manager-as-a-uniform-selection-source.md
+  s_5828ef616dd44f::t_52c4d2e85a76e2 14-18,34-39,42-49
+  s_5828ef616dd44f::t_79b6627e644707 40-41
+docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md
+  s_5828ef616dd44f::t_52c4d2e85a76e2 20-27
+docs/decisions/0090-extend-the-supported-pnpm-range-to-the-10x-line.md
+  s_5828ef616dd44f::t_52c4d2e85a76e2 33-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ff201e9f2c076ad9f8a3e70fcd59f50d3720af41",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
