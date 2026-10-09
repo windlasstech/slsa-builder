@@ -117,13 +117,16 @@ Do not implement before reading the specs.
   `README.ko.md` in the same directory as part of the same change.
 - **Language-specific typography**: Each language version of a document must respect that language's
   orthographic and grammatical norms. Korean has no em-dash (`—`) grammar and does not use the
-  semicolon (`;`) as a prose connector, so never use either in Korean prose. The colon (`:`) has
-  valid but narrower usage in Korean than in English, chiefly introducing a list or explanation
-  after a complete statement (labels such as `예:`, `참고:`, and `명세:` are valid usage), so verify
-  each colon is valid Korean usage before using it. In English prose the em dash is grammatically
-  valid: prefer an alternative construction (comma, parentheses, colon, or a sentence split) when
-  the em dash offers no clear readability advantage, but keep the em dash where it is genuinely
-  clearer, such as around an interjection that already contains parentheses or a comma-heavy list.
+  semicolon (`;`) as a prose connector, so never use either in Korean prose. Modern Korean
+  orthography limits the colon (`:`) largely to list-style (개조식) usage: after a heading or label
+  to introduce items or attach an explanation (labels such as `예:`, `참고:`, and `명세:` are valid
+  usage). Do not use the English-style colon in Korean prose to introduce a command or elaboration
+  after a verb clause. For example, `…해시합니다: \`curl …\`` is invalid: end the sentence with a
+  period and present the command as a separate block, or attach it in parentheses. In English prose
+  the em dash is grammatically valid: prefer an alternative construction (comma, parentheses, colon,
+  or a sentence split) when the em dash offers no clear readability advantage, but keep the em dash
+  where it is genuinely clearer, such as around an interjection that already contains parentheses or
+  a comma-heavy list.
 - **CodeGraph MCP**: `opencode.jsonc` configures a local CodeGraph MCP server. Other AI tool configs
   (`.cursor/`, `.claude/`, `.kiro/`, `.gemini/`) also reference CodeGraph.
 - **Trusted-core Go rules**: closed diagnostic registry with spec-parity tests, RFC 8785 canonical
