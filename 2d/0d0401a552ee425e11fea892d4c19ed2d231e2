@@ -1,0 +1,31 @@
+docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md
+  s_5828ef616dd44f::t_cc68a475998c4d 30-31
+docs/decisions/0017-require-explicit-package-manager-version-enforcement.md
+  s_5828ef616dd44f::t_c6e7c8876b363a 22-27
+docs/decisions/0016-use-corepack-for-pnpm-and-yarn-build-stages.md
+  s_5828ef616dd44f::t_a973c831a18ddb 20-21
+docs/decisions/0092-accept-optional-integrity-digests-in-package-manager-descriptors.md
+  s_5828ef616dd44f::t_8d2ca6277d852c 39-40
+docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md
+  s_5828ef616dd44f::t_fc57ec70a38ef9 1-3,5-25,33-43,46-71,73-91,94-116,119-130,133-171,178-184
+  s_5828ef616dd44f::t_95d012e7ae5963 4
+  s_5828ef616dd44f::t_ab8ebc242fe03a 26-32,44-45,72,92-93,117-118,131-132,172-177
+docs/decisions/README.md
+  s_5828ef616dd44f::t_ab8ebc242fe03a 32-79,235
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d0d0401a552ee425e11fea892d4c19ed2d231e2",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
