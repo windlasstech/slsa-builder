@@ -407,9 +407,9 @@ pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xx
 ```
 
 (Equivalently `npm view`, or `yarn npm info pnpm@<version> --json | jq -r .dist.integrity` followed
-by the same base64-to-hex conversion.) Yarn's distribution during the Corepack window is the single
-`yarn.js` bundle served from `repo.yarnpkg.com`, which publishes no integrity metadata, so hash the
-download directly.
+by the same prefix-stripping (`sed 's/^sha[0-9]*-//'`) and base64-to-hex conversion.) Yarn's
+distribution during the Corepack window is the single `yarn.js` bundle served from
+`repo.yarnpkg.com`, which publishes no integrity metadata, so hash the download directly.
 
 ```bash
 curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1

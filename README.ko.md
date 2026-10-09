@@ -394,9 +394,10 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
 pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256
 ```
 
-`npm view` 또는 `yarn npm info pnpm@<version> --json | jq -r .dist.integrity`에 동일한 base64→hex
-변환을 적용해도 동일합니다. Corepack 윈도우에서 Yarn의 배포본은 `repo.yarnpkg.com`이 제공하는 단일
-`yarn.js` 번들로, 무결성 메타데이터를 게시하지 않으므로 다운로드를 직접 해시합니다.
+`npm view` 또는 `yarn npm info pnpm@<version> --json | jq -r .dist.integrity`에 동일한 접두사
+제거(`sed 's/^sha[0-9]*-//'`)와 base64→hex 변환을 적용해도 동일합니다. Corepack 윈도우에서 Yarn의
+배포본은 `repo.yarnpkg.com`이 제공하는 단일 `yarn.js` 번들로, 무결성 메타데이터를 게시하지 않으므로
+다운로드를 직접 해시합니다.
 
 ```bash
 curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1
