@@ -1,0 +1,1 @@
+{"name":"windlass-fixture-pnpm-devengines-bare-major","version":"1.0.0","license":"Apache-2.0","repository":"windlasstech/slsa-builder","devEngines":{"packageManager":{"name":"pnpm","version":"11","onFail":"error"}}}

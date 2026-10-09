@@ -16,6 +16,10 @@ relations:
       "lockfile-based Yarn inference fallback; Yarn requires an explicit packageManager declaration"
   - type: see-also
     target: ADR-0018
+  - type: see-also
+    target: ADR-0090
+  - type: see-also
+    target: ADR-0091
 ---
 
 # Use Manifest-First Package Manager Selection

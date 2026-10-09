@@ -29,48 +29,54 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0089`.
+sequence currently runs from `0000` through `0095`.
 
-| Range     | Topic                                       | Notes                                                                                      |
-| --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 0000–0012 | Repository foundation and development tools | ADR format, repository start, Go, linting, formatting, tooling.                            |
-| 0013–0037 | JS/TS npm package profile                   | Package selection, build/pack, OIDC publishing, provenance.                                |
-| 0038–0052 | GitHub Release asset profile                | Release asset subjects, publisher model, sidecar distribution.                             |
-| 0053–0054 | Release manifest metadata                   | Signing boundary and release manifest predicate URI.                                       |
-| 0055      | Signing adapter Statement construction      | `actions/attest` custom mode and post-sign Statement checks.                               |
-| 0056      | Non-selected lockfile diagnostics           | Stale lockfile handling under manifest-selected managers.                                  |
-| 0057      | Public npm release-asset mode               | Single npm entrypoint plus advanced composition primitives.                                |
-| 0058      | Release publisher authority boundary        | Same-repository target and least-privilege mutation topology.                              |
-| 0059      | Public release-asset mode interface         | Minimal user-intent `workflow_call` surface and fail-closed API.                           |
-| 0060      | Unified npm public entrypoint               | One public API with separated internal authority boundaries.                               |
-| 0061      | Duplicate JSON member rejection             | Strict signed SLSA Statement parsing before semantic validation.                           |
-| 0062      | Trusted producer policy intersection        | Conflict handling for manifest and explicit verifier policy.                               |
-| 0063      | Yarn Berry v4+ support boundary             | Corepack and `packageManager` requirements for Yarn support.                               |
-| 0064      | npm provenance subject compatibility        | npm PURL subject with SHA-512 and SHA-256 tarball digests.                                 |
-| 0065      | ADR lifecycle metadata                      | Closed status grammar and relations field.                                                 |
-| 0066      | Release mutation run ownership              | Job-class concurrency and serialized mutation segment.                                     |
-| 0067      | Repeated run convergence                    | Run-identity idempotency, outcome states, binding proofs.                                  |
-| 0068      | Verifier identity binding                   | Immutable builder and source identities for verification.                                  |
-| 0069      | Transparency and trust root policy          | Rekor inclusion, offline verification, trust root governance.                              |
-| 0070–0071 | Provenance build-environment recording      | Package-manager distributions, runner image, builder fields.                               |
-| 0072      | Release asset run ownership binding         | Sidecar-first pair binding and custody non-attribution.                                    |
-| 0073      | npm same-run attestation binding            | Published-attestation run identity required for npm convergence.                           |
-| 0074      | Mutation segment atomicity                  | Single-job segments and detection-based cross-run safety.                                  |
-| 0075      | Mutation queue policy                       | `queue: max` FIFO waiting for mutation segment contenders.                                 |
-| 0076      | Preflight and first-mutation classification | Observation preflights; first-mutation classification otherwise.                           |
-| 0077      | Windlass provenance signing adapter         | Go-native exact-byte Sigstore DSSE signing for all profiles.                               |
-| 0078      | pnpm settings-only root-package mode        | Missing `packages` means root-only, not malformed workspace data.                          |
-| 0079      | Caller-specified build source ref           | Tags-only `source-ref` input as the default release-retry path for all producer profiles.  |
-| 0080      | Certificate claims as invocation context    | Source policy binds signed provenance fields; cert source claims prove invocation.         |
-| 0081      | npm OIDC exchange response contract         | Success body pinned to the observed shape; exchange token lifetime is 15 minutes.          |
-| 0082      | Publish-stage npm version pinning           | Pinned, integrity-verified publish npm provisioning with a reviewed allowlist.             |
-| 0083      | npm M1 remediation deferred to upstream fix | Initial publish npm pin is the first reviewed release containing npm/cli#9882.             |
-| 0084      | Publish npm provisioning mechanism          | Digest-verified npm registry tarball with a committed SHA-512.                             |
-| 0085      | Build-stage Node.js patch and npm pair pin  | Exact Node.js 24 patch per builder release; bundled npm asserted before first use.         |
-| 0086      | pnpm provisioning via mise field resolution | mise packageManager-field resolution replaces Corepack; single pin source in package.json. |
-| 0087      | pnpm 12 for development tooling             | Adopt the pnpm 12 line; verified settings compatibility; dev-only, one-line rollback.      |
-| 0088      | Build-stage pnpm/Yarn registry provisioning | Digest-verified npm registry tarballs replace Corepack; rollout release is open.           |
-| 0089      | Dev Node.js runtime via field resolution    | package.json devEngines.runtime is the sole development-runtime pin; mise resolves it.     |
+| Range     | Topic                                                      | Notes                                                                                                                                   |
+| --------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 0000–0012 | Repository foundation and development tools                | ADR format, repository start, Go, linting, formatting, tooling.                                                                         |
+| 0013–0037 | JS/TS npm package profile                                  | Package selection, build/pack, OIDC publishing, provenance.                                                                             |
+| 0038–0052 | GitHub Release asset profile                               | Release asset subjects, publisher model, sidecar distribution.                                                                          |
+| 0053–0054 | Release manifest metadata                                  | Signing boundary and release manifest predicate URI.                                                                                    |
+| 0055      | Signing adapter Statement construction                     | `actions/attest` custom mode and post-sign Statement checks.                                                                            |
+| 0056      | Non-selected lockfile diagnostics                          | Stale lockfile handling under manifest-selected managers.                                                                               |
+| 0057      | Public npm release-asset mode                              | Single npm entrypoint plus advanced composition primitives.                                                                             |
+| 0058      | Release publisher authority boundary                       | Same-repository target and least-privilege mutation topology.                                                                           |
+| 0059      | Public release-asset mode interface                        | Minimal user-intent `workflow_call` surface and fail-closed API.                                                                        |
+| 0060      | Unified npm public entrypoint                              | One public API with separated internal authority boundaries.                                                                            |
+| 0061      | Duplicate JSON member rejection                            | Strict signed SLSA Statement parsing before semantic validation.                                                                        |
+| 0062      | Trusted producer policy intersection                       | Conflict handling for manifest and explicit verifier policy.                                                                            |
+| 0063      | Yarn Berry v4+ support boundary                            | Corepack and `packageManager` requirements for Yarn support.                                                                            |
+| 0064      | npm provenance subject compatibility                       | npm PURL subject with SHA-512 and SHA-256 tarball digests.                                                                              |
+| 0065      | ADR lifecycle metadata                                     | Closed status grammar and relations field.                                                                                              |
+| 0066      | Release mutation run ownership                             | Job-class concurrency and serialized mutation segment.                                                                                  |
+| 0067      | Repeated run convergence                                   | Run-identity idempotency, outcome states, binding proofs.                                                                               |
+| 0068      | Verifier identity binding                                  | Immutable builder and source identities for verification.                                                                               |
+| 0069      | Transparency and trust root policy                         | Rekor inclusion, offline verification, trust root governance.                                                                           |
+| 0070–0071 | Provenance build-environment recording                     | Package-manager distributions, runner image, builder fields.                                                                            |
+| 0072      | Release asset run ownership binding                        | Sidecar-first pair binding and custody non-attribution.                                                                                 |
+| 0073      | npm same-run attestation binding                           | Published-attestation run identity required for npm convergence.                                                                        |
+| 0074      | Mutation segment atomicity                                 | Single-job segments and detection-based cross-run safety.                                                                               |
+| 0075      | Mutation queue policy                                      | `queue: max` FIFO waiting for mutation segment contenders.                                                                              |
+| 0076      | Preflight and first-mutation classification                | Observation preflights; first-mutation classification otherwise.                                                                        |
+| 0077      | Windlass provenance signing adapter                        | Go-native exact-byte Sigstore DSSE signing for all profiles.                                                                            |
+| 0078      | pnpm settings-only root-package mode                       | Missing `packages` means root-only, not malformed workspace data.                                                                       |
+| 0079      | Caller-specified build source ref                          | Tags-only `source-ref` input as the default release-retry path for all producer profiles.                                               |
+| 0080      | Certificate claims as invocation context                   | Source policy binds signed provenance fields; cert source claims prove invocation.                                                      |
+| 0081      | npm OIDC exchange response contract                        | Success body pinned to the observed shape; exchange token lifetime is 15 minutes.                                                       |
+| 0082      | Publish-stage npm version pinning                          | Pinned, integrity-verified publish npm provisioning with a reviewed allowlist.                                                          |
+| 0083      | npm M1 remediation deferred to upstream fix                | Initial publish npm pin is the first reviewed release containing npm/cli#9882.                                                          |
+| 0084      | Publish npm provisioning mechanism                         | Digest-verified npm registry tarball with a committed SHA-512.                                                                          |
+| 0085      | Build-stage Node.js patch and npm pair pin                 | Exact Node.js 24 patch per builder release; bundled npm asserted before first use.                                                      |
+| 0086      | pnpm provisioning via mise field resolution                | mise packageManager-field resolution replaces Corepack; single pin source in package.json.                                              |
+| 0087      | pnpm 12 for development tooling                            | Adopt the pnpm 12 line; verified settings compatibility; dev-only, one-line rollback.                                                   |
+| 0088      | Build-stage pnpm/Yarn registry provisioning                | Digest-verified npm registry tarballs replace Corepack; rollout release is open.                                                        |
+| 0089      | Dev Node.js runtime via field resolution                   | package.json devEngines.runtime is the sole development-runtime pin; mise resolves it.                                                  |
+| 0090      | pnpm 10.x support extension                                | Supported pnpm range becomes [10.0.0, 12.0.0); boundary anchored to pnpm's support table.                                               |
+| 0091      | devEngines as a uniform selection source                   | Any supported package manager is selectable from devEngines.packageManager; Yarn special case removed.                                  |
+| 0092      | Optional descriptor integrity digests                      | Optional declared digests in package-manager descriptors, verified fail-closed against acquired bits; record model unchanged.           |
+| 0093      | Digest algorithms pinned to the SRI set                    | Declared digests use exactly the W3C SRI tokens (sha256, sha384, sha512); widening is a follow-up decision.                             |
+| 0094      | Digest format pinned to a hex suffix                       | Declared digests are written as +algorithm.<hex> suffixes in both manifest fields; SRI base64 is rejected.                              |
+| 0095      | npm declarations: warn on version mismatch, reject digests | Declared npm versions are accepted with a mismatch warning; npm digest suffixes are rejected; npm CLI self-enforcement is out of scope. |
 
 ## ADR status and relations
 
@@ -121,7 +127,7 @@ ambiguous cases in favor of `partially-supersedes`.
 Relation edges are bidirectional: when a new ADR declares `supersedes`, `partially-supersedes`, or
 `amends` against a target, the same change must add the matching reverse entry to the target ADR's
 `relations` field. A new ADR must enumerate every accepted ADR it affects. An omission is a
-traceability defect and is repaired by adding the missing reverse entry — no new ADR is required for
+traceability defect and is repaired by adding the missing reverse entry. No new ADR is required for
 the repair alone, and body text is never edited.
 
 After acceptance, only the `status` and `relations` frontmatter fields may change. See
@@ -221,6 +227,12 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0087 | Adopt pnpm 12 for Node.js development tooling                                                       | Tooling-only                                                                                                                                                                                     |
 | 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                      | JS/TS npm build and pack, verification policy and fixtures (only the Corepack-window support boundary is specified; the registry-tarball mechanism is deferred to follow-on spec work, B01/#106) |
 | 0089 | Provision the development Node.js runtime through mise package.json field resolution                | Tooling-only                                                                                                                                                                                     |
+| 0090 | Extend the supported pnpm range to the 10.x line                                                    | JS/TS npm build and pack, verification policy and fixtures (Corepack-window pnpm support-floor revision; the specification sweep is deferred to the specification phase)                         |
+| 0091 | Accept devEngines.packageManager as a uniform selection source                                      | JS/TS npm build and pack (package manager selection), verification policy and fixtures                                                                                                           |
+| 0092 | Accept optional integrity digests in package-manager descriptors                                    | JS/TS npm build and pack (descriptor grammar, fail-closed digest reconciliation), verification policy and fixtures; algorithm set and format deferred to the specification phase                 |
+| 0093 | Pin descriptor digest algorithms to the W3C SRI set                                                 | JS/TS npm build and pack (descriptor digest grammar), verification policy and fixtures                                                                                                           |
+| 0094 | Pin the descriptor digest format to a hex suffix                                                    | JS/TS npm build and pack (descriptor digest grammar), verification policy and fixtures                                                                                                           |
+| 0095 | Accept npm version declarations with a mismatch warning and reject npm digests                      | JS/TS npm build and pack (npm descriptor semantics), verification policy and fixtures, README                                                                                                    |
 
 ### Superseded or deprecated ADRs (historical only)
 

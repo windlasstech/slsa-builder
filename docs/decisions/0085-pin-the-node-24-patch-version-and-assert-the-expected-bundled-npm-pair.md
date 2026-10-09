@@ -27,6 +27,8 @@ relations:
     target: ADR-0084
   - type: see-also
     target: ADR-0088
+  - type: see-also
+    target: ADR-0095
 ---
 
 # Pin the Node.js 24 Patch Version and Assert the Expected Bundled npm Pair

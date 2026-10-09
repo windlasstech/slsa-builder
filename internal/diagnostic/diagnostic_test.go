@@ -159,8 +159,8 @@ func TestMutationPossible(t *testing.T) {
 func TestClosedRegistryAndContractValidation(t *testing.T) {
 	t.Parallel()
 
-	if got := len(RegisteredIDs()); got != 158 {
-		t.Fatalf("registered ID count = %d, want 158", got)
+	if got := len(RegisteredIDs()); got != 161 {
+		t.Fatalf("registered ID count = %d, want 161", got)
 	}
 	if _, ok := Lookup("windlass.verify.error.not-registered"); ok {
 		t.Fatal("unknown ID unexpectedly registered")

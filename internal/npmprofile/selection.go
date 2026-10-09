@@ -355,8 +355,19 @@ func yarnVersionUnsupported(version string) bool {
 	return major != "v4" && major != "v5"
 }
 
+// exactSemver reports whether version is a full three-part SemVer 2.0.0 version
+// (MAJOR.MINOR.PATCH with an optional prerelease suffix). Shortened forms such
+// as "11" or "4.9" are not exact versions: golang.org/x/mod/semver.IsValid
+// treats missing minor and patch components as zero, which would admit a
+// range-like descriptor through the ADR 0017 exact-version gate and let the
+// provisioning layer resolve or reject it later, outside the builder's
+// diagnostic taxonomy.
 func exactSemver(version string) bool {
-	return version != "" && semver.IsValid("v"+version)
+	if version == "" || !semver.IsValid("v"+version) {
+		return false
+	}
+	core, _, _ := strings.Cut(version, "-")
+	return strings.Count(core, ".") == 2
 }
 
 func managerForLockfile(lockfile string) Manager {

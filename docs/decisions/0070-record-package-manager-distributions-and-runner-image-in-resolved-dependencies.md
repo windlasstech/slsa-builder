@@ -27,6 +27,17 @@ relations:
       distribution descriptors, and the source-native digest-authority discipline remain in force;
       the concrete descriptor shape — the pnpm 12 dual-artifact record and the Yarn authority value
       — is re-specified in the specification phase under that discipline"
+  - type: amended-by
+    target: ADR-0092
+    scope:
+      "the v1 rejection and deferral recorded in Decision Outcome ('Yarn packageManager hash pinning
+      ... are rejected for v1 as acquisition-path and input-requirement changes; either may return
+      as a later ADR on the reproducibility roadmap'): this ADR is that later ADR and realizes the
+      deferred question in optional form — a digest declaration is accepted but never required, and
+      the record model keeps the source-native observed authorities. The rejection of required hash
+      pins, the source-native authority model, and every other ADR 0070 clause remain in force"
+  - type: see-also
+    target: ADR-0093
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies

@@ -582,14 +582,19 @@ absent, violating the conditional-presence rule; it fails with
   `package-url` rules in the public profile spec. It must not be a Package URL (`pkg:npm/...`).
 - `package.packed_name` and `package.packed_version` must match the source package name and version.
 - `package_manager.name` must be `npm`, `pnpm`, or `yarn`.
-- `package_manager.version` must be the actual package-manager version used.
+- `package_manager.version` must be the actual package-manager version used. When pnpm or Yarn
+  manifest metadata declared an integrity digest suffix, the version renders the selected descriptor
+  verbatim, including the `+<algorithm>.<hex>` suffix (ADR 0094); the suffix is declared
+  selection-time input and does not alter the `package-manager-distribution` record's observed
+  digest or authority (ADR 0092).
 - When `package_manager.name` is `yarn`, `package_manager.version` must be an exact SemVer version
-  greater than or equal to `4.0.0`.
+  greater than or equal to `4.0.0` and lower than `6.0.0`, optionally followed by one integrity
+  digest suffix.
 - `package_manager.selection_source` must be one of `packageManager`, `devEngines.packageManager`,
   or `lockfile`.
-- When `package_manager.name` is `yarn`, `package_manager.selection_source` must be
-  `packageManager`; Yarn releases selected from `devEngines.packageManager` or lockfile inference
-  are invalid for the stable initial profile.
+- When `package_manager.name` is `yarn`, `package_manager.selection_source` must be `packageManager`
+  or `devEngines.packageManager` (ADR 0091); Yarn releases selected from lockfile inference are
+  invalid.
 - `package_manager.selection_manifest` must identify the manifest whose metadata selected the
   package manager by basename, or be `null` when `selection_source` is `lockfile`.
 - `package_manager.selection_manifest_path` must identify the repository-root-relative manifest path

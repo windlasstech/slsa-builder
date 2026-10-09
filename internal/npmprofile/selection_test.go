@@ -312,7 +312,7 @@ func TestPackageManagerVersionBounds(t *testing.T) {
 
 	t.Run("pnpm 11.x accepted from both manifest sources", func(t *testing.T) {
 		t.Parallel()
-		for _, version := range []string{"11.0.0", "11.28.3"} {
+		for _, version := range []string{"11.0.0", "11.28.3", "11.1.0-alpha.1"} {
 			for _, declaration := range []string{
 				`"packageManager":"pnpm@` + version + `"`,
 				`"devEngines":{"packageManager":{"name":"pnpm","version":"` + version + `"}}`,
@@ -352,7 +352,11 @@ func TestPackageManagerVersionBounds(t *testing.T) {
 		for _, declaration := range []string{
 			`"packageManager":"pnpm@^11.0.0"`,
 			`"packageManager":"pnpm@latest"`,
+			`"packageManager":"pnpm@11"`,
+			`"packageManager":"pnpm@11.0"`,
 			`"devEngines":{"packageManager":{"name":"pnpm","version":"^11.0.0"}}`,
+			`"devEngines":{"packageManager":{"name":"pnpm","version":"11"}}`,
+			`"devEngines":{"packageManager":{"name":"pnpm","version":"11.0"}}`,
 			`"devEngines":{"packageManager":{"name":"pnpm"}}`,
 		} {
 			root := createRepository(t, map[string]string{
@@ -366,7 +370,7 @@ func TestPackageManagerVersionBounds(t *testing.T) {
 
 	t.Run("yarn Berry v4 and v5 accepted", func(t *testing.T) {
 		t.Parallel()
-		for _, version := range []string{"4.9.2", "5.0.0"} {
+		for _, version := range []string{"4.9.2", "5.0.0", "5.0.0-rc.1"} {
 			root := createRepository(t, map[string]string{
 				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder","packageManager":"yarn@` + version + `"}`,
 				"yarn.lock":    "# yarn lockfile\n",
@@ -396,6 +400,9 @@ func TestPackageManagerVersionBounds(t *testing.T) {
 		for _, declaration := range []string{
 			`"packageManager":"yarn@3.6.4"`,
 			`"packageManager":"yarn@^4.0.0"`,
+			`"packageManager":"yarn@4"`,
+			`"packageManager":"yarn@4.9"`,
+			`"packageManager":"yarn@5"`,
 		} {
 			root := createRepository(t, map[string]string{
 				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + declaration + `}`,

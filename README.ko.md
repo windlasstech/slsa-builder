@@ -44,6 +44,7 @@
   - [slsa-builder의 강점](#slsa-builder의-강점)
 - [기능](#기능)
   - [출처 증명 발급 및 게시](#출처-증명-발급-및-게시)
+  - [패키지 매니저 프로비저닝 및 지원 윈도우](#패키지-매니저-프로비저닝-및-지원-윈도우)
   - [릴리스 에셋 모드](#릴리스-에셋-모드)
   - [출처 증명 검증](#출처-증명-검증)
 - [보안 및 신뢰 모델](#보안-및-신뢰-모델)
@@ -82,7 +83,7 @@ slsa-builder는
 > to make their software supply chain more secure, and consumers can use SLSA to make decisions
 > about whether to trust a software package.
 >
-> ― <https://slsa.dev/spec/v1.2/about>
+> 출처: <https://slsa.dev/spec/v1.2/about>
 
 [SLSA는 트랙과 레벨이라는 개념으로 설명됩니다](https://slsa.dev/spec/v1.2/about#how-slsa-works).
 SLSA의 각 트랙은 공급망의 특정한 한 측면에 초점을 두며, v1.2 기준
@@ -265,13 +266,13 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0002](docs/decisions/0002-use-extensible-trusted-reusable-workflow-foundation.md),
   [ADR 0003](docs/decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md),
   [ADR 0023](docs/decisions/0023-use-package-directory-as-required-js-ts-npm-package-selector.md),
-  [ADR 0028](docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md); 명세:
+  [ADR 0028](docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md), 명세:
   [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
 - **최소화한 신뢰 표면:** slsa-builder는 slsa-github-generator의 넓은 레거시 및 BYOB framework
   표면을 물려받는 대신, 완전히 새로운 출발점과 더 작고 의도적으로 선택한 신뢰 표면을 택했습니다
   ([ADR 0001](docs/decisions/0001-start-slsa-builder-as-clean-repository.md),
   [ADR 0002](docs/decisions/0002-use-extensible-trusted-reusable-workflow-foundation.md),
-  [ADR 0003](docs/decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md); 명세:
+  [ADR 0003](docs/decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md), 명세:
   [Core profile contract](docs/architecture/core-profile-contract.md)).
 - **정준 출처 증명 시맨틱:** slsa-builder는 해당하는 프로파일의 `builder.id`, `buildType`,
   `externalParameters`, subject, digest, publish, verification semantics를 기록하고, Go-native
@@ -281,7 +282,7 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0029](docs/decisions/0029-use-windlass-generated-slsa-provenance-for-npm-publish.md),
   [ADR 0042](docs/decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [ADR 0064](docs/decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
-  [ADR 0077](docs/decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md);
+  [ADR 0077](docs/decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
   명세: [SLSA provenance v1](docs/architecture/slsa-provenance-v1.md),
   [Identity and build types](docs/architecture/identity-and-buildtypes.md)).
 - **종단 간 릴리스 신뢰:** 엄격한 signed-JSON 처리, immutable builder와 source binding, 관리되는
@@ -302,7 +303,7 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   [ADR 0073](docs/decisions/0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md),
   [ADR 0074](docs/decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
   [ADR 0075](docs/decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
-  [ADR 0076](docs/decisions/0076-use-observation-preflights-and-first-mutation-classification.md);
+  [ADR 0076](docs/decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
   명세: [Release manifest](docs/architecture/release-manifest.md),
   [GitHub Release asset publisher](docs/architecture/github-release-asset-publisher.md),
   [Verification policy and fixtures](docs/architecture/verification-policy-and-fixtures.md)).
@@ -312,7 +313,7 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   고정하고, dispatch ref는 감사 가능한 호출 컨텍스트로 별도 기록됩니다. 전임 도구가 끝내 제공하지
   못한 격차를 해소합니다
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
-  [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md);
+  [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
   명세: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
 
 ## 기능
@@ -336,15 +337,102 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)와
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
   참고).
-- **매니페스트 우선 패키지 매니저 선택:** npm, pnpm 11.x, Corepack을 통한 Yarn Berry v4/v5를
-  지원합니다. Corepack은 프로덕션 프로비저닝 경로이며, 11.x 라인 밖의 pnpm 버전이나 Yarn 6 이상을
-  고정한 소비자 매니페스트는 진단과 함께 거부됩니다. 빌드 스크립트는 선언된 경우에만 실행합니다
-  ([JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md) 참고).
+- **매니페스트 우선 패키지 매니저 선택:** 패키지 매니저와 버전은 소비자 매니페스트에서 선택하며,
+  빌드 스크립트는 선언된 경우에만 실행합니다. 지원 버전 집합, 거부 동작, 프로비저닝 롤아웃은
+  [패키지 매니저 프로비저닝 및 지원 윈도우](#패키지-매니저-프로비저닝-및-지원-윈도우)를 참고하세요
+  (명세: [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
 - **비밀 없는 신뢰 게시:** npm OIDC trusted publishing으로 인증하므로 장기 보관 publish secret이
   필요 없습니다. slsa-builder가 생성하는 SLSA v1 출처 증명은 하나의 npm Package URL subject에 동일
   tarball 바이트의 SHA-512와 SHA-256 digest를 함께 담고, Go-native Sigstore DSSE signer로 서명한 뒤
   세 job으로 구성된 publish graph를 거쳐 게시합니다
   ([JS/TS npm provenance and publish](docs/architecture/js-ts-npm-provenance-publish.md) 참고).
+
+### 패키지 매니저 프로비저닝 및 지원 윈도우
+
+빌드 단계 pnpm과 Yarn은 현재 프로덕션 프로비저닝 경로인 Corepack을 통해 프로비저닝합니다
+([ADR 0016](docs/decisions/0016-use-corepack-for-pnpm-and-yarn-build-stages.md)). Corepack이
+프로덕션 경로로 유지되는 동안, JS/TS npm 프로파일은 설치 전에 강제되는 다음의 제한된 패키지 매니저
+버전 집합만을 지원합니다.
+
+- **pnpm**은 최상위 `packageManager` 필드 또는 `devEngines.packageManager`에 선언된 10.x 또는 11.x
+  라인의 정확한 버전(`11.2.0`처럼 세 부분으로 이뤄진 완전한 SemVer 버전이며, `11`이나 `11.0` 같은
+  축약형은 불가)이어야 합니다. 지원 범위 밖의 pnpm 버전(12 이상 또는 10 미만)을 고정한 매니페스트는
+  설치 전에 `windlass.verify.error.pnpm-version-unsupported` 진단과 함께 거부됩니다.
+- **Yarn**은 최상위 `packageManager` 필드 또는 `devEngines.packageManager`에 선언된 정확한 Yarn
+  Berry v4 또는 v5 버전(`>= 4.0.0, < 6.0.0`, 마찬가지로 `4.1.0`처럼 세 부분의 완전한 SemVer 버전이며
+  `4` 같은 축약형은 불가)이어야 합니다. 지원 범위 밖의 Yarn 버전(6 이상 또는 v4 미만)을 고정한
+  매니페스트는 설치 전에 거부되며, Yarn 6 이상은 `windlass.verify.error.yarn-version-unsupported`
+  진단과 함께 거부됩니다.
+- **npm**은 이 경계의 영향을 받지 않습니다. 프로파일은 고정된 Node.js 24 도구체인에 번들된 npm CLI를
+  사용합니다.
+
+이 윈도우는 프로파일이 실행하는 모든 패키지 매니저가 출처 증명 레코드가 커버하는 배포본을 갖도록
+하기 위해 존재합니다. Corepack 하에서 pnpm 12 소비자가 실제로 실행하는 네이티브 바이너리는 빌더의
+배포 캡처 밖에서 첫 사용 시 shim 다운로드를 통해 도착하므로, `package-manager-distribution` 레코드가
+실행된 비트를 커버하지 못하게 됩니다. 프로젝트는 스스로 책임질 수 없는 출처 증명은 발급하지
+않습니다. Yarn 6는 아직 릴리스되지 않았으며 무결성을 보장하는 배포 채널이 확인되지 않았습니다.
+서명된 출처 증명에 기록되고 다운스트림 검증자가 확인하는 내용도 동일한 이 경계입니다
+([JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md) 참고).
+
+**선택적 무결성 다이제스트.** 두 매니페스트 필드 어디에서든 pnpm 또는 Yarn 디스크립터에
+`+<algorithm>.<hex>` 형태의 SemVer 빌드 메타데이터 접미사로 패키지 매니저 배포본의 기대 다이제스트를
+추가로 선언할 수 있습니다. 예를 들어 `packageManager: "pnpm@11.9.0+sha512.<hex>"` 또는
+`devEngines.packageManager`의 `"version": "4.1.0+sha256.<hex>"`처럼 씁니다. 이 선언은 선택 사항이며
+결코 필수가 아닙니다. 지원 알고리즘은 `sha256`, `sha384`, `sha512`이며 16진수는 소문자여야 합니다.
+다이제스트가 선언되면 빌더는 취득한 배포 바이트에 대해 다이제스트를 다시 계산하고, 불일치 시 설치
+전에 fail-closed로 실패합니다
+([ADR 0092](docs/decisions/0092-accept-optional-integrity-digests-in-package-manager-descriptors.md),
+[ADR 0093](docs/decisions/0093-pin-descriptor-digest-algorithms-to-the-sri-set.md),
+[ADR 0094](docs/decisions/0094-pin-descriptor-digest-format-to-a-hex-suffix.md), 명세:
+[JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md#integrity-digest-declarations)).
+
+선언된 다이제스트는 실제 배포 아티팩트에 대해 계산되며, 이는 패키지 매니저마다 다릅니다. pnpm의
+배포본은 npm 레지스트리 tarball이며, 레지스트리가 정확히 그 바이트에 대한 SRI 무결성 값을 게시하므로
+선언할 pnpm 다이제스트를 레지스트리 메타데이터에서 유도할 수 있습니다.
+
+```bash
+pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256
+```
+
+`npm view` 또는 `yarn npm info pnpm@<version> --json | jq -r .dist.integrity`에 동일한 접두사
+제거(`sed 's/^sha[0-9]*-//'`)와 base64→hex 변환을 적용해도 동일합니다. Corepack 윈도우에서 Yarn의
+배포본은 `repo.yarnpkg.com`이 제공하는 단일 `yarn.js` 번들로, 무결성 메타데이터를 게시하지 않으므로
+다운로드를 직접 해시합니다.
+
+```bash
+curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1
+```
+
+npm은 빌더 소유 Node.js 24 도구체인에 바인딩되므로 다이제스트를 받지 않으며, 다이제스트 접미가 붙은
+npm 디스크립터는 거부됩니다. npm 배포본을 취득하지 않으므로 그 선언은 그 누구도 검증할 수 없기
+때문입니다
+([ADR 0095](docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md)).
+선언된 다이제스트는 증거가 아닌 선택 시점의 입력입니다. 서명된 출처 증명에는 여전히 소스 고유 권위와
+함께 관측된 배포 다이제스트가 기록되며(pnpm은 `registry-integrity`, Yarn은 `download-hash`), 선언된
+다이제스트는 이를 변경하지 않습니다.
+
+**npm 선언과 책임 경계**
+([ADR 0095](docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md)).
+두 매니페스트 필드 어디에 선언된 npm 버전이든 수용되지만 권위를 갖지 않습니다. 빌드는 항상 툴체인
+npm을 실행하고, 선언 버전과 비교해 불일치 시 경고를 발생시키되 이 때문에 실패하지는 않습니다. 단, 이
+필드들에 대한 npm CLI 자체의 해석은 slsa-builder의 정책이 아닌 npm의 동작입니다. npm은 최상위
+`packageManager` 필드를 무시하는 반면, `devEngines.packageManager`는 실행 중인 npm에 대한 SemVer
+range 검사로 스스로 집행합니다. 불일치 시 기본적으로 `EBADDEVENGINES`로 실패하며,
+`onFail: "warn"`이나 `"ignore"`는 그 검사를 완화하는데, 프로파일은 이를 프로젝트 작성자 자신의
+선택으로 간주하여 개입하지 않습니다.
+
+향후 빌더 릴리스에서는 빌드 단계 pnpm과 Yarn을 다이제스트 검증된 npm 레지스트리 tarball에서
+프로비저닝하는 방식으로 전환할 예정입니다. Go 신뢰 코어가 버전 메타데이터에 대한 npm 레지스트리
+서명과 tarball의 무결성을 실행 전에 검증합니다
+([ADR 0088](docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md)).
+롤아웃은 강제 일정 없이 릴리스 관리로 결정되며, 새 메커니즘을 탑재한 릴리스가 나올 때까지는
+Corepack이 프로덕션 경로로 유지됩니다. pnpm 12 지원은 실행된 네이티브 바이너리를 기록하는 이중
+아티팩트 캡처를 갖춘 해당 릴리스와 함께 시작됩니다. Yarn 6 지원은 자동으로 시작되지 않으며, Yarn 6이
+실제로 릴리스될 때 동작 방식과 무결성 보장 채널 확인 등을 거쳐 지원 여부와 시기를 결정할 것입니다.
+
+이 지원 윈도우는 소비자 빌드에만 적용됩니다. 이 저장소 자체의 개발 도구는 pnpm 12 라인을
+사용합니다([ADR 0087](docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md)).
+[개발 환경 설정](#개발-환경-설정)을 참고하세요.
 
 ### 릴리스 에셋 모드
 
@@ -540,12 +628,12 @@ HTML:
 각 배지는 shields.io와 유사하게 네 가지 스타일로 제공됩니다. 기본 `flat`은 접미사 없이 제공되며,
 나머지 스타일은 파일명에 접미사를 붙여 구분합니다.
 
-| 스타일          | 파일명 예시                                 | 미리보기                                                                                            |
-| --------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `flat` (기본)   | `built-with-slsa-builder.svg`               | ![built with slsa-builder — flat](assets/badges/built-with-slsa-builder.svg)                        |
-| `flat-square`   | `built-with-slsa-builder-flat-square.svg`   | ![built with slsa-builder — flat-square](assets/badges/built-with-slsa-builder-flat-square.svg)     |
-| `plastic`       | `built-with-slsa-builder-plastic.svg`       | ![built with slsa-builder — plastic](assets/badges/built-with-slsa-builder-plastic.svg)             |
-| `for-the-badge` | `built-with-slsa-builder-for-the-badge.svg` | ![built with slsa-builder — for-the-badge](assets/badges/built-with-slsa-builder-for-the-badge.svg) |
+| 스타일          | 파일명 예시                                 | 미리보기                                                                                           |
+| --------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `flat` (기본)   | `built-with-slsa-builder.svg`               | ![built with slsa-builder, flat](assets/badges/built-with-slsa-builder.svg)                        |
+| `flat-square`   | `built-with-slsa-builder-flat-square.svg`   | ![built with slsa-builder, flat-square](assets/badges/built-with-slsa-builder-flat-square.svg)     |
+| `plastic`       | `built-with-slsa-builder-plastic.svg`       | ![built with slsa-builder, plastic](assets/badges/built-with-slsa-builder-plastic.svg)             |
+| `for-the-badge` | `built-with-slsa-builder-for-the-badge.svg` | ![built with slsa-builder, for-the-badge](assets/badges/built-with-slsa-builder-for-the-badge.svg) |
 
 같은 접미사 규칙이 `verified-with-slsa-builder`와 `slsa-builder` 배지에도 그대로 적용됩니다. 로고
 배지의 녹색 변형은 색상 접미사가 스타일 접미사보다 앞에 옵니다(예:
@@ -581,9 +669,11 @@ pnpm install
 ```
 
 이 명령은 `mise.toml`에서 정의한 Go와 CLI 도구의 고정된 버전을 설치하고, 개발용 Node.js 런타임과
-pnpm은 `package.json`의 `devEngines` 선언에서 프로비저닝합니다(Corepack 미사용). Lefthook hook은
-mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치합니다. 그 후 `pnpm install` 단계에서
-`package.json`에 선언된 프로젝트 로컬 개발 의존성을 설치합니다.
+pnpm은 `package.json`의 `devEngines` 선언에서 프로비저닝하며 Corepack은 사용하지 않습니다(
+[ADR 0086](docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md),
+[ADR 0089](docs/decisions/0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md)).
+Lefthook hook은 mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치합니다. 그 후
+`pnpm install` 단계에서 `package.json`에 선언된 프로젝트 로컬 개발 의존성을 설치합니다.
 
 CI에서는 레지스트리에 대한 API 호출을 방지하기 위해 잠금 모드로 mise를 실행하세요.
 
@@ -628,9 +718,11 @@ Prettier와 `markdownlint-cli2`를 프로젝트 로컬 pnpm 의존성으로 유�
 ### 도구 버전
 
 도구 버전은 `mise.toml`에서 선언합니다. 단 pnpm과 Node.js 개발 런타임은 `package.json`에만
-선언합니다(각각 `devEngines.packageManager`, `devEngines.runtime`). 플랫폼 간 재현 가능한 설치를
-보장하기 위해 `mise.lock` 파일이 커밋되어 있고, 해석된 pnpm과 런타임 버전은 `pnpm-lock.yaml`에
-기록합니다. `mise.toml`에서 도구 버전을 변경한 경우 다음 명령으로 잠금 파일을 다시 생성하세요.
+선언합니다(각각 `devEngines.packageManager`, `devEngines.runtime`). 개발 도구는 pnpm 12
+라인([ADR 0087](docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md))과 Node.js 24
+런타임을 사용합니다. 플랫폼 간 재현 가능한 설치를 보장하기 위해 `mise.lock` 파일이 커밋되어 있고,
+해석된 pnpm과 런타임 버전은 `pnpm-lock.yaml`에 기록합니다. `mise.toml`에서 도구 버전을 변경한 경우
+다음 명령으로 잠금 파일을 다시 생성하세요.
 
 ```bash
 mise lock

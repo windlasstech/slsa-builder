@@ -17,6 +17,8 @@ relations:
       on disabling Corepack project-spec enforcement. The npm-from-toolchain clause, the
       fail-on-version-mismatch clause, the package-manager selection deference to ADR 0015, and the
       provenance recording clause remain in force"
+  - type: see-also
+    target: ADR-0095
 ---
 
 # Use Corepack for pnpm and Yarn Build Stages

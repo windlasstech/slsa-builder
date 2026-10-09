@@ -115,6 +115,18 @@ Do not implement before reading the specs.
   standard four-digit Gregorian year (e.g., `2026-06-23T12:00:00Z`).
 - **Bilingual README updates**: When editing any `README.md`, update the corresponding
   `README.ko.md` in the same directory as part of the same change.
+- **Language-specific typography**: Each language version of a document must respect that language's
+  orthographic and grammatical norms. Korean has no em-dash (`—`) grammar and does not use the
+  semicolon (`;`) as a prose connector, so never use either in Korean prose. Modern Korean
+  orthography limits the colon (`:`) largely to list-style (개조식) usage: after a heading or label
+  to introduce items or attach an explanation (labels such as `예:`, `참고:`, and `명세:` are valid
+  usage). Do not use the English-style colon in Korean prose to introduce a command or elaboration
+  after a verb clause. For example, ending a Korean sentence with `…해시합니다:` and then an inline
+  `curl` command is invalid: end the sentence with a period and present the command as a separate
+  block, or attach it in parentheses. In English prose the em dash is grammatically valid: prefer an
+  alternative construction (comma, parentheses, colon, or a sentence split) when the em dash offers
+  no clear readability advantage, but keep the em dash where it is genuinely clearer, such as around
+  an interjection that already contains parentheses or a comma-heavy list.
 - **CodeGraph MCP**: `opencode.jsonc` configures a local CodeGraph MCP server. Other AI tool configs
   (`.cursor/`, `.claude/`, `.kiro/`, `.gemini/`) also reference CodeGraph.
 - **Trusted-core Go rules**: closed diagnostic registry with spec-parity tests, RFC 8785 canonical
@@ -138,6 +150,10 @@ Do not implement before reading the specs.
 - Maintain `CHANGELOG.md` according to [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), but
   use the organization's Human Era date convention for release headings (for example,
   `## [0.1.0] - 12026-06-13`).
+- Changelog categories describe changes relative to a previous release. While the project is
+  pre-release and no earlier version exists, do not add categories that presuppose previously
+  released behavior, such as `Fixed`: correcting unreleased behavior revises the relevant
+  `[Unreleased]` entry text instead, and PRs whose changes are not user-facing use `None`.
 - Changelog entries are for users and downstream integrators. Summarize notable upgrade-relevant
   behavior; do not generate changelog entries by dumping commit logs.
 - For every PR, complete the organization PR template's `Changelog` section with:
@@ -232,6 +248,11 @@ to the ADR whose confirmation criteria or scope produced it.
   auto-generated provenance. The upstream fix has shipped (npm 12.1.0 / 11.20.0; #97 closed); retry
   as v0.1.3 after the ADR 0082 initial pin is selected (preferring npm 11.20.0 per ADR 0083) and the
   pinned npm CLI is provisioned.
+- **pnpm 10.x support horizon** (ADR 0090 confirmation): pnpm's official security policy lists the
+  10.x line as supported through 2027-04-30 (the same horizon as 11.x). At that horizon, re-apply
+  the ADR 0090 boundary rule and restate the supported pnpm floor — expected to revert to the 11.x
+  line unless upstream extends 10.x support — and update the bound, fixtures, and diagnostics
+  accordingly.
 
 <!-- CODEGRAPH_START -->
 

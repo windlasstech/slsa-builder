@@ -10,6 +10,8 @@ relations:
     scope:
       "pnpm root-package selection when pnpm-workspace.yaml omits packages; one-package-per-run and
       explicitly selected workspace-package behavior remain in force"
+  - type: see-also
+    target: ADR-0090
 ---
 
 # Treat Settings-Only pnpm-workspace.yaml as Standalone Root Package Mode

@@ -743,8 +743,8 @@ The workflow must fail before any registry mutation when:
 - The package directory does not contain a valid `package.json`.
 - The selected package manifest has `private: true`.
 - The package manager selection is ambiguous or unsupported. A consumer manifest that pins a pnpm
-  version outside the 11.x line, or Yarn 6 or newer, is rejected before install with
-  `windlass.verify.error.pnpm-version-unsupported` or
+  version outside the supported `[10.0.0, 12.0.0)` range, or Yarn 6 or newer, is rejected before
+  install with `windlass.verify.error.pnpm-version-unsupported` or
   `windlass.verify.error.yarn-version-unsupported`, respectively (see
   [JS/TS npm build and pack](js-ts-npm-build-pack.md)).
 - The runtime environment is not `ubuntu-24.04` with Node.js 24.

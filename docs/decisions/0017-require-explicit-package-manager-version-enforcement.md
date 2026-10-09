@@ -13,6 +13,18 @@ relations:
     target: ADR-0085
   - type: see-also
     target: ADR-0088
+  - type: see-also
+    target: ADR-0090
+  - type: see-also
+    target: ADR-0091
+  - type: see-also
+    target: ADR-0092
+  - type: amended-by
+    target: ADR-0095
+    scope:
+      "the npm clause ('record npm's actual version'): declared npm versions remain accepted and
+      non-authoritative, but a declared npm version that does not match the toolchain npm now
+      produces a warning diagnostic; the recording rule itself is unchanged"
 ---
 
 # Require Explicit Package Manager Version Enforcement

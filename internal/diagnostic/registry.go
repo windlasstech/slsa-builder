@@ -35,6 +35,7 @@ func buildRegistry() map[string]Definition {
 		// docs/architecture/js-ts-npm-build-pack.md:694-701,705.
 		"package-manifest-invalid", "package-metadata-required", "package-private",
 		"package-resolution-invalid", "package-manager-conflict", "package-manager-version-required",
+		"package-manager-digest-malformed", "package-manager-digest-mismatch",
 		"yarn-selection-invalid", "required-lockfile-missing", "package-repository-identity-mismatch",
 		"pnpm-version-unsupported", "yarn-version-unsupported")
 
@@ -114,6 +115,7 @@ func setPrecedence(definitions map[string]Definition, precedence int, categories
 var warningCategories = []string{
 	"custom-registry-preflight-inconclusive",
 	"native-provenance-locator-missing",
+	"npm-version-mismatch",
 	"stale-non-selected-lockfile",
 	"timestamp-clock-skew",
 }
@@ -181,6 +183,8 @@ oidc-capability-unavailable
 package-directory-mismatch
 package-identity-mismatch
 package-manager-conflict
+package-manager-digest-malformed
+package-manager-digest-mismatch
 package-manager-manifest-shape-error
 package-manager-selection-path-mismatch
 package-manager-version-required
