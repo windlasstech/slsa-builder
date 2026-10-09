@@ -30,10 +30,11 @@ relations:
       "the deferred selection-source axis recorded in Decision Outcome
       ('devEngines.packageManager-sourced pins of pnpm 10.x remain outside the supported set and
       keep rejecting with windlass.verify.error.pnpm-version-unsupported until the follow-up ADR
-      decides that axis') and the corresponding More Information note: the axis is decided in the
-      opposite direction — devEngines.packageManager-sourced pins of pnpm 10.x are accepted. The
-      [10.0.0, 12.0.0) supported pnpm range, the boundary rule, and every other ADR 0090 clause
-      remain in force"
+      decides that axis'), the corresponding More Information note, and the Confirmation clause
+      requiring the fixture corpus to retain rejected coverage for devEngines.packageManager-sourced
+      pnpm 10.x pins: the axis is decided in the opposite direction —
+      devEngines.packageManager-sourced pins of pnpm 10.x are accepted. The [10.0.0, 12.0.0)
+      supported pnpm range, the boundary rule, and every other ADR 0090 clause remain in force"
 ---
 
 # Extend the Supported pnpm Range to the 10.x Line

@@ -17,6 +17,14 @@ relations:
     target: ADR-0085
   - type: see-also
     target: ADR-0092
+  - type: partially-supersedes
+    target: ADR-0091
+    scope:
+      "the uniform selection rule as applied to npm ('shortened forms, ranges, tags, URLs, and
+      hash-suffixed descriptors are rejected from both fields' for any supported manager): npm
+      version declarations, including ranges, are accepted as non-authoritative input with a
+      mismatch warning, while npm digest suffixes remain rejected. pnpm and Yarn semantics are
+      unchanged by this edge"
 ---
 
 # Accept npm Version Declarations with a Mismatch Warning and Reject npm Digest Declarations

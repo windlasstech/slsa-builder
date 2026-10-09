@@ -20,6 +20,14 @@ relations:
     target: ADR-0088
   - type: see-also
     target: ADR-0091
+  - type: partially-supersedes
+    target: ADR-0091
+    scope:
+      "the uniform selection rule's rejection of hash-suffixed descriptors ('shortened forms,
+      ranges, tags, URLs, and hash-suffixed descriptors are rejected from both fields'): a
+      grammar-valid integrity digest suffix (ADRs 0093, 0094) is accepted for pnpm and Yarn from
+      both fields. Non-digest build metadata and every other rejection in the uniform rule remain in
+      force"
   - type: amended-by
     target: ADR-0093
     scope:

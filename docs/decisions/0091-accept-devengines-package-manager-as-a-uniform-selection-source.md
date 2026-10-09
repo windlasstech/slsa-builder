@@ -11,10 +11,11 @@ relations:
       "the deferred selection-source axis recorded in Decision Outcome
       ('devEngines.packageManager-sourced pins of pnpm 10.x remain outside the supported set and
       keep rejecting with windlass.verify.error.pnpm-version-unsupported until the follow-up ADR
-      decides that axis') and the corresponding More Information note: the axis is decided in the
-      opposite direction — devEngines.packageManager-sourced pins of pnpm 10.x are accepted. The
-      [10.0.0, 12.0.0) supported pnpm range, the boundary rule, and every other ADR 0090 clause
-      remain in force"
+      decides that axis'), the corresponding More Information note, and the Confirmation clause
+      requiring the fixture corpus to retain rejected coverage for devEngines.packageManager-sourced
+      pnpm 10.x pins: the axis is decided in the opposite direction —
+      devEngines.packageManager-sourced pins of pnpm 10.x are accepted. The [10.0.0, 12.0.0)
+      supported pnpm range, the boundary rule, and every other ADR 0090 clause remain in force"
   - type: partially-supersedes
     target: ADR-0063
     scope:
@@ -30,6 +31,22 @@ relations:
     target: ADR-0017
   - type: see-also
     target: ADR-0092
+  - type: partially-superseded-by
+    target: ADR-0092
+    scope:
+      "the uniform selection rule's rejection of hash-suffixed descriptors ('shortened forms,
+      ranges, tags, URLs, and hash-suffixed descriptors are rejected from both fields'): a
+      grammar-valid integrity digest suffix (ADRs 0093, 0094) is accepted for pnpm and Yarn from
+      both fields. Non-digest build metadata and every other rejection in the uniform rule remain in
+      force"
+  - type: partially-superseded-by
+    target: ADR-0095
+    scope:
+      "the uniform selection rule as applied to npm ('shortened forms, ranges, tags, URLs, and
+      hash-suffixed descriptors are rejected from both fields' for any supported manager): npm
+      version declarations, including ranges, are accepted as non-authoritative input with a
+      mismatch warning, while npm digest suffixes remain rejected. pnpm and Yarn semantics are
+      unchanged by this edge"
 ---
 
 # Accept devEngines.packageManager as a Uniform Selection Source
