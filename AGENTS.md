@@ -150,6 +150,10 @@ Do not implement before reading the specs.
 - Maintain `CHANGELOG.md` according to [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), but
   use the organization's Human Era date convention for release headings (for example,
   `## [0.1.0] - 12026-06-13`).
+- Changelog categories describe changes relative to a previous release. While the project is
+  pre-release and no earlier version exists, do not add categories that presuppose previously
+  released behavior, such as `Fixed`: correcting unreleased behavior revises the relevant
+  `[Unreleased]` entry text instead, and PRs whose changes are not user-facing use `None`.
 - Changelog entries are for users and downstream integrators. Summarize notable upgrade-relevant
   behavior; do not generate changelog entries by dumping commit logs.
 - For every PR, complete the organization PR template's `Changelog` section with:
