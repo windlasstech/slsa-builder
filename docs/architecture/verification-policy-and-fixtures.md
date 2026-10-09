@@ -983,12 +983,13 @@ dynamically construct a different ID for the same registered check; doing so fai
 
 The non-fatal warning IDs initially registered by this specification are:
 
-| Diagnostic ID                                                    | Meaning                                                                                                    |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `windlass.verify.warning.stale-non-selected-lockfile`            | A supported but non-selected lockfile was recorded; verification remains valid.                            |
-| `windlass.verify.warning.custom-registry-preflight-inconclusive` | Non-npmjs metadata preflight was inconclusive under the documented best-effort policy.                     |
-| `windlass.verify.warning.native-provenance-locator-missing`      | Optional native provenance locator is absent while the required sidecar verifies.                          |
-| `windlass.verify.warning.timestamp-clock-skew`                   | `finishedOn` precedes `startedOn` by one to five whole seconds; verification continues with zero duration. |
+| Diagnostic ID                                                    | Meaning                                                                                                                                       |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `windlass.verify.warning.stale-non-selected-lockfile`            | A supported but non-selected lockfile was recorded; verification remains valid.                                                               |
+| `windlass.verify.warning.custom-registry-preflight-inconclusive` | Non-npmjs metadata preflight was inconclusive under the documented best-effort policy.                                                        |
+| `windlass.verify.warning.native-provenance-locator-missing`      | Optional native provenance locator is absent while the required sidecar verifies.                                                             |
+| `windlass.verify.warning.timestamp-clock-skew`                   | `finishedOn` precedes `startedOn` by one to five whole seconds; verification continues with zero duration.                                    |
+| `windlass.verify.warning.npm-version-mismatch`                   | A declared npm version does not match the toolchain npm (or is unmatchable); the toolchain npm remains authoritative and the build continues. |
 
 No identity, root, signature, transparency, signing-time, policy-intersection, Statement, or digest
 failure has a warning form. Emitting one of those failures as a warning fails the diagnostics
@@ -1577,18 +1578,21 @@ accepted by the JS/TS npm build and pack spec. Accepted fixtures must include ex
 11.x versions and exact Yarn Berry v4 or v5 versions from both the top-level `packageManager` field
 and `devEngines.packageManager`, including descriptors carrying a grammar-valid integrity digest
 suffix for each supported algorithm (`sha256`, `sha384`, `sha512`) from either manifest source, with
-provenance recording the descriptor verbatim. Rejected fixtures must cover string-form
-`devEngines.packageManager`, array-form `devEngines.packageManager`, unknown object members, missing
-pnpm versions, range versions, tag versions, URL descriptors, malformed digest suffixes — an
-unsupported algorithm, non-lowercase or wrong-length hex, missing hex, additional build-metadata
-identifiers, and a digest suffix on an npm descriptor — pnpm pins outside the supported
-`[10.0.0, 12.0.0)` range — including pre-10 majors — from either manifest source, and
-`onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken release-build policy.
-These failures use `package-manager-manifest-shape-error` unless a narrower package-manager
-selection, version-bound, digest, Yarn support, or lockfile category applies; malformed digest
-suffixes fail with `package-manager-digest-malformed`, a declared digest that disagrees with the
-acquired distribution bytes fails before install with `package-manager-digest-mismatch`, and pnpm
-pins outside the supported range fail with `pnpm-version-unsupported`.
+provenance recording the descriptor verbatim. Accepted fixtures must also cover npm descriptors with
+a declared version from either manifest source — one matching the toolchain npm and one mismatching,
+the latter proving the `npm-version-mismatch` warning and a continued build (ADR 0095). Rejected
+fixtures must cover string-form `devEngines.packageManager`, array-form `devEngines.packageManager`,
+unknown object members, missing pnpm versions, range versions, tag versions, URL descriptors,
+malformed digest suffixes — an unsupported algorithm, non-lowercase or wrong-length hex, missing
+hex, additional build-metadata identifiers, and a digest suffix on an npm descriptor — pnpm pins
+outside the supported `[10.0.0, 12.0.0)` range — including pre-10 majors — from either manifest
+source, and `onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken
+release-build policy. These failures use `package-manager-manifest-shape-error` unless a narrower
+package-manager selection, version-bound, digest, Yarn support, or lockfile category applies;
+malformed digest suffixes fail with `package-manager-digest-malformed`, a declared digest that
+disagrees with the acquired distribution bytes fails before install with
+`package-manager-digest-mismatch`, and pnpm pins outside the supported range fail with
+`pnpm-version-unsupported`.
 
 The Yarn support fixture set must prove ADR 0063's stable boundary. Accepted fixtures must cover a
 root package and workspace package selected by top-level exact `packageManager` values such as

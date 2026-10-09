@@ -278,8 +278,13 @@ supported version set in this section before release builds may use it.
   versions are rejected before install; Yarn 6 or newer is rejected with
   `windlass.verify.error.yarn-version-unsupported`.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
-  Node.js 24 toolchain; the manifest npm version must not override the builder-owned npm runtime,
-  and an npm descriptor must not carry an integrity digest suffix (ADR 0092).
+  Node.js 24 toolchain; the manifest npm version must not override the builder-owned npm runtime. A
+  declared npm version is accepted but non-authoritative: the profile compares it with the toolchain
+  npm's actual version and emits a `windlass.verify.warning.npm-version-mismatch` warning when they
+  do not match, never failing on this account (ADR 0095). An exact declared version warns unless it
+  equals the actual version; a SemVer range warns unless it includes the actual version; an
+  unparseable declared version warns as unmatchable. An npm descriptor must not carry an integrity
+  digest suffix (ADR 0095).
 - If the field is absent in the current manifest source, the profile falls back to the next source.
 
 ### `devEngines.packageManager` field
@@ -290,8 +295,10 @@ supported version set in this section before release builds may use it.
   for this field.
 - `name` must be `npm`, `pnpm`, or `yarn`.
 - `version`, when present, must be a JSON string.
-- `onFail`, when present, must be `ignore`, `warn`, `error`, or `download`. The value is diagnostic
-  metadata only for this production profile and must not weaken release-build enforcement.
+- `onFail`, when present, must be `ignore`, `warn`, `error`, or `download`. For pnpm and Yarn the
+  value is diagnostic metadata only for this production profile and must not weaken release-build
+  enforcement. For npm the field is honored by the npm CLI itself, which the profile deliberately
+  does not override (ADR 0095).
 - Unknown members are rejected.
 - If the field selects pnpm, `version` is required and must be an exact SemVer version in the 10.x
   or 11.x line, greater than or equal to `10.0.0` and lower than `12.0.0`, optionally followed by
@@ -309,10 +316,16 @@ supported version set in this section before release builds may use it.
   metadata remains excluded as a Yarn selection path.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
   Node.js 24 toolchain; `devEngines.packageManager.version` must not override the builder-owned npm
-  runtime, and an npm descriptor must not carry an integrity digest suffix (ADR 0092).
-- If `onFail` is `ignore` or `warn`, the profile still fails closed on package-manager policy
-  violations such as an unsupported name, missing exact pnpm/Yarn version, package-manager mismatch,
-  or required lockfile mismatch.
+  runtime. A declared npm version is accepted but non-authoritative, with the same mismatch-warning
+  behavior as the top-level field (ADR 0095). An npm descriptor must not carry an integrity digest
+  suffix (ADR 0095). For npm, the npm CLI itself interprets `devEngines.packageManager` — including
+  its SemVer range check against the running npm and its `onFail` semantics — and that behavior is
+  outside the profile's responsibility scope: the profile does not verify, override, or intervene in
+  it (ADR 0095).
+- If `onFail` is `ignore` or `warn` and the selected manager is pnpm or Yarn, the profile still
+  fails closed on package-manager policy violations such as an unsupported name, missing exact
+  pnpm/Yarn version, package-manager mismatch, or required lockfile mismatch. For npm, `onFail`
+  effects are the npm CLI's own behavior and outside the profile's responsibility scope (ADR 0095).
 
 Examples:
 
@@ -355,8 +368,8 @@ selection, provisioning, or recording rule.
   exactly 64 characters for `sha256`, 96 for `sha384`, or 128 for `sha512`.
 - The suffix never relaxes the exact-version requirement: the version part without the suffix must
   still be a full exact version inside the supported bounds.
-- A descriptor that selects npm must not carry a digest suffix; npm is bound to the builder-owned
-  Node.js 24 toolchain and has no declared distribution (ADR 0092).
+- A descriptor that selects npm must not carry a digest suffix (ADR 0095); npm is bound to the
+  builder-owned Node.js 24 toolchain and has no declared distribution.
 - A descriptor whose suffix violates any of these rules — an unknown algorithm, non-lowercase or
   wrong-length hex, missing hex, additional build-metadata identifiers, or a suffix on an npm
   descriptor — is rejected before install with
@@ -385,7 +398,7 @@ Rejected examples:
 - `"packageManager": "pnpm@11.9.0+sha512.<hex>.build1"` because the build metadata must be exactly
   the algorithm-hex pair.
 - `"packageManager": "npm@11.5.1+sha512.<hex>"` because npm is toolchain-bound and takes no declared
-  digest (ADR 0092).
+  digest (ADR 0095).
 
 ### Lockfile inference
 
