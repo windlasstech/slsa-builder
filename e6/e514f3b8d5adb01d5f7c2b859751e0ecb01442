@@ -1,0 +1,19 @@
+docs/decisions/0094-pin-descriptor-digest-format-to-a-hex-suffix.md
+  s_5828ef616dd44f::t_60d8315b5e3e7a 151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6e514f3b8d5adb01d5f7c2b859751e0ecb01442",
+  "prompts": {},
+  "sessions": {
+    "s_5828ef616dd44f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
