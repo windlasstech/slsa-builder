@@ -60,16 +60,16 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0077      | Windlass provenance 서명 어댑터           | 모든 프로필의 정확한 바이트를 위한 Go-native DSSE 서명.                         |
 | 0078      | pnpm 설정 전용 루트 패키지 모드           | `packages` 누락은 잘못된 데이터가 아니라 루트 전용 모드.                        |
 | 0079      | 호출자 지정 빌드 소스 ref                 | 모든 producer profile의 기본 릴리즈 재시도 경로인 태그 전용 `source-ref` 입력.  |
-| 0080      | 인증서 클레임 = 호출 컨텍스트             | 소스 정책은 서명된 provenance 필드에 바인딩; cert 소스 클레임은 호출을 증명.    |
-| 0081      | npm OIDC exchange 응답 계약               | 성공 본문을 실측 형태에 핀; exchange 토큰 수명은 15분.                          |
+| 0080      | 인증서 클레임 = 호출 컨텍스트             | 소스 정책은 서명된 provenance 필드에 바인딩. cert 소스 클레임은 호출을 증명.    |
+| 0081      | npm OIDC exchange 응답 계약               | 성공 본문을 실측 형태에 핀. exchange 토큰 수명은 15분.                          |
 | 0082      | publish 단계 npm 버전 핀                  | 무결성 검증된 publish npm 프로비저닝 + 검토 allowlist.                          |
 | 0083      | npm M1 remediation 업스트림 수정 대기     | 초기 publish npm 핀은 npm/cli#9882를 포함하는 첫 검토 릴리스.                   |
 | 0084      | publish npm 프로비저닝 메커니즘           | 커밋된 SHA-512로 검증하는 npm registry tarball 프로비저닝.                      |
-| 0085      | 빌드 단계 Node.js 패치·npm 쌍 핀          | 빌더 릴리스당 정확한 Node.js 24 패치; 첫 사용 전 번들 npm 버전 단언.            |
-| 0086      | mise 필드 해석 기반 pnpm 프로비저닝       | mise packageManager 필드 해석이 Corepack을 대체; package.json 단일 핀 진원지.   |
-| 0087      | 개발 툴 pnpm 12 채택                      | pnpm 12 라인 채택; 설정 호환 검증 완료; 개발 전용, 한 줄 롤백.                  |
-| 0088      | 빌드 단계 pnpm/Yarn 레지스트리 프로비저닝 | 다이제스트 검증 npm 레지스트리 tarball이 Corepack을 대체; 적용 릴리스는 유동적. |
-| 0089      | 개발 Node.js 런타임 필드 해석 프로비저닝  | package.json devEngines.runtime이 개발 런타임 단일 핀; mise가 해석·설치.        |
+| 0085      | 빌드 단계 Node.js 패치·npm 쌍 핀          | 빌더 릴리스당 정확한 Node.js 24 패치. 첫 사용 전 번들 npm 버전 단언.            |
+| 0086      | mise 필드 해석 기반 pnpm 프로비저닝       | mise packageManager 필드 해석이 Corepack을 대체. package.json 단일 핀 진원지.   |
+| 0087      | 개발 툴 pnpm 12 채택                      | pnpm 12 라인 채택. 설정 호환 검증 완료. 개발 전용, 한 줄 롤백.                  |
+| 0088      | 빌드 단계 pnpm/Yarn 레지스트리 프로비저닝 | 다이제스트 검증 npm 레지스트리 tarball이 Corepack을 대체. 적용 릴리스는 유동적. |
+| 0089      | 개발 Node.js 런타임 필드 해석 프로비저닝  | package.json devEngines.runtime이 개발 런타임 단일 핀. mise가 해석·설치.        |
 
 ## ADR status와 relations
 
@@ -135,8 +135,8 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 
 | ADR  | 결정                                                                                                | 명세 매핑                                                                                                                                                                           |
 | ---- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0000 | Use Markdown Architectural Decision Records                                                         | 프로세스; 런타임 명세 불필요                                                                                                                                                        |
-| 0001 | Start slsa-builder as a clean repository                                                            | 기반 결정; 런타임 명세 불필요                                                                                                                                                       |
+| 0000 | Use Markdown Architectural Decision Records                                                         | 프로세스. 런타임 명세 불필요                                                                                                                                                        |
+| 0001 | Start slsa-builder as a clean repository                                                            | 기반 결정. 런타임 명세 불필요                                                                                                                                                       |
 | 0002 | Extensible trusted reusable workflow foundation                                                     | Core profile contract, SLSA provenance, verification policy                                                                                                                         |
 | 0003 | Thin core with profile-owned reusable workflows                                                     | Core profile contract, SLSA provenance, verification policy                                                                                                                         |
 | 0004 | Go as primary implementation language                                                               | Core profile contract                                                                                                                                                               |
@@ -144,7 +144,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0006 | golangci-lint as Go linter runner                                                                   | 도구 전용                                                                                                                                                                           |
 | 0007 | ShellCheck for shell glue                                                                           | 도구 전용                                                                                                                                                                           |
 | 0008 | Dedicated formatters                                                                                | 도구 전용                                                                                                                                                                           |
-| 0009 | Node.js as development tool runtime                                                                 | 도구 전용; core contract가 신뢰 로직 경계를 설명                                                                                                                                    |
+| 0009 | Node.js as development tool runtime                                                                 | 도구 전용. core contract가 신뢰 로직 경계를 설명                                                                                                                                    |
 | 0010 | pnpm for Node.js development tooling                                                                | 도구 전용                                                                                                                                                                           |
 | 0011 | Lefthook for local git hook orchestration                                                           | 도구 전용                                                                                                                                                                           |
 | 0012 | mise as unified development-tool runtime                                                            | 도구 전용                                                                                                                                                                           |
@@ -193,7 +193,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0062 | Intersect trusted producer policies                                                                 | Release manifest, GitHub Release asset publisher, verification policy                                                                                                               |
 | 0063 | Limit Yarn support to Berry v4 with Corepack metadata                                               | JS/TS npm build and pack                                                                                                                                                            |
 | 0064 | Use npm PURL subject with SHA-512 and SHA-256 digests                                               | Common provenance, JS/TS npm specs, composition and publisher specs, verification policy                                                                                            |
-| 0065 | Use a closed status grammar and a separate relations field                                          | 프로세스; 런타임 명세 불필요                                                                                                                                                        |
+| 0065 | Use a closed status grammar and a separate relations field                                          | 프로세스. 런타임 명세 불필요                                                                                                                                                        |
 | 0066 | Serialize release mutations with job-class concurrency                                              | GitHub Release asset publisher, JS/TS npm provenance and publish, release manifest, JS/TS npm package profile, verification policy                                                  |
 | 0067 | Converge repeated runs within run identity                                                          | Release manifest, GitHub Release asset publisher, JS/TS npm provenance and publish, verification policy                                                                             |
 | 0068 | Bind verification to immutable builder and source identities                                        | Verification policy, identity and build types, release manifest, JS/TS npm provenance and publish                                                                                   |
@@ -216,7 +216,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0085 | Pin the Node.js 24 patch version and assert the expected bundled npm pair                           | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                                                             |
 | 0086 | Provision pnpm through mise packageManager-field resolution instead of Corepack                     | 도구 전용                                                                                                                                                                           |
 | 0087 | Adopt pnpm 12 for Node.js development tooling                                                       | 도구 전용                                                                                                                                                                           |
-| 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                      | JS/TS npm build and pack, verification policy and fixtures(현재는 Corepack 지원 윈도우 경계만 명세됨; registry tarball 메커니즘은 후속 명세 작업(B01/#106)으로 유보됨)              |
+| 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                      | JS/TS npm build and pack, verification policy and fixtures(현재는 Corepack 지원 윈도우 경계만 명세됐으며 registry tarball 메커니즘은 후속 명세 작업(B01/#106)으로 유보됨)           |
 | 0089 | Provision the development Node.js runtime through mise package.json field resolution                | 도구 전용                                                                                                                                                                           |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)

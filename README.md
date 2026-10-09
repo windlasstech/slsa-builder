@@ -106,7 +106,7 @@ preventing specific supply-chain compromises.**
 ### What is provenance?
 
 **Provenance** is metadata about how a software artifact was produced. It can include information
-about the source code used, the build system, and the build steps — and even who initiated the build
+about the source code used, the build system, and the build steps, and even who initiated the build
 and why. Provenance can be used to judge the authenticity and trustworthiness of the software
 artifacts you use.
 
@@ -126,9 +126,9 @@ under the [in-toto attestation](https://github.com/in-toto/attestation) framewor
 > SLSA Build L2, but the build-environment isolation corresponding to SLSA Build L3 was not in
 > place.
 >
-> SLSA Build L2 is by no means meaningless — it is far safer than L0 or L1 — but there is a
-> meaningful gap between Build L2 and L3, and it is worth understanding exactly what that gap is and
-> the limits it implies. The following articles may help:
+> SLSA Build L2 is by no means meaningless; it is far safer than L0 or L1, but there is a meaningful
+> gap between Build L2 and L3, and it is worth understanding exactly what that gap is and the limits
+> it implies. The following articles may help:
 >
 > - [Signed doesn’t mean safe](https://arew-m.medium.com/signed-doesnt-mean-safe-7261b0763ea0)
 > - [Mini Shai-Hulud: Where SLSA's Boundaries Fall](https://slsa.dev/blog/2026/05/mini-shai-hulud-what-slsa-can-and-cannot-do)
@@ -138,7 +138,7 @@ under the [in-toto attestation](https://github.com/in-toto/attestation) framewor
 As the official [SLSA overview](https://slsa.dev/spec/v1.2/about) states, SLSA targets software
 producers, consumers, and infrastructure providers, and it broadly helps anyone who produces,
 supplies, or distributes packages. For producers, it offers protection against supply-chain
-tampering, reduced insider risk, and assurance that software reaches consumers as intended — along
+tampering, reduced insider risk, and assurance that software reaches consumers as intended, along
 with a common vocabulary for communication, an actionable checklist, a measure of
 [SSDF](https://csrc.nist.gov/Projects/ssdf) alignment, and clearer shared expectations between
 suppliers and consumers.
@@ -210,10 +210,10 @@ alternatives have the following limitations.
     and
     [Windlass's own security guidance](https://github.com/windlasstech/.github/blob/main/docs/security/workflow-hardening.md#action-references).
     - See: [ADR 0028](./docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md)
-  - Crucially, these projects were effectively unmaintained from around July 12025 — after
+  - Crucially, these projects were effectively unmaintained from around July 12025, after
     [`slsa-github-generator` v2.1.0](https://github.com/slsa-framework/slsa-github-generator/releases/tag/v2.1.0)
     and
-    [`slsa-verifier` v2.7.1](https://github.com/slsa-framework/slsa-verifier/releases/tag/v2.7.1) —
+    [`slsa-verifier` v2.7.1](https://github.com/slsa-framework/slsa-verifier/releases/tag/v2.7.1),
     and
     [maintenance was officially discontinued on August 7, 12026](https://github.com/slsa-framework/slsa-github-generator/pull/4515).
   - The latest SLSA specification version is v1.2, but the provenance format supported by
@@ -233,8 +233,8 @@ alternatives have the following limitations.
       [ADR 0080](./docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
       [osv-scanner#632](https://github.com/google/osv-scanner/issues/632)
 - **GitHub `actions/attest`:**
-  - GitHub Artifact Attestations — the [`attest` action](https://github.com/actions/attest) — make
-    it possible to build and distribute packages on the GitHub Actions platform while meeting SLSA
+  - GitHub Artifact Attestations (the [`attest` action](https://github.com/actions/attest)) make it
+    possible to build and distribute packages on the GitHub Actions platform while meeting SLSA
     Build L3 requirements.
   - GitHub Artifact Attestations automatically handle work such as provenance issuance and signing
     backed by a [Sigstore](https://www.sigstore.dev/) instance.
@@ -265,8 +265,8 @@ alternatives have the following limitations.
   designs this boundary for you as profile-owned reusable workflows, offered as a paved road to SLSA
   Build L3. From a caller workflow, a `uses:` reference and a handful of inputs such as
   `package-directory` bring build, provenance issuance, signing, publishing, and verification in as
-  a single contract. Workflow references can be pinned to commit SHAs instead of tags — avoiding the
-  tag-based-reference limitation noted earlier — and provenance follows the latest SLSA v1.2
+  a single contract. Workflow references can be pinned to commit SHAs instead of tags, avoiding the
+  tag-based-reference limitation noted earlier, and provenance follows the latest SLSA v1.2
   specification. The goal is to carry forward, on top of the current specification, the low-barrier
   model that slsa-github-generator demonstrated on GitHub
   ([ADR 0002](docs/decisions/0002-use-extensible-trusted-reusable-workflow-foundation.md),
@@ -317,8 +317,8 @@ alternatives have the following limitations.
   of a pipeline defect can be retried by dispatching from the ref that carries the fixed pipeline
   (for example `main`), while the built and attested content remains the signed release tag. The
   optional, tags-only `source-ref` input keeps provenance anchored to the tag's commit, and the
-  dispatch ref is recorded separately as auditable invocation context — closing a gap the
-  predecessor ecosystem never shipped
+  dispatch ref is recorded separately as auditable invocation context, closing a gap the predecessor
+  ecosystem never shipped
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md);
   spec: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
@@ -340,7 +340,7 @@ distribution targets will continue to be added over time.
   input. The public contract consists of this one required input and eight optional inputs.
 - **Fixed-pipeline release retry:** The optional, tags-only `source-ref` input lets a caller retry a
   failed release by dispatching from a ref that carries the fixed pipeline (for example `main`)
-  while the built and attested content remains the signed release tag — no retagging, no weakened
+  while the built and attested content remains the signed release tag: no retagging, no weakened
   provenance claim. Provenance records the built tag identity, and the dispatch ref is recorded
   separately as invocation context (see
   [ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md)
@@ -364,30 +364,30 @@ Build-stage pnpm and Yarn are provisioned through Corepack, the current producti
 Corepack remains the production path, the JS/TS npm profile supports a bounded package-manager
 version set, enforced before install:
 
-- **pnpm** must be an exact version in the 10.x or 11.x line — a full three-part SemVer version such
-  as `11.2.0`, not a shortened form like `11` or `11.0` — declared in the top-level `packageManager`
+- **pnpm** must be an exact version in the 10.x or 11.x line (a full three-part SemVer version such
+  as `11.2.0`, not a shortened form like `11` or `11.0`), declared in the top-level `packageManager`
   field or in `devEngines.packageManager`. A manifest pinning a pnpm version outside the supported
-  range — 12 or newer, or older than 10 — is rejected before install with
+  range (12 or newer, or older than 10) is rejected before install with
   `windlass.verify.error.pnpm-version-unsupported`.
-- **Yarn** must be an exact Yarn Berry v4 or v5 version (`>= 4.0.0, < 6.0.0`) — likewise a full
-  three-part SemVer version such as `4.1.0`, not `4` — declared in the top-level `packageManager`
+- **Yarn** must be an exact Yarn Berry v4 or v5 version (`>= 4.0.0, < 6.0.0`, likewise a full
+  three-part SemVer version such as `4.1.0`, not `4`), declared in the top-level `packageManager`
   field or in `devEngines.packageManager`. A manifest pinning a Yarn version outside the supported
-  range — 6 or newer, or older than v4 — is rejected before install; Yarn 6 or newer is rejected
-  with `windlass.verify.error.yarn-version-unsupported`.
+  range (6 or newer, or older than v4) is rejected before install; Yarn 6 or newer is rejected with
+  `windlass.verify.error.yarn-version-unsupported`.
 - **npm** is unaffected by these bounds; the profile uses the npm CLI bundled with the pinned
   Node.js 24 toolchain.
 
 The window exists so that every package manager the profile executes is one whose distribution the
 provenance record covers. Under Corepack, a pnpm 12 consumer's executed native binary arrives
 through a first-use shim download outside the builder's distribution capture, so the
-`package-manager-distribution` record would not cover the executed bits — and the project does not
-issue provenance it cannot stand behind. Yarn 6 is unreleased, with no confirmed integrity-bearing
+`package-manager-distribution` record would not cover the executed bits. The project does not issue
+provenance it cannot stand behind. Yarn 6 is unreleased, with no confirmed integrity-bearing
 distribution channel. These same bounds are what signed provenance records and what downstream
 verifiers check (see [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md)).
 
 **Optional integrity digests.** A pnpm or Yarn descriptor in either manifest field may additionally
 declare the expected digest of the package-manager distribution, as a SemVer build-metadata suffix
-of the form `+<algorithm>.<hex>` — for example `packageManager: "pnpm@11.9.0+sha512.<hex>"`, or
+of the form `+<algorithm>.<hex>`, for example `packageManager: "pnpm@11.9.0+sha512.<hex>"`, or
 `"version": "4.1.0+sha256.<hex>"` in `devEngines.packageManager`. The declaration is optional and
 never required; supported algorithms are `sha256`, `sha384`, and `sha512`, with lowercase hex. When
 a digest is declared, the builder recomputes it over the acquired distribution bytes and fails
@@ -400,14 +400,14 @@ closed before install on any mismatch
 The declared digest is computed over the actual distribution artifact, which differs by package
 manager. pnpm's distribution is its npm registry tarball, and the registry publishes an SRI
 integrity value over those exact bytes, so a declared pnpm digest can be derived from the registry
-metadata —
+metadata:
 `pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256`
 (equivalently `npm view`, or `yarn npm info pnpm@<version> --json | jq -r .dist.integrity` followed
 by the same base64-to-hex conversion). Yarn's distribution during the Corepack window is the single
 `yarn.js` bundle served from `repo.yarnpkg.com`, which publishes no integrity metadata, so hash the
-download directly —
+download directly:
 `curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1`.
-npm is bound to the builder-owned Node.js 24 toolchain and takes no digest — an npm descriptor
+npm is bound to the builder-owned Node.js 24 toolchain and takes no digest. An npm descriptor
 carrying a digest suffix is rejected, because no npm distribution is acquired and the declaration
 could not be verified by anyone
 ([ADR 0095](docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md)).
@@ -419,9 +419,9 @@ observed distribution digest with its source-native authority (`registry-integri
 ([ADR 0095](docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md)).
 An npm descriptor version declared in either manifest field is accepted but non-authoritative: the
 build always runs the toolchain npm, compares the declared version against it, and emits a warning
-on mismatch — it never fails on this account. Note that the npm CLI's own reading of these fields is
+on mismatch; it never fails on this account. Note that the npm CLI's own reading of these fields is
 npm's behavior, not slsa-builder's policy: npm ignores the top-level `packageManager` field, while
-it enforces `devEngines.packageManager` itself, as a SemVer range check against the running npm — a
+it enforces `devEngines.packageManager` itself, as a SemVer range check against the running npm. A
 mismatch fails with `EBADDEVENGINES` by default, and `onFail: "warn"` or `"ignore"` weakens that
 check, which the profile treats as the project author's own choice and does not override.
 
@@ -432,7 +432,7 @@ metadata and the tarball's integrity before executing them
 The rollout is release-managed, with no forced calendar; Corepack remains the production path until
 the release that carries the new mechanism. pnpm 12 support begins with that release, whose
 dual-artifact capture records the executed native binary. Yarn 6 support does not begin
-automatically — whether and when it arrives will be decided when Yarn 6 actually releases, after
+automatically: whether and when it arrives will be decided when Yarn 6 actually releases, after
 evaluating its behavior and confirming an integrity-bearing distribution channel.
 
 This support window governs consumer builds only. This repository's own development tooling runs the
@@ -478,7 +478,7 @@ trust, and where the limits of its defense lie.
   workflow and to an immutable source identity, not to movable tags
   ([ADR 0068](docs/decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md)).
   Source expectations bind to the signed provenance fields, while the signing certificate's
-  platform-fixed source claims authenticate the invocation context — the two stay cryptographically
+  platform-fixed source claims authenticate the invocation context; the two stay cryptographically
   bound even when a dispatch retry builds a tag from a different invocation ref
   ([ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)).
 - **Transparency log and governed trust root:** Every signature must be recorded in the Rekor
@@ -538,8 +538,8 @@ Initial non-goals:
 ## Spread the word
 
 Whether it is an introduction, an endorsement, or constructive criticism pointing out problems and
-areas for improvement, the more content — articles, videos, and the like — about slsa-builder and
-the SLSA framework, the more we can raise awareness of the framework and these tools across the
+areas for improvement, the more content (articles, videos, and the like) about slsa-builder and the
+SLSA framework, the more we can raise awareness of the framework and these tools across the
 ecosystem and drive adoption. Contributions and feedback are always welcome
 ([contributing guidelines](https://github.com/windlasstech/.github/blob/main/CONTRIBUTING.md),
 [issue tracker](https://github.com/windlasstech/slsa-builder/issues)).
@@ -634,12 +634,12 @@ HTML:
 Each badge is provided in four styles, similar to shields.io. The default `flat` is provided without
 a suffix; the other styles are distinguished by a filename suffix.
 
-| Style            | Filename example                            | Preview                                                                                             |
-| ---------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `flat` (default) | `built-with-slsa-builder.svg`               | ![built with slsa-builder — flat](assets/badges/built-with-slsa-builder.svg)                        |
-| `flat-square`    | `built-with-slsa-builder-flat-square.svg`   | ![built with slsa-builder — flat-square](assets/badges/built-with-slsa-builder-flat-square.svg)     |
-| `plastic`        | `built-with-slsa-builder-plastic.svg`       | ![built with slsa-builder — plastic](assets/badges/built-with-slsa-builder-plastic.svg)             |
-| `for-the-badge`  | `built-with-slsa-builder-for-the-badge.svg` | ![built with slsa-builder — for-the-badge](assets/badges/built-with-slsa-builder-for-the-badge.svg) |
+| Style            | Filename example                            | Preview                                                                                            |
+| ---------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `flat` (default) | `built-with-slsa-builder.svg`               | ![built with slsa-builder, flat](assets/badges/built-with-slsa-builder.svg)                        |
+| `flat-square`    | `built-with-slsa-builder-flat-square.svg`   | ![built with slsa-builder, flat-square](assets/badges/built-with-slsa-builder-flat-square.svg)     |
+| `plastic`        | `built-with-slsa-builder-plastic.svg`       | ![built with slsa-builder, plastic](assets/badges/built-with-slsa-builder-plastic.svg)             |
+| `for-the-badge`  | `built-with-slsa-builder-for-the-badge.svg` | ![built with slsa-builder, for-the-badge](assets/badges/built-with-slsa-builder-for-the-badge.svg) |
 
 The same suffix rule applies to the `verified-with-slsa-builder` and `slsa-builder` badges. For the
 green variant of the logo badge, the color suffix comes before the style suffix (e.g.,

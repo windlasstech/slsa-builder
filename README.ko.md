@@ -83,7 +83,7 @@ slsa-builder는
 > to make their software supply chain more secure, and consumers can use SLSA to make decisions
 > about whether to trust a software package.
 >
-> ― <https://slsa.dev/spec/v1.2/about>
+> 출처: <https://slsa.dev/spec/v1.2/about>
 
 [SLSA는 트랙과 레벨이라는 개념으로 설명됩니다](https://slsa.dev/spec/v1.2/about#how-slsa-works).
 SLSA의 각 트랙은 공급망의 특정한 한 측면에 초점을 두며, v1.2 기준
@@ -266,13 +266,13 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0002](docs/decisions/0002-use-extensible-trusted-reusable-workflow-foundation.md),
   [ADR 0003](docs/decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md),
   [ADR 0023](docs/decisions/0023-use-package-directory-as-required-js-ts-npm-package-selector.md),
-  [ADR 0028](docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md); 명세:
+  [ADR 0028](docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md), 명세:
   [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
 - **최소화한 신뢰 표면:** slsa-builder는 slsa-github-generator의 넓은 레거시 및 BYOB framework
   표면을 물려받는 대신, 완전히 새로운 출발점과 더 작고 의도적으로 선택한 신뢰 표면을 택했습니다
   ([ADR 0001](docs/decisions/0001-start-slsa-builder-as-clean-repository.md),
   [ADR 0002](docs/decisions/0002-use-extensible-trusted-reusable-workflow-foundation.md),
-  [ADR 0003](docs/decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md); 명세:
+  [ADR 0003](docs/decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md), 명세:
   [Core profile contract](docs/architecture/core-profile-contract.md)).
 - **정준 출처 증명 시맨틱:** slsa-builder는 해당하는 프로파일의 `builder.id`, `buildType`,
   `externalParameters`, subject, digest, publish, verification semantics를 기록하고, Go-native
@@ -282,7 +282,7 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0029](docs/decisions/0029-use-windlass-generated-slsa-provenance-for-npm-publish.md),
   [ADR 0042](docs/decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [ADR 0064](docs/decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
-  [ADR 0077](docs/decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md);
+  [ADR 0077](docs/decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
   명세: [SLSA provenance v1](docs/architecture/slsa-provenance-v1.md),
   [Identity and build types](docs/architecture/identity-and-buildtypes.md)).
 - **종단 간 릴리스 신뢰:** 엄격한 signed-JSON 처리, immutable builder와 source binding, 관리되는
@@ -303,7 +303,7 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   [ADR 0073](docs/decisions/0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md),
   [ADR 0074](docs/decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
   [ADR 0075](docs/decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
-  [ADR 0076](docs/decisions/0076-use-observation-preflights-and-first-mutation-classification.md);
+  [ADR 0076](docs/decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
   명세: [Release manifest](docs/architecture/release-manifest.md),
   [GitHub Release asset publisher](docs/architecture/github-release-asset-publisher.md),
   [Verification policy and fixtures](docs/architecture/verification-policy-and-fixtures.md)).
@@ -313,7 +313,7 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   고정하고, dispatch ref는 감사 가능한 호출 컨텍스트로 별도 기록됩니다. 전임 도구가 끝내 제공하지
   못한 격차를 해소합니다
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
-  [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md);
+  [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
   명세: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
 
 ## 기능
@@ -376,24 +376,32 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
 
 **선택적 무결성 다이제스트.** 두 매니페스트 필드 어디에서든 pnpm 또는 Yarn 디스크립터에
 `+<algorithm>.<hex>` 형태의 SemVer 빌드 메타데이터 접미사로 패키지 매니저 배포본의 기대 다이제스트를
-추가로 선언할 수 있습니다 — 예: `packageManager: "pnpm@11.9.0+sha512.<hex>"` 또는
-`devEngines.packageManager`의 `"version": "4.1.0+sha256.<hex>"`. 이 선언은 선택 사항이며 결코 필수가
-아닙니다. 지원 알고리즘은 `sha256`, `sha384`, `sha512`이며 16진수는 소문자여야 합니다. 다이제스트가
-선언되면 빌더는 취득한 배포 바이트에 대해 다이제스트를 다시 계산하고, 불일치 시 설치 전에
-fail-closed로 실패합니다
+추가로 선언할 수 있습니다. 예를 들어 `packageManager: "pnpm@11.9.0+sha512.<hex>"` 또는
+`devEngines.packageManager`의 `"version": "4.1.0+sha256.<hex>"`처럼 씁니다. 이 선언은 선택 사항이며
+결코 필수가 아닙니다. 지원 알고리즘은 `sha256`, `sha384`, `sha512`이며 16진수는 소문자여야 합니다.
+다이제스트가 선언되면 빌더는 취득한 배포 바이트에 대해 다이제스트를 다시 계산하고, 불일치 시 설치
+전에 fail-closed로 실패합니다
 ([ADR 0092](docs/decisions/0092-accept-optional-integrity-digests-in-package-manager-descriptors.md),
 [ADR 0093](docs/decisions/0093-pin-descriptor-digest-algorithms-to-the-sri-set.md),
-[ADR 0094](docs/decisions/0094-pin-descriptor-digest-format-to-a-hex-suffix.md); 명세:
+[ADR 0094](docs/decisions/0094-pin-descriptor-digest-format-to-a-hex-suffix.md), 명세:
 [JS/TS npm build and pack](docs/architecture/js-ts-npm-build-pack.md#integrity-digest-declarations)).
 
 선언된 다이제스트는 실제 배포 아티팩트에 대해 계산되며, 이는 패키지 매니저마다 다릅니다. pnpm의
 배포본은 npm 레지스트리 tarball이며, 레지스트리가 정확히 그 바이트에 대한 SRI 무결성 값을 게시하므로
-선언할 pnpm 다이제스트를 레지스트리 메타데이터에서 유도할 수 있습니다 —
-`pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256`
-(`npm view` 또는 `yarn npm info pnpm@<version> --json | jq -r .dist.integrity`에 동일한 base64→hex
-변환을 적용해도 동일). Corepack 윈도우에서 Yarn의 배포본은 `repo.yarnpkg.com`이 제공하는 단일
-`yarn.js` 번들로, 무결성 메타데이터를 게시하지 않으므로 다운로드를 직접 해시합니다 —
-`curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1`.
+선언할 pnpm 다이제스트를 레지스트리 메타데이터에서 유도할 수 있습니다.
+
+```bash
+pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256
+```
+
+`npm view` 또는 `yarn npm info pnpm@<version> --json | jq -r .dist.integrity`에 동일한 base64→hex
+변환을 적용해도 동일합니다. Corepack 윈도우에서 Yarn의 배포본은 `repo.yarnpkg.com`이 제공하는 단일
+`yarn.js` 번들로, 무결성 메타데이터를 게시하지 않으므로 다운로드를 직접 해시합니다.
+
+```bash
+curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1
+```
+
 npm은 빌더 소유 Node.js 24 도구체인에 바인딩되므로 다이제스트를 받지 않으며, 다이제스트 접미가 붙은
 npm 디스크립터는 거부됩니다. npm 배포본을 취득하지 않으므로 그 선언은 그 누구도 검증할 수 없기
 때문입니다
@@ -619,12 +627,12 @@ HTML:
 각 배지는 shields.io와 유사하게 네 가지 스타일로 제공됩니다. 기본 `flat`은 접미사 없이 제공되며,
 나머지 스타일은 파일명에 접미사를 붙여 구분합니다.
 
-| 스타일          | 파일명 예시                                 | 미리보기                                                                                            |
-| --------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `flat` (기본)   | `built-with-slsa-builder.svg`               | ![built with slsa-builder — flat](assets/badges/built-with-slsa-builder.svg)                        |
-| `flat-square`   | `built-with-slsa-builder-flat-square.svg`   | ![built with slsa-builder — flat-square](assets/badges/built-with-slsa-builder-flat-square.svg)     |
-| `plastic`       | `built-with-slsa-builder-plastic.svg`       | ![built with slsa-builder — plastic](assets/badges/built-with-slsa-builder-plastic.svg)             |
-| `for-the-badge` | `built-with-slsa-builder-for-the-badge.svg` | ![built with slsa-builder — for-the-badge](assets/badges/built-with-slsa-builder-for-the-badge.svg) |
+| 스타일          | 파일명 예시                                 | 미리보기                                                                                           |
+| --------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `flat` (기본)   | `built-with-slsa-builder.svg`               | ![built with slsa-builder, flat](assets/badges/built-with-slsa-builder.svg)                        |
+| `flat-square`   | `built-with-slsa-builder-flat-square.svg`   | ![built with slsa-builder, flat-square](assets/badges/built-with-slsa-builder-flat-square.svg)     |
+| `plastic`       | `built-with-slsa-builder-plastic.svg`       | ![built with slsa-builder, plastic](assets/badges/built-with-slsa-builder-plastic.svg)             |
+| `for-the-badge` | `built-with-slsa-builder-for-the-badge.svg` | ![built with slsa-builder, for-the-badge](assets/badges/built-with-slsa-builder-for-the-badge.svg) |
 
 같은 접미사 규칙이 `verified-with-slsa-builder`와 `slsa-builder` 배지에도 그대로 적용됩니다. 로고
 배지의 녹색 변형은 색상 접미사가 스타일 접미사보다 앞에 옵니다(예:
@@ -660,7 +668,7 @@ pnpm install
 ```
 
 이 명령은 `mise.toml`에서 정의한 Go와 CLI 도구의 고정된 버전을 설치하고, 개발용 Node.js 런타임과
-pnpm은 `package.json`의 `devEngines` 선언에서 프로비저닝합니다(Corepack 미사용;
+pnpm은 `package.json`의 `devEngines` 선언에서 프로비저닝하며 Corepack은 사용하지 않습니다(
 [ADR 0086](docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md),
 [ADR 0089](docs/decisions/0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md)).
 Lefthook hook은 mise가 Lefthook을 설치할 때 `postinstall` 단계로 자동 설치합니다. 그 후

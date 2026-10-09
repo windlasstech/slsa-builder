@@ -127,7 +127,7 @@ ambiguous cases in favor of `partially-supersedes`.
 Relation edges are bidirectional: when a new ADR declares `supersedes`, `partially-supersedes`, or
 `amends` against a target, the same change must add the matching reverse entry to the target ADR's
 `relations` field. A new ADR must enumerate every accepted ADR it affects. An omission is a
-traceability defect and is repaired by adding the missing reverse entry — no new ADR is required for
+traceability defect and is repaired by adding the missing reverse entry. No new ADR is required for
 the repair alone, and body text is never edited.
 
 After acceptance, only the `status` and `relations` frontmatter fields may change. See
