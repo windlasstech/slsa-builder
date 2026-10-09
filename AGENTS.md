@@ -121,12 +121,12 @@ Do not implement before reading the specs.
   orthography limits the colon (`:`) largely to list-style (개조식) usage: after a heading or label
   to introduce items or attach an explanation (labels such as `예:`, `참고:`, and `명세:` are valid
   usage). Do not use the English-style colon in Korean prose to introduce a command or elaboration
-  after a verb clause. For example, `…해시합니다: \`curl …\`` is invalid: end the sentence with a
-  period and present the command as a separate block, or attach it in parentheses. In English prose
-  the em dash is grammatically valid: prefer an alternative construction (comma, parentheses, colon,
-  or a sentence split) when the em dash offers no clear readability advantage, but keep the em dash
-  where it is genuinely clearer, such as around an interjection that already contains parentheses or
-  a comma-heavy list.
+  after a verb clause. For example, ending a Korean sentence with `…해시합니다:` and then an inline
+  `curl` command is invalid: end the sentence with a period and present the command as a separate
+  block, or attach it in parentheses. In English prose the em dash is grammatically valid: prefer an
+  alternative construction (comma, parentheses, colon, or a sentence split) when the em dash offers
+  no clear readability advantage, but keep the em dash where it is genuinely clearer, such as around
+  an interjection that already contains parentheses or a comma-heavy list.
 - **CodeGraph MCP**: `opencode.jsonc` configures a local CodeGraph MCP server. Other AI tool configs
   (`.cursor/`, `.claude/`, `.kiro/`, `.gemini/`) also reference CodeGraph.
 - **Trusted-core Go rules**: closed diagnostic registry with spec-parity tests, RFC 8785 canonical
