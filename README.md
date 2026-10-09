@@ -400,13 +400,21 @@ closed before install on any mismatch
 The declared digest is computed over the actual distribution artifact, which differs by package
 manager. pnpm's distribution is its npm registry tarball, and the registry publishes an SRI
 integrity value over those exact bytes, so a declared pnpm digest can be derived from the registry
-metadata:
-`pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256`
-(equivalently `npm view`, or `yarn npm info pnpm@<version> --json | jq -r .dist.integrity` followed
-by the same base64-to-hex conversion). Yarn's distribution during the Corepack window is the single
+metadata.
+
+```bash
+pnpm view pnpm@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256
+```
+
+(Equivalently `npm view`, or `yarn npm info pnpm@<version> --json | jq -r .dist.integrity` followed
+by the same base64-to-hex conversion.) Yarn's distribution during the Corepack window is the single
 `yarn.js` bundle served from `repo.yarnpkg.com`, which publishes no integrity metadata, so hash the
-download directly:
-`curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1`.
+download directly.
+
+```bash
+curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1
+```
+
 npm is bound to the builder-owned Node.js 24 toolchain and takes no digest. An npm descriptor
 carrying a digest suffix is rejected, because no npm distribution is acquired and the declaration
 could not be verified by anyone
