@@ -36,6 +36,8 @@ relations:
       algorithm.<hex> versus SRI algorithm-<base64>)'): ADR 0094 decides the format, pinning it to
       the Corepack-style +algorithm.<hex> suffix on the exact version in both manifest fields. Every
       other ADR 0092 clause remains in force"
+  - type: see-also
+    target: ADR-0095
 ---
 
 # Accept Optional Integrity Digests in Package-Manager Descriptors
