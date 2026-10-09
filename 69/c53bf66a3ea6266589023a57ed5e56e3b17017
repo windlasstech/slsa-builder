@@ -1,0 +1,21 @@
+README.ko.md
+  s_bb11e2d5dfaf36::t_cdc935b3ec966d 397-400
+README.md
+  s_bb11e2d5dfaf36::t_c86d4099185f4d 410-412
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "69c53bf66a3ea6266589023a57ed5e56e3b17017",
+  "prompts": {},
+  "sessions": {
+    "s_bb11e2d5dfaf36": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ef50077abffeheyKN13Q8u6imK",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
