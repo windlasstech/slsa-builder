@@ -148,7 +148,7 @@ This decision is confirmed when:
   - pnpm:
     `pnpm view <pkg>@<version> dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256`
   - Yarn Berry:
-    `yarn npm info <pkg>@<version> --json | jq -r .dist.integrity | base64 -d | xxd -p -c 256`
+    `yarn npm info <pkg>@<version> --json | jq -r .dist.integrity | sed 's/^sha[0-9]*-//' | base64 -d | xxd -p -c 256`
     (Berry's `--fields` filter does not accept dotted paths)
 
   For a Yarn pin during the Corepack window there is no registry integrity value to convert: the
