@@ -394,10 +394,23 @@ fail-closed로 실패합니다
 변환을 적용해도 동일). Corepack 윈도우에서 Yarn의 배포본은 `repo.yarnpkg.com`이 제공하는 단일
 `yarn.js` 번들로, 무결성 메타데이터를 게시하지 않으므로 다운로드를 직접 해시합니다 —
 `curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1`.
-npm은 빌더 소유 Node.js 24 도구체인에 바인딩되므로 다이제스트를 받지 않습니다. 선언된 다이제스트는
-증거가 아닌 선택 시점의 입력입니다. 서명된 출처 증명에는 여전히 소스 고유 권위와 함께 관측된 배포
-다이제스트가 기록되며(pnpm은 `registry-integrity`, Yarn은 `download-hash`), 선언된 다이제스트는 이를
-변경하지 않습니다.
+npm은 빌더 소유 Node.js 24 도구체인에 바인딩되므로 다이제스트를 받지 않으며, 다이제스트 접미가 붙은
+npm 디스크립터는 거부됩니다. npm 배포본을 취득하지 않으므로 그 선언은 그 누구도 검증할 수 없기
+때문입니다
+([ADR 0095](docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md)).
+선언된 다이제스트는 증거가 아닌 선택 시점의 입력입니다. 서명된 출처 증명에는 여전히 소스 고유 권위와
+함께 관측된 배포 다이제스트가 기록되며(pnpm은 `registry-integrity`, Yarn은 `download-hash`), 선언된
+다이제스트는 이를 변경하지 않습니다.
+
+**npm 선언과 책임 경계**
+([ADR 0095](docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md)).
+두 매니페스트 필드 어디에 선언된 npm 버전이든 수용되지만 권위를 갖지 않습니다. 빌드는 항상 툴체인
+npm을 실행하고, 선언 버전과 비교해 불일치 시 경고를 발생시키되 이 때문에 실패하지는 않습니다. 단, 이
+필드들에 대한 npm CLI 자체의 해석은 slsa-builder의 정책이 아닌 npm의 동작입니다. npm은 최상위
+`packageManager` 필드를 무시하는 반면, `devEngines.packageManager`는 실행 중인 npm에 대한 SemVer
+range 검사로 스스로 집행합니다. 불일치 시 기본적으로 `EBADDEVENGINES`로 실패하며,
+`onFail: "warn"`이나 `"ignore"`는 그 검사를 완화하는데, 프로파일은 이를 프로젝트 작성자 자신의
+선택으로 간주하여 개입하지 않습니다.
 
 향후 빌더 릴리스에서는 빌드 단계 pnpm과 Yarn을 다이제스트 검증된 npm 레지스트리 tarball에서
 프로비저닝하는 방식으로 전환할 예정입니다. Go 신뢰 코어가 버전 메타데이터에 대한 npm 레지스트리

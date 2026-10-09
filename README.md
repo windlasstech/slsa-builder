@@ -407,10 +407,23 @@ by the same base64-to-hex conversion). Yarn's distribution during the Corepack w
 `yarn.js` bundle served from `repo.yarnpkg.com`, which publishes no integrity metadata, so hash the
 download directly —
 `curl -sL https://repo.yarnpkg.com/<version>/packages/yarnpkg-cli/bin/yarn.js | shasum -a 512 | cut -d' ' -f1`.
-npm is bound to the builder-owned Node.js 24 toolchain and takes no digest. A declared digest is a
-selection-time input, not evidence: signed provenance still records the observed distribution digest
-with its source-native authority (`registry-integrity` for pnpm, `download-hash` for Yarn), which a
-declared digest does not change.
+npm is bound to the builder-owned Node.js 24 toolchain and takes no digest — an npm descriptor
+carrying a digest suffix is rejected, because no npm distribution is acquired and the declaration
+could not be verified by anyone
+([ADR 0095](docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md)).
+A declared digest is a selection-time input, not evidence: signed provenance still records the
+observed distribution digest with its source-native authority (`registry-integrity` for pnpm,
+`download-hash` for Yarn), which a declared digest does not change.
+
+**npm declarations and the responsibility boundary**
+([ADR 0095](docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md)).
+An npm descriptor version declared in either manifest field is accepted but non-authoritative: the
+build always runs the toolchain npm, compares the declared version against it, and emits a warning
+on mismatch — it never fails on this account. Note that the npm CLI's own reading of these fields is
+npm's behavior, not slsa-builder's policy: npm ignores the top-level `packageManager` field, while
+it enforces `devEngines.packageManager` itself, as a SemVer range check against the running npm — a
+mismatch fails with `EBADDEVENGINES` by default, and `onFail: "warn"` or `"ignore"` weakens that
+check, which the profile treats as the project author's own choice and does not override.
 
 A future builder release will transition build-stage pnpm and Yarn provisioning to digest-verified
 npm registry tarballs: the Go trusted core verifies the npm registry signature over the version
