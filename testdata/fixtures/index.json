@@ -248,19 +248,6 @@
       "covered-requirement": "ADR-0063.yarn-v4-selection"
     },
     {
-      "name": "yarn-devengines-rejected",
-      "type": "rejected",
-      "surface": "npm",
-      "artifact": "testdata/npm/packages/rejected/yarn-devengines/package.json",
-      "provenance": "testdata/npm/packages/rejected/yarn-devengines/fixture.json",
-      "release-manifest": null,
-      "expected-result": "fail",
-      "expected-failure-category": "yarn-selection-invalid",
-      "expected-primary-id": "windlass.verify.error.yarn-selection-invalid",
-      "expected-secondary-ids": [],
-      "covered-requirement": "ADR-0063.yarn-v4-selection"
-    },
-    {
       "name": "yarn-bare-major",
       "type": "rejected",
       "surface": "npm",
@@ -482,19 +469,6 @@
       "covered-requirement": "ADR-0080.invocation-record-binding"
     },
     {
-      "name": "pnpm-10-unsupported",
-      "type": "rejected",
-      "surface": "npm",
-      "artifact": "testdata/npm/packages/rejected/pnpm-10-unsupported/package.json",
-      "provenance": "testdata/npm/packages/rejected/pnpm-10-unsupported/fixture.json",
-      "release-manifest": null,
-      "expected-result": "fail",
-      "expected-failure-category": "pnpm-version-unsupported",
-      "expected-primary-id": "windlass.verify.error.pnpm-version-unsupported",
-      "expected-secondary-ids": [],
-      "covered-requirement": "ADR-0088.corepack-window-version-bounds"
-    },
-    {
       "name": "pnpm-12-unsupported",
       "type": "rejected",
       "surface": "npm",
@@ -513,19 +487,6 @@
       "surface": "npm",
       "artifact": "testdata/npm/packages/rejected/pnpm-13-unsupported/package.json",
       "provenance": "testdata/npm/packages/rejected/pnpm-13-unsupported/fixture.json",
-      "release-manifest": null,
-      "expected-result": "fail",
-      "expected-failure-category": "pnpm-version-unsupported",
-      "expected-primary-id": "windlass.verify.error.pnpm-version-unsupported",
-      "expected-secondary-ids": [],
-      "covered-requirement": "ADR-0088.corepack-window-version-bounds"
-    },
-    {
-      "name": "pnpm-10-devengines-unsupported",
-      "type": "rejected",
-      "surface": "npm",
-      "artifact": "testdata/npm/packages/rejected/pnpm-10-devengines-unsupported/package.json",
-      "provenance": "testdata/npm/packages/rejected/pnpm-10-devengines-unsupported/fixture.json",
       "release-manifest": null,
       "expected-result": "fail",
       "expected-failure-category": "pnpm-version-unsupported",
@@ -597,6 +558,45 @@
       "expected-primary-id": null,
       "expected-secondary-ids": [],
       "covered-requirement": "ADR-0088.corepack-window-version-bounds"
+    },
+    {
+      "name": "pnpm-10-root-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/pnpm-10-valid/package.json",
+      "provenance": "testdata/npm/packages/pnpm-10-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0090.pnpm-10x-support"
+    },
+    {
+      "name": "pnpm-10-devengines-root-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/pnpm-10-devengines-valid/package.json",
+      "provenance": "testdata/npm/packages/pnpm-10-devengines-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0091.uniform-selection-source"
+    },
+    {
+      "name": "yarn-devengines-root-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/yarn-devengines-valid/package.json",
+      "provenance": "testdata/npm/packages/yarn-devengines-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0091.uniform-selection-source"
     }
   ]
 }

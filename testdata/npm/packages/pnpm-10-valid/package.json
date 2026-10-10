@@ -1,0 +1,8 @@
+{
+  "name": "windlass-fixture-pnpm-10",
+  "version": "1.0.0",
+  "description": "Root pnpm 10 build-pack fixture selected through the top-level packageManager field",
+  "license": "Apache-2.0",
+  "repository": "github:windlasstech/slsa-builder",
+  "packageManager": "pnpm@10.34.6"
+}
