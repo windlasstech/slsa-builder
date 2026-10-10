@@ -54,27 +54,30 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   but omits the optional `packages` member (settings-only workspace files resolve to the root
   package).
 - Added mise packageManager-field provisioning for the development Node.js runtime (24.21.0) and
-  pnpm (12.9.0), with both versions declared solely in `package.json` (`devEngines.runtime` and
+  pnpm (12.10.1), with both versions declared solely in `package.json` (`devEngines.runtime` and
   `devEngines.packageManager`) and Corepack removed from the bootstrap; requires mise v2026.8.7 or
   newer.
 
 ### Security
 
-- Pin the module Go directive at 1.26.6 or newer so that source builds are not exposed to
-  [GO-2026-4970](https://osv.dev/GO-2026-4970) or the Go standard library advisories
+- Pin the module Go directive at 1.27.2 or newer so that source builds are not exposed to
+  [GO-2026-4970](https://osv.dev/GO-2026-4970), the Go standard library advisories
   [GO-2026-5026](https://osv.dev/GO-2026-5026), [GO-2026-5942](https://osv.dev/GO-2026-5942),
   [GO-2026-5972](https://osv.dev/GO-2026-5972), [GO-2026-6088](https://osv.dev/GO-2026-6088),
   [GO-2026-6089](https://osv.dev/GO-2026-6089), [GO-2026-6090](https://osv.dev/GO-2026-6090),
-  [GO-2026-6091](https://osv.dev/GO-2026-6091), and [GO-2026-6218](https://osv.dev/GO-2026-6218).
+  [GO-2026-6091](https://osv.dev/GO-2026-6091), and [GO-2026-6218](https://osv.dev/GO-2026-6218), or
+  the standard-library HTTP/2 components of [GO-2026-6603](https://osv.dev/GO-2026-6603),
+  [GO-2026-6610](https://osv.dev/GO-2026-6610), [GO-2026-6611](https://osv.dev/GO-2026-6611),
+  [GO-2026-6612](https://osv.dev/GO-2026-6612), and [GO-2026-6617](https://osv.dev/GO-2026-6617).
 - Pin `golang.org/x/mod` at v0.40.0 or newer so that builds are not exposed to
   [GO-2026-6179](https://osv.dev/GO-2026-6179) and [GO-2026-6180](https://osv.dev/GO-2026-6180).
 - Pin `golang.org/x/crypto` at v0.56.0 or newer so that builds are not exposed to the SSH
   denial-of-service advisories [GO-2026-6354](https://osv.dev/GO-2026-6354) and
   [GO-2026-6355](https://osv.dev/GO-2026-6355).
-- Pin `golang.org/x/net` at v0.60.0 or newer so that builds are not exposed to
-  [GO-2026-6603](https://osv.dev/GO-2026-6603), [GO-2026-6610](https://osv.dev/GO-2026-6610),
-  [GO-2026-6611](https://osv.dev/GO-2026-6611), [GO-2026-6612](https://osv.dev/GO-2026-6612), and
-  [GO-2026-6617](https://osv.dev/GO-2026-6617).
+- Pin `golang.org/x/net` at v0.60.0 or newer so that builds are not exposed to the
+  `golang.org/x/net` components of [GO-2026-6603](https://osv.dev/GO-2026-6603),
+  [GO-2026-6610](https://osv.dev/GO-2026-6610), [GO-2026-6611](https://osv.dev/GO-2026-6611),
+  [GO-2026-6612](https://osv.dev/GO-2026-6612), and [GO-2026-6617](https://osv.dev/GO-2026-6617).
 - Pin `google.golang.org/grpc` at v1.83.2 or newer so that builds are not exposed to the xDS server
   panic advisory [GO-2026-6443](https://osv.dev/GO-2026-6443); the fix also shipped in the v1.84.0
   stable release, which the module now carries (with `grpc-ecosystem/grpc-gateway/v2` at v2.31.0).

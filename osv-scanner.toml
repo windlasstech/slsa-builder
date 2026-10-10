@@ -6,9 +6,12 @@ ignoreUntil = 2026-11-05
 reason = "govulncheck -test -show verbose reports GO-2026-5932 at module level only; go list -deps -test confirms no openpgp package enters this module's test closure"
 
 # Review by 2027-01-10: remove this exception if a fixed braces release
-# (last_affected 3.0.3 as of 2026-10-10) or a micromatch release that drops
-# the braces dependency becomes available.
-[[IgnoredVulns]]
-id = "GHSA-vfj7-8cjw-p6xm"
-ignoreUntil = 2027-01-10
-reason = "no fixed release exists: last_affected 3.0.3 equals the latest published braces release (2024-05-21); reached only via micromatch glob matching in dev-only markdownlint-cli2 lint runs over repo-controlled patterns, so no attacker-controlled glob input path exists"
+# (GHSA-vfj7-8cjw-p6xm last_affected 3.0.3 as of 2026-10-10) or a micromatch
+# release that drops the braces dependency becomes available.
+[[PackageOverrides]]
+name = "braces"
+version = "3.0.3"
+ecosystem = "npm"
+vulnerability.ignore = true
+effectiveUntil = 2027-01-10
+reason = "GHSA-vfj7-8cjw-p6xm has no fixed release: last_affected 3.0.3 equals the latest published braces release (2024-05-21); reached only via micromatch glob matching in dev-only markdownlint-cli2 lint runs over repo-controlled patterns, so no attacker-controlled glob input path exists"
