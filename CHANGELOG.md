@@ -71,7 +71,21 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Pin `golang.org/x/crypto` at v0.56.0 or newer so that builds are not exposed to the SSH
   denial-of-service advisories [GO-2026-6354](https://osv.dev/GO-2026-6354) and
   [GO-2026-6355](https://osv.dev/GO-2026-6355).
-- Pin `google.golang.org/grpc` at v1.83.2 (holding `grpc-ecosystem/grpc-gateway/v2` at v2.30.0) so
-  that builds are not exposed to the xDS server panic advisory
-  [GO-2026-6443](https://osv.dev/GO-2026-6443); v1.84.0 is the latest stable release but remains
-  affected, with the fix not yet shipped in a stable v1.85.0.
+- Pin `golang.org/x/net` at v0.60.0 or newer so that builds are not exposed to
+  [GO-2026-6603](https://osv.dev/GO-2026-6603), [GO-2026-6610](https://osv.dev/GO-2026-6610),
+  [GO-2026-6611](https://osv.dev/GO-2026-6611), [GO-2026-6612](https://osv.dev/GO-2026-6612), and
+  [GO-2026-6617](https://osv.dev/GO-2026-6617).
+- Pin `google.golang.org/grpc` at v1.83.2 or newer so that builds are not exposed to the xDS server
+  panic advisory [GO-2026-6443](https://osv.dev/GO-2026-6443); the fix also shipped in the v1.84.0
+  stable release, which the module now carries (with `grpc-ecosystem/grpc-gateway/v2` at v2.31.0).
+- Pin the development-tooling transitive dependency `katex` at 0.18.2 or newer via a pnpm override
+  (resolving to 0.19.0, because `micromark-extension-math` caps its declared range at ^0.16.0) so
+  that lint tooling is not exposed to [GHSA-238p-pmpm-9mq7](https://osv.dev/GHSA-238p-pmpm-9mq7).
+- Pin the development-tooling transitive dependency `smol-toml` at 1.9.0 or newer via a pnpm
+  override (resolving to 1.9.1, because `markdownlint-cli2` pins 1.8.0 exactly) so that lint tooling
+  is not exposed to [GHSA-r4xh-jqrq-34v2](https://osv.dev/GHSA-r4xh-jqrq-34v2).
+- Record the development-tooling transitive dependency `braces` 3.0.3 as a known-unfixable finding:
+  [GHSA-vfj7-8cjw-p6xm](https://osv.dev/GHSA-vfj7-8cjw-p6xm) has no fixed release (its last affected
+  version equals the latest published release), so the advisory is ignored in `osv-scanner.toml`
+  until 2027-01-10; the package is reached only through `micromatch` glob matching in
+  markdownlint-cli2 lint runs over repo-controlled patterns.
