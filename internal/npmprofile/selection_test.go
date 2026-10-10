@@ -184,7 +184,10 @@ func TestManagerSelection(t *testing.T) {
 		{name: "npm", packageDirectory: "testdata/npm/packages/npm-root-valid", manager: ManagerNPM, version: ""},
 		{name: "pnpm", packageDirectory: "testdata/npm/packages/scoped-valid", manager: ManagerPNPM, version: "11.28.3"},
 		{name: "pnpm devEngines", packageDirectory: "testdata/npm/packages/pnpm-devengines-valid", manager: ManagerPNPM, version: "11.28.3"},
+		{name: "pnpm 10", packageDirectory: "testdata/npm/packages/pnpm-10-valid", manager: ManagerPNPM, version: "10.34.6"},
+		{name: "pnpm 10 devEngines", packageDirectory: "testdata/npm/packages/pnpm-10-devengines-valid", manager: ManagerPNPM, version: "10.34.6"},
 		{name: "yarn", packageDirectory: "testdata/npm/packages/yarn-valid", manager: ManagerYarn, version: "4.9.2"},
+		{name: "yarn devEngines", packageDirectory: "testdata/npm/packages/yarn-devengines-valid", manager: ManagerYarn, version: "4.9.2"},
 		{name: "yarn 5", packageDirectory: "testdata/npm/packages/yarn-5-valid", manager: ManagerYarn, version: "5.0.0"},
 	}
 	for _, test := range tests {
@@ -295,7 +298,6 @@ func TestYarnV4(t *testing.T) {
 		packageDirectory string
 	}{
 		{name: "classic", packageDirectory: "testdata/npm/packages/rejected/yarn-classic"},
-		{name: "devEngines", packageDirectory: "testdata/npm/packages/rejected/yarn-devengines"},
 		{name: "lockfile only", packageDirectory: "testdata/npm/packages/rejected/yarn-lockfile-only"},
 	} {
 		test := test
@@ -310,9 +312,9 @@ func TestYarnV4(t *testing.T) {
 func TestPackageManagerVersionBounds(t *testing.T) {
 	t.Parallel()
 
-	t.Run("pnpm 11.x accepted from both manifest sources", func(t *testing.T) {
+	t.Run("pnpm 10.x and 11.x accepted from both manifest sources", func(t *testing.T) {
 		t.Parallel()
-		for _, version := range []string{"11.0.0", "11.28.3", "11.1.0-alpha.1"} {
+		for _, version := range []string{"10.0.0", "10.14.0", "10.34.6", "10.1.0-alpha.1", "11.0.0", "11.28.3", "11.1.0-alpha.1"} {
 			for _, declaration := range []string{
 				`"packageManager":"pnpm@` + version + `"`,
 				`"devEngines":{"packageManager":{"name":"pnpm","version":"` + version + `"}}`,
@@ -330,9 +332,9 @@ func TestPackageManagerVersionBounds(t *testing.T) {
 		}
 	})
 
-	t.Run("pnpm outside the 11.x line rejected from both manifest sources", func(t *testing.T) {
+	t.Run("pnpm outside the 10.x and 11.x lines rejected from both manifest sources", func(t *testing.T) {
 		t.Parallel()
-		for _, version := range []string{"9.15.9", "10.14.0", "12.0.0", "12.0.0-rc.6", "13.0.0"} {
+		for _, version := range []string{"9.15.9", "10.0.0-alpha.1", "12.0.0", "12.0.0-rc.6", "13.0.0"} {
 			for _, declaration := range []string{
 				`"packageManager":"pnpm@` + version + `"`,
 				`"devEngines":{"packageManager":{"name":"pnpm","version":"` + version + `"}}`,
@@ -368,34 +370,44 @@ func TestPackageManagerVersionBounds(t *testing.T) {
 		}
 	})
 
-	t.Run("yarn Berry v4 and v5 accepted", func(t *testing.T) {
+	t.Run("yarn Berry v4 and v5 accepted from both manifest sources", func(t *testing.T) {
 		t.Parallel()
 		for _, version := range []string{"4.9.2", "5.0.0", "5.0.0-rc.1"} {
-			root := createRepository(t, map[string]string{
-				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder","packageManager":"yarn@` + version + `"}`,
-				"yarn.lock":    "# yarn lockfile\n",
-			})
-			result := analyze(t, root, ".")
-			assertPass(t, result)
-			if result.Manager.Name != ManagerYarn || result.Manager.Version != version {
-				t.Fatalf("manager = %#v, want yarn@%s", result.Manager, version)
+			for _, declaration := range []string{
+				`"packageManager":"yarn@` + version + `"`,
+				`"devEngines":{"packageManager":{"name":"yarn","version":"` + version + `"}}`,
+			} {
+				root := createRepository(t, map[string]string{
+					"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + declaration + `}`,
+					"yarn.lock":    "# yarn lockfile\n",
+				})
+				result := analyze(t, root, ".")
+				assertPass(t, result)
+				if result.Manager.Name != ManagerYarn || result.Manager.Version != version {
+					t.Fatalf("manager = %#v, want yarn@%s", result.Manager, version)
+				}
 			}
 		}
 	})
 
-	t.Run("yarn 6 or newer rejected", func(t *testing.T) {
+	t.Run("yarn 6 or newer rejected from both manifest sources", func(t *testing.T) {
 		t.Parallel()
 		for _, version := range []string{"6.0.0", "6.0.0-alpha.1", "6.1.0", "7.0.0", "10.0.0"} {
-			root := createRepository(t, map[string]string{
-				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder","packageManager":"yarn@` + version + `"}`,
-				"yarn.lock":    "# yarn lockfile\n",
-			})
-			result := analyze(t, root, ".")
-			assertRejected(t, result, IDYarnVersionUnsupported)
+			for _, declaration := range []string{
+				`"packageManager":"yarn@` + version + `"`,
+				`"devEngines":{"packageManager":{"name":"yarn","version":"` + version + `"}}`,
+			} {
+				root := createRepository(t, map[string]string{
+					"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + declaration + `}`,
+					"yarn.lock":    "# yarn lockfile\n",
+				})
+				result := analyze(t, root, ".")
+				assertRejected(t, result, IDYarnVersionUnsupported)
+			}
 		}
 	})
 
-	t.Run("yarn below v4 keeps selection-invalid", func(t *testing.T) {
+	t.Run("yarn below v4 and non-exact forms keep selection-invalid from both manifest sources", func(t *testing.T) {
 		t.Parallel()
 		for _, declaration := range []string{
 			`"packageManager":"yarn@3.6.4"`,
@@ -403,6 +415,10 @@ func TestPackageManagerVersionBounds(t *testing.T) {
 			`"packageManager":"yarn@4"`,
 			`"packageManager":"yarn@4.9"`,
 			`"packageManager":"yarn@5"`,
+			`"devEngines":{"packageManager":{"name":"yarn","version":"3.6.4"}}`,
+			`"devEngines":{"packageManager":{"name":"yarn","version":"^4.0.0"}}`,
+			`"devEngines":{"packageManager":{"name":"yarn","version":"4"}}`,
+			`"devEngines":{"packageManager":{"name":"yarn"}}`,
 		} {
 			root := createRepository(t, map[string]string{
 				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + declaration + `}`,
@@ -410,6 +426,203 @@ func TestPackageManagerVersionBounds(t *testing.T) {
 			})
 			result := analyze(t, root, ".")
 			assertRejected(t, result, IDYarnSelectionInvalid)
+		}
+	})
+}
+
+func TestDescriptorDigests(t *testing.T) {
+	t.Parallel()
+	sha256Hex := strings.Repeat("a1", 32)
+	sha512Hex := strings.Repeat("c3", 64)
+
+	t.Run("digest declarations accepted from both manifest sources", func(t *testing.T) {
+		t.Parallel()
+		for _, test := range []struct {
+			manager     Manager
+			lockfile    string
+			version     string
+			algorithm   string
+			hex         string
+			declaration func(string) string
+		}{
+			{manager: ManagerPNPM, lockfile: "pnpm-lock.yaml", version: "11.9.0", algorithm: "sha512", hex: sha512Hex,
+				declaration: func(version string) string { return `"packageManager":"pnpm@` + version + `"` }},
+			{manager: ManagerPNPM, lockfile: "pnpm-lock.yaml", version: "10.34.6", algorithm: "sha256", hex: sha256Hex,
+				declaration: func(version string) string {
+					return `"devEngines":{"packageManager":{"name":"pnpm","version":"` + version + `"}}`
+				}},
+			{manager: ManagerYarn, lockfile: "yarn.lock", version: "4.9.2", algorithm: "sha256", hex: sha256Hex,
+				declaration: func(version string) string { return `"packageManager":"yarn@` + version + `"` }},
+			{manager: ManagerYarn, lockfile: "yarn.lock", version: "4.9.2", algorithm: "sha512", hex: sha512Hex,
+				declaration: func(version string) string {
+					return `"devEngines":{"packageManager":{"name":"yarn","version":"` + version + `"}}`
+				}},
+		} {
+			test := test
+			t.Run(string(test.manager)+"/"+test.algorithm, func(t *testing.T) {
+				t.Parallel()
+				declared := test.version + "+" + test.algorithm + "." + test.hex
+				root := createRepository(t, map[string]string{
+					"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + test.declaration(declared) + `}`,
+					test.lockfile:  "lockfile\n",
+				})
+				result := analyze(t, root, ".")
+				assertPass(t, result)
+				if result.Manager.Name != test.manager || result.Manager.Version != test.version {
+					t.Fatalf("manager = %#v, want %s@%s", result.Manager, test.manager, test.version)
+				}
+				if result.Manager.Digest == nil ||
+					*result.Manager.Digest != (DeclaredDigest{Algorithm: test.algorithm, Hex: test.hex}) {
+					t.Fatalf("digest = %#v, want %s.%s", result.Manager.Digest, test.algorithm, test.hex)
+				}
+				if result.Manager.Descriptor() != declared {
+					t.Fatalf("descriptor = %q, want %q", result.Manager.Descriptor(), declared)
+				}
+			})
+		}
+	})
+
+	t.Run("malformed digest suffixes rejected from both manifest sources", func(t *testing.T) {
+		t.Parallel()
+		for _, test := range []struct {
+			lockfile    string
+			declaration string
+		}{
+			{"pnpm-lock.yaml", `"packageManager":"pnpm@11.9.0+build123"`},
+			{"pnpm-lock.yaml", `"packageManager":"pnpm@11.9.0+sha224.` + sha256Hex + `"`},
+			{"yarn.lock", `"packageManager":"yarn@4.1.0+build123"`},
+			{"yarn.lock", `"devEngines":{"packageManager":{"name":"yarn","version":"4.1.0+sha512."}}`},
+			{"pnpm-lock.yaml", `"devEngines":{"packageManager":{"name":"pnpm","version":"11.9.0+sha512.` + sha512Hex + `.build1"}}`},
+			{"package-lock.json", `"packageManager":"npm@11.5.1+sha512.` + sha512Hex + `"`},
+			{"package-lock.json", `"devEngines":{"packageManager":{"name":"npm","version":"11.5.1+sha256.` + sha256Hex + `"}}`},
+		} {
+			root := createRepository(t, map[string]string{
+				"package.json": `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + test.declaration + `}`,
+				test.lockfile:  "lockfile\n",
+			})
+			result := analyze(t, root, ".")
+			assertRejected(t, result, IDPackageManagerDigestMalformed)
+		}
+	})
+
+	t.Run("digest grammar is checked before version exactness and bounds", func(t *testing.T) {
+		t.Parallel()
+		for _, test := range []struct {
+			declaration string
+			wantID      string
+		}{
+			// Malformed digest on an out-of-range version: grammar wins.
+			{`"packageManager":"pnpm@9.15.9+sha256.xyz"`, IDPackageManagerDigestMalformed},
+			// Well-formed digest on a range: exactness next.
+			{`"packageManager":"pnpm@^11.0.0+sha256.` + sha256Hex + `"`, IDPackageManagerVersionRequired},
+			// Well-formed digest on an exact out-of-range version: bound last.
+			{`"packageManager":"pnpm@9.15.9+sha256.` + sha256Hex + `"`, IDPnpmVersionUnsupported},
+		} {
+			root := createRepository(t, map[string]string{
+				"package.json":   `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + test.declaration + `}`,
+				"pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+			})
+			result := analyze(t, root, ".")
+			assertRejected(t, result, test.wantID)
+		}
+	})
+
+	t.Run("differing digests across manifest fields conflict", func(t *testing.T) {
+		t.Parallel()
+		otherSha256Hex := strings.Repeat("b2", 32)
+		for _, test := range []struct {
+			name          string
+			rootDeclared  string
+			childDeclared string
+		}{
+			{name: "different digest hex", rootDeclared: "11.0.0+sha256." + sha256Hex, childDeclared: "11.0.0+sha256." + otherSha256Hex},
+			{name: "different digest algorithm", rootDeclared: "11.0.0+sha256." + sha256Hex, childDeclared: "11.0.0+sha384." + strings.Repeat("a1", 48)},
+			{name: "digest only on one field", rootDeclared: "11.0.0", childDeclared: "11.0.0+sha256." + sha256Hex},
+		} {
+			test := test
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+				root := createRepository(t, map[string]string{
+					"package.json":            `{"name":"root","version":"1.0.0","private":true,"repository":"windlasstech/slsa-builder","packageManager":"pnpm@` + test.rootDeclared + `","workspaces":["packages/*"]}`,
+					"pnpm-lock.yaml":          "lockfileVersion: '9.0'\n",
+					"packages/a/package.json": `{"name":"a","version":"1.0.0","repository":"windlasstech/slsa-builder","devEngines":{"packageManager":{"name":"pnpm","version":"` + test.childDeclared + `"}}}`,
+				})
+				result := analyze(t, root, "packages/a")
+				assertRejected(t, result, IDPackageManagerConflict)
+			})
+		}
+	})
+
+	t.Run("matching digests across manifest fields do not conflict", func(t *testing.T) {
+		t.Parallel()
+		declared := "11.0.0+sha256." + sha256Hex
+		root := createRepository(t, map[string]string{
+			"package.json":            `{"name":"root","version":"1.0.0","private":true,"repository":"windlasstech/slsa-builder","packageManager":"pnpm@` + declared + `","workspaces":["packages/*"]}`,
+			"pnpm-lock.yaml":          "lockfileVersion: '9.0'\n",
+			"packages/a/package.json": `{"name":"a","version":"1.0.0","repository":"windlasstech/slsa-builder","devEngines":{"packageManager":{"name":"pnpm","version":"` + declared + `"}}}`,
+		})
+		result := analyze(t, root, "packages/a")
+		assertPass(t, result)
+		if result.Manager.Digest == nil || result.Manager.Descriptor() != declared {
+			t.Fatalf("selection = %#v, want digest descriptor %q", result.Manager, declared)
+		}
+	})
+}
+
+func TestNPMDeclaredVersion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("declared npm versions accepted non-authoritative", func(t *testing.T) {
+		t.Parallel()
+		for _, test := range []struct {
+			name        string
+			declaration string
+			want        string
+			wantSet     bool
+		}{
+			{name: "exact top-level", declaration: `"packageManager":"npm@11.5.1"`, want: "11.5.1", wantSet: true},
+			{name: "range top-level", declaration: `"packageManager":"npm@^11.5.1"`, want: "^11.5.1", wantSet: true},
+			{name: "garbage top-level", declaration: `"packageManager":"npm@garbage"`, want: "garbage", wantSet: true},
+			{name: "exact devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm","version":"11.5.1"}}`, want: "11.5.1", wantSet: true},
+			{name: "range devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm","version":"^11.5.1"}}`, want: "^11.5.1", wantSet: true},
+			{name: "empty devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm","version":""}}`, want: "", wantSet: true},
+			{name: "omitted devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm"}}`, want: "", wantSet: false},
+		} {
+			test := test
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+				root := createRepository(t, map[string]string{
+					"package.json":      `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder",` + test.declaration + `}`,
+					"package-lock.json": `{}`,
+				})
+				result := analyze(t, root, ".")
+				assertPass(t, result)
+				if result.Manager.Name != ManagerNPM || result.Manager.Version != "" {
+					t.Fatalf("manager = %#v, want npm with a toolchain-owned version", result.Manager)
+				}
+				if result.Manager.DeclaredVersion != test.want {
+					t.Fatalf("declared version = %q, want %q", result.Manager.DeclaredVersion, test.want)
+				}
+				if result.Manager.DeclaredVersionSet != test.wantSet {
+					t.Fatalf("declared version set = %t, want %t", result.Manager.DeclaredVersionSet, test.wantSet)
+				}
+				if result.Manager.Digest != nil {
+					t.Fatalf("digest = %#v, want nil for npm", result.Manager.Digest)
+				}
+			})
+		}
+	})
+
+	t.Run("lockfile inference leaves the declared version empty", func(t *testing.T) {
+		t.Parallel()
+		root := createRepository(t, map[string]string{
+			"package.json":      `{"name":"example","version":"1.0.0","repository":"windlasstech/slsa-builder"}`,
+			"package-lock.json": `{}`,
+		})
+		result := analyze(t, root, ".")
+		assertPass(t, result)
+		if result.Manager.Name != ManagerNPM || result.Manager.DeclaredVersion != "" || result.Manager.DeclaredVersionSet {
+			t.Fatalf("manager = %#v, want npm with no declared version", result.Manager)
 		}
 	})
 }

@@ -10,31 +10,6 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
-- Added the ADR 0088 Corepack-window package-manager version bounds to the JS/TS npm profile: while
-  Corepack remains the production provisioning path, consumer manifests pinning a pnpm version
-  outside the 11.x line are rejected before install with
-  `windlass.verify.error.pnpm-version-unsupported` (enforced from both the top-level
-  `packageManager` field and `devEngines.packageManager`), and manifests pinning Yarn 6 or newer are
-  rejected before install with `windlass.verify.error.yarn-version-unsupported`. Yarn
-  externalParameters in signed provenance are likewise bounded to exact v4/v5 versions, matching the
-  revised verification policy.
-- Added npm configuration diagnostics logging to the JS/TS npm reusable workflow's build and publish
-  jobs: node/npm versions, ambient `NPM_CONFIG_*` variable count, redacted `npm config ls` output,
-  and the provenance/registry key view across all config layers, to aid trusted-publishing and
-  provenance triage in caller runs. The build job additionally logs the selected non-npm package
-  manager's configuration (pnpm `config list` or `yarn config`, resolved from the `packageManager`
-  field) with the same redaction of credential-shaped values.
-- Added a Go testing and fuzzing guide (`docs/testing-guide.md`) defining test organization,
-  security-negative testing, quality gates, and the fuzzing policy for trust-boundary parsers.
-- Added property-based fuzz targets for all trust-boundary parsers and validators (attestation
-  bundle parsing, verification policy decoding, handoff contracts, npm provenance inputs, registry
-  and OIDC response decoding, workspace and package-manager selection parsing, identity and digest
-  validators, and workflow decoding), with seed corpora ported from existing negative tests, a
-  30-second per-target fuzz smoke job on pull requests, and a scheduled weekly long-run fuzz
-  workflow that uploads the fuzz corpus as an artifact.
-- Added the optional tags-only `source-ref` input to the npm producer workflow for fixed-pipeline
-  release retries, with built-source provenance, signed invocation context, and ADR 0080
-  verification binding.
 - Added Go-native keyless DSSE signing for npm provenance, with digest-verified handoffs and offline
   exact-Statement verification before bundle upload.
 - Added the public npm-only reusable workflow with trusted-publisher preflights, serialized publish
@@ -49,10 +24,53 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   links, and a license section.
 - Added the documented fail-closed package-manager support boundary: consumer manifests pinning pnpm
   12+ or Yarn 6+ are rejected with a diagnostic while Corepack is the production provisioning path;
-  supported package managers are npm, pnpm 11.x, and Yarn Berry v4/v5.
+  supported package managers are npm, pnpm 10.x and 11.x, and Yarn Berry v4/v5.
 - Added support for standalone root packages whose `pnpm-workspace.yaml` contains policy settings
   but omits the optional `packages` member (settings-only workspace files resolve to the root
   package).
+- Added the optional tags-only `source-ref` input to the npm producer workflow for fixed-pipeline
+  release retries, with built-source provenance, signed invocation context, and ADR 0080
+  verification binding.
+- Added npm configuration diagnostics logging to the JS/TS npm reusable workflow's build and publish
+  jobs: node/npm versions, ambient `NPM_CONFIG_*` variable count, redacted `npm config ls` output,
+  and the provenance/registry key view across all config layers, to aid trusted-publishing and
+  provenance triage in caller runs. The build job additionally logs the selected non-npm package
+  manager's configuration (pnpm `config list` or `yarn config`, resolved from the `packageManager`
+  field) with the same redaction of credential-shaped values.
+- Added the ADR 0088 Corepack-window package-manager version bounds to the JS/TS npm profile: while
+  Corepack remains the production provisioning path, consumer manifests pinning a pnpm version
+  outside the supported 10.x or 11.x lines (`[10.0.0, 12.0.0)`, per the ADR 0090 boundary rule) are
+  rejected before install with `windlass.verify.error.pnpm-version-unsupported`, and manifests
+  pinning Yarn 6 or newer are rejected before install with
+  `windlass.verify.error.yarn-version-unsupported`. Yarn externalParameters in signed provenance are
+  likewise bounded to exact v4/v5 versions, matching the revised verification policy.
+- Added `devEngines.packageManager` as a uniform package-manager selection source (ADR 0091): any
+  supported package manager, including pnpm 10.x and Yarn Berry v4/v5, is selectable from either the
+  top-level `packageManager` field or `devEngines.packageManager` under each manager's descriptor
+  contract (exact versions for pnpm and Yarn; npm declarations stay non-authoritative per ADR 0095),
+  while `yarn.lock`-only inference remains rejected.
+- Added optional integrity digest declarations to pnpm and Yarn package-manager descriptors (ADRs
+  0092-0094): either manifest field may carry one `+<algorithm>.<hex>` suffix (`sha256`, `sha384`,
+  or `sha512` with lowercase hex), which the builder verifies against the acquired distribution
+  evidence and reconciles fail-closed before install, rejecting a malformed suffix with
+  `windlass.verify.error.package-manager-digest-malformed` and a disagreement with
+  `windlass.verify.error.package-manager-digest-mismatch`. The recorded
+  `package-manager-distribution` evidence keeps its source-native observed authority, and provenance
+  renders the declared descriptor verbatim.
+- Added npm declaration semantics per ADR 0095: an npm version declared in either manifest field is
+  accepted as non-authoritative input, and a declaration that does not match the toolchain npm emits
+  a `windlass.verify.warning.npm-version-mismatch` warning without failing the build; an npm
+  descriptor carrying a digest suffix is rejected, and SemVer build metadata on pnpm and Yarn
+  descriptors that is not a grammar-valid digest suffix is likewise rejected with
+  `windlass.verify.error.package-manager-digest-malformed`.
+- Added a Go testing and fuzzing guide (`docs/testing-guide.md`) defining test organization,
+  security-negative testing, quality gates, and the fuzzing policy for trust-boundary parsers.
+- Added property-based fuzz targets for all trust-boundary parsers and validators (attestation
+  bundle parsing, verification policy decoding, handoff contracts, npm provenance inputs, registry
+  and OIDC response decoding, workspace and package-manager selection parsing, identity and digest
+  validators, and workflow decoding), with seed corpora ported from existing negative tests, a
+  30-second per-target fuzz smoke job on pull requests, and a scheduled weekly long-run fuzz
+  workflow that uploads the fuzz corpus as an artifact.
 - Added mise packageManager-field provisioning for the development Node.js runtime (24.21.0) and
   pnpm (12.10.1), with both versions declared solely in `package.json` (`devEngines.runtime` and
   `devEngines.packageManager`) and Corepack removed from the bootstrap; requires mise v2026.8.7 or

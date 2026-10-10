@@ -1,0 +1,1 @@
+{"name":"windlass-fixture-pnpm-digest-sha512","version":"1.0.0","description":"Root pnpm digest build-pack fixture","license":"Apache-2.0","repository":"github:windlasstech/slsa-builder","packageManager":"pnpm@11.28.3+sha512.8b5f3d69319b270eb569eb610d029e2be44757e917dc4674045f45d43e311ce4d04c7d5e997d9c316c4ff89e2e0ea7d77401325ce1cd6c8caaaf613f0b208aa2"}

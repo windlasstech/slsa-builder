@@ -127,6 +127,18 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		ExternalParameters: json.RawMessage(`{}`),
 	})
 	if err != nil {
+		// ADR 0092: a declared-digest mismatch is a classified policy failure
+		// (fail report, exit 1), not an invocation failure. The mismatch is
+		// detected before install, so a failed BuildPack has no result and no
+		// pending warnings to merge; npm selections carry no digest and never
+		// reach this path.
+		classified, writeErr := writeNPMBuildDigestMismatch(out, err)
+		if writeErr != nil {
+			return writeErr
+		}
+		if classified {
+			return ErrVerificationFailure
+		}
 		return err
 	}
 	if command.runnerOverride != nil {
@@ -169,7 +181,29 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	}); err != nil {
 		return err
 	}
-	return writeDiagnostics(out, nil, nil)
+	return writeDiagnostics(out, nil, result.Diagnostics)
+}
+
+// writeNPMBuildDigestMismatch mirrors writeNPMBuildPolicyError for the
+// classified ADR 0092 declared-digest mismatch: it emits the fail report and
+// reports whether err carried the mismatch diagnostic ID.
+func writeNPMBuildDigestMismatch(out io.Writer, err error) (bool, error) {
+	var identified interface{ DiagnosticID() string }
+	if !errors.As(err, &identified) || identified.DiagnosticID() != npmprofile.IDPackageManagerDigestMismatch {
+		return false, nil
+	}
+	entry, buildErr := diagnostic.New(identified.DiagnosticID(), "package_manager.digest", err.Error())
+	if buildErr != nil {
+		return false, buildErr
+	}
+	report, buildErr := diagnostic.Build(nil, []diagnostic.Diagnostic{entry}, nil)
+	if buildErr != nil {
+		return false, buildErr
+	}
+	if writeErr := WriteReport(out, report); writeErr != nil {
+		return false, writeErr
+	}
+	return true, nil
 }
 
 func writeNPMBuildPolicyError(out io.Writer, err error) error {

@@ -1,0 +1,1 @@
+{"name":"windlass-fixture-pnpm-digest-sha256-devengines","version":"1.0.0","description":"Root pnpm digest devEngines build-pack fixture","license":"Apache-2.0","repository":"github:windlasstech/slsa-builder","devEngines":{"packageManager":{"name":"pnpm","version":"11.28.3+sha256.34194198f48d99a629ddd0e269813590bb93d6ca1ac6a07491756b9a3a8be3a3","onFail":"error"}}}

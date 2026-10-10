@@ -61,16 +61,26 @@ func selectManager(resolved resolvedPackage) (ManagerSelection, []diagnostic.Dia
 	if len(candidates) > 0 {
 		selected := candidates[0]
 		for _, candidate := range candidates[1:] {
-			if candidate.name != selected.name ||
-				(selected.name != ManagerNPM && candidate.version != selected.version) {
+			if candidate.name != selected.name {
+				return ManagerSelection{}, nil, IDPackageManagerConflict
+			}
+			// npm declarations conflict on name only (ADR 0095); pnpm and Yarn
+			// candidates conflict on the plain version or the declared digest.
+			if selected.name != ManagerNPM &&
+				(candidate.version != selected.version || !declaredDigestsEqual(candidate.digest, selected.digest)) {
 				return ManagerSelection{}, nil, IDPackageManagerConflict
 			}
 		}
 		selection := ManagerSelection{
 			Name:                  selected.name,
 			Version:               effectiveVersion(selected),
+			Digest:                selected.digest,
 			Source:                selected.source,
 			SelectionManifestPath: selected.manifestPath,
+		}
+		if selected.name == ManagerNPM {
+			selection.DeclaredVersion = selected.version
+			selection.DeclaredVersionSet = selected.versionDeclared
 		}
 		return validateLockfiles(resolved, selection, true)
 	}
@@ -117,7 +127,7 @@ func parsePackageManager(raw jsonRaw, manifestPath string) (managerCandidate, st
 		return managerCandidate{}, IDPackageManagerConflict
 	}
 	name, version, found := strings.Cut(descriptor, "@")
-	if !found || name == "" || version == "" || strings.Contains(version, "+") {
+	if !found || name == "" || version == "" {
 		if name == string(ManagerYarn) {
 			return managerCandidate{}, IDYarnSelectionInvalid
 		}
@@ -126,29 +136,11 @@ func parsePackageManager(raw jsonRaw, manifestPath string) (managerCandidate, st
 		}
 		return managerCandidate{}, IDPackageManagerConflict
 	}
-	candidate := managerCandidate{name: Manager(name), version: version, source: SelectionPackageManager, manifestPath: manifestPath}
-	switch candidate.name {
-	case ManagerNPM:
-		return candidate, ""
-	case ManagerPNPM:
-		if !exactSemver(version) {
-			return managerCandidate{}, IDPackageManagerVersionRequired
-		}
-		if pnpmVersionUnsupported(version) {
-			return managerCandidate{}, IDPnpmVersionUnsupported
-		}
-		return candidate, ""
-	case ManagerYarn:
-		if !exactSemver(version) || semver.Compare("v"+version, "v4.0.0") < 0 {
-			return managerCandidate{}, IDYarnSelectionInvalid
-		}
-		if yarnVersionUnsupported(version) {
-			return managerCandidate{}, IDYarnVersionUnsupported
-		}
-		return candidate, ""
-	default:
-		return managerCandidate{}, IDPackageManagerConflict
+	plain, digest, failureID := classifyDescriptorVersion(Manager(name), version)
+	if failureID != "" {
+		return managerCandidate{}, failureID
 	}
+	return managerCandidate{name: Manager(name), version: plain, versionDeclared: true, digest: digest, source: SelectionPackageManager, manifestPath: manifestPath}, ""
 }
 
 func parseDevEngines(raw jsonRaw, manifestPath string) (managerCandidate, bool, string) {
@@ -177,7 +169,8 @@ func parseDevEngines(raw jsonRaw, manifestPath string) (managerCandidate, bool, 
 		return managerCandidate{}, false, IDPackageManagerConflict
 	}
 	var version string
-	if rawVersion, ok := object["version"]; ok && json.Unmarshal(rawVersion, &version) != nil {
+	rawVersion, versionDeclared := object["version"]
+	if versionDeclared && json.Unmarshal(rawVersion, &version) != nil {
 		return managerCandidate{}, false, IDPackageManagerConflict
 	}
 	if rawOnFail, ok := object["onFail"]; ok {
@@ -187,23 +180,11 @@ func parseDevEngines(raw jsonRaw, manifestPath string) (managerCandidate, bool, 
 			return managerCandidate{}, false, IDPackageManagerConflict
 		}
 	}
-	candidate := managerCandidate{name: Manager(name), version: version, source: SelectionDevEngines, manifestPath: manifestPath}
-	switch candidate.name {
-	case ManagerNPM:
-		return candidate, true, ""
-	case ManagerPNPM:
-		if !exactSemver(version) || strings.Contains(version, "+") {
-			return managerCandidate{}, false, IDPackageManagerVersionRequired
-		}
-		if pnpmVersionUnsupported(version) {
-			return managerCandidate{}, false, IDPnpmVersionUnsupported
-		}
-		return candidate, true, ""
-	case ManagerYarn:
-		return managerCandidate{}, false, IDYarnSelectionInvalid
-	default:
-		return managerCandidate{}, false, IDPackageManagerConflict
+	plain, digest, failureID := classifyDescriptorVersion(Manager(name), version)
+	if failureID != "" {
+		return managerCandidate{}, false, failureID
 	}
+	return managerCandidate{name: Manager(name), version: plain, versionDeclared: versionDeclared, digest: digest, source: SelectionDevEngines, manifestPath: manifestPath}, true, ""
 }
 
 func inferFromLockfile(resolved resolvedPackage) (ManagerSelection, []diagnostic.Diagnostic, string) {
@@ -315,9 +296,11 @@ func rejectionMessage(id string) string {
 	case IDPackageManagerVersionRequired:
 		return "An exact pnpm package-manager version is required from manifest metadata."
 	case IDYarnSelectionInvalid:
-		return "Yarn requires top-level packageManager metadata selecting an exact Yarn v4 or newer version."
+		return "Yarn requires manifest package-manager metadata selecting an exact Yarn v4 or newer version."
 	case IDPnpmVersionUnsupported:
-		return "The selected pnpm version is outside the 11.x line supported while Corepack is the production provisioning path."
+		return "The selected pnpm version is outside the supported 10.x or 11.x lines while Corepack is the production provisioning path."
+	case IDPackageManagerDigestMalformed:
+		return "The declared package-manager integrity digest violates the closed +<algorithm>.<hex> grammar or appears on an npm descriptor."
 	case IDYarnVersionUnsupported:
 		return "Yarn 6 or newer is not supported while Corepack is the production provisioning path."
 	case IDRequiredLockfileMissing:
@@ -337,12 +320,26 @@ func effectiveVersion(candidate managerCandidate) string {
 }
 
 // pnpmVersionUnsupported reports whether an exact pnpm version falls outside
-// the 11.x line supported while the ADR 0016 Corepack mechanism is the
-// production provisioning path (the ADR 0088 Corepack-window support
-// boundary). Prereleases of the 11.0.0 lower boundary and of the 12.0.0 upper
-// boundary fail closed with the out-of-line set.
+// the 10.x and 11.x lines supported while the ADR 0016 Corepack mechanism is
+// the production provisioning path (the ADR 0090 boundary rule, applied per
+// the ADR 0088 Corepack-window support boundary). A prerelease of the 10.0.0
+// lower boundary itself and every 12.0.0 form fail closed with the
+// out-of-line set.
 func pnpmVersionUnsupported(version string) bool {
-	return semver.Compare("v"+version, "v11.0.0") < 0 || semver.Major("v"+version) != "v11"
+	if semver.Compare("v"+version, "v10.0.0") < 0 {
+		return true
+	}
+	major := semver.Major("v" + version)
+	return major != "v10" && major != "v11"
+}
+
+// declaredDigestsEqual compares two optional declared digests; a nil digest
+// conflicts with a set digest.
+func declaredDigestsEqual(a, b *DeclaredDigest) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
 }
 
 // yarnVersionUnsupported reports whether an exact Yarn version selects Yarn 6
@@ -361,9 +358,11 @@ func yarnVersionUnsupported(version string) bool {
 // treats missing minor and patch components as zero, which would admit a
 // range-like descriptor through the ADR 0017 exact-version gate and let the
 // provisioning layer resolve or reject it later, outside the builder's
-// diagnostic taxonomy.
+// diagnostic taxonomy. Build-metadata suffixes ("+...") are rejected outright
+// as defense-in-depth: digest suffixes are handled by parseDescriptorVersion
+// before exactness is checked, and x/mod/semver would otherwise accept them.
 func exactSemver(version string) bool {
-	if version == "" || !semver.IsValid("v"+version) {
+	if version == "" || strings.Contains(version, "+") || !semver.IsValid("v"+version) {
 		return false
 	}
 	core, _, _ := strings.Cut(version, "-")

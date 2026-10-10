@@ -105,13 +105,133 @@ func TestYarnExternalParametersVersionBound(t *testing.T) {
 			t.Fatalf("Yarn %s: expected rejection below the v6 boundary, got nil", version)
 		}
 	}
-	for _, version := range []string{"4.0.0", "4.9.2", "5.0.0", "5.7.1"} {
+	for _, version := range []string{"4.0.0", "4.9.2", "5.0.0", "5.7.1", "5.0.0-rc.1"} {
 		parameters := validExternalParameters(ManagerYarn)
 		parameters.PackageManager.Version = version
 		if err := validatePackageManagerParameters(parameters.PackageManager); err != nil {
 			t.Fatalf("Yarn %s: unexpected rejection: %v", version, err)
 		}
 	}
+}
+
+// TestPackageManagerDescriptorSuffix covers ADR 0091 (Yarn devEngines
+// selection) and ADRs 0092-0095 (verbatim integrity digest suffix rendering
+// and validation) in recorded external parameters.
+func TestPackageManagerDescriptorSuffix(t *testing.T) {
+	t.Parallel()
+
+	sha384Hex := testSHA512[:96]
+	manifestParameters := func(manager Manager, version string, source SelectionSource, yarnInstallMode string) PackageManagerParameters {
+		manifest := testStringPointer("package.json")
+		return PackageManagerParameters{
+			Name: manager, Version: version, SelectionSource: source,
+			SelectionManifest: manifest, SelectionManifestPath: manifest, Root: ".",
+			YarnInstallMode: yarnInstallMode,
+		}
+	}
+
+	valid := []struct {
+		name            string
+		manager         Manager
+		version         string
+		source          SelectionSource
+		yarnInstallMode string
+	}{
+		{name: "pnpm sha256", manager: ManagerPNPM, version: "11.9.0+sha256." + testSHA256, source: SelectionPackageManager},
+		{name: "pnpm sha384", manager: ManagerPNPM, version: "11.9.0+sha384." + sha384Hex, source: SelectionPackageManager},
+		{name: "pnpm sha512", manager: ManagerPNPM, version: "11.9.0+sha512." + testSHA512, source: SelectionPackageManager},
+		{name: "pnpm devEngines sha512", manager: ManagerPNPM, version: "11.9.0+sha512." + testSHA512, source: SelectionDevEngines},
+		{name: "yarn sha512", manager: ManagerYarn, version: "4.9.2+sha512." + testSHA512, source: SelectionPackageManager, yarnInstallMode: "immutable"},
+		{name: "yarn devEngines plain", manager: ManagerYarn, version: "4.9.2", source: SelectionDevEngines, yarnInstallMode: "immutable"},
+		{name: "yarn devEngines sha512", manager: ManagerYarn, version: "4.9.2+sha512." + testSHA512, source: SelectionDevEngines, yarnInstallMode: "immutable"},
+		{name: "yarn prerelease sha256", manager: ManagerYarn, version: "5.0.0-rc.1+sha256." + testSHA256, source: SelectionPackageManager, yarnInstallMode: "immutable"},
+		{name: "pnpm prerelease sha256", manager: ManagerPNPM, version: "11.1.0-alpha.1+sha256." + testSHA256, source: SelectionPackageManager},
+	}
+	for _, test := range valid {
+		t.Run("valid/"+test.name, func(t *testing.T) {
+			parameters := manifestParameters(test.manager, test.version, test.source, test.yarnInstallMode)
+			if err := validatePackageManagerParameters(parameters); err != nil {
+				t.Fatalf("validatePackageManagerParameters() error = %v", err)
+			}
+		})
+	}
+
+	malformed := []struct {
+		name    string
+		manager Manager
+		version string
+	}{
+		{name: "pnpm uppercase hex", manager: ManagerPNPM, version: "11.9.0+sha256." + strings.ToUpper(testSHA256)},
+		{name: "pnpm short hex", manager: ManagerPNPM, version: "11.9.0+sha256." + testSHA256[:63]},
+		{name: "pnpm extra identifier", manager: ManagerPNPM, version: "11.9.0+sha512." + testSHA512 + ".build1"},
+		{name: "pnpm non-digest metadata", manager: ManagerPNPM, version: "11.9.0+build123"},
+		{name: "npm digest suffix", manager: ManagerNPM, version: "11.5.1+sha512." + testSHA512},
+	}
+	for _, test := range malformed {
+		t.Run("malformed/"+test.name, func(t *testing.T) {
+			yarnInstallMode := ""
+			if test.manager == ManagerYarn {
+				yarnInstallMode = "immutable"
+			}
+			parameters := manifestParameters(test.manager, test.version, SelectionPackageManager, yarnInstallMode)
+			requireNPMDiagnostic(t, validatePackageManagerParameters(parameters), IDPackageManagerDigestMalformed)
+		})
+	}
+
+	outOfBounds := []struct {
+		name    string
+		version string
+	}{
+		{name: "yarn v3 with suffix", version: "3.6.4+sha512." + testSHA512},
+		{name: "yarn v6 with suffix", version: "6.0.0+sha512." + testSHA512},
+	}
+	for _, test := range outOfBounds {
+		t.Run("bounds/"+test.name, func(t *testing.T) {
+			parameters := manifestParameters(ManagerYarn, test.version, SelectionPackageManager, "immutable")
+			requireNPMDiagnostic(t, validatePackageManagerParameters(parameters), IDUnexpectedExternalParameters)
+		})
+	}
+
+	t.Run("yarn lockfile source rejected", func(t *testing.T) {
+		lockfilePath := testStringPointer("yarn.lock")
+		parameters := PackageManagerParameters{
+			Name: ManagerYarn, Version: "4.9.2", SelectionSource: SelectionLockfile,
+			SelectionLockfilePath: lockfilePath, Root: ".", YarnInstallMode: "immutable",
+		}
+		requireNPMDiagnostic(t, validatePackageManagerParameters(parameters), IDUnexpectedExternalParameters)
+	})
+}
+
+// TestDistributionDescriptorDeclaredDigest covers the ADR 0092 verification
+// policy: a declared sha512 suffix must agree with the recorded distribution
+// digest, while declared sha256 and sha384 suffixes are accepted as
+// build-time-reconciled input.
+func TestDistributionDescriptorDeclaredDigest(t *testing.T) {
+	t.Parallel()
+
+	distribution := func(parameters ExternalParameters) provenance.ResourceDescriptor {
+		return validDependencies(parameters.PackageManager.Name, parameters)[1]
+	}
+
+	t.Run("declared sha512 equals recorded digest", func(t *testing.T) {
+		parameters := validExternalParameters(ManagerPNPM)
+		parameters.PackageManager.Version = "11.28.3+sha512." + testSHA512
+		if err := validateDistributionDescriptor(distribution(parameters), parameters); err != nil {
+			t.Fatalf("validateDistributionDescriptor() error = %v", err)
+		}
+	})
+	t.Run("declared sha512 disagrees with recorded digest", func(t *testing.T) {
+		parameters := validExternalParameters(ManagerPNPM)
+		parameters.PackageManager.Version = "11.28.3+sha512." + strings.Repeat("0", 128)
+		requireNPMDiagnostic(t, validateDistributionDescriptor(distribution(parameters), parameters), IDResolvedDependenciesDistribution)
+	})
+	t.Run("declared sha256 skips comparison", func(t *testing.T) {
+		parameters := validExternalParameters(ManagerPNPM)
+		parameters.PackageManager.Version = "11.28.3+sha256." + testSHA256
+		if err := validateDistributionDescriptor(distribution(parameters), parameters); err != nil {
+			t.Fatalf("validateDistributionDescriptor() error = %v", err)
+		}
+	})
 }
 
 func TestScopedPURL(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/windlasstech/slsa-builder/internal/canonicaljson"
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
+	"golang.org/x/mod/semver"
 )
 
 // requireClassifiedDiagnostic asserts that err is non-nil and exposes a
@@ -295,12 +296,80 @@ func FuzzValidateWorkspacePattern(f *testing.F) {
 	})
 }
 
+// requireValidDeclaredDigest asserts the closed +<algorithm>.<hex> grammar of
+// ADRs 0092-0094 on an accepted digest: an SRI-set algorithm with lowercase
+// hex of exactly that algorithm's length.
+func requireValidDeclaredDigest(t *testing.T, digest *DeclaredDigest) {
+	t.Helper()
+	wantLength, ok := map[string]int{"sha256": 64, "sha384": 96, "sha512": 128}[digest.Algorithm]
+	if !ok {
+		t.Fatalf("accepted digest with non-SRI algorithm %q", digest.Algorithm)
+	}
+	if len(digest.Hex) != wantLength {
+		t.Fatalf("accepted %s digest with %d hex characters, want %d", digest.Algorithm, len(digest.Hex), wantLength)
+	}
+	for _, char := range digest.Hex {
+		if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
+			t.Fatalf("accepted digest with non-lowercase-hex character %q", char)
+		}
+	}
+}
+
+// requireCandidateContract asserts the invariants every accepted manager
+// candidate must satisfy under the ADR 0090-0095 descriptor grammar, and that
+// the candidate round-trips to the declared version string exactly.
+func requireCandidateContract(t *testing.T, candidate managerCandidate, declared string) {
+	t.Helper()
+	redescribed := candidate.version
+	if candidate.digest != nil {
+		redescribed += "+" + candidate.digest.Algorithm + "." + candidate.digest.Hex
+	}
+	if redescribed != declared {
+		t.Fatalf("candidate (%q, %#v) does not round-trip to declared version %q", candidate.version, candidate.digest, declared)
+	}
+	switch candidate.name {
+	case ManagerNPM:
+		if candidate.digest != nil {
+			t.Fatalf("accepted npm with a digest suffix %q", declared)
+		}
+	case ManagerPNPM:
+		if !exactSemver(candidate.version) {
+			t.Fatalf("accepted pnpm with non-exact version %q", candidate.version)
+		}
+		if pnpmVersionUnsupported(candidate.version) {
+			t.Fatalf("accepted pnpm outside the 10.x and 11.x lines %q", candidate.version)
+		}
+	case ManagerYarn:
+		if !exactSemver(candidate.version) {
+			t.Fatalf("accepted yarn with non-exact version %q", candidate.version)
+		}
+		if semver.Compare("v"+candidate.version, "v4.0.0") < 0 {
+			t.Fatalf("accepted yarn with pre-v4 version %q", candidate.version)
+		}
+		if yarnVersionUnsupported(candidate.version) {
+			t.Fatalf("accepted yarn outside the v4/v5 lines %q", candidate.version)
+		}
+	default:
+		t.Fatalf("accepted unknown package manager %q", candidate.name)
+	}
+	if candidate.digest != nil {
+		requireValidDeclaredDigest(t, candidate.digest)
+	}
+}
+
 // FuzzParsePackageManager asserts that packageManager descriptor parsing never
-// panics, that rejections carry a registered diagnostic ID, and that accepted
-// managers satisfy the npm/pnpm/yarn version rules.
+// panics, that rejections carry a registered diagnostic ID (including the ADR
+// 0092-0095 digest-malformed ID), and that accepted managers satisfy the
+// npm/pnpm/yarn version and digest rules and round-trip to the descriptor.
 func FuzzParsePackageManager(f *testing.F) {
 	for _, seed := range []string{
 		`"npm@11.5.1"`, `"pnpm@11.28.3"`, `"yarn@4.9.2"`,
+		`"pnpm@10.14.0"`, `"pnpm@10.34.6"`, `"npm@^11.5.1"`,
+		`"pnpm@11.9.0+sha256.` + strings.Repeat("a1", 32) + `"`,
+		`"yarn@4.1.0+sha512.` + strings.Repeat("c3", 64) + `"`,
+		`"pnpm@11.9.0+sha224.` + strings.Repeat("a1", 32) + `"`,
+		`"npm@11.5.1+sha512.` + strings.Repeat("c3", 64) + `"`,
+		`"yarn@4.1.0+build123"`, `"pnpm@11.9.0+sha512."`,
 		`"yarn@3.6.0"`, `"pnpm@12.9.0"`, `"yarn@6.1.0"`, `"pnpm@latest"`, `42`, `"pnpm@"`,
 	} {
 		f.Add([]byte(seed))
@@ -314,44 +383,33 @@ func FuzzParsePackageManager(f *testing.F) {
 			}
 			return
 		}
-		switch candidate.name {
-		case ManagerNPM:
-		case ManagerPNPM:
-			if !exactSemver(candidate.version) {
-				t.Fatalf("accepted pnpm with non-exact version %q", candidate.version)
-			}
-			if pnpmVersionUnsupported(candidate.version) {
-				t.Fatalf("accepted pnpm outside the 11.x line %q", candidate.version)
-			}
-		case ManagerYarn:
-			if !exactSemver(candidate.version) {
-				t.Fatalf("accepted yarn with non-exact version %q", candidate.version)
-			}
-			// exactSemver guarantees a numeric major without leading zeros;
-			// x/mod/semver accepts a bare major ("v4") and compares
-			// arbitrary-length majors, so compare digit strings directly.
-			major, _, _ := strings.Cut(candidate.version, ".")
-			if len(major) == 1 && major < "4" {
-				t.Fatalf("accepted yarn with pre-v4 version %q", candidate.version)
-			}
-			if yarnVersionUnsupported(candidate.version) {
-				t.Fatalf("accepted yarn outside the v4/v5 lines %q", candidate.version)
-			}
-		default:
-			t.Fatalf("accepted unknown package manager %q", candidate.name)
+		var descriptor string
+		if err := json.Unmarshal(data, &descriptor); err != nil {
+			t.Fatalf("accepted a non-string descriptor: %v", err)
 		}
+		name, declared, found := strings.Cut(descriptor, "@")
+		if !found || Manager(name) != candidate.name {
+			t.Fatalf("accepted descriptor %q selects %q, candidate has %q", descriptor, name, candidate.name)
+		}
+		requireCandidateContract(t, candidate, declared)
 	})
 }
 
 // FuzzParseDevEngines asserts that devEngines parsing never panics, treats
 // empty input as absent, classifies rejections with registered diagnostic IDs,
-// and never accepts Yarn (the Yarn devEngines path must reject).
+// and applies the same npm/pnpm/yarn version and digest rules as the top-level
+// packageManager field (ADR 0091 uniform selection source).
 func FuzzParseDevEngines(f *testing.F) {
 	for _, seed := range []string{
 		`{}`,
 		`{"packageManager":{"name":"pnpm","version":"10.14.0"}}`,
 		`{"packageManager":{"name":"yarn","version":"4.9.2"}}`,
+		`{"packageManager":{"name":"yarn","version":"4.1.0+sha256.` + strings.Repeat("a1", 32) + `"}}`,
 		`{"packageManager":{"name":"pnpm","version":"11.28.3","onFail":"download"}}`,
+		`{"packageManager":{"name":"pnpm","version":"11.9.0+sha512.` + strings.Repeat("c3", 64) + `.build1"}}`,
+		`{"packageManager":{"name":"npm"}}`,
+		`{"packageManager":{"name":"npm","version":"^11.5.1"}}`,
+		`{"packageManager":{"name":"npm","version":"11.5.1+sha256.` + strings.Repeat("a1", 32) + `"}}`,
 		`{"unknown":1}`,
 	} {
 		f.Add([]byte(seed))
@@ -374,17 +432,41 @@ func FuzzParseDevEngines(f *testing.F) {
 		if !present {
 			return
 		}
-		switch candidate.name {
-		case ManagerNPM:
-		case ManagerPNPM:
-			if !exactSemver(candidate.version) || strings.Contains(candidate.version, "+") {
-				t.Fatalf("devEngines accepted pnpm with non-exact version %q", candidate.version)
-			}
-			if pnpmVersionUnsupported(candidate.version) {
-				t.Fatalf("devEngines accepted pnpm outside the 11.x line %q", candidate.version)
-			}
-		default:
-			t.Fatalf("devEngines accepted package manager %q", candidate.name)
+		var devEngines struct {
+			PackageManager struct {
+				Version string `json:"version"`
+			} `json:"packageManager"`
+		}
+		if err := json.Unmarshal(data, &devEngines); err != nil {
+			t.Fatalf("accepted devEngines input does not re-decode: %v", err)
+		}
+		requireCandidateContract(t, candidate, devEngines.PackageManager.Version)
+	})
+}
+
+// FuzzNPMDeclaredMatchesActual asserts that the ADR 0095 declared-npm
+// comparator never panics, is deterministic, never matches an unparseable
+// actual version, and that a plain exact declared version matches only when
+// it equals the actual version.
+func FuzzNPMDeclaredMatchesActual(f *testing.F) {
+	f.Add("11.5.1", "11.5.1")
+	f.Add("^11.0.0", "11.5.1")
+	f.Add("~11.5.0", "11.5.1")
+	f.Add("11.0.0 - 11.9.9", "11.5.1")
+	f.Add("10.x || ^11.5.0", "11.5.1")
+	f.Add("garbage", "11.5.1")
+	f.Add("11.5.1", "garbage")
+
+	f.Fuzz(func(t *testing.T, declared, actual string) {
+		first := npmDeclaredMatchesActual(declared, actual)
+		if second := npmDeclaredMatchesActual(declared, actual); first != second {
+			t.Fatalf("npmDeclaredMatchesActual(%q, %q) is nondeterministic: first %t, second %t", declared, actual, first, second)
+		}
+		if _, ok := parseNPMRangeActual(actual); !ok && first {
+			t.Fatalf("npmDeclaredMatchesActual(%q, %q) matched an unparseable actual version", declared, actual)
+		}
+		if first && exactSemver(declared) && declared != strings.TrimPrefix(actual, "v") {
+			t.Fatalf("npmDeclaredMatchesActual(%q, %q): a plain exact declared version matched a different actual version", declared, actual)
 		}
 	})
 }

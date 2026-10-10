@@ -248,19 +248,6 @@
       "covered-requirement": "ADR-0063.yarn-v4-selection"
     },
     {
-      "name": "yarn-devengines-rejected",
-      "type": "rejected",
-      "surface": "npm",
-      "artifact": "testdata/npm/packages/rejected/yarn-devengines/package.json",
-      "provenance": "testdata/npm/packages/rejected/yarn-devengines/fixture.json",
-      "release-manifest": null,
-      "expected-result": "fail",
-      "expected-failure-category": "yarn-selection-invalid",
-      "expected-primary-id": "windlass.verify.error.yarn-selection-invalid",
-      "expected-secondary-ids": [],
-      "covered-requirement": "ADR-0063.yarn-v4-selection"
-    },
-    {
       "name": "yarn-bare-major",
       "type": "rejected",
       "surface": "npm",
@@ -482,19 +469,6 @@
       "covered-requirement": "ADR-0080.invocation-record-binding"
     },
     {
-      "name": "pnpm-10-unsupported",
-      "type": "rejected",
-      "surface": "npm",
-      "artifact": "testdata/npm/packages/rejected/pnpm-10-unsupported/package.json",
-      "provenance": "testdata/npm/packages/rejected/pnpm-10-unsupported/fixture.json",
-      "release-manifest": null,
-      "expected-result": "fail",
-      "expected-failure-category": "pnpm-version-unsupported",
-      "expected-primary-id": "windlass.verify.error.pnpm-version-unsupported",
-      "expected-secondary-ids": [],
-      "covered-requirement": "ADR-0088.corepack-window-version-bounds"
-    },
-    {
       "name": "pnpm-12-unsupported",
       "type": "rejected",
       "surface": "npm",
@@ -513,19 +487,6 @@
       "surface": "npm",
       "artifact": "testdata/npm/packages/rejected/pnpm-13-unsupported/package.json",
       "provenance": "testdata/npm/packages/rejected/pnpm-13-unsupported/fixture.json",
-      "release-manifest": null,
-      "expected-result": "fail",
-      "expected-failure-category": "pnpm-version-unsupported",
-      "expected-primary-id": "windlass.verify.error.pnpm-version-unsupported",
-      "expected-secondary-ids": [],
-      "covered-requirement": "ADR-0088.corepack-window-version-bounds"
-    },
-    {
-      "name": "pnpm-10-devengines-unsupported",
-      "type": "rejected",
-      "surface": "npm",
-      "artifact": "testdata/npm/packages/rejected/pnpm-10-devengines-unsupported/package.json",
-      "provenance": "testdata/npm/packages/rejected/pnpm-10-devengines-unsupported/fixture.json",
       "release-manifest": null,
       "expected-result": "fail",
       "expected-failure-category": "pnpm-version-unsupported",
@@ -597,6 +558,63 @@
       "expected-primary-id": null,
       "expected-secondary-ids": [],
       "covered-requirement": "ADR-0088.corepack-window-version-bounds"
-    }
+    },
+    {
+      "name": "pnpm-10-root-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/pnpm-10-valid/package.json",
+      "provenance": "testdata/npm/packages/pnpm-10-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0090.pnpm-10x-support"
+    },
+    {
+      "name": "pnpm-10-devengines-root-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/pnpm-10-devengines-valid/package.json",
+      "provenance": "testdata/npm/packages/pnpm-10-devengines-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0091.uniform-selection-source"
+    },
+    {
+      "name": "yarn-devengines-root-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/yarn-devengines-valid/package.json",
+      "provenance": "testdata/npm/packages/yarn-devengines-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0091.uniform-selection-source"
+    },
+    {"name":"pnpm-digest-unknown-algorithm","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/pnpm-digest-unknown-algorithm/package.json","provenance":"testdata/npm/packages/rejected/pnpm-digest-unknown-algorithm/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"pnpm-digest-uppercase-hex","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/pnpm-digest-uppercase-hex/package.json","provenance":"testdata/npm/packages/rejected/pnpm-digest-uppercase-hex/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"pnpm-digest-wrong-length","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/pnpm-digest-wrong-length/package.json","provenance":"testdata/npm/packages/rejected/pnpm-digest-wrong-length/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"pnpm-digest-devengines-missing-hex","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/pnpm-digest-devengines-missing-hex/package.json","provenance":"testdata/npm/packages/rejected/pnpm-digest-devengines-missing-hex/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"pnpm-digest-extra-identifiers","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/pnpm-digest-extra-identifiers/package.json","provenance":"testdata/npm/packages/rejected/pnpm-digest-extra-identifiers/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"pnpm-build-metadata","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/pnpm-build-metadata/package.json","provenance":"testdata/npm/packages/rejected/pnpm-build-metadata/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"yarn-build-metadata-devengines","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/yarn-build-metadata-devengines/package.json","provenance":"testdata/npm/packages/rejected/yarn-build-metadata-devengines/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"yarn-digest-unknown-algorithm","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/yarn-digest-unknown-algorithm/package.json","provenance":"testdata/npm/packages/rejected/yarn-digest-unknown-algorithm/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"npm-digest-suffix","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/npm-digest-suffix/package.json","provenance":"testdata/npm/packages/rejected/npm-digest-suffix/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"npm-digest-devengines","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/npm-digest-devengines/package.json","provenance":"testdata/npm/packages/rejected/npm-digest-devengines/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"package-manager-digest-malformed","expected-primary-id":"windlass.verify.error.package-manager-digest-malformed","expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-digest-rejections"},
+    {"name":"pnpm-9-unsupported","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/pnpm-9-unsupported/package.json","provenance":"testdata/npm/packages/rejected/pnpm-9-unsupported/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"pnpm-version-unsupported","expected-primary-id":"windlass.verify.error.pnpm-version-unsupported","expected-secondary-ids":[],"covered-requirement":"ADR-0088.corepack-window-version-bounds"},
+    {"name":"pnpm-9-devengines-unsupported","type":"rejected","surface":"npm","artifact":"testdata/npm/packages/rejected/pnpm-9-devengines-unsupported/package.json","provenance":"testdata/npm/packages/rejected/pnpm-9-devengines-unsupported/fixture.json","release-manifest":null,"expected-result":"fail","expected-failure-category":"pnpm-version-unsupported","expected-primary-id":"windlass.verify.error.pnpm-version-unsupported","expected-secondary-ids":[],"covered-requirement":"ADR-0088.corepack-window-version-bounds"},
+    {"name":"pnpm-digest-sha512-valid","type":"accepted","surface":"npm","artifact":"testdata/npm/packages/pnpm-digest-sha512-valid/package.json","provenance":"testdata/npm/packages/pnpm-digest-sha512-valid/fixture.json","release-manifest":null,"expected-result":"pass","expected-failure-category":null,"expected-primary-id":null,"expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-integrity-digests"},
+    {"name":"pnpm-digest-sha256-devengines-valid","type":"accepted","surface":"npm","artifact":"testdata/npm/packages/pnpm-digest-sha256-devengines-valid/package.json","provenance":"testdata/npm/packages/pnpm-digest-sha256-devengines-valid/fixture.json","release-manifest":null,"expected-result":"pass","expected-failure-category":null,"expected-primary-id":null,"expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-integrity-digests"},
+    {"name":"yarn-digest-sha384-valid","type":"accepted","surface":"npm","artifact":"testdata/npm/packages/yarn-digest-sha384-valid/package.json","provenance":"testdata/npm/packages/yarn-digest-sha384-valid/fixture.json","release-manifest":null,"expected-result":"pass","expected-failure-category":null,"expected-primary-id":null,"expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-integrity-digests"},
+    {"name":"yarn-digest-sha512-devengines-valid","type":"accepted","surface":"npm","artifact":"testdata/npm/packages/yarn-digest-sha512-devengines-valid/package.json","provenance":"testdata/npm/packages/yarn-digest-sha512-devengines-valid/fixture.json","release-manifest":null,"expected-result":"pass","expected-failure-category":null,"expected-primary-id":null,"expected-secondary-ids":[],"covered-requirement":"ADR-0092.descriptor-integrity-digests"},
+    {"name":"npm-declared-version-match-valid","type":"accepted","surface":"npm","artifact":"testdata/npm/packages/npm-declared-version-match-valid/package.json","provenance":"testdata/npm/packages/npm-declared-version-match-valid/fixture.json","release-manifest":null,"expected-result":"pass","expected-failure-category":null,"expected-primary-id":null,"expected-secondary-ids":[],"covered-requirement":"ADR-0095.npm-declared-version"},
+    {"name":"npm-declared-version-mismatch-valid","type":"accepted","surface":"npm","artifact":"testdata/npm/packages/npm-declared-version-mismatch-valid/package.json","provenance":"testdata/npm/packages/npm-declared-version-mismatch-valid/fixture.json","release-manifest":null,"expected-result":"pass","expected-failure-category":null,"expected-primary-id":null,"expected-secondary-ids":["windlass.verify.warning.npm-version-mismatch"],"covered-requirement":"ADR-0095.npm-declared-version"}
   ]
 }

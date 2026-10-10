@@ -52,6 +52,10 @@ func TestManifestSchema(t *testing.T) {
 		{name: "rejected category and primary ID disagree", index: `{"fixtures":[` + strings.Replace(validRejected, `windlass.verify.error.diagnostics-contract-invalid`, `windlass.verify.error.policy-schema-invalid`, 1) + `]}`, wantErr: true},
 		{name: "unmapped requirement", index: `{"fixtures":[` + strings.Replace(validAccepted, `ARCH-verification-policy-and-fixtures.fixture-manifest-schema`, `ARCH-unknown.missing`, 1) + `]}`, wantErr: true},
 		{name: "invalid requirement format", index: `{"fixtures":[` + strings.Replace(validAccepted, `ARCH-verification-policy-and-fixtures.fixture-manifest-schema`, `verification policy`, 1) + `]}`, wantErr: true},
+		{name: "warning secondary ID", index: `{"fixtures":[` + validAccepted + `,` + strings.Replace(validRejected, `"expected-secondary-ids":[]`, `"expected-secondary-ids":["windlass.verify.warning.npm-version-mismatch"]`, 1) + `]}`},
+		{name: "malformed warning secondary ID", index: `{"fixtures":[` + strings.Replace(validRejected, `"expected-secondary-ids":[]`, `"expected-secondary-ids":["windlass.verify.warning.NPM-version-mismatch"]`, 1) + `]}`, wantErr: true},
+		{name: "pnpm malformed digest rejection category", index: `{"fixtures":[` + validAccepted + `,` + strings.Replace(strings.Replace(validRejected, `diagnostics-contract-invalid`, `package-manager-digest-malformed`, 2), `ARCH-verification-policy-and-fixtures.fixture-manifest-schema`, `ADR-0092.descriptor-digest-rejections`, 1) + `]}`},
+		{name: "pnpm digest mismatch rejection category", index: `{"fixtures":[` + validAccepted + `,` + strings.Replace(strings.Replace(validRejected, `diagnostics-contract-invalid`, `package-manager-digest-mismatch`, 2), `ARCH-verification-policy-and-fixtures.fixture-manifest-schema`, `ADR-0092.descriptor-integrity-digests`, 1) + `]}`},
 	}
 
 	for _, test := range tests {
@@ -77,5 +81,34 @@ func TestManifestSchema(t *testing.T) {
 				t.Fatalf("len(Index.Fixtures) = %d, want 2", got)
 			}
 		})
+	}
+}
+
+func Test_RequirementIDs_validate_and_match_build_pack(t *testing.T) {
+	t.Parallel()
+
+	// Given
+	requirements := map[string]string{
+		"ADR-0090.pnpm-10x-support":             "pnpm 10.x pins are accepted from both manifest selection sources",
+		"ADR-0091.uniform-selection-source":     "any supported package manager is selectable from devEngines.packageManager",
+		"ADR-0092.descriptor-integrity-digests": "pnpm and Yarn descriptors may declare an integrity digest reconciled fail-closed",
+		"ADR-0092.descriptor-digest-rejections": "malformed descriptor digest suffixes and npm digest suffixes are rejected",
+		"ADR-0095.npm-declared-version":         "npm version declarations are non-authoritative with a mismatch warning",
+	}
+
+	// When / Then
+	for requirement, description := range requirements {
+		if !IsRegisteredRequirement(requirement) {
+			t.Errorf("IsRegisteredRequirement(%q) = false", requirement)
+		}
+		if !requirementMatchesPhase(requirement, "build-pack") {
+			t.Errorf("requirement %q does not match build-pack", requirement)
+		}
+		if got := requirementRegistry[requirement]; got != description {
+			t.Errorf("requirementRegistry[%q] = %q, want %q", requirement, got, description)
+		}
+	}
+	if got := requirementRegistry["ADR-0088.corepack-window-version-bounds"]; got != "Corepack-window pnpm 10.x/11.x and Yarn v4/v5 version bounds" {
+		t.Errorf("ADR-0088 description = %q", got)
 	}
 }

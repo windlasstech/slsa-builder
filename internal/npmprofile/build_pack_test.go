@@ -105,12 +105,13 @@ func runBuildPackFixtureWithSetup(t *testing.T, fixture string, setup func(*test
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	t.Cleanup(cancel)
+	fetcher, _ := fakeDistributionFetcher(t)
 	result, err := BuildPack(ctx, BuildPackConfig{
 		Selection:          selection,
 		OutputDirectory:    output,
 		ArtifactName:       "js-ts-npm-package-tarball-123456789-1",
 		ExternalParameters: json.RawMessage(`{"test_case":"real-tool-build-pack"}`),
-		fetcher:            fakeDistributionFetcher(t),
+		fetcher:            fetcher,
 	})
 	if err != nil {
 		t.Fatalf("BuildPack() error: %v", err)

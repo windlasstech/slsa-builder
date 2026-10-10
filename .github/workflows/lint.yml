@@ -148,6 +148,8 @@ jobs:
           - package: internal/npmprofile
             target: FuzzParseDevEngines
           - package: internal/npmprofile
+            target: FuzzNPMDeclaredMatchesActual
+          - package: internal/npmprofile
             target: FuzzDecodePackedManifest
           - package: internal/npmprofile
             target: FuzzValidateArchivePath

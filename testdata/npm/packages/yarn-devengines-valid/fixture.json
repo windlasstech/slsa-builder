@@ -1,0 +1,19 @@
+{
+  "phase": "build-pack",
+  "package-directory": "testdata/npm/packages/yarn-devengines-valid",
+  "package-manager": {
+    "name": "yarn",
+    "version": "4.9.2",
+    "selection-source": "devEngines.packageManager",
+    "selected-lockfile": "yarn.lock",
+    "install-mode": "immutable",
+    "distribution-digest-authority": "download-hash"
+  },
+  "commands": {
+    "install": ["yarn", "install", "--immutable"],
+    "build": [],
+    "pack": ["yarn", "pack", "--out", "<tarball-output-path>"]
+  },
+  "expected-subject": "pkg:npm/windlass-fixture-yarn-devengines@1.0.0",
+  "required-digests": ["sha512", "sha256"]
+}

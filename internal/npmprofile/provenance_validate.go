@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -13,9 +12,8 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
+	"golang.org/x/mod/semver"
 )
-
-var exactSemverPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
 
 type npmProfileValidator struct {
 	parameters        ExternalParameters
@@ -295,7 +293,18 @@ func validatePackageParameters(parameters ExternalParameters) error {
 }
 
 func validatePackageManagerParameters(parameters PackageManagerParameters) error {
-	if parameters.Name != ManagerNPM && parameters.Name != ManagerPNPM && parameters.Name != ManagerYarn || !minimumVersion(parameters.Version, 0, 0, 0) {
+	if parameters.Name != ManagerNPM && parameters.Name != ManagerPNPM && parameters.Name != ManagerYarn {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "package manager name and exact version are invalid")
+	}
+	// ADRs 0092-0094: the recorded version may carry one closed
+	// +<algorithm>.<hex> integrity digest suffix (never on npm, ADR 0095).
+	// Exact-version and version-bound rules below apply to the plain version
+	// with the suffix stripped.
+	plain, _, failureID := parseDescriptorVersion(parameters.Name, parameters.Version)
+	if failureID != "" {
+		return npmValidationError(IDPackageManagerDigestMalformed, "externalParameters.package_manager.version", "package manager version digest suffix violates the closed +<algorithm>.<hex> grammar")
+	}
+	if !minimumVersion(plain, 0, 0, 0) {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "package manager name and exact version are invalid")
 	}
 	if parameters.Root == "" || path.IsAbs(parameters.Root) || strings.Contains(parameters.Root, "\\") || strings.HasPrefix(path.Clean(parameters.Root), "..") {
@@ -309,8 +318,11 @@ func validatePackageManagerParameters(parameters PackageManagerParameters) error
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "manifest selection paths have the wrong shape")
 	}
 	if parameters.Name == ManagerYarn {
-		if parameters.SelectionSource != SelectionPackageManager || !minimumVersion(parameters.Version, 4, 0, 0) || !majorVersionBelow(parameters.Version, 6) || parameters.YarnInstallMode != "immutable" {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "Yarn requires packageManager selection, an exact v4 or v5 version, and immutable mode")
+		// ADR 0091: Yarn selection may come from packageManager or
+		// devEngines.packageManager; lockfile inference stays invalid.
+		manifestSelected := parameters.SelectionSource == SelectionPackageManager || parameters.SelectionSource == SelectionDevEngines
+		if !manifestSelected || !minimumVersion(plain, 4, 0, 0) || !majorVersionBelow(plain, 6) || parameters.YarnInstallMode != "immutable" {
+			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "Yarn requires packageManager or devEngines selection, an exact v4 or v5 version, and immutable mode")
 		}
 	} else if parameters.YarnInstallMode != "" {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager.yarn_install_mode", "Yarn install mode is forbidden for npm and pnpm")
@@ -421,6 +433,14 @@ func validateDistributionDescriptor(value provenance.ResourceDescriptor, paramet
 	if !annotationsEqual(value.Annotations, wants) {
 		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution.annotations", "distribution annotations differ from the selected manager")
 	}
+	// ADR 0092: a declared sha512 suffix must agree with the recorded
+	// observed distribution digest. Declared sha256 and sha384 suffixes
+	// cannot be recomputed from the SHA-512 evidence and are accepted as
+	// build-time-reconciled declared input.
+	_, declared, _ := parseDescriptorVersion(parameters.PackageManager.Name, parameters.PackageManager.Version)
+	if declared != nil && declared.Algorithm == "sha512" && declared.Hex != value.Digest["sha512"] {
+		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution.digest", "declared sha512 digest disagrees with the recorded distribution digest")
+	}
 	return nil
 }
 
@@ -478,42 +498,24 @@ func percentEncode(value string) string {
 	return builder.String()
 }
 
+// minimumVersion and majorVersionBelow compare full SemVer versions,
+// including prerelease descriptors such as yarn@5.0.0-rc.1 that selection
+// accepts: provenance validation must apply the same bounds or the
+// fail-closed validator would reject a build the profile selected.
 func minimumVersion(value string, minimumMajor, minimumMinor, minimumPatch int) bool {
-	matches := exactSemverPattern.FindStringSubmatch(value)
-	if len(matches) != 4 {
+	if !exactSemver(value) {
 		return false
 	}
-	major, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return false
-	}
-	minor, err := strconv.Atoi(matches[2])
-	if err != nil {
-		return false
-	}
-	patch, err := strconv.Atoi(matches[3])
-	if err != nil {
-		return false
-	}
-	if major != minimumMajor {
-		return major > minimumMajor
-	}
-	if minor != minimumMinor {
-		return minor > minimumMinor
-	}
-	return patch >= minimumPatch
+	minimum := "v" + strconv.Itoa(minimumMajor) + "." + strconv.Itoa(minimumMinor) + "." + strconv.Itoa(minimumPatch)
+	return semver.Compare("v"+value, minimum) >= 0
 }
 
 func majorVersionBelow(value string, maximumMajor int) bool {
-	matches := exactSemverPattern.FindStringSubmatch(value)
-	if len(matches) != 4 {
+	if !exactSemver(value) {
 		return false
 	}
-	major, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return false
-	}
-	return major < maximumMajor
+	major, err := strconv.Atoi(strings.TrimPrefix(semver.Major("v"+value), "v"))
+	return err == nil && major < maximumMajor
 }
 
 func digestEncodingInvalid(value string, length int) bool {
