@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var diagnosticIDPattern = regexp.MustCompile(`^windlass\.verify\.error\.[a-z0-9]+(?:-[a-z0-9]+)*$`)
+var diagnosticIDPattern = regexp.MustCompile(`^windlass\.verify\.(error|warning)\.[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 // ErrInputUnavailable marks an unreadable local fixture index.
 var ErrInputUnavailable = errors.New("fixture input unavailable")
