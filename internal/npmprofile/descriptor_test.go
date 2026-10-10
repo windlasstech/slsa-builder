@@ -85,6 +85,23 @@ func TestParseDescriptorVersion(t *testing.T) {
 	}
 }
 
+// TestClassifyDescriptorVersionUnsupportedManager pins the diagnostic
+// contract for unsupported manager names: they are package-manager conflicts
+// even when the descriptor carries a malformed or well-formed digest suffix,
+// because the digest grammar applies only to supported managers.
+func TestClassifyDescriptorVersionUnsupportedManager(t *testing.T) {
+	t.Parallel()
+	for _, version := range []string{"1.0.0", "1.0.0+sha256." + strings.Repeat("a1", 32), "1.0.0+build123", "1.0.0+"} {
+		t.Run(version, func(t *testing.T) {
+			t.Parallel()
+			_, _, failureID := classifyDescriptorVersion(Manager("bun"), version)
+			if failureID != IDPackageManagerConflict {
+				t.Fatalf("failureID = %q, want %q", failureID, IDPackageManagerConflict)
+			}
+		})
+	}
+}
+
 // TestManagerSelectionDescriptor pins the Descriptor rendering: the plain
 // version alone, or version + "+" + algorithm + "." + hex when a digest is
 // declared. Version always stays the plain version.

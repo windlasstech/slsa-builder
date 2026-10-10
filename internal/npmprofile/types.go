@@ -72,6 +72,7 @@ type ManagerSelection struct {
 	Version               string
 	Digest                *DeclaredDigest
 	DeclaredVersion       string
+	DeclaredVersionSet    bool
 	Source                SelectionSource
 	SelectionManifestPath string
 	SelectionLockfilePath string
@@ -133,9 +134,10 @@ type resolvedPackage struct {
 }
 
 type managerCandidate struct {
-	name         Manager
-	version      string
-	digest       *DeclaredDigest
-	source       SelectionSource
-	manifestPath string
+	name            Manager
+	version         string
+	versionDeclared bool
+	digest          *DeclaredDigest
+	source          SelectionSource
+	manifestPath    string
 }

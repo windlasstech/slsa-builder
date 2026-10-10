@@ -465,7 +465,7 @@ func FuzzNPMDeclaredMatchesActual(f *testing.F) {
 		if _, ok := parseNPMRangeActual(actual); !ok && first {
 			t.Fatalf("npmDeclaredMatchesActual(%q, %q) matched an unparseable actual version", declared, actual)
 		}
-		if first && exactSemver(declared) && declared != actual {
+		if first && exactSemver(declared) && declared != strings.TrimPrefix(actual, "v") {
 			t.Fatalf("npmDeclaredMatchesActual(%q, %q): a plain exact declared version matched a different actual version", declared, actual)
 		}
 	})

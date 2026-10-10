@@ -7,14 +7,16 @@ import "github.com/windlasstech/slsa-builder/internal/diagnostic"
 // observed toolchain npm there is nothing to report; otherwise the build
 // carries one npm-version-mismatch warning and never fails on this account.
 func npmDeclaredVersionWarning(manager ManagerSelection, observedNPMVersion string) ([]diagnostic.Diagnostic, error) {
-	if manager.Name != ManagerNPM || manager.DeclaredVersion == "" || npmDeclaredMatchesActual(manager.DeclaredVersion, observedNPMVersion) {
+	if manager.Name != ManagerNPM || !manager.DeclaredVersionSet || npmDeclaredMatchesActual(manager.DeclaredVersion, observedNPMVersion) {
 		return nil, nil
 	}
+	// The declared value is untrusted manifest input: it is not embedded in
+	// the persistent report, so a secret-shaped declaration still warns and
+	// continues instead of failing report construction.
 	warning, err := diagnostic.New(IDNPMVersionMismatch, "package_manager.version", "The declared npm version does not match the toolchain npm; the toolchain npm remains authoritative.")
 	if err != nil {
 		return nil, err
 	}
 	warning.Field = "package_manager.version"
-	warning.Actual = diagnostic.JSONValue(manager.DeclaredVersion)
 	return []diagnostic.Diagnostic{warning}, nil
 }

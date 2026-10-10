@@ -578,13 +578,15 @@ func TestNPMDeclaredVersion(t *testing.T) {
 			name        string
 			declaration string
 			want        string
+			wantSet     bool
 		}{
-			{name: "exact top-level", declaration: `"packageManager":"npm@11.5.1"`, want: "11.5.1"},
-			{name: "range top-level", declaration: `"packageManager":"npm@^11.5.1"`, want: "^11.5.1"},
-			{name: "garbage top-level", declaration: `"packageManager":"npm@garbage"`, want: "garbage"},
-			{name: "exact devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm","version":"11.5.1"}}`, want: "11.5.1"},
-			{name: "range devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm","version":"^11.5.1"}}`, want: "^11.5.1"},
-			{name: "omitted devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm"}}`, want: ""},
+			{name: "exact top-level", declaration: `"packageManager":"npm@11.5.1"`, want: "11.5.1", wantSet: true},
+			{name: "range top-level", declaration: `"packageManager":"npm@^11.5.1"`, want: "^11.5.1", wantSet: true},
+			{name: "garbage top-level", declaration: `"packageManager":"npm@garbage"`, want: "garbage", wantSet: true},
+			{name: "exact devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm","version":"11.5.1"}}`, want: "11.5.1", wantSet: true},
+			{name: "range devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm","version":"^11.5.1"}}`, want: "^11.5.1", wantSet: true},
+			{name: "empty devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm","version":""}}`, want: "", wantSet: true},
+			{name: "omitted devEngines", declaration: `"devEngines":{"packageManager":{"name":"npm"}}`, want: "", wantSet: false},
 		} {
 			test := test
 			t.Run(test.name, func(t *testing.T) {
@@ -601,6 +603,9 @@ func TestNPMDeclaredVersion(t *testing.T) {
 				if result.Manager.DeclaredVersion != test.want {
 					t.Fatalf("declared version = %q, want %q", result.Manager.DeclaredVersion, test.want)
 				}
+				if result.Manager.DeclaredVersionSet != test.wantSet {
+					t.Fatalf("declared version set = %t, want %t", result.Manager.DeclaredVersionSet, test.wantSet)
+				}
 				if result.Manager.Digest != nil {
 					t.Fatalf("digest = %#v, want nil for npm", result.Manager.Digest)
 				}
@@ -616,8 +621,8 @@ func TestNPMDeclaredVersion(t *testing.T) {
 		})
 		result := analyze(t, root, ".")
 		assertPass(t, result)
-		if result.Manager.Name != ManagerNPM || result.Manager.DeclaredVersion != "" {
-			t.Fatalf("manager = %#v, want npm with empty declared version", result.Manager)
+		if result.Manager.Name != ManagerNPM || result.Manager.DeclaredVersion != "" || result.Manager.DeclaredVersionSet {
+			t.Fatalf("manager = %#v, want npm with no declared version", result.Manager)
 		}
 	})
 }

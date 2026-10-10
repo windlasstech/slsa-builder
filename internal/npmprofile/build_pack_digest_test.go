@@ -109,10 +109,38 @@ func TestBuildPackNPMDeclaredVersionMismatch(t *testing.T) {
 			if len(result.Diagnostics) != 1 || result.Diagnostics[0].ID != IDNPMVersionMismatch {
 				t.Fatalf("diagnostics = %#v, want exactly one %s warning", result.Diagnostics, IDNPMVersionMismatch)
 			}
-			if result.Diagnostics[0].Actual == nil || *result.Diagnostics[0].Actual != declared {
-				t.Fatalf("warning actual = %#v, want the declared version %q", result.Diagnostics[0].Actual, declared)
+			if result.Diagnostics[0].Actual != nil {
+				t.Fatalf("warning actual = %#v, want nil: the untrusted declaration is not embedded in the report", result.Diagnostics[0].Actual)
 			}
 		})
+	}
+}
+
+// TestBuildPackNPMDeclaredVersionSecretShaped pins the ADR 0095
+// warn-and-continue contract for token-shaped declarations: a declared npm
+// version that trips the report's secret redaction rules still produces the
+// warning instead of failing report construction.
+func TestBuildPackNPMDeclaredVersionSecretShaped(t *testing.T) {
+	result, _, err := runBuildPackDescriptor(t, "npm-root-valid", "npm@npm_11_5_1")
+	if err != nil {
+		t.Fatalf("BuildPack() error: %v, want success: a secret-shaped declaration warns and continues", err)
+	}
+	if len(result.Diagnostics) != 1 || result.Diagnostics[0].ID != IDNPMVersionMismatch {
+		t.Fatalf("diagnostics = %#v, want exactly one %s warning", result.Diagnostics, IDNPMVersionMismatch)
+	}
+}
+
+// TestNPMDeclaredVersionWarningPresence pins the presence semantics of ADR
+// 0095: an omitted declaration carries no warning, while an explicitly empty
+// devEngines version is an unparseable declaration and warns.
+func TestNPMDeclaredVersionWarningPresence(t *testing.T) {
+	omitted, err := npmDeclaredVersionWarning(ManagerSelection{Name: ManagerNPM}, "11.5.1")
+	if err != nil || len(omitted) != 0 {
+		t.Fatalf("omitted declaration: diagnostics = %#v, err = %v, want none", omitted, err)
+	}
+	empty, err := npmDeclaredVersionWarning(ManagerSelection{Name: ManagerNPM, DeclaredVersion: "", DeclaredVersionSet: true}, "11.5.1")
+	if err != nil || len(empty) != 1 || empty[0].ID != IDNPMVersionMismatch {
+		t.Fatalf("empty declaration: diagnostics = %#v, err = %v, want one %s warning", empty, err, IDNPMVersionMismatch)
 	}
 }
 

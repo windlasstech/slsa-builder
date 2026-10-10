@@ -105,7 +105,7 @@ func TestYarnExternalParametersVersionBound(t *testing.T) {
 			t.Fatalf("Yarn %s: expected rejection below the v6 boundary, got nil", version)
 		}
 	}
-	for _, version := range []string{"4.0.0", "4.9.2", "5.0.0", "5.7.1"} {
+	for _, version := range []string{"4.0.0", "4.9.2", "5.0.0", "5.7.1", "5.0.0-rc.1"} {
 		parameters := validExternalParameters(ManagerYarn)
 		parameters.PackageManager.Version = version
 		if err := validatePackageManagerParameters(parameters.PackageManager); err != nil {
@@ -144,6 +144,8 @@ func TestPackageManagerDescriptorSuffix(t *testing.T) {
 		{name: "yarn sha512", manager: ManagerYarn, version: "4.9.2+sha512." + testSHA512, source: SelectionPackageManager, yarnInstallMode: "immutable"},
 		{name: "yarn devEngines plain", manager: ManagerYarn, version: "4.9.2", source: SelectionDevEngines, yarnInstallMode: "immutable"},
 		{name: "yarn devEngines sha512", manager: ManagerYarn, version: "4.9.2+sha512." + testSHA512, source: SelectionDevEngines, yarnInstallMode: "immutable"},
+		{name: "yarn prerelease sha256", manager: ManagerYarn, version: "5.0.0-rc.1+sha256." + testSHA256, source: SelectionPackageManager, yarnInstallMode: "immutable"},
+		{name: "pnpm prerelease sha256", manager: ManagerPNPM, version: "11.1.0-alpha.1+sha256." + testSHA256, source: SelectionPackageManager},
 	}
 	for _, test := range valid {
 		t.Run("valid/"+test.name, func(t *testing.T) {

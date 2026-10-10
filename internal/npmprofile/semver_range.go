@@ -73,7 +73,8 @@ func (v npmSemver) canonical() string {
 
 // npmPartial is a parsed node-semver partial version: a prefix of numeric
 // components with the remainder wildcarded by x, X, or *, and an optional
-// prerelease that is valid only on a full three-component version.
+// prerelease. A prerelease is kept on a full three-component version and
+// dropped on a patch-wildcard partial, matching node-semver.
 type npmPartial struct {
 	nums      [3]uint64
 	specified [3]bool
@@ -166,17 +167,34 @@ func parseNPMPartial(text string) (npmPartial, bool) {
 		partial.specified[i] = true
 	}
 	if hasPre {
-		if !partial.full() {
+		if partial.full() {
+			partial.pre = pre
+			partial.hasPre = true
+			return partial, true
+		}
+		// node-semver accepts a prerelease on a partial whose patch
+		// component is a wildcard (1.2.x-rc.1, x.x.x-rc.1) and drops it:
+		// the range is exactly the plain X-range. Two-component partials
+		// (1.x-rc.1) are invalid.
+		if len(parts) != 3 || !isNPMWildcard(parts[2]) {
 			return npmPartial{}, false
 		}
-		partial.pre = pre
-		partial.hasPre = true
 	}
 	return partial, true
 }
 
+// isNPMWildcard reports whether part is an X-range wildcard component.
+func isNPMWildcard(part string) bool {
+	return part == "x" || part == "X" || part == "*"
+}
+
+// maxNPMSafeComponent is node-semver's numeric component ceiling,
+// Number.MAX_SAFE_INTEGER (2^53 - 1): node-semver compares components as
+// IEEE 754 doubles, so a larger component makes a range invalid there.
+const maxNPMSafeComponent = 9007199254740991
+
 // parseNPMVersionNumber parses one numeric version component: digits only, no
-// leading zeros, bounded well beyond any realistic version.
+// leading zeros, bounded by node-semver's MAX_SAFE_INTEGER component ceiling.
 func parseNPMVersionNumber(text string) (uint64, bool) {
 	if text == "" {
 		return 0, false
@@ -189,8 +207,8 @@ func parseNPMVersionNumber(text string) (uint64, bool) {
 	if len(text) > 1 && text[0] == '0' {
 		return 0, false
 	}
-	number, err := strconv.ParseUint(text, 10, 32)
-	if err != nil {
+	number, err := strconv.ParseUint(text, 10, 64)
+	if err != nil || number > maxNPMSafeComponent {
 		return 0, false
 	}
 	return number, true

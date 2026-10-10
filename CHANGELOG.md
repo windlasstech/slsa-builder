@@ -46,12 +46,13 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   likewise bounded to exact v4/v5 versions, matching the revised verification policy.
 - Added `devEngines.packageManager` as a uniform package-manager selection source (ADR 0091): any
   supported package manager, including pnpm 10.x and Yarn Berry v4/v5, is selectable from either the
-  top-level `packageManager` field or `devEngines.packageManager` under the same exact-version
-  contract, while `yarn.lock`-only inference remains rejected.
+  top-level `packageManager` field or `devEngines.packageManager` under each manager's descriptor
+  contract (exact versions for pnpm and Yarn; npm declarations stay non-authoritative per ADR 0095),
+  while `yarn.lock`-only inference remains rejected.
 - Added optional integrity digest declarations to pnpm and Yarn package-manager descriptors (ADRs
   0092-0094): either manifest field may carry one `+<algorithm>.<hex>` suffix (`sha256`, `sha384`,
-  or `sha512` with lowercase hex), which the builder recomputes over the acquired distribution bytes
-  and reconciles fail-closed before install, rejecting a malformed suffix with
+  or `sha512` with lowercase hex), which the builder verifies against the acquired distribution
+  evidence and reconciles fail-closed before install, rejecting a malformed suffix with
   `windlass.verify.error.package-manager-digest-malformed` and a disagreement with
   `windlass.verify.error.package-manager-digest-mismatch`. The recorded
   `package-manager-distribution` evidence keeps its source-native observed authority, and provenance

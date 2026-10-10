@@ -50,6 +50,14 @@ func parseDescriptorVersion(manager Manager, version string) (plain string, dige
 // version-bound rules for pnpm and Yarn (ADR 0090, ADR 0091), and
 // non-authoritative acceptance for npm (ADR 0095).
 func classifyDescriptorVersion(manager Manager, version string) (plain string, digest *DeclaredDigest, failureID string) {
+	// The digest grammar applies only to supported manager names: an
+	// unsupported name stays a package-manager conflict even when its
+	// descriptor carries a malformed suffix.
+	switch manager {
+	case ManagerNPM, ManagerPNPM, ManagerYarn:
+	default:
+		return "", nil, IDPackageManagerConflict
+	}
 	plain, digest, failureID = parseDescriptorVersion(manager, version)
 	if failureID != "" {
 		return "", nil, failureID

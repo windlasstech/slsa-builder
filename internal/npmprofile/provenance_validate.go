@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -13,9 +12,8 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
+	"golang.org/x/mod/semver"
 )
-
-var exactSemverPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
 
 type npmProfileValidator struct {
 	parameters        ExternalParameters
@@ -500,42 +498,24 @@ func percentEncode(value string) string {
 	return builder.String()
 }
 
+// minimumVersion and majorVersionBelow compare full SemVer versions,
+// including prerelease descriptors such as yarn@5.0.0-rc.1 that selection
+// accepts: provenance validation must apply the same bounds or the
+// fail-closed validator would reject a build the profile selected.
 func minimumVersion(value string, minimumMajor, minimumMinor, minimumPatch int) bool {
-	matches := exactSemverPattern.FindStringSubmatch(value)
-	if len(matches) != 4 {
+	if !exactSemver(value) {
 		return false
 	}
-	major, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return false
-	}
-	minor, err := strconv.Atoi(matches[2])
-	if err != nil {
-		return false
-	}
-	patch, err := strconv.Atoi(matches[3])
-	if err != nil {
-		return false
-	}
-	if major != minimumMajor {
-		return major > minimumMajor
-	}
-	if minor != minimumMinor {
-		return minor > minimumMinor
-	}
-	return patch >= minimumPatch
+	minimum := "v" + strconv.Itoa(minimumMajor) + "." + strconv.Itoa(minimumMinor) + "." + strconv.Itoa(minimumPatch)
+	return semver.Compare("v"+value, minimum) >= 0
 }
 
 func majorVersionBelow(value string, maximumMajor int) bool {
-	matches := exactSemverPattern.FindStringSubmatch(value)
-	if len(matches) != 4 {
+	if !exactSemver(value) {
 		return false
 	}
-	major, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return false
-	}
-	return major < maximumMajor
+	major, err := strconv.Atoi(strings.TrimPrefix(semver.Major("v"+value), "v"))
+	return err == nil && major < maximumMajor
 }
 
 func digestEncodingInvalid(value string, length int) bool {

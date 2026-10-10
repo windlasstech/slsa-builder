@@ -80,6 +80,7 @@ func selectManager(resolved resolvedPackage) (ManagerSelection, []diagnostic.Dia
 		}
 		if selected.name == ManagerNPM {
 			selection.DeclaredVersion = selected.version
+			selection.DeclaredVersionSet = selected.versionDeclared
 		}
 		return validateLockfiles(resolved, selection, true)
 	}
@@ -139,7 +140,7 @@ func parsePackageManager(raw jsonRaw, manifestPath string) (managerCandidate, st
 	if failureID != "" {
 		return managerCandidate{}, failureID
 	}
-	return managerCandidate{name: Manager(name), version: plain, digest: digest, source: SelectionPackageManager, manifestPath: manifestPath}, ""
+	return managerCandidate{name: Manager(name), version: plain, versionDeclared: true, digest: digest, source: SelectionPackageManager, manifestPath: manifestPath}, ""
 }
 
 func parseDevEngines(raw jsonRaw, manifestPath string) (managerCandidate, bool, string) {
@@ -168,7 +169,8 @@ func parseDevEngines(raw jsonRaw, manifestPath string) (managerCandidate, bool, 
 		return managerCandidate{}, false, IDPackageManagerConflict
 	}
 	var version string
-	if rawVersion, ok := object["version"]; ok && json.Unmarshal(rawVersion, &version) != nil {
+	rawVersion, versionDeclared := object["version"]
+	if versionDeclared && json.Unmarshal(rawVersion, &version) != nil {
 		return managerCandidate{}, false, IDPackageManagerConflict
 	}
 	if rawOnFail, ok := object["onFail"]; ok {
@@ -182,7 +184,7 @@ func parseDevEngines(raw jsonRaw, manifestPath string) (managerCandidate, bool, 
 	if failureID != "" {
 		return managerCandidate{}, false, failureID
 	}
-	return managerCandidate{name: Manager(name), version: plain, digest: digest, source: SelectionDevEngines, manifestPath: manifestPath}, true, ""
+	return managerCandidate{name: Manager(name), version: plain, versionDeclared: versionDeclared, digest: digest, source: SelectionDevEngines, manifestPath: manifestPath}, true, ""
 }
 
 func inferFromLockfile(resolved resolvedPackage) (ManagerSelection, []diagnostic.Diagnostic, string) {
