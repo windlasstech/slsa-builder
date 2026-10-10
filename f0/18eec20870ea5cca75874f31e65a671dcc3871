@@ -1,0 +1,26 @@
+go.mod
+  s_4baffb234bbacd::t_865a4a2c71959d 3
+CHANGELOG.md
+  s_4baffb234bbacd::t_f9c3fb4ca32b3d 68-71
+  s_4baffb234bbacd::t_8c251ca48de940 57
+  s_4baffb234bbacd::t_07c66f7d88b390 63-64
+  s_4baffb234bbacd::t_e3f36777ba56e0 77-80
+osv-scanner.toml
+  s_4baffb234bbacd::t_0b549dfce62ea6 9-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f018eec20870ea5cca75874f31e65a671dcc3871",
+  "prompts": {},
+  "sessions": {
+    "s_4baffb234bbacd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eda9b5268ffePIRghLY1a82j7W",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
