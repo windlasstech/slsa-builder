@@ -1,0 +1,19 @@
+CHANGELOG.md
+  s_4baffb234bbacd::t_8cfd46e9ee96af 74-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "24f975c2400ed73cd9e2c20b287ca208a9d6d279",
+  "prompts": {},
+  "sessions": {
+    "s_4baffb234bbacd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eda9b5268ffePIRghLY1a82j7W",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
