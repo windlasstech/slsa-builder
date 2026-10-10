@@ -1,0 +1,102 @@
+testdata/fixtures/index.json
+  s_144eb05d760499::t_fef75a845c3d5e 600
+  s_144eb05d760499::t_6fe6a883745ee6 601-618
+testdata/npm/packages/rejected/pnpm-digest-uppercase-hex/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/npm-declared-version-mismatch-valid/fixture.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/rejected/pnpm-digest-extra-identifiers/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/npm-digest-devengines/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/yarn-digest-sha512-devengines-valid/fixture.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/rejected/pnpm-9-unsupported/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/npm-digest-suffix/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-digest-wrong-length/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-build-metadata/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-digest-unknown-algorithm/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-build-metadata/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/yarn-digest-sha384-valid/package.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/npm-declared-version-match-valid/package.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/pnpm-digest-sha256-devengines-valid/fixture.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/rejected/pnpm-digest-unknown-algorithm/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/yarn-digest-sha384-valid/fixture.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/rejected/yarn-digest-unknown-algorithm/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-9-unsupported/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/yarn-build-metadata-devengines/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/npm-digest-suffix/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/npm-declared-version-match-valid/fixture.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/pnpm-digest-sha512-valid/package.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/pnpm-digest-sha256-devengines-valid/package.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/rejected/pnpm-digest-devengines-missing-hex/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-digest-wrong-length/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/npm-digest-devengines/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-digest-uppercase-hex/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/pnpm-digest-sha512-valid/fixture.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/rejected/yarn-digest-unknown-algorithm/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-9-devengines-unsupported/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+internal/fixture/npm_fixtures_test.go
+  s_c4167737f683ee::t_7bb7fb42f19857 46-63
+testdata/npm/packages/rejected/pnpm-digest-extra-identifiers/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-digest-devengines-missing-hex/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/npm-declared-version-mismatch-valid/package.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/yarn-digest-sha512-devengines-valid/package.json
+  s_144eb05d760499::t_59ff518e6be2fa 1
+testdata/npm/packages/rejected/yarn-build-metadata-devengines/package.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+testdata/npm/packages/rejected/pnpm-9-devengines-unsupported/fixture.json
+  s_144eb05d760499::t_b5015c95cb5661 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "824bf7cf552458acc050d96a2c94841cf20869b1",
+  "prompts": {},
+  "sessions": {
+    "s_144eb05d760499": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eda05002cffebfMzGBzvJ9R7Cj",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_c4167737f683ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eda05002cffebfMzGBzvJ9R7Cj",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
