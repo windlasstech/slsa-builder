@@ -1,0 +1,31 @@
+pnpm-workspace.yaml
+  s_4baffb234bbacd::t_b34e87241230ce 34-45
+osv-scanner.toml
+  s_4baffb234bbacd::t_2e252221d080d9 7-14
+pnpm-lock.yaml
+  s_73a8cf3874cb2e::t_05b9a6dd233dc1 10-11,15-16,20-21,25-26,30-31,35-36,40-41,46-47,52-53,58-59,64-65,70-71,76-77,82-83,87-88,92-93,99,102,105,108,111,114,117,120,123,126,129,132,135,138,141,143-156,165-168,236-238,329-330,605-606,670,751,753,782,863,1011
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e96780d9d4dd24e7a5ae5b5a3480cf84882a88da",
+  "prompts": {},
+  "sessions": {
+    "s_4baffb234bbacd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eda9b5268ffePIRghLY1a82j7W",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_73a8cf3874cb2e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eda9b5268ffePIRghLY1a82j7W",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
