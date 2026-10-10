@@ -1,0 +1,24 @@
+internal/npmprofile/semver_range.go
+  s_1d586f8d1287ac::t_137ed8e682426f 135-136
+  s_1d586f8d1287ac::t_79edd620bf7ef1 1-134,137-161,163-164,167-468
+  s_1d586f8d1287ac::t_bf88f71bf6141a 162,165-166
+internal/npmprofile/semver_range_test.go
+  s_1d586f8d1287ac::t_336ba241efca4d 99-100
+  s_1d586f8d1287ac::t_e7297db1fafd82 1-98,101-227
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e5fbf0a7e8ba0d9d013b3970600734dc2146bc74",
+  "prompts": {},
+  "sessions": {
+    "s_1d586f8d1287ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eda41761affe1ivONqgnY4eC3k",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
