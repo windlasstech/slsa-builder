@@ -1,0 +1,64 @@
+internal/npmprofile/declared_digest.go
+  s_775210f45f66b9::t_8aa1a3edf860f8 1-89
+internal/npmprofile/fuzz_test.go
+  s_775210f45f66b9::t_28434f1e75b976 447-473
+.github/workflows/fuzz.yml
+  s_775210f45f66b9::t_de4b7f2a46e403 73
+  s_27692606f06f21::t_0686bec39639dc 72
+internal/command/npm_profile_build_test.go
+  s_775210f45f66b9::t_67b8d68de6dcce 6-7
+  s_775210f45f66b9::t_0f1f14a5dac64e 94-135
+.github/workflows/lint.yml
+  s_775210f45f66b9::t_de4b7f2a46e403 151
+  s_27692606f06f21::t_0e42671aed6424 150
+internal/npmprofile/build_pack.go
+  s_775210f45f66b9::t_9f9bd523526e56 123
+  s_775210f45f66b9::t_d29d2c7a62834e 60-63
+internal/npmprofile/build_pack_types.go
+  s_775210f45f66b9::t_27bcbca5b02001 6
+  s_775210f45f66b9::t_9a8fa9045bb7c5 101-103
+internal/npmprofile/build_pack_test.go
+  s_775210f45f66b9::t_bf076bb4b7dfaa 108,114
+internal/npmprofile/build_pack_digest_test.go
+  s_775210f45f66b9::t_c006d4d6295da6 1-227
+internal/command/npm_profile_build.go
+  s_775210f45f66b9::t_0c5f38bf7f4841 130-141
+  s_775210f45f66b9::t_6d749b34896589 184-206
+internal/npmprofile/npm_version_warning.go
+  s_775210f45f66b9::t_02aecce793aee4 1-20
+internal/npmprofile/build_pack_hermetic_test.go
+  s_775210f45f66b9::t_c9e3c3f3548928 82-92,94-96,99,104,117-121,131,137-139,144,149
+  s_775210f45f66b9::t_cff2195304c899 39-48,62-63
+  s_775210f45f66b9::t_bbbcc8a6d8b016 249-253
+  s_775210f45f66b9::t_46d9c20fd3fca0 294-298
+  s_775210f45f66b9::t_2aba4eff99b66f 38
+  s_775210f45f66b9::t_4331e1aab65b7b 150-151
+internal/npmprofile/toolchain.go
+  s_775210f45f66b9::t_ebf6c0c9322733 98
+  s_775210f45f66b9::t_43380cb2765319 242,245,247
+  s_775210f45f66b9::t_79cdb185ef9f81 113-123,131,146,157,163-166,176-178,184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b39788cb72c5bef5fe20ce812a5df5a5bfe590b8",
+  "prompts": {},
+  "sessions": {
+    "s_27692606f06f21": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eda2052eaffeIYPE8SxoLWpuV3",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_775210f45f66b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eda2052eaffeIYPE8SxoLWpuV3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
