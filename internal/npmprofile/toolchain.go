@@ -26,6 +26,7 @@ const (
 	maxCorepackMetadata  = 64 << 10
 	maxRegistryMetadata  = 1 << 20
 	maxYarnDistribution  = 128 << 20
+	maxPNPMDistribution  = 64 << 20
 	distributionTimeout  = 2 * time.Minute
 	corepackHashPrefix   = "sha512."
 	corepackDebugMarker  = " corepack Installing "
@@ -94,7 +95,7 @@ func prepareToolchain(ctx context.Context, selection Result, root string, enviro
 	if managerVersion != selection.Manager.Version {
 		return ToolchainCapture{}, "", fmt.Errorf("selected %s@%s but Corepack executed %s", selection.Manager.Name, selection.Manager.Version, managerVersion)
 	}
-	distribution, err := captureDistribution(ctx, filepath.Join(root, "corepack"), selection.Manager.Name, managerVersion, managerOutput, fetcher)
+	distribution, err := captureDistribution(ctx, filepath.Join(root, "corepack"), selection.Manager, managerOutput, fetcher)
 	if err != nil {
 		return ToolchainCapture{}, "", err
 	}
@@ -109,8 +110,17 @@ func lastOutputLine(output string) string {
 	return strings.TrimSpace(lines[len(lines)-1])
 }
 
-func captureDistribution(ctx context.Context, corepackHome string, manager Manager, version, commandOutput string, fetcher distributionFetcher) (*DistributionCapture, error) {
-	distributionURL, err := corepackDistributionURL(commandOutput, manager, version)
+// captureDistribution records the Corepack acquisition evidence for the
+// selected pnpm or Yarn distribution. ADR 0092's live matrix keys Corepack
+// state on the full descriptor reference (version plus any declared digest
+// suffix) — the cache path, the `.corepack` locator.reference, and the
+// Installing debug line — while URLs and registry metadata key on the plain
+// version. The recorded PackageManagerVer is the verbatim descriptor.
+func captureDistribution(ctx context.Context, corepackHome string, selection ManagerSelection, commandOutput string, fetcher distributionFetcher) (*DistributionCapture, error) {
+	manager := selection.Name
+	version := selection.Version
+	reference := selection.Descriptor()
+	distributionURL, err := corepackDistributionURL(commandOutput, manager, reference)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +128,7 @@ func captureDistribution(ctx context.Context, corepackHome string, manager Manag
 	if distributionURL != wantURL {
 		return nil, fmt.Errorf("corepack acquired %s@%s from unexpected URL %q", manager, version, distributionURL)
 	}
-	metadataPath := filepath.Join(corepackHome, "v1", string(manager), version, ".corepack")
+	metadataPath := filepath.Join(corepackHome, "v1", string(manager), reference, ".corepack")
 	encoded, err := readBoundedRegularFile(metadataPath, maxCorepackMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("read Corepack distribution metadata: %w", err)
@@ -133,7 +143,7 @@ func captureDistribution(ctx context.Context, corepackHome string, manager Manag
 		} `json:"locator"`
 		Hash string `json:"hash"`
 	}
-	if err := json.Unmarshal(encoded, &metadata); err != nil || metadata.Locator.Name != string(manager) || metadata.Locator.Reference != version {
+	if err := json.Unmarshal(encoded, &metadata); err != nil || metadata.Locator.Name != string(manager) || metadata.Locator.Reference != reference {
 		return nil, errors.New("corepack distribution metadata disagrees with the executed manager")
 	}
 	corepackHash := strings.TrimPrefix(metadata.Hash, corepackHashPrefix)
@@ -144,12 +154,16 @@ func captureDistribution(ctx context.Context, corepackHome string, manager Manag
 
 	authority := registryDigestSource
 	authoritativeHash := ""
+	var bundle []byte
 	switch manager {
 	case ManagerPNPM:
 		authoritativeHash, err = pnpmRegistryIntegrity(ctx, version, distributionURL, fetcher)
 	case ManagerYarn:
 		authority = downloadDigestSource
-		authoritativeHash, err = hashYarnDistribution(ctx, distributionURL, fetcher)
+		bundle, err = downloadYarnDistribution(ctx, distributionURL, fetcher)
+		if err == nil {
+			authoritativeHash = digest.SumSHA512(bundle).String()
+		}
 	default:
 		err = errors.New("unsupported Corepack package manager")
 	}
@@ -159,12 +173,15 @@ func captureDistribution(ctx context.Context, corepackHome string, manager Manag
 	if authoritativeHash != corepackHash {
 		return nil, errors.New("corepack distribution hash disagrees with acquisition evidence")
 	}
+	if err := reconcileDeclaredDigest(ctx, selection, distributionURL, authoritativeHash, bundle, fetcher); err != nil {
+		return nil, err
+	}
 	return &DistributionCapture{
 		URL:               distributionURL,
 		SHA512:            corepackHash,
 		DigestAuthority:   authority,
 		PackageManager:    manager,
-		PackageManagerVer: version,
+		PackageManagerVer: reference,
 		AcquisitionSource: acquisitionSource,
 	}, nil
 }
@@ -222,12 +239,12 @@ func pnpmRegistryIntegrity(ctx context.Context, version, distributionURL string,
 	return hex.EncodeToString(digestBytes), nil
 }
 
-func hashYarnDistribution(ctx context.Context, distributionURL string, fetcher distributionFetcher) (string, error) {
+func downloadYarnDistribution(ctx context.Context, distributionURL string, fetcher distributionFetcher) ([]byte, error) {
 	encoded, err := fetcher(ctx, distributionURL, maxYarnDistribution, "application/octet-stream")
 	if err != nil {
-		return "", fmt.Errorf("download Yarn distribution evidence: %w", err)
+		return nil, fmt.Errorf("download Yarn distribution evidence: %w", err)
 	}
-	return digest.SumSHA512(encoded).String(), nil
+	return encoded, nil
 }
 
 //nolint:unused // parameter names document the fetcher contract

@@ -36,6 +36,17 @@ const (
 // copy files; no digest is hardcoded anywhere.
 func installFakeToolchain(t *testing.T) {
 	t.Helper()
+	installFakeToolchainWithReferences(t, fakePNPMVersion, fakeYarnVersion)
+}
+
+// installFakeToolchainWithReferences behaves like installFakeToolchain but
+// keys the Corepack cache and debug output on the given descriptor references.
+// A digest-suffixed reference (ADR 0092, e.g. "11.28.3+sha512.<hex>") mirrors
+// verified Corepack behavior: the cache directory, the `.corepack`
+// locator.reference, and the Installing debug line carry the full reference
+// while `--version` still prints the plain version.
+func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReference string) {
+	t.Helper()
 	root := t.TempDir()
 	fakebin := filepath.Join(root, "fakebin")
 	data := filepath.Join(root, "data")
@@ -48,8 +59,8 @@ func installFakeToolchain(t *testing.T) {
 
 	pnpmTGZ := readFixture(t, fixtures, "pnpm-"+fakePNPMVersion+".tgz")
 	yarnJS := readFixture(t, fixtures, "yarn-"+fakeYarnVersion+".js")
-	writeCorepackMetadata(t, data, ManagerPNPM, fakePNPMVersion, pnpmTGZ)
-	writeCorepackMetadata(t, data, ManagerYarn, fakeYarnVersion, yarnJS)
+	writeCorepackMetadata(t, data, ManagerPNPM, pnpmReference, pnpmTGZ)
+	writeCorepackMetadata(t, data, ManagerYarn, yarnReference, yarnJS)
 
 	expand := func(script string) string {
 		replacer := strings.NewReplacer(
@@ -68,16 +79,29 @@ func installFakeToolchain(t *testing.T) {
 	t.Setenv("PATH", fakebin+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
 
+// distributionFetchLog records every URL the fake fetcher served so tests can
+// prove which fetches did and did not happen (ADR 0092: a declared pnpm
+// sha512 digest is reconciled from registry evidence with no tarball fetch).
+type distributionFetchLog struct {
+	counts map[string]int
+}
+
+func (log *distributionFetchLog) count(rawURL string) int {
+	return log.counts[rawURL]
+}
+
 // fakeDistributionFetcher replaces fetchHTTPS in BuildPackConfig. It answers
-// exactly the two URLs the real distribution capture fetches and fails the
-// test on any other URL, proving no unexpected fetch happens.
-func fakeDistributionFetcher(t *testing.T) distributionFetcher {
+// exactly the URLs the real distribution capture fetches and fails the test
+// on any other URL, proving no unexpected fetch happens.
+func fakeDistributionFetcher(t *testing.T) (distributionFetcher, *distributionFetchLog) {
 	t.Helper()
 	fixtures := filepath.Join(testRepositoryRoot(t), "testdata", "npm", "buildpack")
+	log := &distributionFetchLog{counts: make(map[string]int)}
 	return func(fetchContext context.Context, rawURL string, maximum int64, accept string) ([]byte, error) {
 		if fetchContext == nil || maximum <= 0 {
 			t.Fatalf("distribution fetch called with invalid bounds: maximum=%d", maximum)
 		}
+		log.counts[rawURL]++
 		switch rawURL {
 		case fakePNPMPackumentURL:
 			if accept != "application/json" {
@@ -90,6 +114,11 @@ func fakeDistributionFetcher(t *testing.T) distributionFetcher {
 				`{"name":"pnpm","version":%q,"dist":{"tarball":%q,"integrity":%q}}`,
 				fakePNPMVersion, fakePNPMDistributionURL, integrity,
 			)), nil
+		case fakePNPMDistributionURL:
+			if accept != "application/octet-stream" {
+				t.Fatalf("pnpm tarball fetch accept = %q, want application/octet-stream", accept)
+			}
+			return readFixture(t, fixtures, "pnpm-"+fakePNPMVersion+".tgz"), nil
 		case fakeYarnDistributionURL:
 			if accept != "application/octet-stream" {
 				t.Fatalf("Yarn distribution fetch accept = %q, want application/octet-stream", accept)
@@ -99,20 +128,25 @@ func fakeDistributionFetcher(t *testing.T) distributionFetcher {
 			t.Fatalf("unexpected distribution fetch: %q", rawURL)
 			return nil, fmt.Errorf("unexpected distribution fetch: %q", rawURL)
 		}
-	}
+	}, log
 }
 
 // writeCorepackMetadata computes the SHA-512 of the distribution fixture bytes
 // at runtime and writes the .corepack metadata file in the exact shape
 // captureDistribution reads: {"locator":{"name","reference"},"hash":"sha512.<hex>"}.
-func writeCorepackMetadata(t *testing.T, data string, manager Manager, version string, payload []byte) {
+// It also writes the <manager>.reference file the fake shims read to learn the
+// descriptor reference they were activated with.
+func writeCorepackMetadata(t *testing.T, data string, manager Manager, reference string, payload []byte) {
 	t.Helper()
 	sum := sha512.Sum512(payload)
 	metadata := fmt.Sprintf(
 		`{"locator":{"name":%q,"reference":%q},"hash":"sha512.%s"}`,
-		string(manager), version, hex.EncodeToString(sum[:]),
+		string(manager), reference, hex.EncodeToString(sum[:]),
 	)
 	if err := os.WriteFile(filepath.Join(data, string(manager)+".corepack"), []byte(metadata), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(data, string(manager)+".reference"), []byte(reference), 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -212,10 +246,11 @@ exit 0
 const fakePNPMShimScript = `#!/bin/sh
 case "$1" in
   --version)
-    mkdir -p "$COREPACK_HOME/v1/pnpm/` + fakePNPMVersion + `"
-    cp "@DATA_DIR@/pnpm.corepack" "$COREPACK_HOME/v1/pnpm/` + fakePNPMVersion + `/.corepack"
-    printf 'Corepack DEBUG: resolving pnpm@` + fakePNPMVersion + `\n'
-    printf ' corepack Installing pnpm@` + fakePNPMVersion + ` from ` + fakePNPMDistributionURL + `\n'
+    reference=$(cat "@DATA_DIR@/pnpm.reference")
+    mkdir -p "$COREPACK_HOME/v1/pnpm/$reference"
+    cp "@DATA_DIR@/pnpm.corepack" "$COREPACK_HOME/v1/pnpm/$reference/.corepack"
+    printf 'Corepack DEBUG: resolving pnpm@%s\n' "$reference"
+    printf ' corepack Installing pnpm@%s from ` + fakePNPMDistributionURL + `\n' "$reference"
     printf '` + fakePNPMVersion + `\n'
     ;;
   install)
@@ -256,10 +291,11 @@ exit 0
 const fakeYarnShimScript = `#!/bin/sh
 case "$1" in
   --version)
-    mkdir -p "$COREPACK_HOME/v1/yarn/` + fakeYarnVersion + `"
-    cp "@DATA_DIR@/yarn.corepack" "$COREPACK_HOME/v1/yarn/` + fakeYarnVersion + `/.corepack"
-    printf 'Corepack DEBUG: resolving yarn@` + fakeYarnVersion + `\n'
-    printf ' corepack Installing yarn@` + fakeYarnVersion + ` from ` + fakeYarnDistributionURL + `\n'
+    reference=$(cat "@DATA_DIR@/yarn.reference")
+    mkdir -p "$COREPACK_HOME/v1/yarn/$reference"
+    cp "@DATA_DIR@/yarn.corepack" "$COREPACK_HOME/v1/yarn/$reference/.corepack"
+    printf 'Corepack DEBUG: resolving yarn@%s\n' "$reference"
+    printf ' corepack Installing yarn@%s from ` + fakeYarnDistributionURL + `\n' "$reference"
     printf '` + fakeYarnVersion + `\n'
     ;;
   install)

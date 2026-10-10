@@ -444,6 +444,33 @@ func FuzzParseDevEngines(f *testing.F) {
 	})
 }
 
+// FuzzNPMDeclaredMatchesActual asserts that the ADR 0095 declared-npm
+// comparator never panics, is deterministic, never matches an unparseable
+// actual version, and that a plain exact declared version matches only when
+// it equals the actual version.
+func FuzzNPMDeclaredMatchesActual(f *testing.F) {
+	f.Add("11.5.1", "11.5.1")
+	f.Add("^11.0.0", "11.5.1")
+	f.Add("~11.5.0", "11.5.1")
+	f.Add("11.0.0 - 11.9.9", "11.5.1")
+	f.Add("10.x || ^11.5.0", "11.5.1")
+	f.Add("garbage", "11.5.1")
+	f.Add("11.5.1", "garbage")
+
+	f.Fuzz(func(t *testing.T, declared, actual string) {
+		first := npmDeclaredMatchesActual(declared, actual)
+		if second := npmDeclaredMatchesActual(declared, actual); first != second {
+			t.Fatalf("npmDeclaredMatchesActual(%q, %q) is nondeterministic: first %t, second %t", declared, actual, first, second)
+		}
+		if _, ok := parseNPMRangeActual(actual); !ok && first {
+			t.Fatalf("npmDeclaredMatchesActual(%q, %q) matched an unparseable actual version", declared, actual)
+		}
+		if first && exactSemver(declared) && declared != actual {
+			t.Fatalf("npmDeclaredMatchesActual(%q, %q): a plain exact declared version matched a different actual version", declared, actual)
+		}
+	})
+}
+
 // FuzzDecodePackedManifest asserts that packed-manifest decoding never panics,
 // that rejections wrap the package-pack-failed diagnostic ID, and that an
 // accepted manifest is duplicate-free JSON with string identity members.

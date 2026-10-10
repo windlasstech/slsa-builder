@@ -57,6 +57,10 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 	if err != nil {
 		return BuildPackResult{}, err
 	}
+	diagnostics, err := npmDeclaredVersionWarning(config.Selection.Manager, toolchain.NPMVersion)
+	if err != nil {
+		return BuildPackResult{}, err
+	}
 	manifest, _, err := readManifest(filepath.Join(config.Selection.Package.RealDirectory, "package.json"))
 	if err != nil {
 		return BuildPackResult{}, fmt.Errorf("re-read selected package manifest: %w", err)
@@ -116,6 +120,7 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 		Packed:         packed,
 		BuildScript:    buildScript,
 		Toolchain:      toolchain,
+		Diagnostics:    diagnostics,
 	}
 	succeeded = true
 	return result, nil

@@ -3,6 +3,7 @@ package npmprofile
 import (
 	"encoding/json"
 
+	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
@@ -97,4 +98,7 @@ type BuildPackResult struct {
 	Packed         PackedMetadata
 	BuildScript    BuildScriptCapture
 	Toolchain      ToolchainCapture
+	// Diagnostics carries non-fatal build warnings (ADR 0095 npm version
+	// mismatch); it is empty when the build observed no divergence.
+	Diagnostics []diagnostic.Diagnostic
 }

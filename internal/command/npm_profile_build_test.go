@@ -3,6 +3,8 @@ package command
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -87,6 +89,48 @@ func TestNPMProfileBuildCommandRejectsMissingHandoffName(t *testing.T) {
 	if err := NewNPMProfileBuildCommand().Execute(context.Background(), nil, &output); err == nil {
 		t.Fatal("Execute() succeeded, want required argument error")
 	}
+}
+
+// digestMismatchFailure stands in for the npmprofile ADR 0092 classified
+// error: any error exposing DiagnosticID() == package-manager-digest-mismatch
+// must map to a fail report plus ErrVerificationFailure (exit 1).
+type digestMismatchFailure struct{ message string }
+
+func (err digestMismatchFailure) Error() string { return err.message }
+
+func (digestMismatchFailure) DiagnosticID() string { return npmprofile.IDPackageManagerDigestMismatch }
+
+func TestWriteNPMBuildDigestMismatch(t *testing.T) {
+	t.Run("classified digest mismatch emits a fail report", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildDigestMismatch(&output, digestMismatchFailure{message: "pnpm distribution sha512 digest disagrees with the declared descriptor digest"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !classified {
+			t.Fatal("classified digest mismatch was not recognized")
+		}
+		var report Report
+		if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+			t.Fatalf("decode report: %v", err)
+		}
+		if report.Result != "fail" || report.ExitCode != ExitCodeVerificationFailure {
+			t.Fatalf("report = %#v, want fail with exit code 1", report)
+		}
+		if report.PrimaryID == nil || *report.PrimaryID != npmprofile.IDPackageManagerDigestMismatch {
+			t.Fatalf("primary ID = %#v, want %s", report.PrimaryID, npmprofile.IDPackageManagerDigestMismatch)
+		}
+	})
+	t.Run("unclassified errors pass through", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildDigestMismatch(&output, errors.New("corepack did not report the acquired distribution URL"))
+		if err != nil || classified {
+			t.Fatalf("classified = %t, err = %v, want pass-through", classified, err)
+		}
+		if output.Len() != 0 {
+			t.Fatalf("output = %q, want no report for an unclassified error", output.String())
+		}
+	})
 }
 
 func parseGitHubOutputs(t *testing.T, encoded string) map[string]string {
