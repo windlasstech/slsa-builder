@@ -12,12 +12,29 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 - Added the ADR 0088 Corepack-window package-manager version bounds to the JS/TS npm profile: while
   Corepack remains the production provisioning path, consumer manifests pinning a pnpm version
-  outside the 11.x line are rejected before install with
-  `windlass.verify.error.pnpm-version-unsupported` (enforced from both the top-level
-  `packageManager` field and `devEngines.packageManager`), and manifests pinning Yarn 6 or newer are
-  rejected before install with `windlass.verify.error.yarn-version-unsupported`. Yarn
-  externalParameters in signed provenance are likewise bounded to exact v4/v5 versions, matching the
-  revised verification policy.
+  outside the supported 10.x or 11.x lines (`[10.0.0, 12.0.0)`, per the ADR 0090 boundary rule) are
+  rejected before install with `windlass.verify.error.pnpm-version-unsupported`, and manifests
+  pinning Yarn 6 or newer are rejected before install with
+  `windlass.verify.error.yarn-version-unsupported`. Yarn externalParameters in signed provenance are
+  likewise bounded to exact v4/v5 versions, matching the revised verification policy.
+- Added `devEngines.packageManager` as a uniform package-manager selection source (ADR 0091): any
+  supported package manager, including pnpm 10.x and Yarn Berry v4/v5, is selectable from either the
+  top-level `packageManager` field or `devEngines.packageManager` under the same exact-version
+  contract, while `yarn.lock`-only inference remains rejected.
+- Added optional integrity digest declarations to pnpm and Yarn package-manager descriptors (ADRs
+  0092-0094): either manifest field may carry one `+<algorithm>.<hex>` suffix (`sha256`, `sha384`,
+  or `sha512` with lowercase hex), which the builder recomputes over the acquired distribution bytes
+  and reconciles fail-closed before install, rejecting a malformed suffix with
+  `windlass.verify.error.package-manager-digest-malformed` and a disagreement with
+  `windlass.verify.error.package-manager-digest-mismatch`. The recorded
+  `package-manager-distribution` evidence keeps its source-native observed authority, and provenance
+  renders the declared descriptor verbatim.
+- Added npm declaration semantics per ADR 0095: an npm version declared in either manifest field is
+  accepted as non-authoritative input, and a declaration that does not match the toolchain npm emits
+  a `windlass.verify.warning.npm-version-mismatch` warning without failing the build; an npm
+  descriptor carrying a digest suffix is rejected, and SemVer build metadata on pnpm and Yarn
+  descriptors that is not a grammar-valid digest suffix is likewise rejected with
+  `windlass.verify.error.package-manager-digest-malformed`.
 - Added npm configuration diagnostics logging to the JS/TS npm reusable workflow's build and publish
   jobs: node/npm versions, ambient `NPM_CONFIG_*` variable count, redacted `npm config ls` output,
   and the provenance/registry key view across all config layers, to aid trusted-publishing and
@@ -49,7 +66,7 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   links, and a license section.
 - Added the documented fail-closed package-manager support boundary: consumer manifests pinning pnpm
   12+ or Yarn 6+ are rejected with a diagnostic while Corepack is the production provisioning path;
-  supported package managers are npm, pnpm 11.x, and Yarn Berry v4/v5.
+  supported package managers are npm, pnpm 10.x and 11.x, and Yarn Berry v4/v5.
 - Added support for standalone root packages whose `pnpm-workspace.yaml` contains policy settings
   but omits the optional `packages` member (settings-only workspace files resolve to the root
   package).
