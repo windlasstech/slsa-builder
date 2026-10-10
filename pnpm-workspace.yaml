@@ -31,6 +31,18 @@ trustPolicy: no-downgrade
 # Default since pnpm v10.26.0 is true; pinned here for explicit policy.
 blockExoticSubdeps: true
 
+# Forced transitive upgrades for security fixes whose parent ranges pin or
+# cap below the fixed version (OSV full scan, run 37989566055):
+# - smol-toml: markdownlint-cli2@0.23.3 pins exactly 1.8.0;
+#   GHSA-r4xh-jqrq-34v2 is fixed in 1.9.0.
+# - katex: micromark-extension-math@3.1.0 caps katex at ^0.16.0;
+#   GHSA-238p-pmpm-9mq7 is fixed in 0.18.2.
+# NOTE: braces@3.0.3 (GHSA-vfj7-8cjw-p6xm) has no fixed release as of
+# 12026-10-10, so no override can remediate it.
+overrides:
+  smol-toml: ^1.9.1
+  katex: ^0.19.0
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Store Integrity
 # ──────────────────────────────────────────────────────────────────────────────
