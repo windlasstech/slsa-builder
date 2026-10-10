@@ -268,8 +268,16 @@ func workflowResolvedDependencies(selection Result, build BuildPackResult, param
 }
 
 func packageManagerParameters(selection Result, build BuildPackResult) PackageManagerParameters {
+	version := build.Toolchain.PackageManagerVersion
+	// ADR 0094: when the selected pnpm or Yarn descriptor declared an
+	// integrity digest (ADRs 0092-0093), package_manager.version renders the
+	// selected descriptor verbatim, suffix included. npm (ADR 0095) and
+	// digest-less selections keep the observed toolchain version.
+	if selection.Manager.Digest != nil {
+		version = selection.Manager.Descriptor()
+	}
 	parameters := PackageManagerParameters{
-		Name: selection.Manager.Name, Version: build.Toolchain.PackageManagerVersion, SelectionSource: selection.Manager.Source,
+		Name: selection.Manager.Name, Version: version, SelectionSource: selection.Manager.Source,
 		SelectionManifest: optionalString(filepath.Base(selection.Manager.SelectionManifestPath)), SelectionManifestPath: optionalString(selection.Manager.SelectionManifestPath),
 		SelectionLockfilePath: optionalString(selection.Manager.SelectionLockfilePath), Root: selection.Package.ManagerRoot,
 		IgnoredLockfilePaths: append([]string(nil), selection.Manager.IgnoredLockfilePaths...),

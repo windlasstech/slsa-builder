@@ -295,7 +295,18 @@ func validatePackageParameters(parameters ExternalParameters) error {
 }
 
 func validatePackageManagerParameters(parameters PackageManagerParameters) error {
-	if parameters.Name != ManagerNPM && parameters.Name != ManagerPNPM && parameters.Name != ManagerYarn || !minimumVersion(parameters.Version, 0, 0, 0) {
+	if parameters.Name != ManagerNPM && parameters.Name != ManagerPNPM && parameters.Name != ManagerYarn {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "package manager name and exact version are invalid")
+	}
+	// ADRs 0092-0094: the recorded version may carry one closed
+	// +<algorithm>.<hex> integrity digest suffix (never on npm, ADR 0095).
+	// Exact-version and version-bound rules below apply to the plain version
+	// with the suffix stripped.
+	plain, _, failureID := parseDescriptorVersion(parameters.Name, parameters.Version)
+	if failureID != "" {
+		return npmValidationError(IDPackageManagerDigestMalformed, "externalParameters.package_manager.version", "package manager version digest suffix violates the closed +<algorithm>.<hex> grammar")
+	}
+	if !minimumVersion(plain, 0, 0, 0) {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "package manager name and exact version are invalid")
 	}
 	if parameters.Root == "" || path.IsAbs(parameters.Root) || strings.Contains(parameters.Root, "\\") || strings.HasPrefix(path.Clean(parameters.Root), "..") {
@@ -309,8 +320,11 @@ func validatePackageManagerParameters(parameters PackageManagerParameters) error
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "manifest selection paths have the wrong shape")
 	}
 	if parameters.Name == ManagerYarn {
-		if parameters.SelectionSource != SelectionPackageManager || !minimumVersion(parameters.Version, 4, 0, 0) || !majorVersionBelow(parameters.Version, 6) || parameters.YarnInstallMode != "immutable" {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "Yarn requires packageManager selection, an exact v4 or v5 version, and immutable mode")
+		// ADR 0091: Yarn selection may come from packageManager or
+		// devEngines.packageManager; lockfile inference stays invalid.
+		manifestSelected := parameters.SelectionSource == SelectionPackageManager || parameters.SelectionSource == SelectionDevEngines
+		if !manifestSelected || !minimumVersion(plain, 4, 0, 0) || !majorVersionBelow(plain, 6) || parameters.YarnInstallMode != "immutable" {
+			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager", "Yarn requires packageManager or devEngines selection, an exact v4 or v5 version, and immutable mode")
 		}
 	} else if parameters.YarnInstallMode != "" {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package_manager.yarn_install_mode", "Yarn install mode is forbidden for npm and pnpm")
@@ -420,6 +434,14 @@ func validateDistributionDescriptor(value provenance.ResourceDescriptor, paramet
 	wants := map[string]any{"digest_authority": authority, "package_manager": parameters.PackageManager.Name, "package_manager_version": parameters.PackageManager.Version, "acquisition_source": "corepack"}
 	if !annotationsEqual(value.Annotations, wants) {
 		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution.annotations", "distribution annotations differ from the selected manager")
+	}
+	// ADR 0092: a declared sha512 suffix must agree with the recorded
+	// observed distribution digest. Declared sha256 and sha384 suffixes
+	// cannot be recomputed from the SHA-512 evidence and are accepted as
+	// build-time-reconciled declared input.
+	_, declared, _ := parseDescriptorVersion(parameters.PackageManager.Name, parameters.PackageManager.Version)
+	if declared != nil && declared.Algorithm == "sha512" && declared.Hex != value.Digest["sha512"] {
+		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution.digest", "declared sha512 digest disagrees with the recorded distribution digest")
 	}
 	return nil
 }
