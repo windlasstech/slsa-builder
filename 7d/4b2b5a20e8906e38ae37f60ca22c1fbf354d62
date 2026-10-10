@@ -1,0 +1,16 @@
+go.mod
+  h_495200fbbeca45 9,47,65,79-80,82-88
+go.sum
+  h_495200fbbeca45 5-6,23-26,33-34,39-68,94-95,121,176-179,183-184,267-276,316-319,343-348,351-352,354-359,364-373
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7d4b2b5a20e8906e38ae37f60ca22c1fbf354d62",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
