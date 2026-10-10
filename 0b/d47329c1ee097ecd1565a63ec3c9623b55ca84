@@ -1,0 +1,68 @@
+testdata/npm/packages/pnpm-10-devengines-valid/fixture.json
+  s_2a9b94fc5f02fd::t_2ad9ebe869d26b 1-18
+testdata/npm/packages/yarn-devengines-valid/package.json
+  s_2a9b94fc5f02fd::t_3afc0181289398 1-14
+internal/npmprofile/types.go
+  s_2a9b94fc5f02fd::t_00c3585ebb8546 138
+  s_2a9b94fc5f02fd::t_42fa8adc7479d5 62-68,73-74,82-90
+  s_2a9b94fc5f02fd::t_a1032e60d3a581 13-14,22
+  s_2a9b94fc5f02fd::t_88657d4c72e813 91
+testdata/npm/packages/pnpm-10-valid/fixture.json
+  s_2a9b94fc5f02fd::t_80ab8d7a7f973a 1-18
+internal/npmprofile/descriptor.go
+  s_2a9b94fc5f02fd::t_13cd022434b493 1-88
+internal/npmprofile/selection.go
+  s_2a9b94fc5f02fd::t_2e93910066044d 64-70,77,81-82
+  s_2a9b94fc5f02fd::t_df4950bd11d29e 181-183,185
+  s_2a9b94fc5f02fd::t_e13c3b6ee620b5 359-361,363
+  s_2a9b94fc5f02fd::t_a9260bde3e31a3 129,138-140,142
+  s_2a9b94fc5f02fd::t_1df06b6fbc94b3 297,299-301
+  s_2a9b94fc5f02fd::t_c7c10c08b96a08 321-325,327-340
+  s_2a9b94fc5f02fd::t_99c84bcb86b433 83
+internal/npmprofile/descriptor_test.go
+  s_2a9b94fc5f02fd::t_1d7727a93ee0fc 1-109
+internal/npmprofile/selection_test.go
+  s_2a9b94fc5f02fd::t_60c6d0fb9ce33d 373,376-388,393,396-406,410,418-421,433-445,447-465,468-499,502-623
+  s_2a9b94fc5f02fd::t_c182f01ff8e3ec 466-467,500-501
+  s_2a9b94fc5f02fd::t_02fe4f8e877e0c 315,317,335,337
+  s_2a9b94fc5f02fd::t_99395ae9ad0a97 446
+  s_2a9b94fc5f02fd::t_411ea5bf227230 187-188,190
+  s_8019e4a67d4efa::t_efc2c149e0ceef 624
+testdata/fixtures/index.json
+  s_2a9b94fc5f02fd::t_071de07a897766 561-599
+testdata/npm/packages/pnpm-10-devengines-valid/package.json
+  s_2a9b94fc5f02fd::t_a23dc6a929696c 1-14
+internal/npmprofile/fuzz_test.go
+  s_2a9b94fc5f02fd::t_c2e529bfeb55d6 14
+  s_2a9b94fc5f02fd::t_517bd14254423b 299-359,361-363,367-372,386-392,394,400-401,407,409-412,435-441,443
+testdata/npm/packages/yarn-devengines-valid/fixture.json
+  s_2a9b94fc5f02fd::t_49c16d2551577a 1-19
+testdata/npm/packages/pnpm-10-valid/package.json
+  s_2a9b94fc5f02fd::t_2fd2efa6b47aba 1-8
+internal/fixture/npm_fixtures_test.go
+  s_2a9b94fc5f02fd::t_f94bc8ed04c6b0 43-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0bd47329c1ee097ecd1565a63ec3c9623b55ca84",
+  "prompts": {},
+  "sessions": {
+    "s_2a9b94fc5f02fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eda421d95ffeKvRLALCKZx7Emc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_8019e4a67d4efa": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eda421d95ffeKvRLALCKZx7Emc",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
