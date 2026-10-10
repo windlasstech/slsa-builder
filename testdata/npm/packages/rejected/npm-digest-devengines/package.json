@@ -1,0 +1,1 @@
+{"name":"windlass-fixture-npm-digest-devengines","version":"1.0.0","license":"Apache-2.0","repository":"windlasstech/slsa-builder","devEngines":{"packageManager":{"name":"npm","version":"11.5.1+sha256.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","onFail":"error"}}}
