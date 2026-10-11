@@ -1,0 +1,16 @@
+README.ko.md
+  h_495200fbbeca45 27
+README.md
+  h_495200fbbeca45 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b58a651db76583b8ebca92639793c20f895b656d",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
