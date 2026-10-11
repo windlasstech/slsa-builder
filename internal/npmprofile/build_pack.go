@@ -210,7 +210,7 @@ func validateCredentialConfiguration(selection Result) error {
 			if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
 				continue
 			}
-			key := line
+			var key string
 			if colon := strings.Index(line, ":"); colon >= 0 &&
 				(colon+1 == len(line) || line[colon+1] == ' ' || line[colon+1] == '\t') {
 				key = line[:colon]
