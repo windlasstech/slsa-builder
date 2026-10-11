@@ -1,0 +1,19 @@
+internal/canonicaljson/canonical_internal_test.go
+  s_21e874d94c0106::t_388d2d94fccc09 1-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a52ed93918fcfa918748dc7ff60268fc53c9302e",
+  "prompts": {},
+  "sessions": {
+    "s_21e874d94c0106": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ee161cffe2rjpGjo60DfrvT",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
