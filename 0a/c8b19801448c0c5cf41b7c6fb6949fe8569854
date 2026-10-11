@@ -1,0 +1,20 @@
+internal/identity/builder_test.go
+  s_465af1a2ddebd8::t_d0f15b30b2abe8 59-62
+  s_465af1a2ddebd8::t_7cae803e3d371f 1-58,63-213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0ac8b19801448c0c5cf41b7c6fb6949fe8569854",
+  "prompts": {},
+  "sessions": {
+    "s_465af1a2ddebd8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ec6b2effeUJeF6lOc6OhuWE",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
