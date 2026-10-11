@@ -1,0 +1,33 @@
+internal/npmprofile/source_ref_extra_test.go
+  s_39eba1b76fd0e7::t_893ac60297214d 74-75
+docs/architecture/js-ts-npm-package-profile.md
+  s_39eba1b76fd0e7::t_183bae6ecb5ac6 173-180
+  s_39eba1b76fd0e7::t_0c49d0e35aa096 172
+  s_a8329da46d4f9d::t_1f7f959f60a89c 188-190
+internal/npmprofile/source_ref.go
+  s_39eba1b76fd0e7::t_7c1104b0505513 139-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a930852cb8f0a28990dd4d82cee960bbc32c30da",
+  "prompts": {},
+  "sessions": {
+    "s_39eba1b76fd0e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3f634cbffe4r2Zso0Z64wUzZ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_a8329da46d4f9d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed3f634cbffe4r2Zso0Z64wUzZ",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
