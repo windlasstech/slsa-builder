@@ -1,6 +1,7 @@
 package workflowcheck
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -18,9 +19,10 @@ type job struct {
 }
 
 type step struct {
-	If   string `yaml:"if"`
-	Run  string `yaml:"run"`
-	Uses string `yaml:"uses"`
+	If   string         `yaml:"if"`
+	Run  string         `yaml:"run"`
+	Uses string         `yaml:"uses"`
+	With map[string]any `yaml:"with"`
 }
 
 func TestLintWorkflowHardening(t *testing.T) {
@@ -39,6 +41,7 @@ func TestLintWorkflowHardening(t *testing.T) {
 	}
 
 	hasGoTest := false
+	hasCodecovUpload := false
 	for name, job := range lint.Jobs {
 		if len(job.Steps) == 0 || !strings.HasPrefix(job.Steps[0].Uses, "step-security/harden-runner@") {
 			t.Errorf("job %q must use harden-runner as its first step", name)
@@ -48,13 +51,31 @@ func TestLintWorkflowHardening(t *testing.T) {
 			if strings.Contains(step.If, "hashFiles") && strings.Contains(step.If, ".go") {
 				t.Errorf("job %q contains a Go-file skip condition: %s", name, step.If)
 			}
-			if strings.Contains(step.Run, "go test ./...") {
+			if strings.Contains(step.Run, "go test") && strings.Contains(step.Run, "./...") {
 				hasGoTest = true
+				if !strings.Contains(step.Run, "-race") {
+					t.Errorf("job %q go test step must enable the race detector per docs/testing-guide.md quality gates: %s", name, step.Run)
+				}
+				if !strings.Contains(step.Run, "-coverprofile=coverage.txt") {
+					t.Errorf("job %q go test step must emit coverage.txt for the Codecov upload: %s", name, step.Run)
+				}
+			}
+			if strings.HasPrefix(step.Uses, "step-security/codecov-action@") {
+				hasCodecovUpload = true
+				if got := fmt.Sprint(step.With["files"]); got != "./coverage.txt" {
+					t.Errorf("job %q codecov-action step must upload ./coverage.txt, got files=%q", name, got)
+				}
+				if step.With["disable_search"] != true {
+					t.Errorf("job %q codecov-action step must set disable_search: true so only the pinned profile is uploaded", name)
+				}
 			}
 		}
 	}
 
 	if !hasGoTest {
 		t.Error("lint workflow must run go test ./...")
+	}
+	if !hasCodecovUpload {
+		t.Error("lint workflow must upload the coverage profile with step-security/codecov-action")
 	}
 }

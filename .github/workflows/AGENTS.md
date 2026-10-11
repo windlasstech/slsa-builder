@@ -12,7 +12,7 @@ workflows are hardened by default; the authoritative security policy lives in
 ```text
 .github/workflows/
 ├── js-ts-npm-package-slsa3.yml # production reusable workflow: build -> provenance-sign -> publish
-├── lint.yml                    # markdownlint, actionlint, golangci-lint, go test, fuzz smoke matrix
+├── lint.yml                    # markdownlint, actionlint, golangci-lint, go test + Codecov, fuzz smoke matrix
 ├── fuzz.yml                    # scheduled/manual deep fuzz matrix (10 min/target), corpus upload
 ├── autofix.yml                 # autoformat PRs/pushes with Prettier, golangci-lint fmt, shfmt
 ├── dependency-review.yml       # PR/merge-group dependency review gate (org reusable)
@@ -24,17 +24,17 @@ Also: `.github/actionlint.yaml` — scoped suppressions, see below.
 
 ## WHERE TO LOOK
 
-| Task                        | File                          | Notes                                                                          |
-| --------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
-| Production npm profile      | `js-ts-npm-package-slsa3.yml` | `workflow_call` only; 9 inputs / 7 outputs; three-job graph.                   |
-| Required code-quality gate  | `lint.yml`                    | PR + push to `main` + dispatch; includes `go test ./...` and 30s fuzz smoke.   |
-| Deep fuzz conformance       | `fuzz.yml`                    | Weekly Mon 04:00 UTC + dispatch; same matrix as lint smoke, 10 min per target. |
-| Autoformat a PR             | `autofix.yml`                 | Pushes formatter fixes via `autofix.ci`; never touches `testdata/` fixtures.   |
-| Dependency review           | `dependency-review.yml`       | Ignores docs/markdown-only changes on PRs; merge groups unfiltered.            |
-| Vulnerability scanning      | `osv-scanner.yml`             | Org reusable workflows; separate PR and full-scan jobs.                        |
-| Supply-chain scorecard      | `scorecard.yml`               | Org reusable workflow; top-level `permissions: read-all` is intentional.       |
-| Local hook equivalents      | `lefthook.yml`                | Pre-commit formatters → linters; commit-msg DCO check.                         |
-| Workflow conformance checks | `internal/workflowcheck/`     | Static checker for the production workflow's contract.                         |
+| Task                        | File                          | Notes                                                                             |
+| --------------------------- | ----------------------------- | --------------------------------------------------------------------------------- |
+| Production npm profile      | `js-ts-npm-package-slsa3.yml` | `workflow_call` only; 9 inputs / 7 outputs; three-job graph.                      |
+| Required code-quality gate  | `lint.yml`                    | PR + push to `main` + dispatch; `go test ./...` + Codecov upload, 30s fuzz smoke. |
+| Deep fuzz conformance       | `fuzz.yml`                    | Weekly Mon 04:00 UTC + dispatch; same matrix as lint smoke, 10 min per target.    |
+| Autoformat a PR             | `autofix.yml`                 | Pushes formatter fixes via `autofix.ci`; never touches `testdata/` fixtures.      |
+| Dependency review           | `dependency-review.yml`       | Ignores docs/markdown-only changes on PRs; merge groups unfiltered.               |
+| Vulnerability scanning      | `osv-scanner.yml`             | Org reusable workflows; separate PR and full-scan jobs.                           |
+| Supply-chain scorecard      | `scorecard.yml`               | Org reusable workflow; top-level `permissions: read-all` is intentional.          |
+| Local hook equivalents      | `lefthook.yml`                | Pre-commit formatters → linters; commit-msg DCO check.                            |
+| Workflow conformance checks | `internal/workflowcheck/`     | Static checker for the production workflow's contract.                            |
 
 ## CONVENTIONS
 

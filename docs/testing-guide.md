@@ -440,6 +440,13 @@ case whether a test (or a fuzz target) is warranted. Do not chase a percentage, 
 assertion-free tests to raise one. See <https://go.dev/doc/build-cover> for the coverage tooling
 model.
 
+CI turns the same profile into analytics: the lint workflow's test step runs the full suite as
+`go test -race -coverprofile=coverage.txt -covermode=atomic ./...` and uploads `coverage.txt` to
+Codecov with `fail_ci_if_error: false`, so an upload outage cannot fail the required gate. The
+fuzz-smoke matrix emits no profile: the Go toolchain rejects `-coverprofile` together with `-fuzz`,
+and the full suite already executes every fuzz target's seed corpus as unit tests. Coverage
+analytics inform review; the percentage itself is not a gate.
+
 ## Test style rules
 
 Naming, messages, and determinism follow the Google Go Style Guide

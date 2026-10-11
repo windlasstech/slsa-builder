@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
 
       - name: Lint Markdown
-        uses: DavidAnson/markdownlint-cli2-action@ded1f9488f68a970bc66ea5619e13e9b52e601cd # v23.2.0
+        uses: step-security/markdownlint-cli2-action@47642322847569917c6eceacb91e6c37cbd0f9fb # v24.2.0
         with:
           config: .markdownlint-cli2.jsonc
           globs: "**/*.md"
@@ -72,6 +72,8 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+          # Depth 2 lets Codecov resolve the parent SHA on PR merge commits.
+          fetch-depth: 2
 
       - name: Set up mise
         uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
@@ -84,7 +86,22 @@ jobs:
           version: v2.14.0
 
       - name: Run Go tests
-        run: go test ./...
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      # Coverage comes from this job only: Go forbids -coverprofile with -fuzz, so the
+      # fuzz-smoke matrix cannot emit a profile, and `go test ./...` already executes every
+      # fuzz target's seed corpus as unit tests.
+      - name: Upload results to Codecov
+        uses: step-security/codecov-action@db5c3605ff3c9dc7f0b2791e6bea84a561bacab8 # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.txt
+          disable_search: true
+          flags: unit
+          # Codecov rejects tokenless uploads from protected branches, so the upload
+          # authenticates with a repository-secret token. An upload failure must not
+          # break this required quality gate.
+          fail_ci_if_error: false
 
   # Bounded fuzz smoke per docs/testing-guide.md "Fuzzing in CI"; deep runs live in fuzz.yml.
   fuzz-smoke:
