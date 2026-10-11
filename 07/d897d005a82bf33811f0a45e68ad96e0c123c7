@@ -1,0 +1,20 @@
+internal/workflowcheck/lint_workflow_test.go
+  s_1918a6142edb3a::t_1255fd394dc900 22-25
+  s_1918a6142edb3a::t_b96a9f9bcaaf2b 65-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "07d897d005a82bf33811f0a45e68ad96e0c123c7",
+  "prompts": {},
+  "sessions": {
+    "s_1918a6142edb3a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed448f15cffeenCii09GM50poQ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
