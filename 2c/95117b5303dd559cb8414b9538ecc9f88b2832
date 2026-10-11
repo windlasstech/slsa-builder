@@ -1,0 +1,23 @@
+internal/fixture/loader.go
+  s_39eba1b76fd0e7::t_21fe0cd6b8083b 173-175
+  s_39eba1b76fd0e7::t_0d03c9b2676f47 171-172
+  s_39eba1b76fd0e7::t_6715f232ff4a20 9
+internal/fixture/select_test.go
+  s_39eba1b76fd0e7::t_dbc3acb7547a1e 148-150,159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c95117b5303dd559cb8414b9538ecc9f88b2832",
+  "prompts": {},
+  "sessions": {
+    "s_39eba1b76fd0e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3f634cbffe4r2Zso0Z64wUzZ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
