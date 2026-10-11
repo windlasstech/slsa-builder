@@ -58,7 +58,7 @@ func TestPolicyFailureClassification(t *testing.T) {
 			if err := emitPolicyFailure(&output, test.cause); !errors.Is(err, ErrVerificationFailure) {
 				t.Fatalf("error = %v, want verification sentinel", err)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), 1, 1, test.id)
+			assertPrimaryDiagnostic(t, output.Bytes(), 1, test.id)
 		})
 	}
 }
@@ -96,7 +96,7 @@ func TestTypedVerificationFailureClassification(t *testing.T) {
 			if !errors.Is(err, want) {
 				t.Fatalf("error = %v, want %v", err, want)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), code, code, test.id)
+			assertPrimaryDiagnostic(t, output.Bytes(), code, test.id)
 			writeFailure := errors.New("writer failed")
 			if err := emitTypedVerificationFailure(&stagedWriter{err: writeFailure}, cause); !errors.Is(err, writeFailure) {
 				t.Fatalf("write error = %v, want original writer error", err)

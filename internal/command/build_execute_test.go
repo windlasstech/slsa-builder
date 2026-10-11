@@ -92,7 +92,7 @@ func TestBuildSelectionFailureEmitsPolicyReport(t *testing.T) {
 	if !errors.Is(err, ErrVerificationFailure) {
 		t.Fatalf("Execute() = %v, want verification sentinel", err)
 	}
-	assertPrimaryDiagnostic(t, output.Bytes(), 1, 1, npmprofile.IDPackageManifestInvalid)
+	assertPrimaryDiagnostic(t, output.Bytes(), 1, npmprofile.IDPackageManifestInvalid)
 }
 
 func TestMetadataPackageURLRejectsMalformedParameters(t *testing.T) {
@@ -121,7 +121,7 @@ func TestSelectionAdaptersRejectMalformedManifest(t *testing.T) {
 			if !errors.Is(err, ErrVerificationFailure) {
 				t.Fatalf("Execute() = %v, want manifest verification failure", err)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), 1, 1, npmprofile.IDPackageManifestInvalid)
+			assertPrimaryDiagnostic(t, output.Bytes(), 1, npmprofile.IDPackageManifestInvalid)
 		})
 	}
 }

@@ -164,12 +164,12 @@ func TestSignExecutionFailureBoundaries(t *testing.T) {
 				if !errors.Is(err, ErrVerificationFailure) {
 					t.Fatalf("Execute() = %v, want verification sentinel", err)
 				}
-				assertPrimaryDiagnostic(t, output.Bytes(), 1, 1, npmprofile.IDOIDCCapabilityUnavailable)
+				assertPrimaryDiagnostic(t, output.Bytes(), 1, npmprofile.IDOIDCCapabilityUnavailable)
 			case "preflight report":
 				if !errors.Is(err, ErrVerificationFailure) {
 					t.Fatalf("Execute() = %v, want verification sentinel", err)
 				}
-				assertPrimaryDiagnostic(t, output.Bytes(), 1, 1, npmprofile.IDNPMOIDCExchangeIndeterminate)
+				assertPrimaryDiagnostic(t, output.Bytes(), 1, npmprofile.IDNPMOIDCExchangeIndeterminate)
 			case "preflight writer", "policy writer", "report writer":
 				if !errors.Is(err, cause) {
 					t.Fatalf("Execute() = %v, want writer cause", err)

@@ -31,7 +31,7 @@ func TestReportCommandRecoversUnavailableReport(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), 2, 2, diagnostic.IDInputUnavailable)
+			assertPrimaryDiagnostic(t, output.Bytes(), 2, diagnostic.IDInputUnavailable)
 			if !bytes.Equal(mustRead(t, path), bytes.TrimSpace(output.Bytes())) {
 				t.Fatal("persisted report differs from emitted report")
 			}

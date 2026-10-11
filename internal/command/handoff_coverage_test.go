@@ -48,7 +48,7 @@ func TestHandoffCommandClassifiesLocalFailures(t *testing.T) {
 			if !errors.Is(err, wantErr) {
 				t.Fatalf("Execute() = %v, want %v", err, wantErr)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), code, code, id)
+			assertPrimaryDiagnostic(t, output.Bytes(), code, id)
 		})
 	}
 }

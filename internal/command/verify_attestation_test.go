@@ -16,7 +16,10 @@ func TestVerifyAttestationRejectsMalformedTypedInputs(t *testing.T) {
 		paths := writeAttestationInputs(t, `{"schema_version":1}`, `{}`)
 		var output bytes.Buffer
 		result := NewDispatcher(NewVerifyAttestationCommand()).Dispatch(context.Background(), paths.args(), &output)
-		assertPrimaryDiagnostic(t, output.Bytes(), result.ExitCode, 1, "windlass.verify.error.policy-schema-invalid")
+		if result.ExitCode != 1 {
+			t.Fatalf("dispatch exit code = %d, want 1", result.ExitCode)
+		}
+		assertPrimaryDiagnostic(t, output.Bytes(), 1, "windlass.verify.error.policy-schema-invalid")
 	})
 
 	t.Run("malformed policy JSON", func(t *testing.T) {
@@ -24,7 +27,10 @@ func TestVerifyAttestationRejectsMalformedTypedInputs(t *testing.T) {
 		paths := writeAttestationInputs(t, `{"schema_version":`, `{}`)
 		var output bytes.Buffer
 		result := NewDispatcher(NewVerifyAttestationCommand()).Dispatch(context.Background(), paths.args(), &output)
-		assertPrimaryDiagnostic(t, output.Bytes(), result.ExitCode, 1, "windlass.verify.error.policy-schema-invalid")
+		if result.ExitCode != 1 {
+			t.Fatalf("dispatch exit code = %d, want 1", result.ExitCode)
+		}
+		assertPrimaryDiagnostic(t, output.Bytes(), 1, "windlass.verify.error.policy-schema-invalid")
 	})
 
 	t.Run("identity", func(t *testing.T) {
@@ -33,7 +39,10 @@ func TestVerifyAttestationRejectsMalformedTypedInputs(t *testing.T) {
 		paths := writeAttestationInputs(t, policyJSON, `{"unexpected":true}`)
 		var output bytes.Buffer
 		result := NewDispatcher(NewVerifyAttestationCommand()).Dispatch(context.Background(), paths.args(), &output)
-		assertPrimaryDiagnostic(t, output.Bytes(), result.ExitCode, 1, "windlass.verify.error.policy-schema-invalid")
+		if result.ExitCode != 1 {
+			t.Fatalf("dispatch exit code = %d, want 1", result.ExitCode)
+		}
+		assertPrimaryDiagnostic(t, output.Bytes(), 1, "windlass.verify.error.policy-schema-invalid")
 	})
 }
 

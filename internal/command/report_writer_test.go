@@ -120,7 +120,10 @@ func TestDispatcherReportsUnknownCommand(t *testing.T) {
 	t.Parallel()
 	var output bytes.Buffer
 	result := NewDispatcher().Dispatch(t.Context(), []string{"unknown"}, &output)
-	assertPrimaryDiagnostic(t, output.Bytes(), result.ExitCode, 2, diagnostic.IDVerifierExecutionFailure)
+	if result.ExitCode != 2 {
+		t.Fatalf("dispatch exit code = %d, want 2", result.ExitCode)
+	}
+	assertPrimaryDiagnostic(t, output.Bytes(), 2, diagnostic.IDVerifierExecutionFailure)
 }
 
 func TestHandoffReportsArtifactVerificationFailure(t *testing.T) {
@@ -151,7 +154,7 @@ func TestHandoffReportsArtifactVerificationFailure(t *testing.T) {
 			if !errors.Is(err, want) {
 				t.Fatalf("Execute() = %v, want %v", err, want)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), code, code, id)
+			assertPrimaryDiagnostic(t, output.Bytes(), code, id)
 			if _, err := os.Stat(outputPath); !errors.Is(err, os.ErrNotExist) {
 				t.Fatalf("verification failure committed payload: %v", err)
 			}

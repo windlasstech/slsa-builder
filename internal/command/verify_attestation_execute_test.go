@@ -29,7 +29,7 @@ func TestVerifyAttestationClassifiesUnavailableInputs(t *testing.T) {
 			if !errors.Is(err, ErrInvocationFailure) {
 				t.Fatalf("Execute() = %v, want invocation sentinel", err)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), 2, 2, diagnostic.IDInputUnavailable)
+			assertPrimaryDiagnostic(t, output.Bytes(), 2, diagnostic.IDInputUnavailable)
 			report, err := decodeTypedJSON[Report](bytes.TrimSpace(output.Bytes()), nil)
 			if err != nil || len(report.Diagnostics) != 1 || report.Diagnostics[0].Check != stage {
 				t.Fatalf("report = %#v, error = %v, want check %q", report, err, stage)
@@ -60,7 +60,7 @@ func TestVerifyAttestationRejectsAmbiguousIdentityAndMalformedStatement(t *testi
 			if !errors.Is(err, ErrVerificationFailure) {
 				t.Fatalf("Execute() = %v, want verification sentinel", err)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), 1, 1, test.id)
+			assertPrimaryDiagnostic(t, output.Bytes(), 1, test.id)
 		})
 	}
 }
@@ -97,7 +97,7 @@ func TestVerifyAttestationEnforcesTrustRootMode(t *testing.T) {
 			if !errors.Is(err, want) {
 				t.Fatalf("Execute() = %v, want %v", err, want)
 			}
-			assertPrimaryDiagnostic(t, output.Bytes(), code, code, id)
+			assertPrimaryDiagnostic(t, output.Bytes(), code, id)
 		})
 	}
 }
@@ -139,5 +139,5 @@ func TestVerifyAttestationReportsUnclassifiedBindingConflict(t *testing.T) {
 	if !errors.Is(err, ErrVerificationFailure) {
 		t.Fatalf("Execute() = %v, want verification sentinel", err)
 	}
-	assertPrimaryDiagnostic(t, output.Bytes(), 1, 1, "windlass.verify.error.policy-schema-invalid")
+	assertPrimaryDiagnostic(t, output.Bytes(), 1, "windlass.verify.error.policy-schema-invalid")
 }

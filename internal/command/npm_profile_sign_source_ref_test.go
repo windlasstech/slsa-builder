@@ -140,7 +140,7 @@ func TestNPMProfileSignCommandRejectsMismatchedBuiltIdentity(t *testing.T) {
 	if !errors.Is(err, ErrVerificationFailure) {
 		t.Fatalf("Execute() error = %v, want ErrVerificationFailure", err)
 	}
-	assertPrimaryDiagnostic(t, output.Bytes(), ExitCodeVerificationFailure, ExitCodeVerificationFailure, npmprofile.IDReleaseRefMismatch)
+	assertPrimaryDiagnostic(t, output.Bytes(), ExitCodeVerificationFailure, npmprofile.IDReleaseRefMismatch)
 }
 
 func TestNPMProfileSignDispatcherClassifiesMismatchedBuiltIdentityAsPolicyFailure(t *testing.T) {
@@ -173,7 +173,10 @@ func TestNPMProfileSignDispatcherClassifiesMismatchedBuiltIdentityAsPolicyFailur
 
 	var output bytes.Buffer
 	result := NewDispatcher(command).Dispatch(context.Background(), arguments, &output)
-	assertPrimaryDiagnostic(t, output.Bytes(), result.ExitCode, ExitCodeVerificationFailure, npmprofile.IDReleaseRefMismatch)
+	if result.ExitCode != ExitCodeVerificationFailure {
+		t.Fatalf("dispatch exit code = %d, want %d", result.ExitCode, ExitCodeVerificationFailure)
+	}
+	assertPrimaryDiagnostic(t, output.Bytes(), ExitCodeVerificationFailure, npmprofile.IDReleaseRefMismatch)
 }
 
 func TestNPMProfileSignCommandFallsBackToSingleInvocationIdentity(t *testing.T) {
