@@ -1,0 +1,41 @@
+internal/workflowcheck/lint_workflow_test.go
+  s_1918a6142edb3a::t_b30ebb9a4c7879 54-56,59
+  s_1918a6142edb3a::t_a93f2cf2370455 57-58
+  s_1918a6142edb3a::t_a9f04efc014090 60-62
+.github/workflows/lint.yml
+  s_1918a6142edb3a::t_be30056b8ea5a0 75
+  s_1918a6142edb3a::t_245bb24d5d7d0c 90-101
+  s_2702afc3aa60ef::t_f6aed2f41a8209 76,89,102
+docs/testing-guide.md
+  s_1918a6142edb3a::t_a43383756a5fc8 443-449
+.gitignore
+  s_1918a6142edb3a::t_3739915d89cd3d 18-20
+.github/workflows/AGENTS.md
+  s_1918a6142edb3a::t_a88a8afc4b5b13 15
+  s_1918a6142edb3a::t_6c9fa82696c568 30
+  s_1918a6142edb3a::t_8d6a6970d11b6a 27-29,31-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bd2d544f4eddb678ede95d7d6edab0269449ece0",
+  "prompts": {},
+  "sessions": {
+    "s_1918a6142edb3a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed448f15cffeenCii09GM50poQ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_2702afc3aa60ef": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed448f15cffeenCii09GM50poQ",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
