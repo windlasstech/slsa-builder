@@ -1,0 +1,73 @@
+internal/command/report_writer_test.go
+  s_63a33b448bd48d::t_3d380d3885b068 118-123,160
+  s_63a33b448bd48d::t_164083c7fff46f 1-6,8-11,14-19,21-23,33-34,38-54,56-59,74-78,82-89,91-113,117
+  s_63a33b448bd48d::t_e628fedb39c5b6 7,12-13,124-129,133-135,139-140,144-147,154,158-159
+  s_63a33b448bd48d::t_6a2e45561a1c30 63,79-81
+  s_3a62c9e9652d1c::t_dc0973a35c1814 130-132,136-138,141-143,148-153,155-157
+  s_3a62c9e9652d1c::t_0898f03d231836 20,24-32,35-37,55,60-62,64-73,90,114-116
+internal/command/verify_attestation_execute_test.go
+  s_63a33b448bd48d::t_180b92b12ba925 45
+  s_3a62c9e9652d1c::t_0898f03d231836 24-26,29-31,34-36,43,52-57,60-62,80-82,84-86,92-98,111-113,117-122,125-127,139-141
+  s_d0df5b67ec1147::t_138a8b6ca714d8 1-23,27-28,32-33,37-42,44,46-51,58-59,63-79,83,87-91,99-110,114-116,123-124,128-138,142-143
+internal/command/sign_execute_test.go
+  s_3a62c9e9652d1c::t_dc0973a35c1814 92-94
+  s_63a33b448bd48d::t_a3c3d0253ff1db 1-21,23-40,49-50,54,58-72,74-84,88-90,95-98,103-104,108,118,122,125-131,135-136,148,153-154,158,162,168,172-173,177,184-194,198-200
+  s_63a33b448bd48d::t_1dbf67d43888d7 73,99-102,163,167
+  s_63a33b448bd48d::t_6c619784c6f052 91
+  s_3a62c9e9652d1c::t_0898f03d231836 22,41-48,51-53,55-57,85-87,105-107,109-117,119-121,123-124,132-134,137-147,149-152,155-157,159-161,164-166,169-171,174-176,178-183,195-197
+internal/command/build_execute_test.go
+  s_63a33b448bd48d::t_4c8d494f422f88 1-17,19-22,24-44,48-59,65-91,96-104,106-110,115,123,125-127
+  s_63a33b448bd48d::t_e628fedb39c5b6 23
+  s_63a33b448bd48d::t_3446bbf8641a7a 105,111,119-122,124
+  s_63a33b448bd48d::t_77ad1c4fa4f6f3 95
+  s_3a62c9e9652d1c::t_0898f03d231836 18,45-47,60-64,92-94,112-114,116-118
+internal/command/io_atomic_test.go
+  s_6936a6f78f39ae::t_6437ca7135a2a8 8,90
+  s_63a33b448bd48d::t_36be51d4dc308f 1-7,9-89,91-141
+  s_63a33b448bd48d::t_3d380d3885b068 142-153,164-175,179-184,189-191,195-196,200,207-210
+  s_3a62c9e9652d1c::t_dc0973a35c1814 154-163,176-178,185-188,192-194,197-199,201-206
+internal/command/source_ref_observation_test.go
+  s_63a33b448bd48d::t_3d380d3885b068 84-95
+  s_63a33b448bd48d::t_caad28196002c6 1-18,20-83
+  s_3a62c9e9652d1c::t_0898f03d231836 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "378cca0d8f6bcda10639ad7dc462a90168a4fbe1",
+  "prompts": {},
+  "sessions": {
+    "s_3a62c9e9652d1c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3c34237ffeu720VKwNQBoOgc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_63a33b448bd48d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed3c34237ffeu720VKwNQBoOgc",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_6936a6f78f39ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3c30fb4ffe20V5gLu6IAL01C",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d0df5b67ec1147": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3c3a605ffeRCKGg6SR5Sr0KV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
