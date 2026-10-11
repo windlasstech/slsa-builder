@@ -1,0 +1,22 @@
+internal/handoff/wrapclose_internal_test.go
+  s_c596af9a75a820::t_cd2821f7e297e6 1-32
+internal/handoff/handoff_edges_test.go
+  s_c596af9a75a820::t_411690f10923a2 55,58
+  s_c596af9a75a820::t_a384d57a69ce53 1-54,56-57,59-224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a6184cb0b5df87b30539d3ddeb88d3ff636d62a",
+  "prompts": {},
+  "sessions": {
+    "s_c596af9a75a820": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ed23f1ffeoI6OYVO7V1crMp",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
