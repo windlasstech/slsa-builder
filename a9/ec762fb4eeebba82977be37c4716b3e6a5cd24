@@ -1,0 +1,19 @@
+.github/workflows/lint.yml
+  s_1918a6142edb3a::t_aacd1a2e40bdbb 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a9ec762fb4eeebba82977be37c4716b3e6a5cd24",
+  "prompts": {},
+  "sessions": {
+    "s_1918a6142edb3a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed448f15cffeenCii09GM50poQ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
