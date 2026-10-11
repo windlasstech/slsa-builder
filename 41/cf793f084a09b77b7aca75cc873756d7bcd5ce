@@ -1,0 +1,30 @@
+internal/digest/digest_reader_test.go
+  s_2ebb023f5e0302::t_e3b6f76f852f14 1-159
+internal/digest/digest_test.go
+  s_21e874d94c0106::t_483c82e4851e19 76-97
+  s_21e874d94c0106::t_ca06a4d6fbf915 73-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "41cf793f084a09b77b7aca75cc873756d7bcd5ce",
+  "prompts": {},
+  "sessions": {
+    "s_21e874d94c0106": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ee161cffe2rjpGjo60DfrvT",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_2ebb023f5e0302": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ed5d6effeVRwaFgn1s9tfa0",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
