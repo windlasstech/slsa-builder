@@ -24,6 +24,7 @@
 [![OSV Scanner](https://github.com/windlasstech/slsa-builder/actions/workflows/osv-scanner.yml/badge.svg)](https://github.com/windlasstech/slsa-builder/actions/workflows/osv-scanner.yml)
 [![Dependency Review](https://github.com/windlasstech/slsa-builder/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/windlasstech/slsa-builder/actions/workflows/dependency-review.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/windlasstech/slsa-builder/badge)](https://scorecard.dev/viewer/?uri=github.com/windlasstech/slsa-builder)
+[![codecov](https://codecov.io/gh/windlasstech/slsa-builder/graph/badge.svg)](https://codecov.io/gh/windlasstech/slsa-builder)
 
 English | [한국어](README.ko.md)
 
