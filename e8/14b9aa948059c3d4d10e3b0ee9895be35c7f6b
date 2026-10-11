@@ -1,0 +1,30 @@
+internal/canonicaljson/parser_edges_test.go
+  s_6936a6f78f39ae::t_39d6fcb0065c4e 14,59-62
+  s_d35c7982acba4d::t_d46d241fa90a9a 93-106
+  s_d35c7982acba4d::t_99d0191e8f8d62 1-3,5-13,15-21,23,25-36,38-42,52-58,63-92
+  s_d35c7982acba4d::t_5ad60a45cfa948 4,22,24,37,43-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e814b9aa948059c3d4d10e3b0ee9895be35c7f6b",
+  "prompts": {},
+  "sessions": {
+    "s_6936a6f78f39ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3c30fb4ffe20V5gLu6IAL01C",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d35c7982acba4d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed3c30fb4ffe20V5gLu6IAL01C",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
