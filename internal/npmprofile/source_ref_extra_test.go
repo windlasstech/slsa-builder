@@ -71,6 +71,8 @@ func TestValidTagName(t *testing.T) {
 		{name: "backslash", tag: `v1\2`, valid: false},
 		{name: "control character", tag: "v1\x1f2", valid: false},
 		{name: "delete character", tag: "v1\x7f2", valid: false},
+		{name: "dot-prefixed component", tag: ".hidden", valid: false},
+		{name: "dot-prefixed nested component", tag: "release/.2026", valid: false},
 		{name: "plain release tag", tag: "v1.2.3", valid: true},
 		{name: "nested release tag", tag: "release/2026.08", valid: true},
 		{name: "prerelease tag", tag: "v1.2.3-rc.1", valid: true},
