@@ -210,11 +210,20 @@ func validateCredentialConfiguration(selection Result) error {
 			if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
 				continue
 			}
-			key, _, hasEquals := strings.Cut(line, "=")
-			if !hasEquals {
+			key := line
+			if colon := strings.Index(line, ":"); colon >= 0 &&
+				(colon+1 == len(line) || line[colon+1] == ' ' || line[colon+1] == '\t') {
+				key = line[:colon]
+			} else if before, _, found := strings.Cut(line, "="); found {
+				key = before
+			} else {
 				key, _, _ = strings.Cut(line, ":")
 			}
 			key = strings.ToLower(strings.TrimSpace(strings.TrimSuffix(key, ":")))
+			if len(key) >= 2 && ((key[0] == '"' && key[len(key)-1] == '"') ||
+				(key[0] == '\'' && key[len(key)-1] == '\'')) {
+				key = key[1 : len(key)-1]
+			}
 			if strings.Contains(key, "_auth") || strings.Contains(key, "authtoken") ||
 				strings.Contains(key, "authident") || strings.HasSuffix(key, "username") ||
 				strings.HasSuffix(key, "_password") || strings.HasSuffix(key, "httpskey") ||

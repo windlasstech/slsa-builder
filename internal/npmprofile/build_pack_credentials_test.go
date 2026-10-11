@@ -33,6 +33,10 @@ func TestValidateCredentialConfiguration(t *testing.T) {
 		{"yaml uppercase key", ".yarnrc.yml", " HTTPSKEY: secret", `package-manager configuration ".yarnrc.yml" contains credential material`},
 		{"https key", ".yarnrc.yml", "httpsKey: secret", `package-manager configuration ".yarnrc.yml" contains credential material`},
 		{"https certificate", ".yarnrc.yml", "httpsCert: secret", `package-manager configuration ".yarnrc.yml" contains credential material`},
+		{"yaml quoted key", ".yarnrc.yml", `"httpsKey": secret`, `package-manager configuration ".yarnrc.yml" contains credential material`},
+		{"yaml single-quoted key", ".yarnrc.yml", `'httpsCert': secret`, `package-manager configuration ".yarnrc.yml" contains credential material`},
+		{"yaml value with equals", ".yarnrc.yml", "httpsKey: abc=def", `package-manager configuration ".yarnrc.yml" contains credential material`},
+		{"yaml quoted benign key", ".yarnrc.yml", `"nodeLinker": pnpm`, ""},
 		{"corepack environment", ".corepack.env", "", "project .corepack.env is prohibited for release builds"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
