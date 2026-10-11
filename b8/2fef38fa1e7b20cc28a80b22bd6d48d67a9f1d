@@ -1,0 +1,19 @@
+internal/npmprofile/build_pack.go
+  s_39eba1b76fd0e7::t_f2d90dfaa56f32 213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b82fef38fa1e7b20cc28a80b22bd6d48d67a9f1d",
+  "prompts": {},
+  "sessions": {
+    "s_39eba1b76fd0e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3f634cbffe4r2Zso0Z64wUzZ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
