@@ -1,6 +1,7 @@
 package workflowcheck
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -18,9 +19,10 @@ type job struct {
 }
 
 type step struct {
-	If   string `yaml:"if"`
-	Run  string `yaml:"run"`
-	Uses string `yaml:"uses"`
+	If   string         `yaml:"if"`
+	Run  string         `yaml:"run"`
+	Uses string         `yaml:"uses"`
+	With map[string]any `yaml:"with"`
 }
 
 func TestLintWorkflowHardening(t *testing.T) {
@@ -60,6 +62,12 @@ func TestLintWorkflowHardening(t *testing.T) {
 			}
 			if strings.HasPrefix(step.Uses, "step-security/codecov-action@") {
 				hasCodecovUpload = true
+				if got := fmt.Sprint(step.With["files"]); got != "./coverage.txt" {
+					t.Errorf("job %q codecov-action step must upload ./coverage.txt, got files=%q", name, got)
+				}
+				if step.With["disable_search"] != true {
+					t.Errorf("job %q codecov-action step must set disable_search: true so only the pinned profile is uploaded", name)
+				}
 			}
 		}
 	}
