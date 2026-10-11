@@ -16,6 +16,13 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
 
+// HTTP round-trip errors (redirect refusal, non-200 status, response-size limit, unknown JSON
+// fields, and blank token) are not covered: githubActionsOIDCToken constructs its own HTTP client
+// and requires HTTPS, so exercising them hermetically needs a narrow injected-client seam. The
+// SignGitHubActions Fulcio/Rekor flow remains covered only by TestSignGitHubActionsOnline. Source
+// inspection confirms the request retains unrelated query values and replaces audience with
+// "sigstore"; asserting the outgoing URL also requires the excluded HTTP seam.
+
 func TestPrepareDSSEPreservesExactStatementBytes(t *testing.T) {
 	statement, err := (provenance.Statement{
 		Type:          provenance.StatementType,
@@ -175,6 +182,74 @@ func TestSignRejectsInvalidStatementBeforeNetwork(t *testing.T) {
 	}
 	if calls := transport.calls.Load(); calls != 0 {
 		t.Fatalf("invalid signing input made %d network calls, want zero", calls)
+	}
+}
+
+func TestGitHubActionsOIDCTokenRejectsUnavailableCapability(t *testing.T) {
+	tests := []struct {
+		name         string
+		requestURL   string
+		requestToken string
+	}{
+		{name: "both environment values missing"},
+		{name: "request token missing", requestURL: "https://actions.example/token"},
+		{name: "request URL missing", requestToken: "request-token"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("ACTIONS_ID_TOKEN_REQUEST_URL", test.requestURL)
+			t.Setenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN", test.requestToken)
+
+			got, err := githubActionsOIDCToken(t.Context())
+
+			if got != "" {
+				t.Fatalf("token = %q, want empty", got)
+			}
+			if err == nil || err.Error() != "GitHub Actions OIDC capability is unavailable" {
+				t.Fatalf("error = %v, want exact capability-unavailable error", err)
+			}
+		})
+	}
+}
+
+func TestGitHubActionsOIDCTokenRejectsInvalidRequestURL(t *testing.T) {
+	tests := []struct {
+		name       string
+		requestURL string
+	}{
+		{name: "non-HTTPS scheme", requestURL: "http://actions.example/token"},
+		{name: "userinfo", requestURL: "https://token@actions.example/token"},
+		{name: "empty host", requestURL: "https:///token"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("ACTIONS_ID_TOKEN_REQUEST_URL", test.requestURL)
+			t.Setenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "request-token")
+
+			got, err := githubActionsOIDCToken(t.Context())
+
+			if got != "" {
+				t.Fatalf("token = %q, want empty", got)
+			}
+			if err == nil || err.Error() != "GitHub Actions OIDC request URL is invalid" {
+				t.Fatalf("error = %v, want exact invalid-request-URL error", err)
+			}
+		})
+	}
+}
+
+func TestGitHubActionsOIDCTokenRejectsNilContextBeforeNetwork(t *testing.T) {
+	t.Setenv("ACTIONS_ID_TOKEN_REQUEST_URL", "https://actions.example/token")
+	t.Setenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "request-token")
+	var ctx context.Context
+
+	got, err := githubActionsOIDCToken(ctx)
+
+	if got != "" {
+		t.Fatalf("token = %q, want empty", got)
+	}
+	if err == nil || err.Error() != "construct GitHub Actions OIDC request: net/http: nil Context" {
+		t.Fatalf("error = %v, want exact nil-context request-construction error", err)
 	}
 }
 

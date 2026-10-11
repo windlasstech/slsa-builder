@@ -70,6 +70,31 @@ func TestDigestEncoding(t *testing.T) {
 	}
 }
 
+// Note: decodeLowerHex's hex.Decode error wrap (digest.go:136) is intentionally uncovered. The
+// exact-length and lowercase-hexadecimal checks preceding it make hex.Decode infallible there, so
+// the branch is defensive only; the package's honest coverage ceiling is 97.9%.
+func TestUnmarshalTextRejectsInvalid(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sha256", func(t *testing.T) {
+		t.Parallel()
+
+		var value digest.SHA256
+		if err := value.UnmarshalText([]byte("not-hex")); err == nil {
+			t.Fatal("SHA256.UnmarshalText() unexpectedly succeeded")
+		}
+	})
+
+	t.Run("sha512", func(t *testing.T) {
+		t.Parallel()
+
+		var value digest.SHA512
+		if err := value.UnmarshalText([]byte("not-hex")); err == nil {
+			t.Fatal("SHA512.UnmarshalText() unexpectedly succeeded")
+		}
+	})
+}
+
 func assertJSONEncoding(t *testing.T, value any, want string) {
 	t.Helper()
 

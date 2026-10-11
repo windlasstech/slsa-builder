@@ -136,6 +136,11 @@ func validTagName(name string) bool {
 		strings.Contains(name, "@{") || strings.HasSuffix(name, ".lock") {
 		return false
 	}
+	for _, component := range strings.Split(name, "/") {
+		if strings.HasPrefix(component, ".") {
+			return false
+		}
+	}
 	for _, character := range name {
 		if character < 0x20 || character == 0x7f || strings.ContainsRune(" ~^:?*[\\", character) {
 			return false

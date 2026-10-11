@@ -664,6 +664,32 @@ Command template variables have these meanings:
   by `<package-name>`, and its absolute `--out` path is therefore independent of both repository and
   package-manager roots.
 
+### Credential-configuration preflight
+
+Before install, build, or pack, the profile must scan `.npmrc` and `.yarnrc.yml` at both the
+package-manager root and the selected package directory, deduplicating identical paths. Missing
+files are skipped. Present configurations must be regular non-symlink files within the manifest size
+bound; inspection or read failures must stop the build. A non-regular configuration must fail with
+`package-manager configuration "<name>" must be a regular non-symlink file`.
+
+The scan must trim each line and skip blank lines and lines beginning with `#` or `;`. Key
+extraction must prefer a YAML mapping-key separator, which is the first `:` followed by a space, a
+tab, or the end of the line, and otherwise take the text before the first `=` when present or the
+text before the first `:` when absent. Surrounding single or double quotes on the extracted key must
+be stripped. This preserves scoped `.npmrc` keys such as `//host/:_authToken=value`, recognizes YAML
+`key: value` entries including quoted keys, and keeps an `=` inside a YAML value from hiding the
+key. After removing a trailing colon and trimming the key, matching must be case-insensitive. A key
+containing `_auth`, `authtoken`, or `authident`, or ending in `username`, `_password`, `httpskey`,
+or `httpscert`, must fail closed with
+`package-manager configuration "<name>" contains credential material`, where `<name>` is the
+configuration basename. Values must not appear in this error. For example, `httpsKey: secret`,
+`httpsKey:`, `"httpsKey": secret`, and `httpsKey: abc=def` are rejected; `nodeLinker: pnpm` and
+`registry: "https://registry.npmjs.org/"` pass this check.
+
+Any `.corepack.env` entry at the package-manager root must fail with
+`project .corepack.env is prohibited for release builds`; inspection failures other than absence
+must also stop the build.
+
 ### Packed tarball name
 
 The authoritative tarball name is the basename of the single file produced by the selected package

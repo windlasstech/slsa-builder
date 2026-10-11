@@ -75,6 +75,12 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   pnpm (12.10.1), with both versions declared solely in `package.json` (`devEngines.runtime` and
   `devEngines.packageManager`) and Corepack removed from the bootstrap; requires mise v2026.8.7 or
   newer.
+- Added the credential-configuration preflight to the JS/TS npm build stage (ADR 0034): before
+  install, `.npmrc` and `.yarnrc.yml` at the package-manager root and the selected package directory
+  are scanned line-wise in both `key=value` and YAML `key: value` forms, and entries with
+  credential-shaped keys (`_auth`, `authtoken`, `authident`, or keys ending in `username`,
+  `_password`, `httpskey`, or `httpscert`, case-insensitive) fail closed; a project `.corepack.env`
+  at the package-manager root is prohibited.
 
 ### Security
 

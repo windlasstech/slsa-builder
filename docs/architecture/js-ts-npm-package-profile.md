@@ -169,13 +169,15 @@ publish attempt unless a separately proved failure condition below applies.
   behavior is exactly the single-identity contract. When supplied, it must be a full
   `refs/tags/<tag-name>` ref; short tag names, branch refs, pull-request refs, arbitrary commit
   SHAs, and other ref classes are rejected before install, pack, signing, or publish with
-  `windlass.verify.error.source-ref-invalid`. The tag must already exist in the caller repository
-  and must resolve to a commit; an unresolvable or missing ref fails with the same diagnostic. The
-  tag name must equal `v${package.json version}` as proven by the packed artifact metadata; a
-  mismatch fails with the same diagnostic. On a tag-triggered run (`push` of a tag, or dispatch from
-  a tag ref), a supplied `source-ref` that differs from the invocation tag is a conflict and fails
-  with the same diagnostic. `source-ref` is a declared release-source selector, not a runtime
-  override: it changes which existing repository content is built, never how the build runs.
+  `windlass.verify.error.source-ref-invalid`, as are tag names with empty or dot-prefixed path
+  components, path traversal, or ASCII control characters. The tag must already exist in the caller
+  repository and must resolve to a commit; an unresolvable or missing ref fails with the same
+  diagnostic. The tag name must equal `v${package.json version}` as proven by the packed artifact
+  metadata; a mismatch fails with the same diagnostic. On a tag-triggered run (`push` of a tag, or
+  dispatch from a tag ref), a supplied `source-ref` that differs from the invocation tag is a
+  conflict and fails with the same diagnostic. `source-ref` is a declared release-source selector,
+  not a runtime override: it changes which existing repository content is built, never how the build
+  runs.
 - `release-asset-mode` must be `false` for npm-only publication and `true` for npm publication plus
   GitHub Release asset distribution. The workflow must not infer release-asset mode from the
   presence of release-related inputs.
@@ -183,9 +185,9 @@ publish attempt unless a separately proved failure condition below applies.
   ref. When omitted, the effective release tag is the built release tag accepted by the runtime
   guards. When supplied, it must equal the built release tag name, must reconstruct the same full
   `refs/tags/<tag-name>` ref as the accepted built ref, and must equal `v${package.json version}`. A
-  branch name, pull request ref, full ref, empty tag name, tag name with path traversal or ASCII
-  control characters, or a tag that does not already have a GitHub Release in the caller repository
-  must be rejected before release mutation.
+  branch name, pull request ref, full ref, empty tag name, tag name with a dot-prefixed path
+  component, path traversal, or ASCII control characters, or a tag that does not already have a
+  GitHub Release in the caller repository must be rejected before release mutation.
 - `provenance-sidecar` is used only when `release-asset-mode` is `true`. Omitted and `required` both
   mean the unchanged producer provenance bundle is uploaded as the deterministic sidecar
   `<package-tarball-name>.intoto.jsonl`. Any value that disables, renames, rewrites, re-signs, or

@@ -21,17 +21,20 @@ func TestVerifyHandoffRejectsMalformedContract(t *testing.T) {
 	result := NewDispatcher(NewVerifyHandoffCommand()).Dispatch(context.Background(), []string{
 		"verify-handoff", "--handoff", contractPath, "--artifact-dir", directory, "--output", filepath.Join(directory, "output"),
 	}, &output)
-	assertPrimaryDiagnostic(t, output.Bytes(), result.ExitCode, 1, "windlass.verify.error.handoff-schema-mismatch")
+	if result.ExitCode != 1 {
+		t.Fatalf("dispatch exit code = %d, want 1", result.ExitCode)
+	}
+	assertPrimaryDiagnostic(t, output.Bytes(), 1, "windlass.verify.error.handoff-schema-mismatch")
 }
 
-func assertPrimaryDiagnostic(t *testing.T, output []byte, gotExit, wantExit int, wantID string) {
+func assertPrimaryDiagnostic(t *testing.T, output []byte, wantExit int, wantID string) {
 	t.Helper()
-	if gotExit != wantExit {
-		t.Fatalf("exit code = %d, want %d; output=%s", gotExit, wantExit, output)
-	}
 	var report Report
 	if err := json.Unmarshal(output, &report); err != nil {
 		t.Fatalf("decode report: %v; output=%s", err, output)
+	}
+	if report.ExitCode != wantExit {
+		t.Fatalf("report exit code = %d, want %d; output=%s", report.ExitCode, wantExit, output)
 	}
 	if report.PrimaryID == nil || *report.PrimaryID != wantID {
 		t.Fatalf("primary ID = %v, want %s", report.PrimaryID, wantID)
