@@ -1,0 +1,60 @@
+internal/command/handoff_coverage_test.go
+  s_48cac23f7e3d78::t_050a6b33ac6cf4 1-22,26,30-32,39-42,50-54
+  s_716f6dbb41c836::t_e1289b7117c80e 23-25,27-29,33-38,43-49
+internal/command/failure_coverage_test.go
+  s_48cac23f7e3d78::t_cff61fe0027f3d 1-19,23-28,32-42,51-57,61-67,72-79,83-84,89-92,99-100,104-106
+  s_716f6dbb41c836::t_a6f2b4822b9c5b 20-22,29-31,43-50,58-60,68-71,80-82,85-88,93-98,101-103
+internal/command/dispatch_coverage_test.go
+  s_716f6dbb41c836::t_684dd910111be8 12,25-28,51-55
+  s_2ebb023f5e0302::t_22f8bc67f664bf 1-11,13-24,29-50,56-114
+internal/command/select_coverage_test.go
+  s_716f6dbb41c836::t_ac0eb19adfae45 15-17,20-22,24-26,32-34,37-39,44-47,55-57,67-69,74-76,78-80
+  s_48cac23f7e3d78::t_f48b5f5cdec607 1-14,18-19,23,27-31,35-36,40-43,48-54,58-66,70-73,77,81-82
+internal/command/publish_coverage_test.go
+  s_48cac23f7e3d78::t_bef0bc77953421 1-20,30-31,35-45,52-55,62-67,79-81
+  s_716f6dbb41c836::t_893178c494b592 21-29,32-34,46-51,56-61,68-78
+internal/command/report_coverage_test.go
+  s_716f6dbb41c836::t_893178c494b592 17-19,23-27,31-33,35-40,53-55,57-65,67-70,77-79,83-85
+  s_48cac23f7e3d78::t_bef0bc77953421 1-16,20-22,28-30,34,41-52,56,66,71-76,80-82,86-88
+internal/command/flags_coverage_test.go
+  s_716f6dbb41c836::t_a6f2b4822b9c5b 17-20,27-29,37-39,42-44,52-54
+  s_48cac23f7e3d78::t_cff61fe0027f3d 1-16,21-26,30-36,40-41,45-51,55-59
+internal/command/workflow_coverage_test.go
+  s_48cac23f7e3d78::t_bef0bc77953421 1-17,21-31,35-40,44-48,53-59,63-65
+  s_716f6dbb41c836::t_893178c494b592 18-20,32-34,41-43,49-52,60-62
+internal/command/io_coverage_test.go
+  s_2ebb023f5e0302::t_22f8bc67f664bf 1-23,27,31,35-39,50-51,55,59,69-74,79-83,85,89,96-97,101-104
+  s_716f6dbb41c836::t_684dd910111be8 24-26,28-30,32-34,40-49,52-54,56-58,60-68,75-78,84,86-88,90-95,98-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef81d2d71d84b9ead8d43938969f99cb4213b905",
+  "prompts": {},
+  "sessions": {
+    "s_2ebb023f5e0302": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ed5d6effeVRwaFgn1s9tfa0",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_48cac23f7e3d78": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed3edd10affeByS2wfo0qhYxz0",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_716f6dbb41c836": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3edd10affeByS2wfo0qhYxz0",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
