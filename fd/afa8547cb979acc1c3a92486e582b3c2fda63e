@@ -1,0 +1,28 @@
+internal/provenance/model_test.go
+  s_21e874d94c0106::t_53063360ed59c3 109-212
+  s_2ebb023f5e0302::t_067ce1fdf0d007 1-108,213-253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fdafa8547cb979acc1c3a92486e582b3c2fda63e",
+  "prompts": {},
+  "sessions": {
+    "s_21e874d94c0106": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ee161cffe2rjpGjo60DfrvT",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_2ebb023f5e0302": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ed5d6effeVRwaFgn1s9tfa0",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
