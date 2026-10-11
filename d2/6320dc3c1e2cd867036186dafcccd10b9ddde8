@@ -1,0 +1,23 @@
+docs/architecture/js-ts-npm-build-pack.md
+  s_39eba1b76fd0e7::t_22fa306fbb0877 675-681,685-687
+internal/npmprofile/build_pack_credentials_test.go
+  s_39eba1b76fd0e7::t_35d2ea11e22bdf 36-39
+internal/npmprofile/build_pack.go
+  s_39eba1b76fd0e7::t_fc28b382407fae 213-219,223-226
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d26320dc3c1e2cd867036186dafcccd10b9ddde8",
+  "prompts": {},
+  "sessions": {
+    "s_39eba1b76fd0e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3f634cbffe4r2Zso0Z64wUzZ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
