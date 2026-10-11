@@ -1,0 +1,37 @@
+internal/workflowcheck/boundary_coverage_test.go
+  s_bb3f4aef28188f::t_87cb25698b947c 1-13,15-23,26-38,43-75,78-79
+  s_6936a6f78f39ae::t_39d6fcb0065c4e 14,76-77
+  s_d35c7982acba4d::t_5f870d4826351f 24-25,39-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "80edd599d39c0d721f38aa728d41c4425d41e99b",
+  "prompts": {},
+  "sessions": {
+    "s_6936a6f78f39ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3c30fb4ffe20V5gLu6IAL01C",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bb3f4aef28188f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3c3e1b6ffemnrvSVniCeX1PP",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d35c7982acba4d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed3c30fb4ffe20V5gLu6IAL01C",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
