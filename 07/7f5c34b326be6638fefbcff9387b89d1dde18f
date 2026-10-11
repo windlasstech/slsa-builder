@@ -1,0 +1,28 @@
+internal/diagnostic/construction_edges_test.go
+  s_6936a6f78f39ae::t_39d6fcb0065c4e 7
+  s_2ea87a9fed053a::t_7a93e5ef756ed0 1-6,8-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "077f5c34b326be6638fefbcff9387b89d1dde18f",
+  "prompts": {},
+  "sessions": {
+    "s_2ea87a9fed053a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3c4157cffehraO1sy8Zw6QMk",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_6936a6f78f39ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3c30fb4ffe20V5gLu6IAL01C",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
