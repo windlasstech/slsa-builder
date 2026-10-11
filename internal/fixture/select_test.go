@@ -145,6 +145,9 @@ func TestSelectRejectsPathsOutsideSurface(t *testing.T) {
 	escapingReleaseManifest := selectTestManifest("escaping-release-manifest", "npm", "ADR-0014.package-manager-matrix")
 	releaseManifest := "testdata/release-manifest/shared/manifest.json"
 	escapingReleaseManifest.ReleaseManifest = &releaseManifest
+	traversingArtifact := selectTestManifest("traversing-artifact", "npm", "ADR-0014.package-manager-matrix")
+	traversingArtifact.Artifact = "testdata/npm/../publisher/shared/artifact.tgz"
+	traversingArtifact.Provenance = "testdata/npm/pkg/provenance.json"
 
 	tests := []struct {
 		name     string
@@ -153,6 +156,7 @@ func TestSelectRejectsPathsOutsideSurface(t *testing.T) {
 		{name: "artifact escapes surface", manifest: escapingArtifact},
 		{name: "provenance escapes surface", manifest: escapingProvenance},
 		{name: "release manifest escapes surface", manifest: escapingReleaseManifest},
+		{name: "artifact traverses out of surface", manifest: traversingArtifact},
 	}
 
 	for _, test := range tests {

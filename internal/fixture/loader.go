@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -167,8 +168,11 @@ func Select(index Index, surface, phase string) (Index, error) {
 		}
 		if surface != "" {
 			prefix := "testdata/" + surface + "/"
-			if !strings.HasPrefix(manifest.Artifact, prefix) || !strings.HasPrefix(manifest.Provenance, prefix) ||
-				(manifest.ReleaseManifest != nil && !strings.HasPrefix(*manifest.ReleaseManifest, prefix)) {
+			withinSurface := func(fixturePath string) bool {
+				return strings.HasPrefix(path.Clean(fixturePath), prefix)
+			}
+			if !withinSurface(manifest.Artifact) || !withinSurface(manifest.Provenance) ||
+				(manifest.ReleaseManifest != nil && !withinSurface(*manifest.ReleaseManifest)) {
 				return Index{}, fmt.Errorf("fixture %q paths must stay under %s", manifest.Name, prefix)
 			}
 		}
