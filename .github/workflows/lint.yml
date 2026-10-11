@@ -94,11 +94,13 @@ jobs:
       - name: Upload results to Codecov
         uses: step-security/codecov-action@db5c3605ff3c9dc7f0b2791e6bea84a561bacab8 # v7.0.0
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.txt
           disable_search: true
           flags: unit
-          # Tokenless upload for this public repo (no long-lived CODECOV_TOKEN per org
-          # policy); an upload failure must not break this required quality gate.
+          # Codecov rejects tokenless uploads from protected branches, so the upload
+          # authenticates with a repository-secret token. An upload failure must not
+          # break this required quality gate.
           fail_ci_if_error: false
 
   # Bounded fuzz smoke per docs/testing-guide.md "Fuzzing in CI"; deep runs live in fuzz.yml.
