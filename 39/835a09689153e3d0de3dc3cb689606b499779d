@@ -1,0 +1,41 @@
+internal/command/npm_profile_sign_source_ref_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 143,179
+  s_39eba1b76fd0e7::t_a558a55840c778 176-178
+internal/command/sign_execute_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 167,172
+internal/command/report_writer_test.go
+  s_39eba1b76fd0e7::t_6271cab5e78f63 123-125
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 126,157
+internal/command/failure_coverage_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 61,99
+internal/command/verify_attestation_execute_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 32,63,100,142
+internal/command/handoff_coverage_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 51
+internal/command/report_coverage_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 34
+internal/command/verify_attestation_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 22,33,45
+  s_39eba1b76fd0e7::t_c4b32207948454 19-21,30-32,42-44
+internal/command/build_execute_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 95,124
+internal/command/verify_handoff_error_test.go
+  s_39eba1b76fd0e7::t_c5a6fdee34ce1a 27,30,36-37
+  s_39eba1b76fd0e7::t_938c165a0f8e1d 24-26,38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "39835a09689153e3d0de3dc3cb689606b499779d",
+  "prompts": {},
+  "sessions": {
+    "s_39eba1b76fd0e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3f634cbffe4r2Zso0Z64wUzZ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
