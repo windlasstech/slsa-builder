@@ -1,0 +1,22 @@
+internal/policy/intersection_test.go
+  s_465af1a2ddebd8::t_ca505bcfc81b0c 1-154
+internal/policy/decode_validation_test.go
+  s_465af1a2ddebd8::t_d0f15b30b2abe8 352-353
+  s_465af1a2ddebd8::t_a72be746cb4e67 1-351,354-421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c56a5d1761fd99f449c85c07a6fd4eb3b8d7de9e",
+  "prompts": {},
+  "sessions": {
+    "s_465af1a2ddebd8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ec6b2effeUJeF6lOc6OhuWE",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
