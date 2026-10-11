@@ -1,0 +1,28 @@
+internal/fixture/loader_test.go
+  s_c596af9a75a820::t_129ff5f83052a0 42,45
+  s_c596af9a75a820::t_885d7a306a3f88 212,217-226
+  s_c596af9a75a820::t_7d543dd2185bf4 76
+  s_c596af9a75a820::t_661c27a208f881 288
+  s_c596af9a75a820::t_74b382c75c8499 7
+  s_c596af9a75a820::t_445ce4cfde5e66 1-6,8-41,43-44,46-75,77-211,213-216,227-287,289-308
+internal/fixture/registry_test.go
+  s_c596af9a75a820::t_ec53a362daa34d 1-91
+internal/fixture/select_test.go
+  s_c596af9a75a820::t_4a766e97d32564 1-210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5e97891ed7140319111e4b88a7c92b5c54511b92",
+  "prompts": {},
+  "sessions": {
+    "s_c596af9a75a820": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed3ed23f1ffeoI6OYVO7V1crMp",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
