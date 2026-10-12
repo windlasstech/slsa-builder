@@ -1,0 +1,45 @@
+internal/command/workflow_check_test.go
+  s_0642799a58b175::t_f2c0b5c9e196ca 14-34,39-41,74-135,137-141,144-145,147-148
+  s_0642799a58b175::t_a9a0379e53538a 65-67
+internal/workflowcheck/check.go
+  s_0642799a58b175::t_d4058fefe9de2e 13-14,405-408,481-484,541-542,550-569
+internal/workflowcheck/check_test.go
+  s_0642799a58b175::t_68dbb723da4443 439
+  s_fa8f6e81ddb296::t_9665cdbb5703c5 413
+  s_0642799a58b175::t_a9a0379e53538a 228-235,280
+  s_0642799a58b175::t_255a2d1490291a 430-434,460-478
+  s_0642799a58b175::t_fdde106d62c098 436
+  s_0642799a58b175::t_d8ef9d0566e6cc 395-412,414-429,435,437-438,440-459,479-483
+  s_0642799a58b175::t_1bb58035f99f74 49-52,89-93,162-165,187-191,237
+internal/command/workflow_coverage_test.go
+  s_0642799a58b175::t_f2c0b5c9e196ca 31
+internal/workflowcheck/toolchain.go
+  s_0642799a58b175::t_d4058fefe9de2e 1-13,16-24,27-89
+  s_0642799a58b175::t_f7e6432c4d505c 14-15,25-26
+internal/command/report_writer_test.go
+  s_0642799a58b175::t_f2c0b5c9e196ca 111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0d2ad5bf3821b53bda26cdf73f40eace4bfed06e",
+  "prompts": {},
+  "sessions": {
+    "s_0642799a58b175": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ece6d7cf9ffecgpTvjQ3f7hD1j",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fa8f6e81ddb296": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece6d7cf9ffecgpTvjQ3f7hD1j",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
