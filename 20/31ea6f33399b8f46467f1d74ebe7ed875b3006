@@ -1,0 +1,20 @@
+internal/command/workflow_check_test.go
+  s_eae5e711d5f72b::t_4fae0b62fb950f 121,125
+  s_eae5e711d5f72b::t_df19f342ba55fc 122,126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2031ea6f33399b8f46467f1d74ebe7ed875b3006",
+  "prompts": {},
+  "sessions": {
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
