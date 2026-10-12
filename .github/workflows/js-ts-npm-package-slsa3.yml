@@ -127,7 +127,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "24"
+          node-version: "24.21.0"
+
+      - name: Assert pinned toolchain pair
+        working-directory: .slsa-builder
+        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert
 
       - name: Enable Corepack
         run: corepack enable
@@ -300,7 +304,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "24"
+          node-version: "24.21.0"
+
+      - name: Assert pinned toolchain pair
+        working-directory: .slsa-builder
+        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert
 
       - name: Enable Corepack
         run: corepack enable
@@ -411,16 +419,31 @@ jobs:
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "24"
+          node-version: "24.21.0"
+
+      - name: Assert pinned Node.js runtime
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        working-directory: .slsa-builder
+        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only
+
+      - name: Provision pinned npm CLI
+        id: npm-provision
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        working-directory: .slsa-builder
+        run:
+          go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory "${{
+          runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT"
 
       - name: Log npm configuration diagnostics
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        env:
+          NPM_EXECUTABLE: ${{ steps.npm-provision.outputs.npm-executable }}
         run: |
-          echo "node: $(node --version), npm: $(npm --version)"
+          echo "node: $(node --version), npm: $("$NPM_EXECUTABLE" --version)"
           echo "ambient NPM_CONFIG_* variables: $(env | grep -c '^NPM_CONFIG_' || true)"
-          npm config ls 2>&1 | sed -E '/_authToken|_password|:_auth/Is/=.*/=<redacted>/'
+          "$NPM_EXECUTABLE" config ls 2>&1 | sed -E '/_authToken|_password|:_auth/Is/=.*/=<redacted>/'
           echo "--- provenance/registry keys across all config layers ---"
-          npm config ls -l 2>&1 | grep -iE '^(provenance|provenance-file|registry|access|tag)\b' || true
+          "$NPM_EXECUTABLE" config ls -l 2>&1 | grep -iE '^(provenance|provenance-file|registry|access|tag)\b' || true
 
       - name: Download package tarball handoff
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
@@ -465,8 +488,8 @@ jobs:
           --bundle-artifact-dir "$BUNDLE_DIRECTORY" --bundle-artifact-name "$BUNDLE_ARTIFACT_NAME"
           --bundle-name "$BUNDLE_NAME" --bundle-sha256 "$BUNDLE_SHA256" --package-name
           "$PACKAGE_NAME" --package-version "$PACKAGE_VERSION" --package-url "$PACKAGE_URL"
-          --registry-url "$REGISTRY_URL" --npm-executable "$(command -v npm)" --report-path
-          "$REPORT_PATH"
+          --registry-url "$REGISTRY_URL" --npm-executable "${{
+          steps.npm-provision.outputs.npm-executable }}" --report-path "$REPORT_PATH"
 
       - name: Finalize outcome report
         if: always()
