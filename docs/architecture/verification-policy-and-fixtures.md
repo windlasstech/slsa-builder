@@ -990,6 +990,7 @@ The non-fatal warning IDs initially registered by this specification are:
 | `windlass.verify.warning.native-provenance-locator-missing`      | Optional native provenance locator is absent while the required sidecar verifies.                                                             |
 | `windlass.verify.warning.timestamp-clock-skew`                   | `finishedOn` precedes `startedOn` by one to five whole seconds; verification continues with zero duration.                                    |
 | `windlass.verify.warning.npm-version-mismatch`                   | A declared npm version does not match the toolchain npm (or is unmatchable); the toolchain npm remains authoritative and the build continues. |
+| `windlass.verify.warning.project-corepack-env-ignored`           | A project `.corepack.env` exists at the package-manager root; the file is never loaded in release builds and the build continues.             |
 
 No identity, root, signature, transparency, signing-time, policy-intersection, Statement, or digest
 failure has a warning form. Emitting one of those failures as a warning fails the diagnostics

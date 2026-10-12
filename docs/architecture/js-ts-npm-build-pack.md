@@ -498,6 +498,9 @@ as diagnostics, but they must not become separate dependency descriptors or sele
 - Corepack must activate the exact version specified in the selected manifest metadata.
 - Corepack's Known Good Release fallback is prohibited for release builds.
 - If the exact version cannot be enforced, the profile fails.
+- Every Corepack-path process, including toolchain provisioning invocations, must run with
+  `COREPACK_ENV_FILE=0` in its environment, so Corepack never loads a project `.corepack.env` file
+  (ADR 0096).
 - Yarn must be Yarn Berry v4 or newer and selected from manifest metadata, that is, the top-level
   `packageManager` field or `devEngines.packageManager` (ADR 0091). The profile must fail before
   install if Yarn would run from an ambient global installation, Corepack Known Good Release
@@ -686,9 +689,14 @@ configuration basename. Values must not appear in this error. For example, `http
 `httpsKey:`, `"httpsKey": secret`, and `httpsKey: abc=def` are rejected; `nodeLinker: pnpm` and
 `registry: "https://registry.npmjs.org/"` pass this check.
 
-Any `.corepack.env` entry at the package-manager root must fail with
-`project .corepack.env is prohibited for release builds`; inspection failures other than absence
-must also stop the build.
+A project `.corepack.env` file never influences a release build: every Corepack-path process runs
+with `COREPACK_ENV_FILE=0` (see [Corepack for pnpm and Yarn](#corepack-for-pnpm-and-yarn)), so
+Corepack never loads the file. The preflight must still inspect the package-manager root for
+`.corepack.env`, and the presence of any entry there, including a symlink, must emit the registered
+warning `windlass.verify.warning.project-corepack-env-ignored` once, stating that the file is
+ignored in release builds, and the build must proceed. An inspection failure other than absence
+degrades to the same warning instead of stopping the build, because the invariant no longer depends
+on the inspection (ADR 0096). The npm path is unaffected: npm builds never invoke Corepack.
 
 ### Packed tarball name
 
