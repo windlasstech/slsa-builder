@@ -14,9 +14,7 @@ import (
 )
 
 func TestNPMPURLCLICompatibilityLive(t *testing.T) {
-	if testing.Short() || os.Getenv("SLSA_BUILDER_LIVE_TOOLCHAIN") != "1" {
-		t.Skip("live toolchain test: set SLSA_BUILDER_LIVE_TOOLCHAIN=1 to run")
-	}
+	requireLiveToolchain(t)
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)

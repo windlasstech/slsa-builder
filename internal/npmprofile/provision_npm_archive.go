@@ -67,7 +67,7 @@ func extractNPMDistribution(ctx context.Context, encoded []byte, directory strin
 			if err != nil {
 				return err
 			}
-			_, copyErr := io.Copy(file, archive)
+			_, copyErr := io.CopyN(file, archive, header.Size)
 			if err := errors.Join(copyErr, file.Close()); err != nil {
 				return err
 			}
@@ -76,7 +76,7 @@ func extractNPMDistribution(ctx context.Context, encoded []byte, directory strin
 		}
 	}
 	// Drain the bounded gzip stream so truncation and checksum errors cannot hide behind tar EOF.
-	if _, err := io.Copy(io.Discard, limited); err != nil {
+	if _, err := io.CopyN(io.Discard, limited, limited.N); err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
 	if limited.N == 0 || len(seen) == 0 {
