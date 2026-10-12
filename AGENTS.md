@@ -41,7 +41,7 @@ spec'd but not yet implemented.
 
 | Task                     | Location                                                   | Notes                                                              |
 | ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------ |
-| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0089`.                           |
+| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0096`.                           |
 | Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`.                  |
 | Trusted-core Go code     | `internal/`                                                | Shared rules in `internal/AGENTS.md`; sub-packages have their own. |
 | CLI subcommands          | `cmd/slsa-builder-internal/main.go`                        | 10 subcommands; adapter rules in `internal/command/AGENTS.md`.     |
