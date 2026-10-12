@@ -1,0 +1,29 @@
+internal/toolchainpins/publish-npm.json
+  s_c8ee8985ac2d26::t_32026e5a36b8e4 1-5
+internal/AGENTS.md
+  s_c8ee8985ac2d26::t_810fc72be8b8bc 25
+internal/toolchainpins/node-runtime.json
+  s_c8ee8985ac2d26::t_32026e5a36b8e4 1-4
+internal/toolchainpins/toolchainpins_test.go
+  s_c8ee8985ac2d26::t_b76d3e48844786 1-117
+internal/toolchainpins/AGENTS.md
+  s_c8ee8985ac2d26::t_32026e5a36b8e4 1-13
+internal/toolchainpins/toolchainpins.go
+  s_c8ee8985ac2d26::t_32026e5a36b8e4 1-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7618464919f33f4aa358ab9bbaace1c05d2bc495",
+  "prompts": {},
+  "sessions": {
+    "s_c8ee8985ac2d26": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ece96c25cffeI7keskWe6ItruO",
+        "model": "gpt-6-sol-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
