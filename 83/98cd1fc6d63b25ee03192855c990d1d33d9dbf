@@ -1,0 +1,30 @@
+docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md
+  s_92db9df814a216::t_42f4ae4b15f829 65
+  s_f0b25e6973a113::t_105ebb0931f72e 66
+docs/decisions/0096-neutralize-project-corepack-env-via-kill-switch-pin-and-warn-on-presence.md
+  s_92db9df814a216::t_5584f28d3c3ed7 73-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8398cd1fc6d63b25ee03192855c990d1d33d9dbf",
+  "prompts": {},
+  "sessions": {
+    "s_92db9df814a216": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed1f2485fffeOP3EyrekBUcRxn",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f0b25e6973a113": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed1f2485fffeOP3EyrekBUcRxn",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
