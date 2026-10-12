@@ -18,6 +18,7 @@ func main() {
 		command.NewNPMProfileSelectCommand(),
 		command.NewNPMProfileSourceRefCommand(),
 		command.NewNPMProfileToolchainAssertCommand(),
+		command.NewPinCheckCommand(),
 		command.NewVerifyHandoffCommand(),
 		command.NewVerifyAttestationCommand(),
 		command.NewWorkflowCheckCommand(),

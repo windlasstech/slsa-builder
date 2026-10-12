@@ -9,5 +9,10 @@ toolchain pair. These independent machine-readable records change only through t
 - `node-runtime.json` follows the
   [Node.js and npm toolchain pair](../../docs/architecture/js-ts-npm-build-pack.md#nodejs-and-npm-toolchain-pair).
 
-A future `pin-check` subcommand will compare the specification tables against these records and
-reject drift. Do not duplicate pin literals in provisioning or publish-side validation code.
+`pin-check` compares explicit disk inputs (`--publish-pin`, `--pair-record`, `--publish-spec`, and
+`--build-spec`), not embedded records. It requires one data row per specification table and exact
+equality of the publish version, URL, and SRI, and of the Node.js/npm pair. Markdown table padding
+and inline-code delimiters do not affect comparison. Missing sections/tables, malformed or
+unreadable inputs, and unequal values fail with `windlass.verify.error.toolchain-pin-drift` (check
+`toolchain.pins.drift`), a canonical report, and exit 1. Success exits 0; missing flags exit 2. Do
+not duplicate pin literals in provisioning or publish-side validation code.
