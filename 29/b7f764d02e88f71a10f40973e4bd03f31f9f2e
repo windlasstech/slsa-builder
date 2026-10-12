@@ -1,0 +1,32 @@
+testdata/npm/packages/npm-corepack-env-ignored-valid/package.json
+  s_92db9df814a216::t_7476f318bce788 1
+internal/fixture/npm_fixtures_test.go
+  s_92db9df814a216::t_42ae54f97387bc 64
+testdata/npm/packages/npm-corepack-env-ignored-valid/.corepack.env
+  s_92db9df814a216::t_eee6d3336190a0 1
+testdata/npm/packages/npm-corepack-env-ignored-valid/fixture.json
+  s_92db9df814a216::t_cb382f99c40c8d 1
+internal/fixture/registry.go
+  s_92db9df814a216::t_e9b632d75530e2 73
+  s_92db9df814a216::t_d01a1b2b03ae7c 28
+testdata/fixtures/index.json
+  s_92db9df814a216::t_1b0c38de696712 618-619
+testdata/npm/packages/npm-corepack-env-ignored-valid/package-lock.json
+  s_92db9df814a216::t_d17ad5b4449fca 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "29b7f764d02e88f71a10f40973e4bd03f31f9f2e",
+  "prompts": {},
+  "sessions": {
+    "s_92db9df814a216": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed1f2485fffeOP3EyrekBUcRxn",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
