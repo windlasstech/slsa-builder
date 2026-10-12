@@ -253,8 +253,9 @@ Yarn, the profile supports only a bounded set of package-manager versions:
   rejected before install with `windlass.verify.error.yarn-version-unsupported`. Yarn 6 is
   unreleased and its acquisition and integrity semantics are unknown, so it must not silently enter
   the fail-closed release pipeline.
-- npm is unaffected by these bounds; the profile uses the npm CLI bundled with the selected Node.js
-  24 toolchain.
+- npm is unaffected by these bounds; the profile uses the npm CLI bundled with the pinned Node.js 24
+  toolchain pair (npm `11.19.0` bundled with Node.js `24.21.0`; see
+  [Node.js and npm toolchain pair](#nodejs-and-npm-toolchain-pair)).
 
 Both bounds are enforced from both manifest selection sources, the top-level `packageManager` field
 and `devEngines.packageManager` (ADR 0091). Both bounds hold for as long as the ADR 0016 Corepack
@@ -277,14 +278,14 @@ supported version set in this section before release builds may use it.
   newer, ranges, tags, URLs, shortened version forms such as `yarn@4` or `yarn@4.9`, and omitted
   versions are rejected before install; Yarn 6 or newer is rejected with
   `windlass.verify.error.yarn-version-unsupported`.
-- If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
-  Node.js 24 toolchain; the manifest npm version must not override the builder-owned npm runtime. A
-  declared npm version is accepted but non-authoritative: the profile compares it with the toolchain
-  npm's actual version and emits a `windlass.verify.warning.npm-version-mismatch` warning when they
-  do not match, never failing on this account (ADR 0095). An exact declared version warns unless it
-  equals the actual version; a SemVer range warns unless it includes the actual version; an
-  unparseable declared version warns as unmatchable. An npm descriptor must not carry an integrity
-  digest suffix (ADR 0095).
+- If the field selects npm, the profile selects npm but uses the npm CLI bundled with the pinned
+  Node.js 24 toolchain pair (npm `11.19.0` bundled with Node.js `24.21.0`); the manifest npm version
+  must not override the builder-owned npm runtime. A declared npm version is accepted but
+  non-authoritative: the profile compares it with the toolchain npm's actual version and emits a
+  `windlass.verify.warning.npm-version-mismatch` warning when they do not match, never failing on
+  this account (ADR 0095). An exact declared version warns unless it equals the actual version; a
+  SemVer range warns unless it includes the actual version; an unparseable declared version warns as
+  unmatchable. An npm descriptor must not carry an integrity digest suffix (ADR 0095).
 - If the field is absent in the current manifest source, the profile falls back to the next source.
 
 ### `devEngines.packageManager` field
@@ -314,14 +315,15 @@ supported version set in this section before release builds may use it.
   version forms, and omitted versions are rejected before install; Yarn 6 or newer is rejected with
   `windlass.verify.error.yarn-version-unsupported`. Only `yarn.lock` inference without manifest
   metadata remains excluded as a Yarn selection path.
-- If the field selects npm, the profile selects npm but uses the npm CLI bundled with the selected
-  Node.js 24 toolchain; `devEngines.packageManager.version` must not override the builder-owned npm
-  runtime. A declared npm version is accepted but non-authoritative, with the same mismatch-warning
-  behavior as the top-level field (ADR 0095). An npm descriptor must not carry an integrity digest
-  suffix (ADR 0095). For npm, the npm CLI itself interprets `devEngines.packageManager` (including
-  its SemVer range check against the running npm and its `onFail` semantics), and that behavior is
-  outside the profile's responsibility scope: the profile does not verify, override, or intervene in
-  it (ADR 0095).
+- If the field selects npm, the profile selects npm but uses the npm CLI bundled with the pinned
+  Node.js 24 toolchain pair (npm `11.19.0` bundled with Node.js `24.21.0`);
+  `devEngines.packageManager.version` must not override the builder-owned npm runtime. A declared
+  npm version is accepted but non-authoritative, with the same mismatch-warning behavior as the
+  top-level field (ADR 0095). An npm descriptor must not carry an integrity digest suffix (ADR
+  0095). For npm, the npm CLI itself interprets `devEngines.packageManager` (including its SemVer
+  range check against the running npm and its `onFail` semantics), and that behavior is outside the
+  profile's responsibility scope: the profile does not verify, override, or intervene in it (ADR
+  0095).
 - If `onFail` is `ignore` or `warn` and the selected manager is pnpm or Yarn, the profile still
   fails closed on package-manager policy violations such as an unsupported name, missing exact
   pnpm/Yarn version, package-manager mismatch, or required lockfile mismatch. For npm, `onFail`
@@ -414,7 +416,7 @@ selected-package and workspace-root package-manager manifest fields are absent:
 Lockfile inference has different outcomes by package manager:
 
 - `package-lock.json` may select `npm`; the actual npm version is the npm CLI bundled with the
-  selected Node.js 24 toolchain.
+  pinned Node.js 24 toolchain pair (npm `11.19.0` bundled with Node.js `24.21.0`).
 - `pnpm-lock.yaml` may identify `pnpm`, but the release build must fail because ADR 0017 requires an
   exact pnpm version from selected manifest metadata.
 - `yarn.lock` may identify Yarn, but the release build must fail because stable Yarn support
@@ -571,6 +573,62 @@ profile must not replace missing capture evidence with a guessed distribution UR
 hash. That condition must stop before predicate construction with
 `windlass.verify.error.input-unavailable` and exit code `2`.
 
+## Node.js and npm toolchain pair
+
+This section is normative under
+[ADR 0085](../decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md)
+and [ADR 0027](../decisions/0027-use-github-hosted-ubuntu-2404-and-node-24-runtime.md).
+
+### Pinned runtime table
+
+The single shared definition of the build toolchain is the builder-owned machine-readable record
+`internal/toolchainpins/node-runtime.json`, which holds the pair: the exact Node.js 24 patch version
+and the npm version that exact patch bundles. The record is cross-checked against the Node.js
+release metadata (<https://nodejs.org/dist/index.json>) whenever the pair changes. The
+human-readable runtime table below mirrors the record, and a CI check fails on any drift between the
+record and the table with `windlass.verify.error.toolchain-pin-drift` (check
+`toolchain.pins.drift`).
+
+| Node.js version | Bundled npm version |
+| --------------- | ------------------- |
+| `24.21.0`       | `11.19.0`           |
+
+The reusable workflow's Node.js setup uses the exact recorded patch, never a floating major. The two
+values change only together, in one commit, through the ADR 0085 bump procedure: the npm changelog
+delta is reviewed for build-affecting changes (install and Arborist resolution, workspace behavior,
+lifecycle-script policy, and pack, packlist, and pack output behavior), the compatibility fixtures
+are added or refreshed for the new pair, and the full CI gate passes on the new pair. The pair
+record and the publish npm pin record (`internal/toolchainpins/publish-npm.json`, see the
+[provenance and publish specification](js-ts-npm-provenance-publish.md#publish-stage-npm-cli-allowlist))
+are independent records with independent review cadences; neither selects the other.
+
+The bundled npm is authenticated as part of the Node.js artifact, through the pinned setup
+mechanism's own checksum verification, not independently as an npm distribution. This contract
+introduces no `resolvedDependencies` schema change and does not pin the runner image.
+
+### Pre-install pair assertion
+
+In each job that uses the bundled npm, before the first npm invocation, the job observes
+`node --version` and `npm --version` and requires exact equality with the recorded pair. A mismatch
+fails the job before any install, build, or pack step with
+`windlass.verify.error.toolchain-pair-mismatch` (check `npm.build.toolchain`). The observed npm
+version continues to be recorded in `externalParameters.runtime.npm_version` exactly as before: the
+recording semantics of ADR 0027, ADR 0070, and ADR 0071 are unchanged, and the value is now
+validated against the pin rather than merely observed. The `>= 11.5.1` floor on
+`runtime.npm_version` is retained unchanged as defense in depth (ADR 0085).
+
+The publish job is governed by
+[ADR 0082](../decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md)
+and
+[ADR 0084](../decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md)
+unchanged: it provisions its own pinned, digest-verified npm before any npm invocation, and the
+bundled npm is never invoked there. The pair assertion covers the publish job's Node.js runtime only
+(node-only mode).
+
+An independently provisioned build-stage npm (the ADR 0084 mechanism with a separate build pin
+record, never the publish pin's record) is future work only, revisited under the ADR 0085 escalation
+trigger.
+
 ## Runner image capture
 
 ADR 0070 records the GitHub-hosted runner image that supplied the Node.js runtime. At build time,
@@ -618,8 +676,9 @@ Yarn invocation.
 
 ## npm behavior
 
-- npm is the package manager bundled with the selected Node.js toolchain.
-- The profile uses the npm version that comes with Node.js 24.
+- npm is the package manager bundled with the pinned Node.js 24 toolchain pair (see
+  [Node.js and npm toolchain pair](#nodejs-and-npm-toolchain-pair)).
+- The profile uses npm `11.19.0`, the version bundled with the pinned Node.js `24.21.0` toolchain.
 - No separate npm version override is supported.
 
 ## Command matrix
@@ -882,6 +941,7 @@ must emit the canonical diagnostic ID.
 | The selected manifest metadata pins a pnpm version outside the supported `[10.0.0, 12.0.0)` range (12 or newer, or older than 10).                                                                                                                                                 | `windlass.verify.error.pnpm-version-unsupported`                           | `pnpm-version-unsupported`                           | policy       | `1`       | `false`             |
 | The selected manifest metadata pins Yarn 6 or newer.                                                                                                                                                                                                                               | `windlass.verify.error.yarn-version-unsupported`                           | `yarn-version-unsupported`                           | policy       | `1`       | `false`             |
 | The selected manager's lockfile is missing for npm `npm ci`, pnpm `--frozen-lockfile`, or Yarn `--immutable`.                                                                                                                                                                      | `windlass.verify.error.required-lockfile-missing`                          | `required-lockfile-missing`                          | policy       | `1`       | `false`             |
+| The observed Node.js or bundled npm version differs from the pinned toolchain pair at the pre-install pair assertion.                                                                                                                                                              | `windlass.verify.error.toolchain-pair-mismatch`                            | `toolchain-pair-mismatch`                            | pre-mutation | `1`       | `false`             |
 | Required package-manager distribution or runner-image capture evidence is unavailable before predicate construction.                                                                                                                                                               | `windlass.verify.error.input-unavailable`                                  | `input-unavailable`                                  | invocation   | `2`       | `false`             |
 | Captured package-manager distribution evidence has the wrong authority or version, contradicts the selected manager, uses a Known Good Release fallback or ambient manager, changes the Corepack acquisition path through a registry override, or produces a malformed descriptor. | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | `resolved-dependencies-package-manager-distribution` | verification | `1`       | `false`             |
 | Captured runner-image evidence has a malformed descriptor, carries a digest, or disagrees with the observed runner values.                                                                                                                                                         | `windlass.verify.error.resolved-dependencies-runner-image`                 | `resolved-dependencies-runner-image`                 | verification | `1`       | `false`             |
@@ -920,6 +980,9 @@ signing or publishing. Exit code `2` identifies unusable locally required captur
   entering SLSA `internalParameters` or `externalParameters`.
 - Workspace package using root package-manager metadata and root lockfile.
 - Corepack exact version enforcement failure.
+- Toolchain pair assertion: an observed Node.js or bundled npm version differing from the pinned
+  pair fails before the first npm invocation with `windlass.verify.error.toolchain-pair-mismatch`,
+  and the machine-readable pair record and the human-readable runtime table are proven drift-free.
 - pnpm 12, pnpm 13, and pre-10 pnpm pins rejected before install with
   `windlass.verify.error.pnpm-version-unsupported` from both the top-level `packageManager` field
   and `devEngines.packageManager`; pnpm 10.x and 11.x pins remain accepted from both manifest

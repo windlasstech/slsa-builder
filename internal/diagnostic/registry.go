@@ -67,7 +67,8 @@ func buildRegistry() map[string]Definition {
 		"release-target-immutable", "handoff-schema-mismatch", "publisher-remote-digest-unproven",
 		"npm-oidc-exchange-indeterminate", "oidc-capability-unavailable", "source-ref-invalid",
 		"npm-provision-download", "npm-provision-digest-mismatch", "npm-provision-archive-unsafe",
-		"npm-provision-version-mismatch", "publish-npm-pin-mismatch")
+		"npm-provision-version-mismatch", "publish-npm-pin-mismatch",
+		"toolchain-pair-mismatch", "toolchain-pin-drift")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, false, 7, "mutation-permission-denied")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, true, 7,
 		"publisher-indeterminate-primary-upload", "mutation-queue-overflow",
@@ -264,6 +265,8 @@ subject-sha256-missing
 tarball-filename-subject-rejected
 timestamp-format-invalid
 timestamp-ordering-invalid
+toolchain-pair-mismatch
+toolchain-pin-drift
 trusted-core-boundary-violation
 trusted-producer-policy-conflict
 trusted-publisher-mismatch
