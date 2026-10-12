@@ -33,8 +33,9 @@ the package to an npm registry through a three-job digest-verified graph.
   [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md),
   [0082](../decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md),
   [0083](../decisions/0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md),
+  [0084](../decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md),
   and
-  [0084](../decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md)
+  [0085](../decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -379,8 +380,8 @@ fields must be rejected by producer-side verification and by strict consumer pol
   },
   "runtime": {
     "runner": "ubuntu-24.04",
-    "node_version": "24.0.0",
-    "npm_version": "11.5.1"
+    "node_version": "24.21.0",
+    "npm_version": "11.19.0"
   },
   "package": {
     "directory": ".",
@@ -564,7 +565,9 @@ absent, violating the conditional-presence rule; it fails with
 - `workflow.builder_id` must equal the SHA-based builder identity for `workflow.path` and
   `workflow.sha`.
 - `runtime.runner` must be `ubuntu-24.04`.
-- `runtime.node_version` must have major version `24`.
+- `runtime.node_version` must have major version `24`. This floor is retained unchanged as defense
+  in depth, with the exact pinned Node.js 24 and bundled npm pair asserted before first use per the
+  [build and pack specification](js-ts-npm-build-pack.md#pre-install-pair-assertion) (ADR 0085).
 - `runtime.npm_version` must be greater than or equal to `11.5.1`, the minimum npm CLI version for
   the initial trusted publishing contract. The comparison is a SemVer numeric comparison over major,
   minor, and patch components; pre-release versions are not accepted for the production profile.
@@ -819,7 +822,7 @@ Valid complete-schema repository identity example:
     "sha": "0123456789abcdef0123456789abcdef01234567",
     "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@0123456789abcdef0123456789abcdef01234567"
   },
-  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.0.0", "npm_version": "11.5.1" },
+  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.21.0", "npm_version": "11.19.0" },
   "package": {
     "directory": ".",
     "workspace_root": null,
@@ -886,7 +889,7 @@ from the normalized source and observed caller identity:
     "sha": "0123456789abcdef0123456789abcdef01234567",
     "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@0123456789abcdef0123456789abcdef01234567"
   },
-  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.0.0", "npm_version": "11.5.1" },
+  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.21.0", "npm_version": "11.19.0" },
   "package": {
     "directory": ".",
     "workspace_root": null,
@@ -1175,7 +1178,7 @@ output. A valid descriptor is:
   "annotations": {
     "image_os": "ubuntu24",
     "image_version": "20260801.1.0",
-    "node_version": "v24.0.0"
+    "node_version": "v24.21.0"
   }
 }
 ```
@@ -1199,7 +1202,7 @@ This invalid descriptor carries a prohibited digest:
   "annotations": {
     "image_os": "ubuntu24",
     "image_version": "20260801.1.0",
-    "node_version": "v24.0.0"
+    "node_version": "v24.21.0"
   }
 }
 ```

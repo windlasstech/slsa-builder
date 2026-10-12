@@ -602,21 +602,28 @@ record and the publish npm pin record (`internal/toolchainpins/publish-npm.json`
 [provenance and publish specification](js-ts-npm-provenance-publish.md#publish-stage-npm-cli-allowlist))
 are independent records with independent review cadences; neither selects the other.
 
-The bundled npm is authenticated as part of the Node.js artifact, through the pinned setup
-mechanism's own checksum verification, not independently as an npm distribution. This contract
-introduces no `resolvedDependencies` schema change and does not pin the runner image.
+The bundled npm arrives as part of the Node.js artifact provided by the pinned setup mechanism and
+is not authenticated independently as an npm distribution. The pinned setup mechanism performs no
+checksum verification of the Node.js artifact: the executed toolchain's version identity is pinned
+observationally by the pair assertion below, and artifact integrity rests on the GitHub-hosted
+runner image and the setup mechanism's TLS download. This contract introduces no
+`resolvedDependencies` schema change and does not pin the runner image.
 
 ### Pre-install pair assertion
 
-In each job that uses the bundled npm, before the first npm invocation, the job observes
-`node --version` and `npm --version` and requires exact equality with the recorded pair. A mismatch
-fails the job before any install, build, or pack step with
+In each job that uses the bundled npm, the pair assertion first observes `node --version` and
+`npm --version` and requires exact equality with the recorded pair: the Node.js comparison strips
+the single leading `v` from the observed output (`node --version` prints `v24.21.0` for the recorded
+`24.21.0`), and the npm comparison is verbatim. The pair assertion is the exempt preflight that
+observes the versions; it must complete before any subsequent npm invocation that performs a package
+operation. A mismatch fails the job before any install, build, or pack step with
 `windlass.verify.error.toolchain-pair-mismatch` (check `npm.build.toolchain`). An npm invocation is
 an invocation of the npm CLI by a step of the job's workflow (for example, a diagnostics, install,
-build, or pack command); the pinned setup mechanism's internal, read-only environment logging, such
-as the version reporting that `actions/setup-node` performs after installing Node.js, is part of the
-authenticated toolchain setup, touches no package operation, and is not an npm invocation for the
-purposes of this specification. The observed npm version continues to be recorded in
+build, or pack command); the pair assertion's own version observation and the pinned setup
+mechanism's internal, read-only environment logging, such as the version reporting that
+`actions/setup-node` performs after installing Node.js, are part of the authenticated toolchain
+setup, touch no package operation, and are not npm invocations for the purposes of this
+specification. The observed npm version continues to be recorded in
 `externalParameters.runtime.npm_version` exactly as before: the recording semantics of ADR 0027, ADR
 0070, and ADR 0071 are unchanged, and the value is now validated against the pin rather than merely
 observed. The `>= 11.5.1` floor on `runtime.npm_version` is retained unchanged as defense in depth

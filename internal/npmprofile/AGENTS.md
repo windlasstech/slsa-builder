@@ -33,8 +33,8 @@ internal/npmprofile/
       (tags-only, isolated fetch, peel-to-commit proof)
 ```
 
-Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.go` and
-`provision_npm_fetch_test.go`.
+Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.go`,
+`npm_purl_live_test.go`, and `provision_npm_fetch_test.go`.
 
 ## WHERE TO LOOK
 
@@ -64,8 +64,8 @@ Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.
   ambient npm token and env config are stripped first; same-run retry converges; foreign evidence is
   never adopted.
 - **Hermetic tests**: inject fake toolchains and fetchers. Real-tool tests live only in
-  `build_pack_live_test.go` and `provision_npm_fetch_test.go` behind `-short` plus
-  `SLSA_BUILDER_LIVE_TOOLCHAIN=1`.
+  `build_pack_live_test.go`, `npm_purl_live_test.go`, and `provision_npm_fetch_test.go` behind
+  `-short` plus `SLSA_BUILDER_LIVE_TOOLCHAIN=1`.
 - **Publish npm provisioning**: `npm-profile-provision-npm` downloads only the embedded pin URL,
   verifies compressed SHA-512 bytes before creating directories, and extracts into a private
   `<output-directory>/npm-provision-*/` directory. Its `npm` launcher uses the resolved absolute

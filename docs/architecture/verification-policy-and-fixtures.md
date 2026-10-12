@@ -590,7 +590,7 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
       "annotations": {
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
-        "node_version": "v24.0.0"
+        "node_version": "v24.21.0"
       }
     }
   ],
@@ -625,7 +625,7 @@ because the runner image carries a digest:
       "annotations": {
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
-        "node_version": "v24.0.0"
+        "node_version": "v24.21.0"
       }
     }
   ]
@@ -1459,11 +1459,11 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `trusted-core-boundary-violation`                    | Trusted policy/provenance logic depends on profile ecosystem tooling.                                                                    |
 | `npm-provision-download`                             | The pinned publish-stage npm tarball cannot be downloaded before provisioning completes.                                                 |
 | `npm-provision-digest-mismatch`                      | The downloaded publish-stage npm tarball digest differs from the pinned SHA-512.                                                         |
-| `npm-provision-archive-unsafe`                       | The publish-stage npm tarball has no single `package/` root or contains absolute or parent-traversing entries.                           |
+| `npm-provision-archive-unsafe`                       | The publish-stage npm tarball has no single `package/` root or contains absolute, parent-traversing, link, or special-file entries.      |
 | `npm-provision-version-mismatch`                     | The extracted publish-stage npm tree reports a version different from the pin.                                                           |
 | `publish-npm-pin-mismatch`                           | The publish job's npm version differs from the publish allowlist pin.                                                                    |
 | `toolchain-pair-mismatch`                            | The observed Node.js or bundled npm version differs from the pinned build toolchain pair.                                                |
-| `toolchain-pin-drift`                                | The toolchain pair record and a human-readable specification runtime table disagree.                                                     |
+| `toolchain-pin-drift`                                | The publish npm pin or Node.js/npm pair record disagrees with its human-readable specification table.                                    |
 
 ## Error categories
 
