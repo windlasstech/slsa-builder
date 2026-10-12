@@ -1,0 +1,51 @@
+internal/toolchainpins/drift_test.go
+  s_770fa4615d9a78::t_fb2baa061c12f2 26,60-61,63,69-71,83-85,92-94
+  s_d8c37300e82c79::t_3aa6c4d5912dce 1-25,27-59,62,64-68,72-82,86-91,95-96
+.github/workflows/lint.yml
+  s_d8c37300e82c79::t_8d5b5bc23b056b 91-92,98
+  s_770fa4615d9a78::t_df6ddba1d8de54 93-97
+internal/toolchainpins/drift.go
+  s_d8c37300e82c79::t_74a5b46b157e5d 1-18,20-28,32,36,40,44,46-56,60,64-76,80-81,88-89,93-98,102-109,116,120-121,125-129,133-136,138-144,148-149,153-155
+  s_770fa4615d9a78::t_fb2baa061c12f2 19,29-31,33-35,37-39,41-43,45,57-59,61-63,77-79,82-87,90-92,99-101,110-115,117-119,122-124,130-132,137,145-147,150-152
+internal/command/pin_check_test.go
+  s_d8c37300e82c79::t_b615194fb92a8d 1-4,6-7,9-10,12-14,16-32,36-37,41,45-49,56-67,71-75,79-86,91-99,103-105,160
+  s_770fa4615d9a78::t_85e7ea9959ec44 5,112-114,116-118,120-122,124-128,130-132,149-151,153-155
+  s_770fa4615d9a78::t_fb2baa061c12f2 33-35,38-40,42-44,50-55,68-70,76-78,87-90,100-102
+  s_d8c37300e82c79::t_266367df7ceda8 119,123
+  s_d8c37300e82c79::t_c7e406ac789e58 8,11,15,106-111,115,129,133-148,152,156-159
+cmd/slsa-builder-internal/main.go
+  s_d8c37300e82c79::t_3beee7c9c055d4 21
+internal/toolchainpins/AGENTS.md
+  s_770fa4615d9a78::t_df6ddba1d8de54 17-18
+  s_d8c37300e82c79::t_8d5b5bc23b056b 12-16
+internal/command/AGENTS.md
+  s_770fa4615d9a78::t_df6ddba1d8de54 24,51
+  s_d8c37300e82c79::t_8d5b5bc23b056b 31-35
+internal/command/pin_check.go
+  s_d8c37300e82c79::t_3beee7c9c055d4 1-21,25-43,47,51,58-62
+  s_770fa4615d9a78::t_fb2baa061c12f2 22-24,44-46,48-50,52-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9d61539ad41c7b82536b0f234de7994d2aebe377",
+  "prompts": {},
+  "sessions": {
+    "s_770fa4615d9a78": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece653f3cffe42n6yYAAUbF4qY",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d8c37300e82c79": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ece653f3cffe42n6yYAAUbF4qY",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
