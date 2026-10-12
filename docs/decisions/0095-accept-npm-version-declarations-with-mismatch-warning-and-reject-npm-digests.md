@@ -25,6 +25,8 @@ relations:
       version declarations, including ranges, are accepted as non-authoritative input with a
       mismatch warning, while npm digest suffixes remain rejected. pnpm and Yarn semantics are
       unchanged by this edge"
+  - type: see-also
+    target: ADR-0096
 ---
 
 # Accept npm Version Declarations with a Mismatch Warning and Reject npm Digest Declarations

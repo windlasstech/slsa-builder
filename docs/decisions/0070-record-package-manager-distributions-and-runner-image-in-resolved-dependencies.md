@@ -38,6 +38,8 @@ relations:
       pins, the source-native authority model, and every other ADR 0070 clause remain in force"
   - type: see-also
     target: ADR-0093
+  - type: see-also
+    target: ADR-0096
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies

@@ -19,6 +19,8 @@ relations:
       provenance recording clause remain in force"
   - type: see-also
     target: ADR-0095
+  - type: see-also
+    target: ADR-0096
 ---
 
 # Use Corepack for pnpm and Yarn Build Stages
