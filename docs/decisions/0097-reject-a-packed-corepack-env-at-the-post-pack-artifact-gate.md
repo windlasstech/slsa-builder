@@ -42,9 +42,12 @@ non-`COREPACK_` lines, and lines a parser would reject, content no key-level ins
 cubic review of PR #130 flagged the open channel (High): credential-bearing `.corepack.env` files
 pass the preflight uninspected, and if the manifest's `files` includes the file, npm packs it,
 exposing any `COREPACK_NPM_TOKEN` it contains. Before ADR 0096, the preflight prohibition failed
-closed on any `.corepack.env`, so no build, and no tarball, ever contained one; the warn-only
-transition opened this channel. ADR 0088's removal of Corepack from provisioning does not close it:
-the file remains on disk, and pack inclusion is independent of whether Corepack runs.
+closed on any `.corepack.env` at the package-manager root, so that root-level file could never ship
+in a tarball; the warn-only transition opened that root-level path. A nested `.corepack.env` was
+already outside the preflight's reach and could already ship; the gate this ADR adds covers nested
+entries as well, because it matches any packed entry's final path segment. ADR 0088's removal of
+Corepack from provisioning does not close the channel: the file remains on disk, and pack inclusion
+is independent of whether Corepack runs.
 
 The ecosystem census (ADR 0096, 12026-10-12) found 15 repositories with a committed `.corepack.env`,
 all carrying benign toggles and zero registry keys, a lower bound within GitHub's index rather than
