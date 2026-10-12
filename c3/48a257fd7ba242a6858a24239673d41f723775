@@ -1,0 +1,32 @@
+internal/npmprofile/build_pack_hermetic_test.go
+  s_92db9df814a216::t_e3382068af6b25 352-360
+  s_92db9df814a216::t_382ecbfaea09b1 207-218
+  s_92db9df814a216::t_cbf1f1001afcbf 295-306
+internal/npmprofile/packed.go
+  s_92db9df814a216::t_9fc62284984219 109-125
+internal/npmprofile/build_pack.go
+  s_92db9df814a216::t_18665e4cfb541e 99-101
+internal/npmprofile/build_pack_test.go
+  s_92db9df814a216::t_4406b0e7c010b0 84-135
+testdata/npm/packages/npm-corepack-env-ignored-valid/package.json
+  s_92db9df814a216::t_1214dcc4e82a7f 1
+internal/npmprofile/packed_inspect_test.go
+  s_92db9df814a216::t_4b9a0e8743b3ec 12
+  s_92db9df814a216::t_0ac5ded2d4b756 186-212
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c348a257fd7ba242a6858a24239673d41f723775",
+  "prompts": {},
+  "sessions": {
+    "s_92db9df814a216": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed1f2485fffeOP3EyrekBUcRxn",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
