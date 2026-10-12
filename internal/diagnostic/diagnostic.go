@@ -107,7 +107,8 @@ type Diagnostic struct {
 
 // DiagnosticMetadata is the closed optional non-trust report metadata extension.
 type DiagnosticMetadata struct {
-	PackageManifest *PackageManifest `json:"package_manifest,omitempty"`
+	PackageManifest   *PackageManifest `json:"package_manifest,omitempty"`
+	PublishNPMVersion *string          `json:"publish_npm_version,omitempty"`
 }
 
 // PackageManifest preserves safe-listed raw package.json diagnostic metadata.
@@ -347,8 +348,14 @@ func validateMetadata(metadata *DiagnosticMetadata) error {
 	if metadata == nil {
 		return nil
 	}
-	if metadata.PackageManifest == nil {
+	if metadata.PackageManifest == nil && metadata.PublishNPMVersion == nil {
 		return contractErrorf("diagnostic_metadata must contain package_manifest")
+	}
+	if metadata.PublishNPMVersion != nil && !publishNPMVersionPattern.MatchString(*metadata.PublishNPMVersion) {
+		return contractErrorf("publish_npm_version must be an exact three-part SemVer version")
+	}
+	if metadata.PackageManifest == nil {
+		return nil
 	}
 	manifest := metadata.PackageManifest
 	if err := validateRepository(manifest.Repository); err != nil {

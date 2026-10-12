@@ -17,6 +17,7 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/handoff"
 	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
+	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 const (
@@ -110,6 +111,7 @@ type preparedPublish struct {
 	argv          []string
 	now           func() time.Time
 	sleep         func(context.Context, time.Duration) error
+	metadata      *diagnostic.DiagnosticMetadata
 }
 
 type registryObservation struct {
@@ -409,13 +411,21 @@ func (prepared preparedPublish) runNPM(ctx context.Context) ([]byte, error) {
 	return prepared.runNPMCommand(ctx, prepared.argv)
 }
 
-func (prepared preparedPublish) validateNPMVersion(ctx context.Context) error {
+func (prepared *preparedPublish) validateNPMVersion(ctx context.Context) error {
 	version, err := prepared.runNPMCommand(ctx, []string{"--version"})
 	if err != nil {
 		return fmt.Errorf("observe npm version before publish: %w", err)
 	}
-	if string(version) != prepared.parameters.Runtime.NPMVersion {
-		return fmt.Errorf("npm version mismatch: build used %q but publish resolved %q", prepared.parameters.Runtime.NPMVersion, version)
+	if !exactSemver(string(version)) || strings.Contains(string(version), "-") {
+		return errors.New("observe npm version before publish: npm did not report an exact three-part version")
+	}
+	prepared.metadata = &diagnostic.DiagnosticMetadata{PublishNPMVersion: new(string(version))}
+	pin, err := toolchainpins.PublishPin()
+	if err != nil {
+		return fmt.Errorf("load publish npm pin: %w", err)
+	}
+	if string(version) != pin.Version {
+		return npmValidationError("windlass.verify.error.publish-npm-pin-mismatch", "npm.publish.toolchain", fmt.Sprintf("npm version mismatch: publish pin is %q but publish resolved %q", pin.Version, version))
 	}
 	return nil
 }
@@ -445,7 +455,7 @@ func (prepared preparedPublish) runNPMCommand(ctx context.Context, arguments []s
 }
 
 func (prepared preparedPublish) success(mutationAttempted bool) (PublishResult, error) {
-	report, err := diagnostic.Build(&prepared.runInvocation, nil, nil)
+	report, err := diagnostic.Build(&prepared.runInvocation, nil, prepared.metadata)
 	if err != nil {
 		return PublishResult{}, err
 	}
@@ -453,7 +463,23 @@ func (prepared preparedPublish) success(mutationAttempted bool) (PublishResult, 
 }
 
 func (prepared preparedPublish) failure(state PublishState, mutationAttempted bool, id, check string, cause error) (PublishResult, error) {
-	return publishFailureWithInvocation(prepared.runInvocation, state, mutationAttempted, id, check, cause)
+	entry, err := diagnostic.New(id, check, cause.Error())
+	if err != nil {
+		return PublishResult{}, err
+	}
+	if id == "windlass.verify.error.publish-npm-pin-mismatch" && prepared.metadata != nil && prepared.metadata.PublishNPMVersion != nil {
+		entry.Evidence = diagnostic.Evidence{"publish_npm_version": *prepared.metadata.PublishNPMVersion}
+	}
+	var invocation *string
+	if prepared.runInvocation != "" {
+		invocation = &prepared.runInvocation
+	}
+	report, err := diagnostic.Build(invocation, []diagnostic.Diagnostic{entry}, prepared.metadata)
+	if err != nil {
+		return PublishResult{}, err
+	}
+	result := PublishResult{State: state, MutationAttempted: mutationAttempted, Report: report}
+	return result, &PublishError{Result: result, Cause: cause}
 }
 
 func publishFailure(request PublishRequest, state PublishState, mutationAttempted bool, id, check string, cause error) (PublishResult, error) {
@@ -468,20 +494,7 @@ func publishFailure(request PublishRequest, state PublishState, mutationAttempte
 }
 
 func publishFailureWithInvocation(runInvocation string, state PublishState, mutationAttempted bool, id, check string, cause error) (PublishResult, error) {
-	entry, err := diagnostic.New(id, check, cause.Error())
-	if err != nil {
-		return PublishResult{}, err
-	}
-	var invocation *string
-	if runInvocation != "" {
-		invocation = &runInvocation
-	}
-	report, err := diagnostic.Build(invocation, []diagnostic.Diagnostic{entry}, nil)
-	if err != nil {
-		return PublishResult{}, err
-	}
-	result := PublishResult{State: state, MutationAttempted: mutationAttempted, Report: report}
-	return result, &PublishError{Result: result, Cause: cause}
+	return (preparedPublish{runInvocation: runInvocation}).failure(state, mutationAttempted, id, check, cause)
 }
 
 func verifiedPublishFile(path, suffix string, maximum int64) ([]byte, error) {
