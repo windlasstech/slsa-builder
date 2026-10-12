@@ -10,20 +10,26 @@ here.
 
 Registered via constructors in the `NewDispatcher(...)` call in `cmd/slsa-builder-internal/main.go`.
 
-| Subcommand               | Delegates to                                         | Purpose                                     |
-| ------------------------ | ---------------------------------------------------- | ------------------------------------------- |
-| `fixture-check`          | `fixture`                                            | Validate the fixture registry and corpus.   |
-| `npm-profile-build`      | `npmprofile` + `handoff` + `digest`                  | Build, pack, and hand off the npm tarball.  |
-| `npm-profile-publish`    | `npmprofile` + `attestation` + `policy` + `handoff`  | Publish with provenance and attestation.    |
-| `npm-profile-report`     | `diagnostic`                                         | Validate and persist the outcome report.    |
-| `npm-profile-sign`       | `npmprofile` + `signing` + `attestation` + `handoff` | Sign and attest built provenance.           |
-| `npm-profile-select`     | `npmprofile.Analyze`                                 | Resolve and describe the target package.    |
-| `npm-profile-source-ref` | `npmprofile.ResolveSourceRefTag`                     | Resolve the tags-only build source ref.     |
-| `verify-handoff`         | `handoff`                                            | Verify a producer-to-publisher handoff.     |
-| `verify-attestation`     | `attestation` + `policy` + `provenance`              | Verify a signed attestation against policy. |
-| `workflow-check`         | `workflowcheck`                                      | Static workflow conformance check.          |
+| Subcommand                  | Delegates to                                         | Purpose                                                      |
+| --------------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| `fixture-check`             | `fixture`                                            | Validate the fixture registry and corpus.                    |
+| `npm-profile-build`         | `npmprofile` + `handoff` + `digest`                  | Build, pack, and hand off the npm tarball.                   |
+| `npm-profile-publish`       | `npmprofile` + `attestation` + `policy` + `handoff`  | Publish with provenance and attestation.                     |
+| `npm-profile-provision-npm` | `npmprofile.ProvisionNPM`                            | Provision the digest-verified publish npm without execution. |
+| `npm-profile-report`        | `diagnostic`                                         | Validate and persist the outcome report.                     |
+| `npm-profile-sign`          | `npmprofile` + `signing` + `attestation` + `handoff` | Sign and attest built provenance.                            |
+| `npm-profile-select`        | `npmprofile.Analyze`                                 | Resolve and describe the target package.                     |
+| `npm-profile-source-ref`    | `npmprofile.ResolveSourceRefTag`                     | Resolve the tags-only build source ref.                      |
+| `verify-handoff`            | `handoff`                                            | Verify a producer-to-publisher handoff.                      |
+| `verify-attestation`        | `attestation` + `policy` + `provenance`              | Verify a signed attestation against policy.                  |
+| `workflow-check`            | `workflowcheck`                                      | Static workflow conformance check.                           |
 
 ## WHERE TO LOOK
+
+`npm-profile-provision-npm` requires `--output-directory <dir>` and accepts optional
+`--github-output <path>`. It prints the absolute launcher path on stdout and, when requested,
+appends `npm-executable=<path>` to the GitHub output file. Verification failures emit a canonical
+report and exit 1; invalid invocations exit 2.
 
 | Task                         | Location                          | Notes                                                      |
 | ---------------------------- | --------------------------------- | ---------------------------------------------------------- |

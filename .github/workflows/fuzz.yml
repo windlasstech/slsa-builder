@@ -87,6 +87,8 @@ jobs:
             target: FuzzDecodeNPMExchangeResponse
           - package: internal/npmprofile
             target: FuzzParseExchangeTimestamp
+          - package: internal/npmprofile
+            target: FuzzExtractNPMDistribution
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
     steps:

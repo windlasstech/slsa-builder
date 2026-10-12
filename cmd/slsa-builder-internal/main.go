@@ -11,6 +11,7 @@ func main() {
 	result := command.NewDispatcher(
 		command.NewFixtureCheckCommand(),
 		command.NewNPMProfileBuildCommand(),
+		command.NewNPMProfileProvisionNPMCommand(),
 		command.NewNPMProfilePublishCommand(),
 		command.NewNPMProfileReportCommand(),
 		command.NewNPMProfileSignCommand(),

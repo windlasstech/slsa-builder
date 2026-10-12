@@ -31,18 +31,20 @@ internal/npmprofile/
       (tags-only, isolated fetch, peel-to-commit proof)
 ```
 
-Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.go`.
+Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.go` and
+`provision_npm_fetch_test.go`.
 
 ## WHERE TO LOOK
 
-| Task or topic                                        | Location                                                                   |
-| ---------------------------------------------------- | -------------------------------------------------------------------------- |
-| Manager selection rules                              | `selection.go` + `docs/architecture/js-ts-npm-build-pack.md`               |
-| OIDC exchange contract (ADR 0081)                    | `oidc_client.go` — union epoch/RFC3339 timestamps, 15-min token lifetime   |
-| Publish convergence (ADR 0073/0076)                  | `publish.go` + `js-ts-npm-provenance-publish.md`                           |
-| Source-ref validation and resolution (ADR 0079/0080) | `source_ref.go`                                                            |
-| Packument/attestation registry observation           | `registry_client.go`                                                       |
-| Fixtures                                             | repo-root `testdata/npm/` + registration in `testdata/fixtures/index.json` |
+| Task or topic                                        | Location                                                                              |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Manager selection rules                              | `selection.go` + `docs/architecture/js-ts-npm-build-pack.md`                          |
+| OIDC exchange contract (ADR 0081)                    | `oidc_client.go` — union epoch/RFC3339 timestamps, 15-min token lifetime              |
+| Publish convergence (ADR 0073/0076)                  | `publish.go` + `js-ts-npm-provenance-publish.md`                                      |
+| Publish npm provisioning (ADR 0084)                  | `provision_npm.go` + `provision_npm_archive.go`; `ProvisionNPM(ctx, outputDirectory)` |
+| Source-ref validation and resolution (ADR 0079/0080) | `source_ref.go`                                                                       |
+| Packument/attestation registry observation           | `registry_client.go`                                                                  |
+| Fixtures                                             | repo-root `testdata/npm/` + registration in `testdata/fixtures/index.json`            |
 
 ## CONVENTIONS
 
@@ -59,7 +61,16 @@ Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.
   ambient npm token and env config are stripped first; same-run retry converges; foreign evidence is
   never adopted.
 - **Hermetic tests**: inject fake toolchains and fetchers. Real-tool tests live only in
-  `build_pack_live_test.go` behind `-short` plus `SLSA_BUILDER_LIVE_TOOLCHAIN=1`.
+  `build_pack_live_test.go` and `provision_npm_fetch_test.go` behind `-short` plus
+  `SLSA_BUILDER_LIVE_TOOLCHAIN=1`.
+- **Publish npm provisioning**: `npm-profile-provision-npm` downloads only the embedded pin URL,
+  verifies compressed SHA-512 bytes before creating directories, and extracts into a private
+  `<output-directory>/npm-provision-*/` directory. Its `npm` launcher uses the resolved absolute
+  node path and `package/bin/npm-cli.js`. Provisioning executes neither node nor npm. Missing or
+  malformed manifests, missing CLI files, and mismatched manifest versions are version-mismatch
+  failures. Extraction uses the existing no-links policy, rejects duplicate entries, and bounds
+  decompressed bytes and entry count. The caller retains the successful directory for the job;
+  failed partial extractions are removed. Only the opt-in live test executes the completed launcher.
 - **Provenance goldens**: byte-exact JCS; regenerate only via the documented `UPDATE_*` gates.
 
 ## ANTI-PATTERNS
