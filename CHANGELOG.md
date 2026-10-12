@@ -80,7 +80,8 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   are scanned line-wise in both `key=value` and YAML `key: value` forms, and entries with
   credential-shaped keys (`_auth`, `authtoken`, `authident`, or keys ending in `username`,
   `_password`, `httpskey`, or `httpscert`, case-insensitive) fail closed; a project `.corepack.env`
-  at the package-manager root is prohibited.
+  at the package-manager root is never loaded because every Corepack-path process runs with
+  `COREPACK_ENV_FILE=0`, and its presence produces a non-fatal warning (ADR 0096).
 
 ### Security
 
