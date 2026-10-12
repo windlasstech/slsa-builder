@@ -84,35 +84,45 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Security
 
-- Pin the module Go directive at 1.27.2 or newer so that source builds are not exposed to
-  [GO-2026-4970](https://osv.dev/GO-2026-4970), the Go standard library advisories
-  [GO-2026-5026](https://osv.dev/GO-2026-5026), [GO-2026-5942](https://osv.dev/GO-2026-5942),
-  [GO-2026-5972](https://osv.dev/GO-2026-5972), [GO-2026-6088](https://osv.dev/GO-2026-6088),
-  [GO-2026-6089](https://osv.dev/GO-2026-6089), [GO-2026-6090](https://osv.dev/GO-2026-6090),
-  [GO-2026-6091](https://osv.dev/GO-2026-6091), and [GO-2026-6218](https://osv.dev/GO-2026-6218), or
-  the standard-library HTTP/2 components of [GO-2026-6603](https://osv.dev/GO-2026-6603),
-  [GO-2026-6610](https://osv.dev/GO-2026-6610), [GO-2026-6611](https://osv.dev/GO-2026-6611),
-  [GO-2026-6612](https://osv.dev/GO-2026-6612), and [GO-2026-6617](https://osv.dev/GO-2026-6617).
-- Pin `golang.org/x/mod` at v0.40.0 or newer so that builds are not exposed to
-  [GO-2026-6179](https://osv.dev/GO-2026-6179) and [GO-2026-6180](https://osv.dev/GO-2026-6180).
-- Pin `golang.org/x/crypto` at v0.56.0 or newer so that builds are not exposed to the SSH
-  denial-of-service advisories [GO-2026-6354](https://osv.dev/GO-2026-6354) and
-  [GO-2026-6355](https://osv.dev/GO-2026-6355).
-- Pin `golang.org/x/net` at v0.60.0 or newer so that builds are not exposed to the
-  `golang.org/x/net` components of [GO-2026-6603](https://osv.dev/GO-2026-6603),
-  [GO-2026-6610](https://osv.dev/GO-2026-6610), [GO-2026-6611](https://osv.dev/GO-2026-6611),
-  [GO-2026-6612](https://osv.dev/GO-2026-6612), and [GO-2026-6617](https://osv.dev/GO-2026-6617).
-- Pin `google.golang.org/grpc` at v1.83.2 or newer so that builds are not exposed to the xDS server
-  panic advisory [GO-2026-6443](https://osv.dev/GO-2026-6443); the fix also shipped in the v1.84.0
-  stable release, which the module now carries (with `grpc-ecosystem/grpc-gateway/v2` at v2.31.0).
-- Pin the development-tooling transitive dependency `katex` at 0.18.2 or newer via a pnpm override
-  (resolving to 0.19.0, because `micromark-extension-math` caps its declared range at ^0.16.0) so
-  that lint tooling is not exposed to [GHSA-238p-pmpm-9mq7](https://osv.dev/GHSA-238p-pmpm-9mq7).
-- Pin the development-tooling transitive dependency `smol-toml` at 1.9.0 or newer via a pnpm
-  override (resolving to 1.9.1, because `markdownlint-cli2` pins 1.8.0 exactly) so that lint tooling
-  is not exposed to [GHSA-r4xh-jqrq-34v2](https://osv.dev/GHSA-r4xh-jqrq-34v2).
-- Record the development-tooling transitive dependency `braces` 3.0.3 as a known-unfixable finding:
-  [GHSA-vfj7-8cjw-p6xm](https://osv.dev/GHSA-vfj7-8cjw-p6xm) has no fixed release (its last affected
-  version equals the latest published release), so the advisory is ignored in `osv-scanner.toml`
-  until 2027-01-10; the package is reached only through `micromatch` glob matching in
-  markdownlint-cli2 lint runs over repo-controlled patterns.
+- [CVE-2026-33818](https://osv.dev/vulnerability/CVE-2026-33818),
+  [CVE-2026-39821](https://osv.dev/vulnerability/CVE-2026-39821),
+  [CVE-2026-39822](https://osv.dev/vulnerability/CVE-2026-39822),
+  [CVE-2026-46600](https://osv.dev/vulnerability/CVE-2026-46600),
+  [CVE-2026-56853](https://osv.dev/vulnerability/CVE-2026-56853),
+  [CVE-2026-56858](https://osv.dev/vulnerability/CVE-2026-56858),
+  [CVE-2026-56859](https://osv.dev/vulnerability/CVE-2026-56859),
+  [CVE-2026-56860](https://osv.dev/vulnerability/CVE-2026-56860), and
+  [CVE-2026-56862](https://osv.dev/vulnerability/CVE-2026-56862): Pin the module Go directive at
+  1.27.2 or newer so that source builds are not exposed to these Go standard library
+  vulnerabilities, namely a root escape via symlink plus trailing slash in `os`, a Punycode label
+  validation failure in the vendored `golang.org/x/net/idna` copy, a panic on parsing invalid SVCB
+  or HTTPS DNS records in the vendored `golang.org/x/net/dns/dnsmessage` copy, missing recursion
+  depth limits in `encoding/asn1` and `encoding/xml`, a missing `ReadHeaderTimeout` on the
+  unencrypted HTTP/2 upgrade check in `net/http`, unlimited post-handshake messages in `crypto/tls`,
+  incorrect JavaScript regexp context tracking in `html/template`, and quadratic complexity in
+  `net/url` path resolution. The two x/net-originated flaws (CVE-2026-39821 and CVE-2026-46600) also
+  affect the standalone `golang.org/x/net` module; that side is covered by the x/net pin in the next
+  entry.
+- [CVE-2026-78659](https://osv.dev/vulnerability/CVE-2026-78659),
+  [CVE-2026-78660](https://osv.dev/vulnerability/CVE-2026-78660),
+  [CVE-2026-78663](https://osv.dev/vulnerability/CVE-2026-78663),
+  [CVE-2026-78669](https://osv.dev/vulnerability/CVE-2026-78669), and
+  [CVE-2026-97032](https://osv.dev/vulnerability/CVE-2026-97032): Pin the module Go directive at
+  1.27.2 or newer and `golang.org/x/net` at v0.60.0 or newer, because these HTTP/2 vulnerabilities
+  each affect both `net/http` in the standard library and `golang.org/x/net`, namely server memory
+  exhaustion through Trailer headers, the transport accepting malformed framing-related headers,
+  excessive CPU consumption from repeated initial window changes, a double flow-control refund on
+  server streams, and a server crash from an HPACK encoder race.
+- [CVE-2026-56864](https://osv.dev/vulnerability/CVE-2026-56864) and
+  [CVE-2026-56865](https://osv.dev/vulnerability/CVE-2026-56865): Pin `golang.org/x/mod` at v0.40.0
+  or newer so that builds are not exposed to two checksum-database flaws, namely a transparency-log
+  tile verification bypass in `sumdb/tlog` and acceptance of unrelated, unauthenticated hashes in
+  `sumdb` lookups.
+- [CVE-2026-56855](https://osv.dev/vulnerability/CVE-2026-56855) and
+  [CVE-2026-78662](https://osv.dev/vulnerability/CVE-2026-78662): Pin `golang.org/x/crypto` at
+  v0.56.0 or newer so that builds are not exposed to two SSH denial-of-service flaws, deadlocks on
+  undecided and on established channels in `golang.org/x/crypto/ssh`.
+- [CVE-2026-84445](https://osv.dev/vulnerability/CVE-2026-84445): Pin `google.golang.org/grpc` at
+  v1.83.2 or newer so that builds are not exposed to an xDS server panic on requests missing the
+  authority or Host header; the fix also shipped in the v1.84.0 stable release, which the module now
+  carries (with `grpc-ecosystem/grpc-gateway/v2` at v2.31.0).

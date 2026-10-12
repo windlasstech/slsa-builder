@@ -161,6 +161,14 @@ Do not implement before reading the specs.
   - **User-facing note**: a short impact summary, or why no note is needed
 - Use `None` for changes with no direct user-facing impact, such as test cleanup, internal
   refactoring, formatting, or CI-only maintenance.
+- When fixing a dependency vulnerability, record it under `Security` if the vulnerable package is a
+  production dependency, or (even for `devDependencies`) if its exploitation could theoretically
+  affect build or release artifacts (for example, code execution inside the test or release
+  pipeline). Lead each entry with its CVE identifier when one is assigned, per Keep a Changelog
+  2.0.0 guidance (`- CVE-XXXX-YYYY: ...`); when no CVE exists, lead with the applicable alternative
+  identifier instead, such as a GHSA or a Go vulnerability database ID
+  (`- GHSA-XXXX-XXXX-XXXX: ...`, `- GO-XXXX-YYYY: ...`). Link each leading identifier to its OSV
+  entry (`https://osv.dev/vulnerability/<ID>`).
 - During development, update only the `[Unreleased]` section when a PR has user-facing impact. Group
   entries by `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security`; do not create
   empty category sections.
