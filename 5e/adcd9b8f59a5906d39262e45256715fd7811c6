@@ -1,0 +1,62 @@
+internal/command/npm_profile_provision_npm.go
+  s_eae5e711d5f72b::t_3c6b38445df94d 60-67
+  s_eae5e711d5f72b::t_cbab12d12f7bd6 35,38
+  s_eae5e711d5f72b::t_bfbd9f85042fa3 68
+internal/command/npm_profile_toolchain_assert_test.go
+  s_f526e75af6ce5d::t_9c0a41e5b20d21 71-101
+  s_eae5e711d5f72b::t_bf24847f0dba0e 8-9
+  s_eae5e711d5f72b::t_38f61fe0871f47 123-164
+internal/command/AGENTS.md
+  s_eae5e711d5f72b::t_c6588fa78d6644 37-40,43-46
+internal/command/npm_profile_provision_npm_test.go
+  s_f526e75af6ce5d::t_13cc8f565bf123 98-167
+  s_eae5e711d5f72b::t_e1fa979be4b33d 168-214
+internal/command/dispatch_coverage_test.go
+  s_f526e75af6ce5d::t_143e426f607adb 31,37-38
+internal/command/workflow_coverage_test.go
+  s_f526e75af6ce5d::t_850668baf1f2c9 5,10-11,14-15,17-32
+  s_f526e75af6ce5d::t_42d60775c4d82b 16
+  s_f526e75af6ce5d::t_b20978fbe961b9 33
+internal/command/flags_coverage_test.go
+  s_f526e75af6ce5d::t_298b5cb4d7dd77 14,17,22-28
+internal/command/npm_profile_toolchain_assert.go
+  s_eae5e711d5f72b::t_0eaa81267aa0ab 56-63
+  s_eae5e711d5f72b::t_877322aea7f406 32,35
+  s_eae5e711d5f72b::t_a476a5e7f61fa9 64
+.github/workflows/js-ts-npm-package-slsa3.yml
+  s_eae5e711d5f72b::t_6fabf09eecf08d 427-431,437-438,441-442
+internal/command/pin_check_test.go
+  s_e8f31289c3680b::t_df90661d95e564 83-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5eadcd9b8f59a5906d39262e45256715fd7811c6",
+  "prompts": {},
+  "sessions": {
+    "s_e8f31289c3680b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece079822ffe7WKNe0S4n8txkN",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f526e75af6ce5d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece075245ffetSau9CjQ19QnvP",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
