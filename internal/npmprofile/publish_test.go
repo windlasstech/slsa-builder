@@ -52,7 +52,7 @@ func TestPublishSameRunRetry(t *testing.T) {
 	if result.State != PublishCommittedAsExpected || result.MutationAttempted {
 		t.Fatalf("Publish() result = %#v, want read-only convergence", result)
 	}
-	fixture.requireInvocations(t, nil)
+	fixture.requireInvocations(t, [][]string{{"--version"}})
 }
 
 func TestPublishForeignConflict(t *testing.T) {

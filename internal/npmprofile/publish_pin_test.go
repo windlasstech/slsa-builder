@@ -78,14 +78,18 @@ func TestPublishPinObservationFailurePreservesDiagnostic(t *testing.T) {
 		name    string
 		version string
 		exit    string
+		retry   bool
 	}{
-		{"command-failed", "11.21.0", "1"},
-		{"unparseable", "not-a-version", "0"},
-		{"empty", "", "0"},
+		{"command-failed", "11.21.0", "1", false},
+		{"unparseable", "not-a-version", "0", false},
+		{"empty", "", "0", false},
+		{"retry-command-failed", "11.21.0", "1", true},
+		{"retry-unparseable", "not-a-version", "0", true},
+		{"retry-empty", "", "0", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Given
-			fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true})
+			fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: !tc.retry})
 			t.Setenv("FAKE_NPM_VERSION", tc.version)
 			t.Setenv("FAKE_NPM_VERSION_EXIT", tc.exit)
 			// When
@@ -100,16 +104,38 @@ func TestPublishPinObservationFailurePreservesDiagnostic(t *testing.T) {
 	}
 }
 
-func TestPublishPinOmitsUnobservedMetadataOnRetry(t *testing.T) {
+func TestPublishPinRecordsObservedMetadataOnRetry(t *testing.T) {
 	// Given
 	fixture := newPublishFixture(t, publishFixtureOptions{})
 	// When
 	result, err := Publish(t.Context(), fixture.request)
 	// Then
-	if err != nil || result.Report.DiagnosticMetadata != nil {
+	if err != nil || result.State != PublishCommittedAsExpected || result.MutationAttempted {
 		t.Fatalf("read-only retry = %#v, %v", result, err)
 	}
-	fixture.requireInvocations(t, nil)
+	if result.Report.DiagnosticMetadata == nil || result.Report.DiagnosticMetadata.PublishNPMVersion == nil || *result.Report.DiagnosticMetadata.PublishNPMVersion != "11.21.0" {
+		t.Fatalf("retry lost observed metadata: %#v", result.Report.DiagnosticMetadata)
+	}
+	fixture.requireInvocations(t, [][]string{{"--version"}})
+}
+
+func TestPublishPinRejectsUnpinnedVersionOnRetry(t *testing.T) {
+	// Given a same-run committed version and an unpinned provisioned npm.
+	fixture := newPublishFixture(t, publishFixtureOptions{npmVersion: "11.20.0"})
+	// When
+	result, err := Publish(t.Context(), fixture.request)
+	// Then
+	requireNPMDiagnostic(t, err, "windlass.verify.error.publish-npm-pin-mismatch")
+	if result.MutationAttempted {
+		t.Fatal("retry attempted mutation with an unpinned npm")
+	}
+	if result.Report.Diagnostics[0].Check != "npm.publish.toolchain" || result.Report.Diagnostics[0].Evidence["publish_npm_version"] != "11.20.0" {
+		t.Fatalf("pin mismatch diagnostic = %#v", result.Report.Diagnostics[0])
+	}
+	if result.Report.DiagnosticMetadata == nil || result.Report.DiagnosticMetadata.PublishNPMVersion == nil || *result.Report.DiagnosticMetadata.PublishNPMVersion != "11.20.0" {
+		t.Fatalf("retry lost observed metadata: %#v", result.Report.DiagnosticMetadata)
+	}
+	fixture.requireInvocations(t, [][]string{{"--version"}})
 }
 
 func TestPublishPinRecordsSuccessMetadata(t *testing.T) {

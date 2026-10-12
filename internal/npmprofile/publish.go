@@ -143,18 +143,19 @@ func Publish(ctx context.Context, request PublishRequest) (PublishResult, error)
 		return prepared.failure(PublishAbsent, false, IDUnsupportedInitialPublication, "npm.publish.package-identity", errors.New("npm package identity does not already exist"))
 	}
 	switch entryDecision.state {
-	case PublishCommittedAsExpected:
-		return prepared.success(false)
+	case PublishCommittedAsExpected, PublishAbsent:
 	case PublishForeignConflict:
 		return prepared.failure(PublishForeignConflict, false, IDAlreadyPublishedVersion, "npm.publish.convergence", errors.New("registry version is foreign to this run"))
 	case PublishIndeterminate:
 		return prepared.failure(PublishIndeterminate, false, IDPrepublishRegistryMetadataRequired, "npm.publish.entry-revalidation", errors.New("registry entry state is indeterminate"))
-	case PublishAbsent:
 	default:
 		return prepared.failure(PublishIndeterminate, false, IDPrepublishRegistryMetadataRequired, "npm.publish.entry-revalidation", errors.New("registry entry state is invalid"))
 	}
 	if err := prepared.validateNPMVersion(ctx); err != nil {
-		return prepared.failure(PublishAbsent, false, diagnosticIDOr(err, "windlass.verify.error.builder-version-mismatch"), "npm.publish.toolchain", err)
+		return prepared.failure(entryDecision.state, false, diagnosticIDOr(err, "windlass.verify.error.builder-version-mismatch"), "npm.publish.toolchain", err)
+	}
+	if entryDecision.state == PublishCommittedAsExpected {
+		return prepared.success(false)
 	}
 
 	output, mutationErr := prepared.runNPM(ctx)
