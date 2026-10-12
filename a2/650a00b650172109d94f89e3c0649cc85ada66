@@ -1,0 +1,39 @@
+internal/diagnostic/diagnostic_test.go
+  s_5bb27d5d1bc3e1::t_19237e6cec2f16 162-163
+internal/diagnostic/registry.go
+  s_5bb27d5d1bc3e1::t_863b919a8f937e 70-71
+  s_5bb27d5d1bc3e1::t_22e33ecdb251cd 268-269
+docs/architecture/js-ts-npm-package-profile.md
+  s_5bb27d5d1bc3e1::t_7e97d8233be76c 755
+  s_5bb27d5d1bc3e1::t_7d822fedf3d163 626-629
+docs/architecture/verification-policy-and-fixtures.md
+  s_5bb27d5d1bc3e1::t_e553394797a2fa 1454-1455
+  s_5bb27d5d1bc3e1::t_ded81cbbaf2c78 914-915
+  s_5bb27d5d1bc3e1::t_d170ba84bcbe3e 948-958
+docs/architecture/js-ts-npm-build-pack.md
+  s_5bb27d5d1bc3e1::t_d170ba84bcbe3e 256-257,283-288,320-326,580,585-589,596-601,612-613,615-616,625-626,629-630
+  s_5bb27d5d1bc3e1::t_d6098ee46f443f 983-985
+  s_5bb27d5d1bc3e1::t_93e05e2bf0e4b0 258
+  s_5bb27d5d1bc3e1::t_c10bd9ddce39a3 419
+  s_5bb27d5d1bc3e1::t_67540f0c6c20e9 318-319
+  s_5bb27d5d1bc3e1::t_3b79e2bfe12d7f 281-282
+  s_5bb27d5d1bc3e1::t_3fc2ab55bb9a8c 576-579,581-584,590-595,602-611,614,617-624,627-628,631
+  s_5bb27d5d1bc3e1::t_c1843c7600bb38 944
+  s_5bb27d5d1bc3e1::t_72a2df2b6b19b6 679-681
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a2650a00b650172109d94f89e3c0649cc85ada66",
+  "prompts": {},
+  "sessions": {
+    "s_5bb27d5d1bc3e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eceaa0f9affeKPDw3LBpO2H5j7",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
