@@ -1,0 +1,47 @@
+docs/architecture/verification-policy-and-fixtures.md
+  s_b437dfbb1bd744::t_ff2ad4c01a1fde 953
+  s_b437dfbb1bd744::t_8745c73e4dc91e 947-952,954-957,1448-1452
+  s_b437dfbb1bd744::t_7a393c12b91701 911-915
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_b437dfbb1bd744::t_8745c73e4dc91e 1455-1456,1460-1461,1481-1484,1747-1749,2029-2035
+  s_b437dfbb1bd744::t_a7ad1fe3a99f9e 1440-1454,1457-1459,1462-1480,1485-1543
+  s_b437dfbb1bd744::t_2250685453a081 33-37
+  s_b437dfbb1bd744::t_9512fae0638658 1744-1746,1750-1752
+  s_b437dfbb1bd744::t_861500b641dee4 1789-1794
+  s_b437dfbb1bd744::t_43c14845ea2504 115-116
+  s_b437dfbb1bd744::t_0f11777db2cc87 2025-2028
+  s_b437dfbb1bd744::t_5cfa39b33a93e1 350-358
+  s_b437dfbb1bd744::t_67ba2a8835460f 2006-2008
+  s_b437dfbb1bd744::t_e0871f5cf70832 2121-2126
+  s_753ae110faf816::t_0d862c113a94b0 2036
+internal/diagnostic/diagnostic_test.go
+  s_b437dfbb1bd744::t_654daa25b087c6 162-163
+internal/diagnostic/registry.go
+  s_b437dfbb1bd744::t_ecd7c0c718e881 68-70
+  s_b437dfbb1bd744::t_d8f8bf6b05b8f7 183-186
+  s_b437dfbb1bd744::t_67f7522850daa8 214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "97c70f0957eb6dffd7b1369fb7cd72a52e089c9a",
+  "prompts": {},
+  "sessions": {
+    "s_753ae110faf816": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ecec121d4ffe07H709Bf5XkJfZ",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b437dfbb1bd744": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecec121d4ffe07H709Bf5XkJfZ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}

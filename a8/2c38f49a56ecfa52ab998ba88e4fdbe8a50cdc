@@ -1,0 +1,21 @@
+.gitignore
+  s_2e868d951b3d9a::t_5988a616978eed 242-244
+.prettierignore
+  s_2e868d951b3d9a::t_19d1c19d782028 10-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a82c38f49a56ecfa52ab998ba88e4fdbe8a50cdc",
+  "prompts": {},
+  "sessions": {
+    "s_2e868d951b3d9a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
