@@ -70,6 +70,8 @@ Research for that issue established the relevant facts:
 - ADR 0095 established the pattern of surfacing policy-relevant divergences as registered, non-fatal
   warning diagnostics instead of failures.
 
+How should the builder treat a project `.corepack.env` at the package-manager root?
+
 ## Decision Drivers
 
 - Preserve the security invariant: a project-controlled file must never influence the

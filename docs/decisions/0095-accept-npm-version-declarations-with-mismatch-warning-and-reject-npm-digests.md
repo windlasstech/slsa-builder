@@ -62,6 +62,8 @@ builder's, and the divergence itself is invisible in slsa-builder's diagnostics.
 digest declaration is inexpressible in the profile's semantics: there is no acquired npm
 distribution to reconcile it against, and no enforcement agent exists for it.
 
+How should the profile respond to an npm descriptor that declares a version or a digest?
+
 ## Decision Drivers
 
 - Keep the toolchain-bound npm model (ADRs 0016, 0085); do not provision npm as a distribution.
