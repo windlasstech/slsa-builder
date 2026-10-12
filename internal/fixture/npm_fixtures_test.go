@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 )
 
 func TestNPMFixturesNeverPublish(t *testing.T) {
@@ -20,6 +22,10 @@ func TestNPMFixturesNeverPublish(t *testing.T) {
 
 	wantCases := map[string]string{
 		"npm-root-valid":                                            "",
+		"npm-purl-publish-11-21-0-scoped-valid":                     "",
+		"npm-purl-publish-11-21-0-unscoped-valid":                   "",
+		"npm-purl-build-11-19-0-scoped-valid":                       "",
+		"npm-purl-build-11-19-0-unscoped-valid":                     "",
 		"pnpm-root-valid":                                           "",
 		"pnpm-settings-only-root-valid":                             "",
 		"yarn-v4-root-valid":                                        "",
@@ -146,5 +152,75 @@ func TestNPMFixturesNeverPublish(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("scan npm fixture commands: %v", err)
+	}
+}
+
+func TestNPMPURLCompatibilityFixtures(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		name        string
+		cliVersion  string
+		subject     string
+		requirement string
+	}{
+		"npm-purl-publish-11-21-0-scoped-valid":   {"@windlass/purl-compat", "11.21.0", "pkg:npm/%40windlass/purl-compat@0.1.0", "ADR-0082.publish-npm-purl-compat"},
+		"npm-purl-publish-11-21-0-unscoped-valid": {"purl-compat", "11.21.0", "pkg:npm/purl-compat@0.1.0", "ADR-0082.publish-npm-purl-compat"},
+		"npm-purl-build-11-19-0-scoped-valid":     {"@windlass/purl-compat", "11.19.0", "pkg:npm/%40windlass/purl-compat@0.1.0", "ADR-0085.build-npm-purl-compat"},
+		"npm-purl-build-11-19-0-unscoped-valid":   {"purl-compat", "11.19.0", "pkg:npm/purl-compat@0.1.0", "ADR-0085.build-npm-purl-compat"},
+	}
+
+	root := filepath.Join("..", "..")
+	index, err := Load(filepath.Join(root, "testdata", "fixtures", "index.json"))
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	for _, manifest := range index.Fixtures {
+		want, ok := cases[manifest.Name]
+		if !ok {
+			continue
+		}
+		delete(cases, manifest.Name)
+		t.Run(manifest.Name, func(t *testing.T) {
+			if manifest.CoveredRequirement != want.requirement {
+				t.Fatalf("covered requirement = %q, want %q", manifest.CoveredRequirement, want.requirement)
+			}
+			packageBytes, err := os.ReadFile(filepath.Join(root, manifest.Artifact))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var pkg struct {
+				Name    string `json:"name"`
+				Version string `json:"version"`
+			}
+			if err := json.Unmarshal(packageBytes, &pkg); err != nil {
+				t.Fatal(err)
+			}
+			fixtureBytes, err := os.ReadFile(filepath.Join(root, manifest.Provenance))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fixture struct {
+				Phase              string `json:"phase"`
+				VerifiedNPMVersion string `json:"verified-npm-cli-version"`
+				ExpectedSubject    string `json:"expected-subject"`
+			}
+			if err := json.Unmarshal(fixtureBytes, &fixture); err != nil {
+				t.Fatal(err)
+			}
+			if fixture.Phase != "build-pack" || fixture.VerifiedNPMVersion != want.cliVersion || pkg.Name != want.name || pkg.Version != "0.1.0" || fixture.ExpectedSubject != want.subject {
+				t.Fatalf("fixture metadata = (%q, %q, %q, %q@%q), want (build-pack, %q, %q, %q@0.1.0)", fixture.Phase, fixture.VerifiedNPMVersion, fixture.ExpectedSubject, pkg.Name, pkg.Version, want.cliVersion, want.subject, want.name)
+			}
+			got, err := npmprofile.NPMPackagePURL(pkg.Name, pkg.Version)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != want.subject {
+				t.Errorf("NPMPackagePURL(%q, %q) = %q, want %q", pkg.Name, pkg.Version, got, want.subject)
+			}
+		})
+	}
+	for name := range cases {
+		t.Errorf("fixture %q is not registered", name)
 	}
 }
