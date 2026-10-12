@@ -1,0 +1,19 @@
+docs/dogfood/npm-m1-verification-procedure.md
+  s_bc9bb2b14cc330::t_8023590130d377 74-78,80-90,98-100,102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "37db904e4a2ebf059c9a68ae205b2061bea38d31",
+  "prompts": {},
+  "sessions": {
+    "s_bc9bb2b14cc330": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece06e79cffeDvN6eGZ87jHgOm",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
