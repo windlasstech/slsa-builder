@@ -1499,7 +1499,12 @@ that keying is specified with the build-side runtime table.
 ## Publish-stage npm provisioning
 
 The `publish` job must provision the pinned npm CLI before any npm invocation in the job, including
-diagnostic invocations. Per
+diagnostic invocations. In every npm-invocation requirement of this specification, an npm invocation
+is an invocation of the npm CLI by a step of the job's workflow (for example, a diagnostics,
+install, build, pack, or publish command). The pinned setup mechanism's internal, read-only
+environment logging, such as the version reporting that `actions/setup-node` performs after
+installing Node.js, is part of the authenticated toolchain setup, touches no package operation, and
+is not an npm invocation for the purposes of this specification. Per
 [ADR 0004](../decisions/0004-use-go-as-primary-implementation-language.md), the
 fetch-verify-extract-emit logic lives in the trusted Go boundary; the workflow step only invokes it.
 Provisioning performs exactly these steps, in this order:

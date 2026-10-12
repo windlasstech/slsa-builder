@@ -611,11 +611,16 @@ introduces no `resolvedDependencies` schema change and does not pin the runner i
 In each job that uses the bundled npm, before the first npm invocation, the job observes
 `node --version` and `npm --version` and requires exact equality with the recorded pair. A mismatch
 fails the job before any install, build, or pack step with
-`windlass.verify.error.toolchain-pair-mismatch` (check `npm.build.toolchain`). The observed npm
-version continues to be recorded in `externalParameters.runtime.npm_version` exactly as before: the
-recording semantics of ADR 0027, ADR 0070, and ADR 0071 are unchanged, and the value is now
-validated against the pin rather than merely observed. The `>= 11.5.1` floor on
-`runtime.npm_version` is retained unchanged as defense in depth (ADR 0085).
+`windlass.verify.error.toolchain-pair-mismatch` (check `npm.build.toolchain`). An npm invocation is
+an invocation of the npm CLI by a step of the job's workflow (for example, a diagnostics, install,
+build, or pack command); the pinned setup mechanism's internal, read-only environment logging, such
+as the version reporting that `actions/setup-node` performs after installing Node.js, is part of the
+authenticated toolchain setup, touches no package operation, and is not an npm invocation for the
+purposes of this specification. The observed npm version continues to be recorded in
+`externalParameters.runtime.npm_version` exactly as before: the recording semantics of ADR 0027, ADR
+0070, and ADR 0071 are unchanged, and the value is now validated against the pin rather than merely
+observed. The `>= 11.5.1` floor on `runtime.npm_version` is retained unchanged as defense in depth
+(ADR 0085).
 
 The publish job is governed by
 [ADR 0082](../decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md)
