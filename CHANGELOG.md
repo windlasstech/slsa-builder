@@ -81,7 +81,9 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   credential-shaped keys (`_auth`, `authtoken`, `authident`, or keys ending in `username`,
   `_password`, `httpskey`, or `httpscert`, case-insensitive) fail closed; a project `.corepack.env`
   at the package-manager root is never loaded because every Corepack-path process runs with
-  `COREPACK_ENV_FILE=0`, and its presence produces a non-fatal warning (ADR 0096).
+  `COREPACK_ENV_FILE=0`, and its presence produces a non-fatal warning (ADR 0096); a `.corepack.env`
+  that would ship inside the packed tarball is rejected post-pack with
+  `windlass.verify.error.packed-corepack-env-prohibited` (ADR 0097).
 
 ### Security
 
