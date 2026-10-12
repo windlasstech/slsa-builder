@@ -59,7 +59,7 @@ func decodePublishPin(data []byte) (PublishNPM, error) {
 		return PublishNPM{}, errors.New("version must be an exact three-part SemVer version")
 	}
 	parsed, err := url.Parse(pin.TarballURL)
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
+	if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil {
 		return PublishNPM{}, errors.New("tarball_url must be an uncredentialed HTTPS URL")
 	}
 	encoded, ok := strings.CutPrefix(pin.Integrity, "sha512-")

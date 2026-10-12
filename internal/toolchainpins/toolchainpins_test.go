@@ -50,6 +50,7 @@ func TestDecodePublishPinRejectsInvalidRecords(t *testing.T) {
 		{"unknown member", `{"version":"11.21.0","tarball_url":"` + wantTarballURL + `","integrity":"` + wantIntegrity + `","other":true}`, "unknown field"},
 		{"invalid version", `{"version":"11.21","tarball_url":"` + wantTarballURL + `","integrity":"` + wantIntegrity + `"}`, "version"},
 		{"http URL", `{"version":"11.21.0","tarball_url":"http://registry.npmjs.org/npm/-/npm-11.21.0.tgz","integrity":"` + wantIntegrity + `"}`, "tarball_url"},
+		{"port-only authority URL", `{"version":"11.21.0","tarball_url":"https://:443/npm.tgz","integrity":"` + wantIntegrity + `"}`, "tarball_url"},
 		{"wrong SRI prefix", `{"version":"11.21.0","tarball_url":"` + wantTarballURL + `","integrity":"sha256-` + strings.TrimPrefix(wantIntegrity, "sha512-") + `"}`, "integrity"},
 		{"bad SRI base64", `{"version":"11.21.0","tarball_url":"` + wantTarballURL + `","integrity":"sha512-!!!"}`, "integrity"},
 		{"short SRI digest", `{"version":"11.21.0","tarball_url":"` + wantTarballURL + `","integrity":"sha512-YQ=="}`, "integrity"},

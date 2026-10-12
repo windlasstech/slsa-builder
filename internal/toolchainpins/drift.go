@@ -105,7 +105,7 @@ func checkPinTable(lines, headers, values []string) error {
 		}
 		index += 2
 		rows := 0
-		for ; index < len(lines) && lines[index] != "" && !strings.HasPrefix(lines[index], "#"); index++ {
+		for ; index < len(lines) && strings.HasPrefix(lines[index], "|"); index++ {
 			row := pinTableRow(lines[index])
 			if len(row) != len(headers) {
 				return &DriftError{message: "unparsable pin table row"}

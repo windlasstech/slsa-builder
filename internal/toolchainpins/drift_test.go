@@ -26,6 +26,7 @@ func TestCheckDrift(t *testing.T) {
 		pass                            bool
 	}{
 		{name: "matching disk records differ from embeds", pass: true},
+		{name: "prose after table", publish: publish + "The allowlist above is reviewed on every bump.\n", pass: true},
 		{name: "prettier padding", publish: strings.ReplaceAll(publish, " |", "       |"), pass: true},
 		{name: "plain cells", publish: strings.ReplaceAll(publish, "`", ""), pass: true},
 		{name: "CRLF", publish: strings.ReplaceAll(publish, "\n", "\r\n"), pass: true},
@@ -45,6 +46,7 @@ func TestCheckDrift(t *testing.T) {
 		{name: "malformed separator", build: strings.Replace(build, "| --- | --- |", "| -- | --- |", 1)},
 		{name: "extra row", build: build + "| `24.20.0` | `11.18.0` |\n"},
 		{name: "malformed trailing row", build: build + "| broken |\n"},
+		{name: "malformed pipe row after table", publish: publish + "| `11.20.0` |\n"},
 		{name: "duplicate table", build: build + "\n" + strings.SplitN(build, "### Pinned runtime table\n\n", 2)[1]},
 		{name: "record drift", pin: strings.Replace(pin, "11.20.0", "11.20.1", 1)},
 		{name: "pair record drift", pair: strings.Replace(pair, "24.20.0", "24.20.1", 1)},
