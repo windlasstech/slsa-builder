@@ -29,6 +29,10 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 	if err := validateCredentialConfiguration(config.Selection); err != nil {
 		return BuildPackResult{}, err
 	}
+	corepackWarning, err := corepackEnvironmentWarning(config.Selection)
+	if err != nil {
+		return BuildPackResult{}, err
+	}
 	packageOutput, metadataOutput, err := prepareOutput(config.OutputDirectory)
 	if err != nil {
 		return BuildPackResult{}, err
@@ -61,6 +65,7 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 	if err != nil {
 		return BuildPackResult{}, err
 	}
+	diagnostics = append(corepackWarning, diagnostics...)
 	manifest, _, err := readManifest(filepath.Join(config.Selection.Package.RealDirectory, "package.json"))
 	if err != nil {
 		return BuildPackResult{}, fmt.Errorf("re-read selected package manifest: %w", err)
@@ -232,13 +237,26 @@ func validateCredentialConfiguration(selection Result) error {
 			}
 		}
 	}
-	corepackEnvironment := filepath.Join(selection.Package.RealManagerRoot, ".corepack.env")
-	if _, err := os.Lstat(corepackEnvironment); err == nil {
-		return errors.New("project .corepack.env is prohibited for release builds")
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("inspect project .corepack.env: %w", err)
-	}
 	return nil
+}
+
+// corepackEnvironmentWarning implements ADR 0096: a project .corepack.env never
+// influences a release build because every Corepack-path process runs with
+// COREPACK_ENV_FILE=0, so the file's presence at the package-manager root is
+// reported once as a registered non-fatal warning instead of failing the build.
+// The condition is presence of any entry (file, directory, or symlink); an
+// inspection failure other than absence degrades to the same warning because
+// the invariant no longer depends on the inspection.
+func corepackEnvironmentWarning(selection Result) ([]diagnostic.Diagnostic, error) {
+	corepackEnvironment := filepath.Join(selection.Package.RealManagerRoot, ".corepack.env")
+	if _, err := os.Lstat(corepackEnvironment); os.IsNotExist(err) {
+		return nil, nil
+	}
+	warning, err := diagnostic.New(IDProjectCorepackEnvIgnored, "npm_profile.build_pack", "A project .corepack.env file at the package-manager root is ignored in release builds; Corepack runs with COREPACK_ENV_FILE=0.")
+	if err != nil {
+		return nil, err
+	}
+	return []diagnostic.Diagnostic{warning}, nil
 }
 
 func prepareOutput(output string) (string, string, error) {
@@ -294,6 +312,7 @@ func controlledEnvironment(root string) ([]string, error) {
 		"COREPACK_ENABLE_PROJECT_SPEC=1",
 		"COREPACK_DEFAULT_TO_LATEST=0",
 		"COREPACK_ENABLE_DOWNLOAD_PROMPT=0",
+		"COREPACK_ENV_FILE=0",
 		"NPM_CONFIG_USERCONFIG=" + npmrc,
 		"npm_config_userconfig=" + npmrc,
 		"NPM_CONFIG_GLOBALCONFIG=" + globalNPMRC,

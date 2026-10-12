@@ -81,6 +81,24 @@ func TestBuildMetadata(t *testing.T) {
 	}
 }
 
+func TestBuildPackCorepackEnvIgnored(t *testing.T) {
+	result := runBuildPackFixtureWithSetup(t, "npm-root-valid", func(t *testing.T, repository string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(repository, ".corepack.env"), []byte("COREPACK_ENABLE_AUTO_PIN=0\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	})
+	count := 0
+	for _, entry := range result.Diagnostics {
+		if entry.ID == IDProjectCorepackEnvIgnored {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("diagnostics = %#v, want exactly one %s warning", result.Diagnostics, IDProjectCorepackEnvIgnored)
+	}
+}
+
 func runBuildPackFixture(t *testing.T, fixture string) BuildPackResult {
 	t.Helper()
 	return runBuildPackFixtureWithSetup(t, fixture, nil)

@@ -20,6 +20,7 @@ const (
 	IDPackedPackageMetadataMismatch     = "windlass.verify.error.packed-package-metadata-mismatch"
 	IDPackagePackFailed                 = "windlass.verify.error.package-pack-failed"
 	IDNPMVersionMismatch                = "windlass.verify.warning.npm-version-mismatch"
+	IDProjectCorepackEnvIgnored         = "windlass.verify.warning.project-corepack-env-ignored"
 )
 
 // Manager is one supported build-stage package manager.
