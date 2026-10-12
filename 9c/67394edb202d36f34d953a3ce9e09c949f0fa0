@@ -1,0 +1,14 @@
+.agents/skills/adr-relations-check/SKILL.md
+  h_495200fbbeca45 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9c67394edb202d36f34d953a3ce9e09c949f0fa0",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
