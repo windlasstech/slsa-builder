@@ -92,6 +92,7 @@ type workflowOutput struct {
 }
 
 type workflowJob struct {
+	Env         map[string]string `yaml:"env"`
 	If          string            `yaml:"if"`
 	Needs       any               `yaml:"needs"`
 	RunsOn      string            `yaml:"runs-on"`
@@ -242,7 +243,7 @@ func CheckPublishJob(path string) (PublishJobResult, error) {
 	if result.MutationKey != publishConcurrencyGroup || result.CancelInProgress || result.Queue != "max" {
 		return PublishJobResult{}, fmt.Errorf("publish job must use the exact queued mutation concurrency contract")
 	}
-	if err := checkPublishSteps(job.Steps, &result); err != nil {
+	if err := checkPublishSteps(job, &result); err != nil {
 		return PublishJobResult{}, err
 	}
 	result.Result = "pass"
@@ -362,7 +363,8 @@ func checkNPMWorkflowCall(call workflowCall) error {
 	return nil
 }
 
-func checkPublishSteps(steps []workflowStep, result *PublishJobResult) error {
+func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
+	steps := job.Steps
 	if len(steps) == 0 || !strings.HasPrefix(steps[0].Uses, "step-security/harden-runner@") || scalar(steps[0].With["egress-policy"]) != "audit" {
 		return fmt.Errorf("harden-runner with audit egress must be the first publish step")
 	}
@@ -405,7 +407,7 @@ func checkPublishSteps(steps []workflowStep, result *PublishJobResult) error {
 	if err := checkPinnedNode(steps, "publish"); err != nil {
 		return err
 	}
-	return checkPublishToolchain(steps)
+	return checkPublishToolchain(job)
 }
 
 func sortedNeeds(value any) []string {

@@ -228,10 +228,12 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: "24.21.0"}
       - working-directory: .slsa-builder
-        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only
+        env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
+        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only --report-path "$REPORT_PATH"
       - id: npm-provision
         working-directory: .slsa-builder
-        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory "${{ runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT"
+        env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
+        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory "${{ runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT" --report-path "$REPORT_PATH"
       - run: '"${{ steps.npm-provision.outputs.npm-executable }}" --version'
       - id: publish
         run: go run ./cmd/slsa-builder-internal npm-profile-publish --npm-executable "${{ steps.npm-provision.outputs.npm-executable }}"
@@ -395,8 +397,8 @@ func writeWorkflow(t *testing.T, contents string) string {
 func TestToolchainContractRejectsDrift(t *testing.T) {
 	t.Parallel()
 	const pairStep = "      - working-directory: .slsa-builder\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert\n"
-	const nodeOnlyStep = "      - working-directory: .slsa-builder\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only\n"
-	const provisionStep = "      - id: npm-provision\n        working-directory: .slsa-builder\n        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory \"${{ runner.temp }}/windlass-npm-cli\" --github-output \"$GITHUB_OUTPUT\"\n"
+	const nodeOnlyStep = "      - working-directory: .slsa-builder\n        env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only --report-path \"$REPORT_PATH\"\n"
+	const provisionStep = "      - id: npm-provision\n        working-directory: .slsa-builder\n        env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory \"${{ runner.temp }}/windlass-npm-cli\" --github-output \"$GITHUB_OUTPUT\" --report-path \"$REPORT_PATH\"\n"
 	const diagnostics = "      - run: '\"${{ steps.npm-provision.outputs.npm-executable }}\" --version'\n"
 	const output = "${{ steps.npm-provision.outputs.npm-executable }}"
 
@@ -426,6 +428,10 @@ func TestToolchainContractRejectsDrift(t *testing.T) {
 				tests["wrong output"] = replaceOnce(t, body, `--npm-executable "`+output+`"`, `--npm-executable "${{ steps.other.outputs.npm-executable }}"`)
 				tests["missing executable flag"] = replaceOnce(t, body, ` --npm-executable "`+output+`"`, "")
 				tests["missing github output"] = replaceOnce(t, body, ` --github-output "$GITHUB_OUTPUT"`, "")
+				tests["missing assert report-path"] = replaceOnce(t, body, ` --node-only --report-path "$REPORT_PATH"`, " --node-only")
+				tests["missing assert report env"] = replaceOnce(t, body, "        env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert", "        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert")
+				tests["missing provision report-path"] = replaceOnce(t, body, ` --github-output "$GITHUB_OUTPUT" --report-path "$REPORT_PATH"`, ` --github-output "$GITHUB_OUTPUT"`)
+				tests["wrong provision report env"] = replaceOnce(t, body, "env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm", "env: {REPORT_PATH: \"${{ runner.temp }}/other.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm")
 			} else {
 				command := "npm-profile-build"
 				if job == "provenance-sign" {
