@@ -28,7 +28,7 @@ func TestWorkflowCheckPropagatesOutputAndInputFailures(t *testing.T) {
 		t.Run(job, func(t *testing.T) {
 			t.Parallel()
 			cause := errors.New("workflow output failed")
-			err := NewWorkflowCheckCommand().Execute(t.Context(), []string{"--workflow", "../../.github/workflows/js-ts-npm-package-slsa3.yml", "--job", job}, &stagedWriter{err: cause})
+			err := NewWorkflowCheckCommand().Execute(t.Context(), []string{"--workflow", writeWorkflowCheckFixture(t), "--job", job}, &stagedWriter{err: cause})
 			if !errors.Is(err, cause) {
 				t.Fatalf("writer error = %v, want original cause", err)
 			}

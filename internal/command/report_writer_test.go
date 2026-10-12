@@ -108,7 +108,7 @@ func TestWorkflowCheckPropagatesEncoderFailure(t *testing.T) {
 	t.Parallel()
 	cause := errors.New("workflow sink failed")
 	err := NewWorkflowCheckCommand().Execute(t.Context(), []string{
-		"--workflow", filepath.Join("..", "..", ".github", "workflows", "js-ts-npm-package-slsa3.yml"),
+		"--workflow", writeWorkflowCheckFixture(t),
 		"--profile", "npm-only",
 	}, &stagedWriter{err: cause})
 	if !errors.Is(err, cause) {
