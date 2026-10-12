@@ -363,7 +363,7 @@ validates the caller's OIDC token against the package's trusted publisher config
 registry mutation. It mints a short-lived publish token whose empirically observed lifetime is 15
 minutes (ADR 0081). The publish-time exchange must occur immediately before the publish mutation,
 token expiry must be re-validated at use time, and a preflight-to-publish gap approaching that
-lifetime must re-exchange or fail — never publish with an expired token. The exchange success-status
+lifetime must re-exchange or fail: never publish with an expired token. The exchange success-status
 and response-body contract, including the `201`-only success status, the pinned four-member body
 shape, and the union timestamp decoding, is defined in
 [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md#npm-oidc-exchange-response-contract).
@@ -608,8 +608,8 @@ The profile supports the following production caller patterns:
 
 1. **Push of a SemVer tag** matching `v${package.json version}`.
 2. **Constrained manual dispatch** for the version tag: either dispatched from the tag ref itself,
-   or dispatched from any caller-selected ref — typically the default branch carrying a fixed
-   pipeline — with `source-ref` naming the version tag (ADR 0079).
+   or dispatched from any caller-selected ref (typically the default branch carrying a fixed
+   pipeline) with `source-ref` naming the version tag (ADR 0079).
 
 Any other trigger, including untagged pushes, branch-based pushes, pull requests, and manual
 dispatch that neither runs on the version tag nor names it through `source-ref`, is rejected.
@@ -617,7 +617,7 @@ dispatch that neither runs on the version tag nor names it through `source-ref`,
 ### Runtime guards
 
 - `github.event_name` must be one of the supported triggers.
-- The built ref — the `source-ref` value when supplied, the invocation ref otherwise — must be a tag
+- The built ref (the `source-ref` value when supplied, the invocation ref otherwise) must be a tag
   ref (`refs/tags/...`), and its tag name must match `v${package.json version}` exactly as proven by
   the packed artifact metadata.
 - When `source-ref` is omitted, `github.ref_type` must be `tag`; when `source-ref` is supplied, the
@@ -868,7 +868,7 @@ release target, weakening provenance verification, or using a custom token.
 - Rejected fixtures: a non-`refs/tags/` `source-ref` value, a `source-ref` tag that does not exist
   or does not resolve to a commit, a `source-ref` tag that does not equal
   `v${package.json version}`, and a `source-ref` that conflicts with the invocation tag on a
-  tag-triggered run — each fails with `windlass.verify.error.source-ref-invalid` before install,
+  tag-triggered run. Each fails with `windlass.verify.error.source-ref-invalid` before install,
   pack, signing, or publish.
 - Rejected fixtures: a raw `release-tag` duplicated in the signed `distribution` group
   (`release-asset-mode-schema-error`); `package-directory`, `registry-url`, `dist-tag`, or `access`

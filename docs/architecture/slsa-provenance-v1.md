@@ -150,8 +150,8 @@ Common field groups recorded by producer profiles include:
 
 - `source`:
   - `repository`: source repository URI.
-  - `ref`: the built source ref — the ref whose content was checked out, built, and attested, for
-    example `refs/tags/v1.2.3`.
+  - `ref`: the built source ref (the ref whose content was checked out, built, and attested, for
+    example `refs/tags/v1.2.3`).
   - `revision`: the immutable commit the built ref resolved to.
   - Conditional invocation record members (for example `input_ref`, `invocation_ref`,
     `invocation_revision`) when the profile's caller selected a built ref through an input such as

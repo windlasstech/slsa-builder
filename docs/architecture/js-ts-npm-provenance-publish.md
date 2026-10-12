@@ -501,7 +501,7 @@ Type and nullability rules:
 - `source.ref_type` describes the built ref and must be `tag` for the production release path.
 - `source.input_ref` records the caller-supplied `source-ref` input. It must be present exactly when
   the caller supplied a non-empty `source-ref`, must be a full `refs/tags/<tag-name>` ref, and must
-  be byte-for-byte equal to `source.ref` — the runtime guards reject any other outcome before
+  be byte-for-byte equal to `source.ref`. The runtime guards reject any other outcome before
   signing. It must be absent when `source-ref` is omitted. A present-but-invalid, unequal, or
   unexpectedly absent `input_ref` fails with `windlass.verify.error.source-ref-invalid`.
 - `source.invocation_ref` and `source.invocation_revision` are the signed invocation record defined
@@ -1645,7 +1645,7 @@ failed rather than silently claim convergence.
 The exchange request itself is defined in
 [JS/TS npm package profile](js-ts-npm-package-profile.md#caller-trusted-publishing-requirements):
 `POST /-/npm/v1/oidc/token/exchange/package/{pkg}` with a Bearer OIDC `id_token` minted with
-audience `npm:registry.npmjs.org`, performed early — before signing and before any publish attempt.
+audience `npm:registry.npmjs.org`, performed early, before signing and before any publish attempt.
 This section pins the success-status and response-body contract the exchange client must enforce
 (ADR 0081).
 
@@ -1665,7 +1665,7 @@ This section pins the success-status and response-body contract the exchange cli
 - The exchange-token lifetime observed from the live registry is 15 minutes, and all timing must
   follow it: the publish-time exchange must occur immediately before the publish mutation, token
   expiry must be re-validated at use time, and a token minted by an early preflight exchange
-  validates configuration only — it must never be assumed usable at publish time.
+  validates configuration only. It must never be assumed usable at publish time.
 - Token material is secret: token values must never appear in logs, diagnostics, reports, or
   artifacts. Failure diagnostics may name the violated rule (for example, the timestamp
   representation) but must never include token material.

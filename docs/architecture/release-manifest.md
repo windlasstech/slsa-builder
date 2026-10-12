@@ -175,8 +175,8 @@ type.
 
 Every production release publishes exactly two release manifest assets to the GitHub Release:
 
-1. **Plain JSON manifest** — human-readable and machine-parseable, but not a trust root by itself.
-2. **Signed Sigstore bundle** — the canonical trust root. The bundle payload is an in-toto Statement
+1. **Plain JSON manifest**: human-readable and machine-parseable, but not a trust root by itself.
+2. **Signed Sigstore bundle**: the canonical trust root. The bundle payload is an in-toto Statement
    whose `predicate` is the same JSON value as the plain JSON manifest. The trust digest is computed
    from that value using RFC 8785 JSON Canonicalization Scheme (JCS), as defined below.
 
