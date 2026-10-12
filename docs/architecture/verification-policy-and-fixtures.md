@@ -1110,9 +1110,10 @@ identifiers such as an OID, bundle path, artifact digest, or certificate fingerp
 #### Producer diagnostic metadata extension
 
 `diagnostic_metadata`, when present, is a closed object containing only the optional closed
-`package_manifest` object. It records raw, non-trust package metadata for diagnostic reports. It
-does not change verifier policy, publication policy, or provenance. In particular, no raw package
-metadata belongs in SLSA `internalParameters` or `externalParameters`; the separately normalized
+`package_manifest` object and the optional `publish_npm_version` member defined below. It records
+raw, non-trust package metadata for diagnostic reports. It does not change verifier policy,
+publication policy, or provenance. In particular, no raw package metadata belongs in SLSA
+`internalParameters` or `externalParameters`; the separately normalized
 `externalParameters.package.repository` value is defined by the npm producer specification.
 
 `package_manifest` may contain only the following members. Absent source fields are omitted. `null`,
@@ -1132,6 +1133,16 @@ The object alternatives in this table are closed, and the report preserves the s
 rather than normalizing an object to a string or a string to an object. A field with another JSON
 type, an unknown object member, an empty credential-bearing URL, a token-like member or value, or a
 duplicate member is invalid and fails with `windlass.verify.error.diagnostics-contract-invalid`.
+
+`publish_npm_version`, when present, is a string holding the exact three-part SemVer version of the
+publish-stage npm CLI observed by the publish job (see the
+[JS/TS npm provenance and publish specification](js-ts-npm-provenance-publish.md#publish-stage-npm-pin-validation)).
+It is non-trust observational metadata: the trust claim is the pin validation itself
+(`windlass.verify.error.publish-npm-pin-mismatch` on failure), and this member is never merged into
+the build-time `externalParameters.runtime.npm_version` record. It is recorded on the publish job's
+outcome report, success or failure, whenever the publish npm version was observed. A `null` value, a
+non-string value, or a value that is not an exact three-part SemVer version fails with
+`windlass.verify.error.diagnostics-contract-invalid`.
 
 Valid diagnostic metadata example:
 

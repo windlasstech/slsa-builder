@@ -1536,10 +1536,14 @@ equality between the two is no longer the invariant. The build stage continues t
 observed in `externalParameters.runtime.npm_version` unchanged, and the floor that value must
 satisfy (`>= 11.5.1`) is retained as defense in depth (ADR 0085).
 
-The publish npm version is recorded in the outcome evidence as `publish_npm_version`. It is not
-merged into the build-time record. A mismatch between the provisioned npm's version and the
-allowlist pin fails closed with `windlass.verify.error.publish-npm-pin-mismatch` (check
-`npm.publish.toolchain`) before any registry mutation.
+The publish npm version is recorded in the publish job's outcome report as the
+`diagnostic_metadata.publish_npm_version` member defined by the
+[verification policy and fixtures specification](verification-policy-and-fixtures.md), on success
+and on failure whenever the version was observed; a pin-mismatch failure additionally carries the
+observed version in the failing diagnostic's `evidence`. It is not merged into the build-time
+record. A mismatch between the provisioned npm's version and the allowlist pin fails closed with
+`windlass.verify.error.publish-npm-pin-mismatch` (check `npm.publish.toolchain`) before any registry
+mutation.
 
 ## `npm publish --provenance-file`
 
