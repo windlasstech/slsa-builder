@@ -81,6 +81,58 @@ func TestBuildMetadata(t *testing.T) {
 	}
 }
 
+func TestBuildPackCorepackEnvPackedRejected(t *testing.T) {
+	for _, fixture := range []string{"npm-root-valid", "scoped-valid", "yarn-valid"} {
+		t.Run(fixture, func(t *testing.T) {
+			clearToolchainRootEnvironment(t)
+			installFakeToolchain(t)
+			repository := filepath.Join(t.TempDir(), "repository")
+			source := filepath.Join(testRepositoryRoot(t), "testdata", "npm", "packages", fixture)
+			if err := os.CopyFS(repository, os.DirFS(source)); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(repository, ".corepack.env"), []byte("COREPACK_NPM_TOKEN=placeholder\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			manifestPath := filepath.Join(repository, "package.json")
+			encoded, err := os.ReadFile(manifestPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var manifest map[string]json.RawMessage
+			if err := json.Unmarshal(encoded, &manifest); err != nil {
+				t.Fatal(err)
+			}
+			delete(manifest, "files")
+			rewritten, err := json.MarshalIndent(manifest, "", "  ")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(manifestPath, append(rewritten, '\n'), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			selection := analyze(t, repository, ".")
+			output := filepath.Join(t.TempDir(), "output")
+			if err := os.Mkdir(output, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			t.Cleanup(cancel)
+			fetcher, _ := fakeDistributionFetcher(t)
+			_, err = BuildPack(ctx, BuildPackConfig{
+				Selection:          selection,
+				OutputDirectory:    output,
+				ArtifactName:       "js-ts-npm-package-tarball-123456789-1",
+				ExternalParameters: json.RawMessage(`{"test_case":"real-tool-build-pack"}`),
+				fetcher:            fetcher,
+			})
+			if err == nil || !strings.Contains(err.Error(), IDPackedCorepackEnvironmentProhibited) {
+				t.Fatalf("BuildPack() error = %v, want %s", err, IDPackedCorepackEnvironmentProhibited)
+			}
+		})
+	}
+}
+
 func TestBuildPackCorepackEnvIgnoredOnCorepackPath(t *testing.T) {
 	clearToolchainRootEnvironment(t)
 	dataDir := installFakeToolchainWithReferences(t, fakePNPMVersion, fakeYarnVersion)

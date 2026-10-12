@@ -204,7 +204,18 @@ case "$1" in
     if [ -z "$destination" ]; then
       exit 1
     fi
-    cp "@FIXTURE_DIR@/npm-root-valid-1.0.0.tgz" "$destination/npm-root-valid-1.0.0.tgz"
+    if [ -f .corepack.env ] && ! grep -q '"files"' package.json; then
+      name=$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n 1)
+      version=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n 1)
+      fname=$(printf '%s' "$name" | sed 's|^@||; s|/|-|')
+      work=$(mktemp -d)
+      mkdir "$work/package"
+      cp package.json .corepack.env "$work/package/"
+      COPYFILE_DISABLE=1 tar -czf "$destination/$fname-$version.tgz" -C "$work" package/package.json package/.corepack.env
+      rm -rf "$work"
+    else
+      cp "@FIXTURE_DIR@/npm-root-valid-1.0.0.tgz" "$destination/npm-root-valid-1.0.0.tgz"
+    fi
     ;;
   *)
     echo "fake npm: unsupported arguments: $*" >&2
@@ -281,7 +292,18 @@ case "$1" in
     if [ -z "$destination" ]; then
       exit 1
     fi
-    cp "@FIXTURE_DIR@/scoped-1.0.0.tgz" "$destination/scoped-1.0.0.tgz"
+    if [ -f .corepack.env ] && ! grep -q '"files"' package.json; then
+      name=$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n 1)
+      version=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n 1)
+      fname=$(printf '%s' "$name" | sed 's|^@||; s|/|-|')
+      work=$(mktemp -d)
+      mkdir "$work/package"
+      cp package.json .corepack.env "$work/package/"
+      COPYFILE_DISABLE=1 tar -czf "$destination/$fname-$version.tgz" -C "$work" package/package.json package/.corepack.env
+      rm -rf "$work"
+    else
+      cp "@FIXTURE_DIR@/scoped-1.0.0.tgz" "$destination/scoped-1.0.0.tgz"
+    fi
     ;;
   *)
     echo "fake pnpm: unsupported arguments: $*" >&2
@@ -327,7 +349,15 @@ case "$1" in
     if [ -z "$output" ]; then
       exit 1
     fi
-    cp "@FIXTURE_DIR@/yarn-valid-1.0.0.tgz" "$output"
+    if [ -f .corepack.env ] && ! grep -q '"files"' package.json; then
+      work=$(mktemp -d)
+      mkdir "$work/package"
+      cp package.json .corepack.env "$work/package/"
+      COPYFILE_DISABLE=1 tar -czf "$output" -C "$work" package/package.json package/.corepack.env
+      rm -rf "$work"
+    else
+      cp "@FIXTURE_DIR@/yarn-valid-1.0.0.tgz" "$output"
+    fi
     ;;
   *)
     echo "fake yarn: unsupported arguments: $*" >&2

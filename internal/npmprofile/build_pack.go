@@ -96,6 +96,9 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 	if packed.Name != config.Selection.Package.Name || packed.Version != config.Selection.Package.Version {
 		return BuildPackResult{}, fmt.Errorf("%s: packed identity %s@%s differs from source %s@%s", IDPackedPackageMetadataMismatch, packed.Name, packed.Version, config.Selection.Package.Name, config.Selection.Package.Version)
 	}
+	if err := rejectPackedCorepackEnvironment(packed.Files); err != nil {
+		return BuildPackResult{}, err
+	}
 
 	metadata := BuildMetadata{
 		SchemaVersion: "1",
