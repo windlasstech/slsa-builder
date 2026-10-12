@@ -26,6 +26,9 @@ func (metadata *DiagnosticMetadata) UnmarshalJSON(data []byte) error {
 		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
 			return contractErrorf("diagnostic_metadata member %q must not be null", key)
 		}
+		if containsJSONNull(value) {
+			return contractErrorf("diagnostic_metadata member %q must not contain null values", key)
+		}
 	}
 	type wireMetadata DiagnosticMetadata
 	var decoded wireMetadata
@@ -40,4 +43,35 @@ func (metadata *DiagnosticMetadata) UnmarshalJSON(data []byte) error {
 	}
 	*metadata = value
 	return nil
+}
+
+// containsJSONNull reports whether raw JSON holds a null value at any depth. The input has
+// already passed canonicaljson.Validate, so a decode error cannot hide a null and rejection
+// simply defers to the typed decoder below.
+func containsJSONNull(data json.RawMessage) bool {
+	var value any
+	if err := json.Unmarshal(data, &value); err != nil {
+		return false
+	}
+	return jsonValueHasNull(value)
+}
+
+func jsonValueHasNull(value any) bool {
+	switch typed := value.(type) {
+	case nil:
+		return true
+	case map[string]any:
+		for _, nested := range typed {
+			if jsonValueHasNull(nested) {
+				return true
+			}
+		}
+	case []any:
+		for _, nested := range typed {
+			if jsonValueHasNull(nested) {
+				return true
+			}
+		}
+	}
+	return false
 }
