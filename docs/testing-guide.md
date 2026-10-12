@@ -152,9 +152,9 @@ constructor helper (`newOIDCExchangeServer` in `internal/npmprofile/oidc_client_
 ### Gated live integration tests
 
 Tests must stay hermetic by default: no real network, no real package-manager toolchain, no mutable
-external state. When a test genuinely exercises the real toolchain or network surface—for example,
-invoking Corepack to acquire pnpm or Yarn and running `npm pack` against a real package—name it with
-a `Live` suffix and gate it twice:
+external state. When a test genuinely exercises the real toolchain or network surface (for example,
+invoking Corepack to acquire pnpm or Yarn and running `npm pack` against a real package), name it
+with a `Live` suffix and gate it twice:
 
 - Skip under `go test -short` with `testing.Short()`.
 - Skip unless the operator explicitly opts in with `SLSA_BUILDER_LIVE_TOOLCHAIN=1`.

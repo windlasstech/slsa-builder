@@ -340,12 +340,12 @@ manifest bundles. Every binding is mandatory, and no mismatch is downgraded to a
 | 1       | Certificate OIDC issuer is exactly `https://token.actions.githubusercontent.com`; URI normalization, redirects, prefixes, and alternate GitHub issuers are not accepted.                                                                                                                                                                                                                                                                                                                                                                                                      | `windlass.verify.error.issuer-mismatch`                                                                       |
 | 2       | URI SAN and Build Signer URI identify the exact policy-selected signer workflow path, and Build Signer Digest (`job_workflow_sha`) exactly equals the manifest/policy `workflow_sha`. `github.workflow_sha` is the caller SHA and is forbidden as builder identity.                                                                                                                                                                                                                                                                                                           | `windlass.verify.error.signer-workflow-path-mismatch` or `windlass.verify.error.signer-workflow-sha-mismatch` |
 | 3       | Source Repository URI equals the expected source URI, and OIDs `.15` and `.17` equal the expected decimal repository and owner IDs. Numeric IDs decide; names are display-only.                                                                                                                                                                                                                                                                                                                                                                                               | `windlass.verify.error.source-identity-mismatch` or `windlass.verify.error.source-numeric-id-mismatch`        |
-| 4       | Source Repository Digest and Source Repository Ref describe the invocation context (ADR 0080): each must be byte-for-byte equal to the signed invocation record — `externalParameters.source.invocation_revision` and `externalParameters.source.invocation_ref` when those members are present, otherwise `externalParameters.source.revision` and `externalParameters.source.ref`. The expected release commit SHA and release tag ref from policy instead bind to the signed built-source fields `externalParameters.source.revision` and `externalParameters.source.ref`. | `windlass.verify.error.source-digest-mismatch` or `windlass.verify.error.source-ref-mismatch`                 |
+| 4       | Source Repository Digest and Source Repository Ref describe the invocation context (ADR 0080): each must be byte-for-byte equal to the signed invocation record (`externalParameters.source.invocation_revision` and `externalParameters.source.invocation_ref` when those members are present, otherwise `externalParameters.source.revision` and `externalParameters.source.ref`). The expected release commit SHA and release tag ref from policy instead bind to the signed built-source fields `externalParameters.source.revision` and `externalParameters.source.ref`. | `windlass.verify.error.source-digest-mismatch` or `windlass.verify.error.source-ref-mismatch`                 |
 | 5       | Run Invocation URI is present, byte-for-byte equals `metadata.invocationId`, and has exactly `https://github.com/<owner>/<repo>/actions/runs/<run-id>/attempts/<attempt-number>`, where owner/repo equal the expected source URI and both final components are positive base-10 integers without signs, whitespace, query, fragment, userinfo, or a non-default port.                                                                                                                                                                                                         | `windlass.verify.error.run-invocation-uri-invalid`                                                            |
 | 6       | Runner Environment OID `.11` is present and its platform-signed value is exactly `github-hosted`. A self-hosted, missing, unknown, or caller-asserted runner value is not accepted.                                                                                                                                                                                                                                                                                                                                                                                           | `windlass.verify.error.self-hosted-runner`                                                                    |
 
 ADR 0062 policy intersection operates over these immutable keys: workflow path plus `workflow_sha`,
-source `repository_id`, source `repository_owner_id`, source digest, and source ref — the latter two
+source `repository_id`, source `repository_owner_id`, source digest, and source ref, the latter two
 binding the signed built-source fields per ADR 0080. When the explicit policy and an authenticated
 release-manifest expectation both constrain one of those keys, both values apply. An empty
 intersection fails with `windlass.verify.error.trusted-producer-policy-conflict`; names never break
@@ -353,8 +353,8 @@ a tie between different numeric IDs.
 
 ## Bundle, transparency, and signing-time requirements
 
-This section implements ADRs 0037 and 0069. Every Windlass bundle class—npm provenance, release
-asset producer provenance, and release manifest—must contain all evidence below. Missing or invalid
+This section implements ADRs 0037 and 0069. Every Windlass bundle class (npm provenance, release
+asset producer provenance, and release manifest) must contain all evidence below. Missing or invalid
 evidence rejects the bundle with the listed diagnostic before predicate policy is trusted.
 
 | Evidence                        | Required verification                                                                                                                                                                            | Failure diagnostic                               |
@@ -1579,13 +1579,13 @@ accepted by the JS/TS npm build and pack spec. Accepted fixtures must include ex
 and `devEngines.packageManager`, including descriptors carrying a grammar-valid integrity digest
 suffix for each supported algorithm (`sha256`, `sha384`, `sha512`) from either manifest source, with
 provenance recording the descriptor verbatim. Accepted fixtures must also cover npm descriptors with
-a declared version from either manifest source — one matching the toolchain npm and one mismatching,
+a declared version from either manifest source: one matching the toolchain npm and one mismatching,
 the latter proving the `npm-version-mismatch` warning and a continued build (ADR 0095). Rejected
 fixtures must cover string-form `devEngines.packageManager`, array-form `devEngines.packageManager`,
 unknown object members, missing pnpm versions, range versions, tag versions, URL descriptors,
 malformed digest suffixes — an unsupported algorithm, non-lowercase or wrong-length hex, missing
 hex, additional build-metadata identifiers, and a digest suffix on an npm descriptor — pnpm pins
-outside the supported `[10.0.0, 12.0.0)` range — including pre-10 majors — from either manifest
+outside the supported `[10.0.0, 12.0.0)` range (including pre-10 majors) from either manifest
 source, and `onFail: "ignore"` or `onFail: "warn"` attempts that would otherwise weaken
 release-build policy. These failures use `package-manager-manifest-shape-error` unless a narrower
 package-manager selection, version-bound, digest, Yarn support, or lockfile category applies;

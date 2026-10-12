@@ -105,12 +105,12 @@ claims. ADR 0068 verification uses these platform-signed values as the authorita
 source identifiers; repository and owner names are display-only. A missing, malformed, or mismatched
 numeric identifier is an identity verification failure.
 
-The token's `ref` and `sha` claims — and the certificate Source Repository Ref and Digest extensions
-they map to — describe the invocation context: the ref the run was dispatched on and its head
-commit. Under ADR 0080 they are verified against the signed invocation record in the provenance
-predicate, not against the built release identity; the built release tag and its resolved commit are
-bound from the signed `externalParameters.source.*` fields. The numeric repository and owner
-identifiers above are context-independent and unaffected by that split.
+The token's `ref` and `sha` claims (and the certificate Source Repository Ref and Digest extensions
+they map to) describe the invocation context: the ref the run was dispatched on and its head commit.
+Under ADR 0080 they are verified against the signed invocation record in the provenance predicate,
+not against the built release identity; the built release tag and its resolved commit are bound from
+the signed `externalParameters.source.*` fields. The numeric repository and owner identifiers above
+are context-independent and unaffected by that split.
 
 > [!NOTE]  
 > The 12026-08-02 live spike confirmed this behavior. Runs `30745570800` (SHA pin) and `30745572730`

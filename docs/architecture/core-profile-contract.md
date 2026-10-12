@@ -126,9 +126,9 @@ invariant is not a valid `slsa-builder` profile.
 - Every producer profile must offer the optional `source-ref` input decided by ADR 0079: a
   tags-only, fail-closed selector for the Git ref whose content the profile builds, attests, and
   publishes. Publisher profiles do not build source and must not define it.
-- Runtime release guards must evaluate the **built** ref — the `source-ref` value when supplied, the
-  invocation ref otherwise — rather than the invocation ref. The built ref must satisfy the
-  profile's release tag convention before install, pack, signing, or publish.
+- Runtime release guards must evaluate the **built** ref (the `source-ref` value when supplied, the
+  invocation ref otherwise) rather than the invocation ref. The built ref must satisfy the profile's
+  release tag convention before install, pack, signing, or publish.
 - The profile must resolve the built ref to a full commit SHA before building and must carry that
   resolved SHA through the digest-verified handoff so that signing and publish jobs cannot disagree
   with the build job about what was built.
