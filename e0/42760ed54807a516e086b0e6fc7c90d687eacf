@@ -1,0 +1,49 @@
+docs/architecture/js-ts-npm-build-pack.md
+  s_bc9bb2b14cc330::t_88b210d0c31555 614-619,622-626
+  s_eae5e711d5f72b::t_972b1d6b6659e6 605-610
+docs/architecture/verification-policy-and-fixtures.md
+  s_bc9bb2b14cc330::t_4879aec4f337e3 1466
+  s_bc9bb2b14cc330::t_39246c0562cd96 1462
+  s_bd6430b7da3dbd::t_0af4458f49bbe2 593,628
+internal/npmprofile/AGENTS.md
+  s_bc9bb2b14cc330::t_cd7a4ebc52cc1e 67-68
+  s_bc9bb2b14cc330::t_7c87855ae19d7c 36-37
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_bc9bb2b14cc330::t_263a7dc0bba9c5 36,38
+  s_bd6430b7da3dbd::t_3d4fffe96e74f2 1181,1205
+  s_bd6430b7da3dbd::t_aae558cf228f61 825,892
+  s_bd6430b7da3dbd::t_08464d17b1bd0a 568-570
+  s_bd6430b7da3dbd::t_2f7e153c36faeb 383-384
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e042760ed54807a516e086b0e6fc7c90d687eacf",
+  "prompts": {},
+  "sessions": {
+    "s_bc9bb2b14cc330": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece06e79cffeDvN6eGZ87jHgOm",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bd6430b7da3dbd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecde26a25ffeBGYJkRky27pvhV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
