@@ -25,6 +25,7 @@ var requirementRegistry = map[string]string{
 	"ADR-0092.descriptor-integrity-digests":                         "pnpm and Yarn descriptors may declare an integrity digest reconciled fail-closed",
 	"ADR-0092.descriptor-digest-rejections":                         "malformed descriptor digest suffixes and npm digest suffixes are rejected",
 	"ADR-0095.npm-declared-version":                                 "npm version declarations are non-authoritative with a mismatch warning",
+	"ADR-0096.corepack-env-neutralization":                          "a project .corepack.env is never loaded under the COREPACK_ENV_FILE=0 pin, and its presence warns",
 	"ADR-0064.npm-purl-subject-digests":                             "npm PURL subjects require SHA-512 and SHA-256",
 	"ARCH-js-ts-npm-provenance-publish.signing-inputs":              "npm provenance signing inputs use the closed profile predicate contract",
 	"ARCH-slsa-provenance-v1.subject-cardinality":                   "SLSA provenance statements contain exactly one subject",
@@ -69,6 +70,7 @@ var fixturePhaseRequirements = map[string]map[string]struct{}{
 		"ADR-0092.descriptor-integrity-digests":    {},
 		"ADR-0092.descriptor-digest-rejections":    {},
 		"ADR-0095.npm-declared-version":            {},
+		"ADR-0096.corepack-env-neutralization":     {},
 	},
 	"provenance-inputs": {
 		"ARCH-js-ts-npm-provenance-publish.signing-inputs": {},

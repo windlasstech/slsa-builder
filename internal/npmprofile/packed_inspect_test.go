@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/digest"
@@ -180,5 +181,32 @@ func TestPackedManifestConsumerSurface(t *testing.T) {
 	clear(encoded)
 	if !reflect.DeepEqual(got.ConsumerSurface, want) {
 		t.Fatal("consumer surface aliases input bytes")
+	}
+}
+
+func TestRejectPackedCorepackEnvironment(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		files []string
+		want  bool
+	}{
+		{"absent", []string{"package/package.json", "package/dist/index.js"}, false},
+		{"root entry", []string{"package/package.json", "package/.corepack.env"}, true},
+		{"nested entry", []string{"package/package.json", "package/nested/.corepack.env"}, true},
+		{"unprefixed entry", []string{".corepack.env", "package/package.json"}, true},
+		{"similarly suffixed names pass", []string{"package/.corepack.env.example", "package/corepack.env", "package/dist/.corepack.env.bak"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := rejectPackedCorepackEnvironment(tt.files)
+			if tt.want && (err == nil || !strings.Contains(err.Error(), IDPackedCorepackEnvironmentProhibited)) {
+				t.Fatalf("rejectPackedCorepackEnvironment(%v) = %v, want %s", tt.files, err, IDPackedCorepackEnvironmentProhibited)
+			}
+			if !tt.want && err != nil {
+				t.Fatalf("rejectPackedCorepackEnvironment(%v) = %v, want nil", tt.files, err)
+			}
+		})
 	}
 }

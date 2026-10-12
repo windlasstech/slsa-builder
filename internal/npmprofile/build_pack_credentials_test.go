@@ -37,7 +37,6 @@ func TestValidateCredentialConfiguration(t *testing.T) {
 		{"yaml single-quoted key", ".yarnrc.yml", `'httpsCert': secret`, `package-manager configuration ".yarnrc.yml" contains credential material`},
 		{"yaml value with equals", ".yarnrc.yml", "httpsKey: abc=def", `package-manager configuration ".yarnrc.yml" contains credential material`},
 		{"yaml quoted benign key", ".yarnrc.yml", `"nodeLinker": pnpm`, ""},
-		{"corepack environment", ".corepack.env", "", "project .corepack.env is prohibited for release builds"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -51,16 +50,70 @@ func TestValidateCredentialConfiguration(t *testing.T) {
 					}
 				}
 				if test.filename != "" {
-					directory := pkg
-					if test.filename == ".corepack.env" {
-						directory = root
-					}
-					if err := os.WriteFile(filepath.Join(directory, test.filename), []byte(test.content), 0o600); err != nil {
+					if err := os.WriteFile(filepath.Join(pkg, test.filename), []byte(test.content), 0o600); err != nil {
 						t.Fatal(err)
 					}
 				}
 				err := validateCredentialConfiguration(Result{Package: Package{RealManagerRoot: root, RealDirectory: pkg}})
 				requireHelperError(t, err, test.want)
+			}
+		})
+	}
+}
+
+func TestCorepackEnvironmentWarning(t *testing.T) {
+	t.Parallel()
+	write := func(t *testing.T, root string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(root, ".corepack.env"), []byte("COREPACK_ENABLE_AUTO_PIN=0\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, test := range []struct {
+		name  string
+		setup func(*testing.T, string)
+		want  int
+	}{
+		{"absent", nil, 0},
+		{"file", write, 1},
+		{"symlink", func(t *testing.T, root string) {
+			t.Helper()
+			if err := os.Symlink(filepath.Join(root, "missing"), filepath.Join(root, ".corepack.env")); err != nil {
+				t.Fatal(err)
+			}
+		}, 1},
+		{"directory", func(t *testing.T, root string) {
+			t.Helper()
+			if err := os.Mkdir(filepath.Join(root, ".corepack.env"), 0o700); err != nil {
+				t.Fatal(err)
+			}
+		}, 1},
+		{"inspection failure", func(t *testing.T, root string) {
+			t.Helper()
+			if err := os.WriteFile(filepath.Join(root, "blocked"), []byte("x"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}, 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			if test.setup != nil {
+				test.setup(t, root)
+			}
+			managerRoot := root
+			if test.name == "inspection failure" {
+				managerRoot = filepath.Join(root, "blocked", "sub")
+			}
+			warnings, err := corepackEnvironmentWarning(Result{Package: Package{RealManagerRoot: managerRoot, RealDirectory: root}})
+			if err != nil {
+				t.Fatalf("corepackEnvironmentWarning() error = %v", err)
+			}
+			if len(warnings) != test.want {
+				t.Fatalf("corepackEnvironmentWarning() emitted %d warnings, want %d", len(warnings), test.want)
+			}
+			if test.want == 1 && warnings[0].ID != IDProjectCorepackEnvIgnored {
+				t.Fatalf("warning ID = %q, want %q", warnings[0].ID, IDProjectCorepackEnvIgnored)
 			}
 		})
 	}

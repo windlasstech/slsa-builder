@@ -45,7 +45,7 @@ func installFakeToolchain(t *testing.T) {
 // verified Corepack behavior: the cache directory, the `.corepack`
 // locator.reference, and the Installing debug line carry the full reference
 // while `--version` still prints the plain version.
-func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReference string) {
+func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReference string) string {
 	t.Helper()
 	root := t.TempDir()
 	fakebin := filepath.Join(root, "fakebin")
@@ -77,6 +77,7 @@ func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReferen
 	writeScript(t, data, "yarn-shim", expand(fakeYarnShimScript))
 
 	t.Setenv("PATH", fakebin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return data
 }
 
 // distributionFetchLog records every URL the fake fetcher served so tests can
@@ -203,7 +204,18 @@ case "$1" in
     if [ -z "$destination" ]; then
       exit 1
     fi
-    cp "@FIXTURE_DIR@/npm-root-valid-1.0.0.tgz" "$destination/npm-root-valid-1.0.0.tgz"
+    if [ -f .corepack.env ] && ! grep -q '"files"' package.json; then
+      name=$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n 1)
+      version=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n 1)
+      fname=$(printf '%s' "$name" | sed 's|^@||; s|/|-|')
+      work=$(mktemp -d)
+      mkdir "$work/package"
+      cp package.json .corepack.env "$work/package/"
+      COPYFILE_DISABLE=1 tar -czf "$destination/$fname-$version.tgz" -C "$work" package/package.json package/.corepack.env
+      rm -rf "$work"
+    else
+      cp "@FIXTURE_DIR@/npm-root-valid-1.0.0.tgz" "$destination/npm-root-valid-1.0.0.tgz"
+    fi
     ;;
   *)
     echo "fake npm: unsupported arguments: $*" >&2
@@ -214,6 +226,7 @@ exit 0
 `
 
 const fakeCorepackScript = `#!/bin/sh
+printf '%s\n' "corepack corepack_env_file=${COREPACK_ENV_FILE-<unset>}" >> "@DATA_DIR@/invocations.log"
 case "$1" in
   --version)
     printf '` + fakeCorepackVersion + `\n'
@@ -244,6 +257,7 @@ exit 0
 `
 
 const fakePNPMShimScript = `#!/bin/sh
+printf '%s\n' "pnpm corepack_env_file=${COREPACK_ENV_FILE-<unset>}" >> "@DATA_DIR@/invocations.log"
 case "$1" in
   --version)
     reference=$(cat "@DATA_DIR@/pnpm.reference")
@@ -278,7 +292,18 @@ case "$1" in
     if [ -z "$destination" ]; then
       exit 1
     fi
-    cp "@FIXTURE_DIR@/scoped-1.0.0.tgz" "$destination/scoped-1.0.0.tgz"
+    if [ -f .corepack.env ] && ! grep -q '"files"' package.json; then
+      name=$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n 1)
+      version=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n 1)
+      fname=$(printf '%s' "$name" | sed 's|^@||; s|/|-|')
+      work=$(mktemp -d)
+      mkdir "$work/package"
+      cp package.json .corepack.env "$work/package/"
+      COPYFILE_DISABLE=1 tar -czf "$destination/$fname-$version.tgz" -C "$work" package/package.json package/.corepack.env
+      rm -rf "$work"
+    else
+      cp "@FIXTURE_DIR@/scoped-1.0.0.tgz" "$destination/scoped-1.0.0.tgz"
+    fi
     ;;
   *)
     echo "fake pnpm: unsupported arguments: $*" >&2
@@ -289,6 +314,7 @@ exit 0
 `
 
 const fakeYarnShimScript = `#!/bin/sh
+printf '%s\n' "yarn corepack_env_file=${COREPACK_ENV_FILE-<unset>}" >> "@DATA_DIR@/invocations.log"
 case "$1" in
   --version)
     reference=$(cat "@DATA_DIR@/yarn.reference")
@@ -323,7 +349,15 @@ case "$1" in
     if [ -z "$output" ]; then
       exit 1
     fi
-    cp "@FIXTURE_DIR@/yarn-valid-1.0.0.tgz" "$output"
+    if [ -f .corepack.env ] && ! grep -q '"files"' package.json; then
+      work=$(mktemp -d)
+      mkdir "$work/package"
+      cp package.json .corepack.env "$work/package/"
+      COPYFILE_DISABLE=1 tar -czf "$output" -C "$work" package/package.json package/.corepack.env
+      rm -rf "$work"
+    else
+      cp "@FIXTURE_DIR@/yarn-valid-1.0.0.tgz" "$output"
+    fi
     ;;
   *)
     echo "fake yarn: unsupported arguments: $*" >&2

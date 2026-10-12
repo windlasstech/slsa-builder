@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
@@ -135,6 +136,18 @@ func TestBuildPackExecutionRootRejections(t *testing.T) {
 				t.Fatalf("validateExecutionRoots() = %v; want %q", err, test.want)
 			}
 		})
+	}
+}
+
+func TestControlledEnvironmentPinsCorepackEnvFile(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	environment, err := controlledEnvironment(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(environment, "COREPACK_ENV_FILE=0") {
+		t.Fatalf("controlled environment lacks the COREPACK_ENV_FILE=0 pin: %v", environment)
 	}
 }
 

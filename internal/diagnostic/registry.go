@@ -116,6 +116,7 @@ var warningCategories = []string{
 	"custom-registry-preflight-inconclusive",
 	"native-provenance-locator-missing",
 	"npm-version-mismatch",
+	"project-corepack-env-ignored",
 	"stale-non-selected-lockfile",
 	"timestamp-clock-skew",
 }
@@ -196,6 +197,7 @@ package-repository-identity-mismatch
 package-resolution-invalid
 package-url-mismatch
 package-version-mismatch
+packed-corepack-env-prohibited
 packed-package-metadata-mismatch
 pnpm-version-unsupported
 policy-schema-invalid

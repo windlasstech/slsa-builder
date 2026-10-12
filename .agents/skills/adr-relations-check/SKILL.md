@@ -14,7 +14,7 @@ description:
 ## Quick start
 
 ```bash
-python3 .claude/skills/adr-relations-check/scripts/check_relations.py
+python3 .agents/skills/adr-relations-check/scripts/check_relations.py
 ```
 
 Exit code 0 and `NO PROBLEMS` mean the ADR set is consistent. Any other result lists every defect;

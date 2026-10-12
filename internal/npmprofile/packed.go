@@ -106,6 +106,23 @@ func inspectTarball(tarballPath string) (PackedMetadata, digest.SHA256, digest.S
 	return packed, sha256Value, sha512Value, nil
 }
 
+// rejectPackedCorepackEnvironment implements ADR 0097: a project .corepack.env
+// is credential-designated (COREPACK_NPM_TOKEN and peers) and no package
+// manager's built-in pack ignore list covers it, so a packed entry whose final
+// path segment is .corepack.env fails the build closed. The check is a filename
+// comparison over the already path-validated entry list, which inspectTarball
+// collects for regular files only; the builder never opens, reads, or parses
+// the file (ADR 0096's no-parser invariant), so the gate also covers content no
+// parser would recognize and keys future Corepack releases have not defined.
+func rejectPackedCorepackEnvironment(files []string) error {
+	for _, name := range files {
+		if name == ".corepack.env" || strings.HasSuffix(name, "/.corepack.env") {
+			return fmt.Errorf("%s: packed tarball entry %q ships a project .corepack.env; declare a files allowlist that excludes the file or remove it before publishing", IDPackedCorepackEnvironmentProhibited, name)
+		}
+	}
+	return nil
+}
+
 type packedManifest struct {
 	Name            string
 	Version         string

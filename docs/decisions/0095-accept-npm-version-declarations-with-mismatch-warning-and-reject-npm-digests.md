@@ -25,6 +25,8 @@ relations:
       version declarations, including ranges, are accepted as non-authoritative input with a
       mismatch warning, while npm digest suffixes remain rejected. pnpm and Yarn semantics are
       unchanged by this edge"
+  - type: see-also
+    target: ADR-0096
 ---
 
 # Accept npm Version Declarations with a Mismatch Warning and Reject npm Digest Declarations
@@ -59,6 +61,8 @@ may fail the build or pass it under `onFail` weakening, but that behavior is npm
 builder's, and the divergence itself is invisible in slsa-builder's diagnostics. Second, an npm
 digest declaration is inexpressible in the profile's semantics: there is no acquired npm
 distribution to reconcile it against, and no enforcement agent exists for it.
+
+How should the profile respond to an npm descriptor that declares a version or a digest?
 
 ## Decision Drivers
 

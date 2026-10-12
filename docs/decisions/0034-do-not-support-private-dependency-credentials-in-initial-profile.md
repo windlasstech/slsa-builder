@@ -4,6 +4,9 @@ nav_order: 34
 status: accepted
 date: 12026-07-05
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0097
 ---
 
 # Do Not Support Private Dependency Credentials in the Initial Profile

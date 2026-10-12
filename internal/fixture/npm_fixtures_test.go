@@ -61,6 +61,7 @@ func TestNPMFixturesNeverPublish(t *testing.T) {
 		"yarn-digest-sha512-devengines-valid":                       "",
 		"npm-declared-version-match-valid":                          "",
 		"npm-declared-version-mismatch-valid":                       "",
+		"npm-corepack-env-ignored-valid":                            "",
 		"yarn-classic-rejected":                                     "windlass.verify.error.yarn-selection-invalid",
 		"yarn-bare-major":                                           "windlass.verify.error.yarn-selection-invalid",
 		"yarn-bare-minor":                                           "windlass.verify.error.yarn-selection-invalid",
