@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -66,6 +68,37 @@ func TestToolchainAssertCommand_whenPairMismatch(t *testing.T) {
 	}
 }
 
+func TestToolchainAssertCommand_whenUnexpectedFailure(t *testing.T) {
+	t.Parallel()
+	// Given a domain failure that is not a classified pair mismatch.
+	adapter := npmProfileToolchainAssertCommand{assert: func(context.Context, bool) error {
+		return errors.New("node executable vanished")
+	}}
+	var out bytes.Buffer
+	// When the command is dispatched.
+	result := NewDispatcher(adapter).Dispatch(t.Context(), []string{adapter.Name()}, &out)
+	// Then the unclassified cause becomes a canonical invocation report with exit 2.
+	if result.ExitCode != 2 {
+		t.Fatalf("exit = %d, output = %s", result.ExitCode, out.Bytes())
+	}
+	assertPrimaryDiagnostic(t, out.Bytes(), 2, "windlass.verify.error.verifier-execution-failure")
+}
+
+func TestToolchainAssertCommand_whenReportWriteFails(t *testing.T) {
+	t.Parallel()
+	// Given a pair mismatch and a sink that rejects the report.
+	adapter := npmProfileToolchainAssertCommand{assert: func(context.Context, bool) error {
+		return &npmprofile.ToolchainPairMismatchError{}
+	}}
+	cause := errors.New("report sink failed")
+	// When the verification report cannot be written.
+	err := adapter.Execute(t.Context(), nil, &stagedWriter{err: cause})
+	// Then the sink cause surfaces instead of the verification-failure sentinel.
+	if !errors.Is(err, cause) || errors.Is(err, ErrVerificationFailure) {
+		t.Fatalf("Execute() = %v, want sink cause without report sentinel", err)
+	}
+}
+
 func TestToolchainAssertCommand_whenInvocationInvalid(t *testing.T) {
 	t.Parallel()
 	for _, args := range [][]string{{"--unknown"}, {"positional"}} {
@@ -85,5 +118,47 @@ func TestToolchainAssertCommand_whenInvocationInvalid(t *testing.T) {
 			}
 			assertPrimaryDiagnostic(t, out.Bytes(), 2, "windlass.verify.error.verifier-execution-failure")
 		})
+	}
+}
+
+func TestToolchainAssertCommand_whenReportPathRequested(t *testing.T) {
+	t.Parallel()
+	// Given a domain pair mismatch and a requested report path.
+	directory := t.TempDir()
+	reportPath := filepath.Join(directory, "outcome.json")
+	adapter := npmProfileToolchainAssertCommand{assert: func(context.Context, bool) error {
+		return &npmprofile.ToolchainPairMismatchError{}
+	}}
+	var out bytes.Buffer
+	// When the mismatch is dispatched with --report-path.
+	result := NewDispatcher(adapter).Dispatch(t.Context(), []string{adapter.Name(), "--report-path", reportPath}, &out)
+	// Then the specific failure report is also persisted at the path.
+	if result.ExitCode != 1 {
+		t.Fatalf("exit = %d, output = %s", result.ExitCode, out.Bytes())
+	}
+	persisted, err := os.ReadFile(reportPath)
+	if err != nil {
+		t.Fatalf("persisted report: %v", err)
+	}
+	assertPrimaryDiagnostic(t, persisted, 1, "windlass.verify.error.toolchain-pair-mismatch")
+}
+
+func TestToolchainAssertCommand_whenReportPathRequestedOnSuccess(t *testing.T) {
+	t.Parallel()
+	// Given a successful assertion and a requested report path.
+	directory := t.TempDir()
+	reportPath := filepath.Join(directory, "outcome.json")
+	adapter := npmProfileToolchainAssertCommand{assert: func(context.Context, bool) error {
+		return nil
+	}}
+	var out bytes.Buffer
+	// When dispatched with --report-path.
+	result := NewDispatcher(adapter).Dispatch(t.Context(), []string{adapter.Name(), "--report-path", reportPath}, &out)
+	// Then success persists no report file.
+	if result.ExitCode != 0 {
+		t.Fatalf("exit = %d, output = %s", result.ExitCode, out.Bytes())
+	}
+	if _, err := os.Stat(reportPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("report path exists after success: %v", err)
 	}
 }

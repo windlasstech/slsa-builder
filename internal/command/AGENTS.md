@@ -34,13 +34,16 @@ unreadable/malformed inputs emit a canonical `toolchain.pins.drift` report and e
 or invalid invocations exit 2.
 
 `npm-profile-provision-npm` requires `--output-directory <dir>` and accepts optional
-`--github-output <path>`. It prints the absolute launcher path on stdout and, when requested,
-appends `npm-executable=<path>` to the GitHub output file. Verification failures emit a canonical
-report and exit 1; invalid invocations exit 2.
+`--github-output <path>` and `--report-path <path>`. It prints the absolute launcher path on stdout
+and, when requested, appends `npm-executable=<path>` to the GitHub output file. Verification
+failures emit a canonical report and exit 1, and additionally persist that report at `--report-path`
+when given (a successful run writes no report file); invalid invocations exit 2.
 
 `npm-profile-toolchain-assert` accepts optional `--node-only` for the publish job, where npm may not
-be installed. It emits no files or GitHub outputs; success prints a confirmation. A pair mismatch
-emits a canonical report for `npm.build.toolchain` and exits 1; invalid invocations exit 2.
+be installed, and optional `--report-path <path>`. It emits no GitHub outputs; success prints a
+confirmation. A pair mismatch emits a canonical report for `npm.build.toolchain` and exits 1, and
+additionally persists that report at `--report-path` when given (a successful run writes no report
+file); invalid invocations exit 2.
 
 | Task                         | Location                          | Notes                                                      |
 | ---------------------------- | --------------------------------- | ---------------------------------------------------------- |

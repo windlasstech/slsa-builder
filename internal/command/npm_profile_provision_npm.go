@@ -32,9 +32,10 @@ func (command npmProfileProvisionNPMCommand) Execute(ctx context.Context, args [
 	flags.SetOutput(io.Discard)
 	outputDirectory := flags.String("output-directory", "", "parent directory for private npm provisioning")
 	githubOutput := flags.String("github-output", "", "optional GitHub Actions output file")
+	reportPath := flags.String("report-path", "", "optional path for persisting a failure report")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			_, err := fmt.Fprintln(out, "Usage: slsa-builder-internal npm-profile-provision-npm --output-directory <dir> [--github-output <path>]")
+			_, err := fmt.Fprintln(out, "Usage: slsa-builder-internal npm-profile-provision-npm --output-directory <dir> [--github-output <path>] [--report-path <path>]")
 			return err
 		}
 		return err
@@ -55,6 +56,15 @@ func (command npmProfileProvisionNPMCommand) Execute(ctx context.Context, args [
 		report, reportErr := diagnostic.Build(nil, []diagnostic.Diagnostic{entry}, nil)
 		if reportErr != nil {
 			return reportErr
+		}
+		if *reportPath != "" {
+			encoded, encodeErr := report.CanonicalJSON()
+			if encodeErr != nil {
+				return encodeErr
+			}
+			if writeErr := WriteFileAtomic(*reportPath, encoded, 0o600); writeErr != nil {
+				return writeErr
+			}
 		}
 		if reportErr := WriteReport(out, report); reportErr != nil {
 			return reportErr

@@ -29,9 +29,10 @@ func (command npmProfileToolchainAssertCommand) Execute(ctx context.Context, arg
 	flags := flag.NewFlagSet(command.Name(), flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	nodeOnly := flags.Bool("node-only", false, "assert the Node.js runtime without invoking bundled npm")
+	reportPath := flags.String("report-path", "", "optional path for persisting a failure report")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			_, err := fmt.Fprintln(out, "Usage: slsa-builder-internal npm-profile-toolchain-assert [--node-only]")
+			_, err := fmt.Fprintln(out, "Usage: slsa-builder-internal npm-profile-toolchain-assert [--node-only] [--report-path <path>]")
 			return err
 		}
 		return err
@@ -51,6 +52,15 @@ func (command npmProfileToolchainAssertCommand) Execute(ctx context.Context, arg
 		report, reportErr := diagnostic.Build(nil, []diagnostic.Diagnostic{entry}, nil)
 		if reportErr != nil {
 			return reportErr
+		}
+		if *reportPath != "" {
+			encoded, encodeErr := report.CanonicalJSON()
+			if encodeErr != nil {
+				return encodeErr
+			}
+			if writeErr := WriteFileAtomic(*reportPath, encoded, 0o600); writeErr != nil {
+				return writeErr
+			}
 		}
 		if err := WriteReport(out, report); err != nil {
 			return err

@@ -424,15 +424,22 @@ jobs:
       - name: Assert pinned Node.js runtime
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         working-directory: .slsa-builder
-        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only
+        env:
+          REPORT_PATH: ${{ runner.temp }}/windlass-npm-outcome-report.json
+        run:
+          go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only --report-path
+          "$REPORT_PATH"
 
       - name: Provision pinned npm CLI
         id: npm-provision
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         working-directory: .slsa-builder
+        env:
+          REPORT_PATH: ${{ runner.temp }}/windlass-npm-outcome-report.json
         run:
           go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory "${{
-          runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT"
+          runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT" --report-path
+          "$REPORT_PATH"
 
       - name: Log npm configuration diagnostics
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'

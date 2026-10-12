@@ -80,6 +80,23 @@ func TestPinCheckCommandMissingFlags(t *testing.T) {
 	}
 }
 
+type failingWriter struct{ cause error }
+
+func (writer failingWriter) Write([]byte) (int, error) { return 0, writer.cause }
+
+func TestPinCheckCommandReportWriteFailure(t *testing.T) {
+	t.Parallel()
+	// Given drifted records and a sink that rejects the drift report.
+	args := pinCheckArgs(t, true)
+	cause := errors.New("report sink failed")
+	// When the drift report cannot be written.
+	err := command.NewPinCheckCommand().Execute(t.Context(), args[1:], failingWriter{cause: cause})
+	// Then the sink cause surfaces instead of the verification-failure sentinel.
+	if !errors.Is(err, cause) || errors.Is(err, command.ErrVerificationFailure) {
+		t.Fatalf("Execute() = %v, want sink cause without report sentinel", err)
+	}
+}
+
 func pinCheckArgs(t *testing.T, drift bool) []string {
 	t.Helper()
 	integrity := "sha512-" + base64.StdEncoding.EncodeToString(make([]byte, 64))
