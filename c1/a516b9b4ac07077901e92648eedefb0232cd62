@@ -1,0 +1,66 @@
+docs/architecture/verification-policy-and-fixtures.md
+  s_7322b1bcd6b298::t_8488001bb6d564 1588
+  s_7322b1bcd6b298::t_5e5693a62fa1af 1582
+  s_7322b1bcd6b298::t_9920bee7a40fb7 343
+  s_7322b1bcd6b298::t_24783d78f6cc7b 348
+  s_7322b1bcd6b298::t_d8745f18eb947c 356-357
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_7322b1bcd6b298::t_225128c295bcd7 504,1648
+  s_7322b1bcd6b298::t_a56c9094907cfe 1668
+docs/architecture/core-profile-contract.md
+  s_7322b1bcd6b298::t_0b6c4c888633a9 130-131
+  s_7322b1bcd6b298::t_9666b436c30e60 129
+docs/architecture/js-ts-npm-build-pack.md
+  s_7322b1bcd6b298::t_de19c587c88e18 245-246
+  s_7322b1bcd6b298::t_8e018cd955bd16 240
+  s_7322b1bcd6b298::t_442d57f9d781e9 366
+  s_7322b1bcd6b298::t_0b6c4c888633a9 247-251
+  s_7322b1bcd6b298::t_f421148a4c1a59 267-268
+  s_7322b1bcd6b298::t_50ad6092280485 321-322
+  s_7322b1bcd6b298::t_53006ca31ba1b4 378,380
+  s_7322b1bcd6b298::t_ba92eeb9c16b75 421
+  s_7322b1bcd6b298::t_dc525a6ec901ea 501
+  s_7322b1bcd6b298::t_222efd9ce28097 528
+  s_7322b1bcd6b298::t_f541cef8175a0c 559-560
+  s_7322b1bcd6b298::t_f6feecfa356b02 311-312
+  s_7322b1bcd6b298::t_c4af62f657fc04 362-363
+docs/architecture/slsa-provenance-v1.md
+  s_7322b1bcd6b298::t_5144d14a10d857 153-154
+docs/architecture/js-ts-npm-package-profile.md
+  s_7322b1bcd6b298::t_74c8a59ca0bce1 871
+  s_bf0bdf256f2852::t_1b98f521f731c0 620
+  s_7322b1bcd6b298::t_20e97745222e6a 611-612
+  s_7322b1bcd6b298::t_0b6c4c888633a9 366
+docs/testing-guide.md
+  s_7322b1bcd6b298::t_0b6c4c888633a9 156-157
+  s_7322b1bcd6b298::t_9c28b00a26ea9d 155
+docs/architecture/identity-and-buildtypes.md
+  s_7322b1bcd6b298::t_0b6c4c888633a9 109-113
+  s_7322b1bcd6b298::t_d5afd3d31e3cb2 108
+docs/architecture/release-manifest.md
+  s_7322b1bcd6b298::t_23cf3e04d2e79b 178-179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c1a516b9b4ac07077901e92648eedefb0232cd62",
+  "prompts": {},
+  "sessions": {
+    "s_7322b1bcd6b298": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed255124effeQH8ruziLJG1G8w",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bf0bdf256f2852": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed255124effeQH8ruziLJG1G8w",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
