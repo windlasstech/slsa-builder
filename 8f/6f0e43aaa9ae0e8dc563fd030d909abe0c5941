@@ -1,0 +1,26 @@
+internal/toolchainpins/drift.go
+  s_e8f31289c3680b::t_5c5e63710da90c 108
+internal/toolchainpins/drift_test.go
+  s_e8f31289c3680b::t_5f97c9947fbd23 29
+  s_e8f31289c3680b::t_58e5b5d7565ac5 49
+internal/toolchainpins/toolchainpins_test.go
+  s_e8f31289c3680b::t_3da6f80d7ef7e4 53
+internal/toolchainpins/toolchainpins.go
+  s_e8f31289c3680b::t_fdb30467336184 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f6f0e43aaa9ae0e8dc563fd030d909abe0c5941",
+  "prompts": {},
+  "sessions": {
+    "s_e8f31289c3680b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece079822ffe7WKNe0S4n8txkN",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
