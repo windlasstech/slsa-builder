@@ -28,48 +28,55 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0089`까지입니다.
+`0096`까지입니다.
 
-| 범위      | 주제                                      | 설명                                                                            |
-| --------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
-| 0000–0012 | 저장소 기반 및 개발 도구                  | ADR 형식, 저장소 시작, Go, 린팅, 포맷팅, 도구 체인.                             |
-| 0013–0037 | JS/TS npm 패키지 profile                  | 패키지 선택, build/pack, OIDC publishing, provenance.                           |
-| 0038–0052 | GitHub Release asset profile              | 릴리즈 에셋 subject, publisher 모델, sidecar distribution.                      |
-| 0053–0054 | 릴리즈 매니페스트 메타데이터              | 서명 경계와 release manifest predicate URI.                                     |
-| 0055      | 서명 어댑터 Statement 구성                | `actions/attest` custom mode와 서명 후 Statement 검사.                          |
-| 0056      | 비선택 lockfile 진단                      | Manifest-selected manager에서 stale lockfile 처리.                              |
-| 0057      | 공개 npm release-asset 모드               | 단일 npm 진입점과 advanced composition primitives.                              |
-| 0058      | 릴리즈 publisher 권한 경계                | 동일 저장소 target과 최소 권한 mutation topology.                               |
-| 0059      | 공개 release-asset 모드 인터페이스        | 최소 user-intent `workflow_call` 표면과 fail-closed API.                        |
-| 0060      | 통합 npm 공개 진입점                      | 하나의 공개 API와 분리된 내부 권한 경계.                                        |
-| 0061      | 중복 JSON member 거부                     | 의미 검증 전 서명된 SLSA Statement를 엄격히 파싱.                               |
-| 0062      | 신뢰 producer 정책 교집합                 | Manifest와 명시적 verifier policy 충돌 처리.                                    |
-| 0063      | Yarn Berry v4+ 지원 경계                  | Yarn 지원을 위한 Corepack과 `packageManager` 요구사항.                          |
-| 0064      | npm provenance subject 호환성             | npm PURL subject와 SHA-512 및 SHA-256 tarball digest.                           |
-| 0065      | ADR 생애주기 메타데이터                   | 닫힌 status 문법과 relations 필드.                                              |
-| 0066      | 릴리즈 mutation 런 소유권                 | 잡 클래스 concurrency와 직렬화된 mutation segment.                              |
-| 0067      | 반복 run 수렴                             | Run-identity 멱등성, 결과 상태, binding 증명.                                   |
-| 0068      | 검증자 신원 바인딩                        | 검증을 위한 불변 builder 및 source 신원.                                        |
-| 0069      | 투명성·trust root 정책                    | Rekor inclusion, 오프라인 검증, trust root 거버넌스.                            |
-| 0070–0071 | Provenance 빌드 환경 기록                 | 패키지 매니저 배포본, runner image, builder 필드.                               |
-| 0072      | 릴리즈 에셋 run 소유권 바인딩             | Sidecar-first pair 바인딩과 custody 비귀속 선언.                                |
-| 0073      | npm same-run attestation 바인딩           | npm 수렴에 published attestation run identity 필수화.                           |
-| 0074      | Mutation segment 원자성                   | 단일 job segment와 탐지 기반 cross-run 안전.                                    |
-| 0075      | Mutation 큐 정책                          | Mutation segment contender의 `queue: max` FIFO 대기.                            |
-| 0076      | Preflight와 첫 mutation 분류              | 관측 preflight와 probe 부재 표면의 첫 mutation 분류.                            |
-| 0077      | Windlass provenance 서명 어댑터           | 모든 프로필의 정확한 바이트를 위한 Go-native DSSE 서명.                         |
-| 0078      | pnpm 설정 전용 루트 패키지 모드           | `packages` 누락은 잘못된 데이터가 아니라 루트 전용 모드.                        |
-| 0079      | 호출자 지정 빌드 소스 ref                 | 모든 producer profile의 기본 릴리즈 재시도 경로인 태그 전용 `source-ref` 입력.  |
-| 0080      | 인증서 클레임 = 호출 컨텍스트             | 소스 정책은 서명된 provenance 필드에 바인딩. cert 소스 클레임은 호출을 증명.    |
-| 0081      | npm OIDC exchange 응답 계약               | 성공 본문을 실측 형태에 핀. exchange 토큰 수명은 15분.                          |
-| 0082      | publish 단계 npm 버전 핀                  | 무결성 검증된 publish npm 프로비저닝 + 검토 allowlist.                          |
-| 0083      | npm M1 remediation 업스트림 수정 대기     | 초기 publish npm 핀은 npm/cli#9882를 포함하는 첫 검토 릴리스.                   |
-| 0084      | publish npm 프로비저닝 메커니즘           | 커밋된 SHA-512로 검증하는 npm registry tarball 프로비저닝.                      |
-| 0085      | 빌드 단계 Node.js 패치·npm 쌍 핀          | 빌더 릴리스당 정확한 Node.js 24 패치. 첫 사용 전 번들 npm 버전 단언.            |
-| 0086      | mise 필드 해석 기반 pnpm 프로비저닝       | mise packageManager 필드 해석이 Corepack을 대체. package.json 단일 핀 진원지.   |
-| 0087      | 개발 툴 pnpm 12 채택                      | pnpm 12 라인 채택. 설정 호환 검증 완료. 개발 전용, 한 줄 롤백.                  |
-| 0088      | 빌드 단계 pnpm/Yarn 레지스트리 프로비저닝 | 다이제스트 검증 npm 레지스트리 tarball이 Corepack을 대체. 적용 릴리스는 유동적. |
-| 0089      | 개발 Node.js 런타임 필드 해석 프로비저닝  | package.json devEngines.runtime이 개발 런타임 단일 핀. mise가 해석·설치.        |
+| 범위      | 주제                                      | 설명                                                                                                |
+| --------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 0000–0012 | 저장소 기반 및 개발 도구                  | ADR 형식, 저장소 시작, Go, 린팅, 포맷팅, 도구 체인.                                                 |
+| 0013–0037 | JS/TS npm 패키지 profile                  | 패키지 선택, build/pack, OIDC publishing, provenance.                                               |
+| 0038–0052 | GitHub Release asset profile              | 릴리즈 에셋 subject, publisher 모델, sidecar distribution.                                          |
+| 0053–0054 | 릴리즈 매니페스트 메타데이터              | 서명 경계와 release manifest predicate URI.                                                         |
+| 0055      | 서명 어댑터 Statement 구성                | `actions/attest` custom mode와 서명 후 Statement 검사.                                              |
+| 0056      | 비선택 lockfile 진단                      | Manifest-selected manager에서 stale lockfile 처리.                                                  |
+| 0057      | 공개 npm release-asset 모드               | 단일 npm 진입점과 advanced composition primitives.                                                  |
+| 0058      | 릴리즈 publisher 권한 경계                | 동일 저장소 target과 최소 권한 mutation topology.                                                   |
+| 0059      | 공개 release-asset 모드 인터페이스        | 최소 user-intent `workflow_call` 표면과 fail-closed API.                                            |
+| 0060      | 통합 npm 공개 진입점                      | 하나의 공개 API와 분리된 내부 권한 경계.                                                            |
+| 0061      | 중복 JSON member 거부                     | 의미 검증 전 서명된 SLSA Statement를 엄격히 파싱.                                                   |
+| 0062      | 신뢰 producer 정책 교집합                 | Manifest와 명시적 verifier policy 충돌 처리.                                                        |
+| 0063      | Yarn Berry v4+ 지원 경계                  | Yarn 지원을 위한 Corepack과 `packageManager` 요구사항.                                              |
+| 0064      | npm provenance subject 호환성             | npm PURL subject와 SHA-512 및 SHA-256 tarball digest.                                               |
+| 0065      | ADR 생애주기 메타데이터                   | 닫힌 status 문법과 relations 필드.                                                                  |
+| 0066      | 릴리즈 mutation 런 소유권                 | 잡 클래스 concurrency와 직렬화된 mutation segment.                                                  |
+| 0067      | 반복 run 수렴                             | Run-identity 멱등성, 결과 상태, binding 증명.                                                       |
+| 0068      | 검증자 신원 바인딩                        | 검증을 위한 불변 builder 및 source 신원.                                                            |
+| 0069      | 투명성·trust root 정책                    | Rekor inclusion, 오프라인 검증, trust root 거버넌스.                                                |
+| 0070–0071 | Provenance 빌드 환경 기록                 | 패키지 매니저 배포본, runner image, builder 필드.                                                   |
+| 0072      | 릴리즈 에셋 run 소유권 바인딩             | Sidecar-first pair 바인딩과 custody 비귀속 선언.                                                    |
+| 0073      | npm same-run attestation 바인딩           | npm 수렴에 published attestation run identity 필수화.                                               |
+| 0074      | Mutation segment 원자성                   | 단일 job segment와 탐지 기반 cross-run 안전.                                                        |
+| 0075      | Mutation 큐 정책                          | Mutation segment contender의 `queue: max` FIFO 대기.                                                |
+| 0076      | Preflight와 첫 mutation 분류              | 관측 preflight와 probe 부재 표면의 첫 mutation 분류.                                                |
+| 0077      | Windlass provenance 서명 어댑터           | 모든 프로필의 정확한 바이트를 위한 Go-native DSSE 서명.                                             |
+| 0078      | pnpm 설정 전용 루트 패키지 모드           | `packages` 누락은 잘못된 데이터가 아니라 루트 전용 모드.                                            |
+| 0079      | 호출자 지정 빌드 소스 ref                 | 모든 producer profile의 기본 릴리즈 재시도 경로인 태그 전용 `source-ref` 입력.                      |
+| 0080      | 인증서 클레임 = 호출 컨텍스트             | 소스 정책은 서명된 provenance 필드에 바인딩. cert 소스 클레임은 호출을 증명.                        |
+| 0081      | npm OIDC exchange 응답 계약               | 성공 본문을 실측 형태에 핀. exchange 토큰 수명은 15분.                                              |
+| 0082      | publish 단계 npm 버전 핀                  | 무결성 검증된 publish npm 프로비저닝 + 검토 allowlist.                                              |
+| 0083      | npm M1 remediation 업스트림 수정 대기     | 초기 publish npm 핀은 npm/cli#9882를 포함하는 첫 검토 릴리스.                                       |
+| 0084      | publish npm 프로비저닝 메커니즘           | 커밋된 SHA-512로 검증하는 npm registry tarball 프로비저닝.                                          |
+| 0085      | 빌드 단계 Node.js 패치·npm 쌍 핀          | 빌더 릴리스당 정확한 Node.js 24 패치. 첫 사용 전 번들 npm 버전 단언.                                |
+| 0086      | mise 필드 해석 기반 pnpm 프로비저닝       | mise packageManager 필드 해석이 Corepack을 대체. package.json 단일 핀 진원지.                       |
+| 0087      | 개발 툴 pnpm 12 채택                      | pnpm 12 라인 채택. 설정 호환 검증 완료. 개발 전용, 한 줄 롤백.                                      |
+| 0088      | 빌드 단계 pnpm/Yarn 레지스트리 프로비저닝 | 다이제스트 검증 npm 레지스트리 tarball이 Corepack을 대체. 적용 릴리스는 유동적.                     |
+| 0089      | 개발 Node.js 런타임 필드 해석 프로비저닝  | package.json devEngines.runtime이 개발 런타임 단일 핀. mise가 해석·설치.                            |
+| 0090      | pnpm 10.x 지원 확장                       | 지원 pnpm 범위가 [10.0.0, 12.0.0)로 확장. 경계는 pnpm 공식 지원 표에 연동.                          |
+| 0091      | devEngines 단일 선택 출처                 | 지원 패키지 매니저를 devEngines.packageManager에서 일관 선택. Yarn 특례 제거.                       |
+| 0092      | 선택적 descriptor 무결성 다이제스트       | 선택적 선언 다이제스트를 획득 비트에 대해 fail-closed로 검증. 기록 모델은 불변.                     |
+| 0093      | 다이제스트 알고리즘 SRI 집합 핀           | 선언 다이제스트는 W3C SRI 토큰 sha256, sha384, sha512만 허용. 확장은 후속 결정.                     |
+| 0094      | 다이제스트 형식 hex 접미사 핀             | 선언 다이제스트는 두 manifest 필드 모두 +algorithm.<hex> 접미사. SRI base64는 거부.                 |
+| 0095      | npm 선언 불일치 경고와 다이제스트 거부    | 선언 npm 버전은 불일치 경고와 함께 수용. npm 다이제스트 접미사는 거부. npm CLI 자체 강제는 범위 밖. |
+| 0096      | 프로젝트 .corepack.env 무력화와 경고      | 빌더가 COREPACK_ENV_FILE=0을 핀하여 프로젝트 파일을 로드하지 않음. 존재 시 비치명적 경고.           |
 
 ## ADR status와 relations
 
@@ -218,6 +225,13 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0087 | Adopt pnpm 12 for Node.js development tooling                                                       | 도구 전용                                                                                                                                                                           |
 | 0088 | Provision build-stage pnpm and Yarn from digest-verified npm registry tarballs                      | JS/TS npm build and pack, verification policy and fixtures(현재는 Corepack 지원 윈도우 경계만 명세됐으며 registry tarball 메커니즘은 후속 명세 작업(B01/#106)으로 유보됨)           |
 | 0089 | Provision the development Node.js runtime through mise package.json field resolution                | 도구 전용                                                                                                                                                                           |
+| 0090 | Extend the supported pnpm range to the 10.x line                                                    | JS/TS npm build and pack, verification policy and fixtures(Corepack 윈도우 pnpm 지원 하한 개정. 명세 일괄 반영은 명세 단계로 유보됨)                                                |
+| 0091 | Accept devEngines.packageManager as a uniform selection source                                      | JS/TS npm build and pack(package manager selection), verification policy and fixtures                                                                                               |
+| 0092 | Accept optional integrity digests in package-manager descriptors                                    | JS/TS npm build and pack(descriptor grammar, fail-closed digest reconciliation), verification policy and fixtures(알고리즘 집합과 형식은 명세 단계로 유보됨)                        |
+| 0093 | Pin descriptor digest algorithms to the SRI set                                                     | JS/TS npm build and pack(descriptor digest grammar), verification policy and fixtures                                                                                               |
+| 0094 | Pin the descriptor digest format to a hex suffix                                                    | JS/TS npm build and pack(descriptor digest grammar), verification policy and fixtures                                                                                               |
+| 0095 | Accept npm version declarations with a mismatch warning and reject npm digests                      | JS/TS npm build and pack(npm descriptor semantics), verification policy and fixtures, README                                                                                        |
+| 0096 | Neutralize the project .corepack.env with a pinned COREPACK_ENV_FILE=0 and warn on its presence     | JS/TS npm build and pack(credential-configuration preflight), verification policy and fixtures                                                                                      |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
