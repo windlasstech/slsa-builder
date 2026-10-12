@@ -1,0 +1,26 @@
+docs/architecture/js-ts-npm-build-pack.md
+  s_92db9df814a216::t_da20e38ee73109 692-699
+  s_92db9df814a216::t_27d7814f94e932 501-503
+internal/diagnostic/diagnostic_test.go
+  s_92db9df814a216::t_c7ff53f9c139ec 162-163
+docs/architecture/verification-policy-and-fixtures.md
+  s_92db9df814a216::t_f81707a5b823c0 993
+internal/diagnostic/registry.go
+  s_92db9df814a216::t_a9a10ee71af003 119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "98f2c17f99ed260b5bd1142cf8c387cdbe98a899",
+  "prompts": {},
+  "sessions": {
+    "s_92db9df814a216": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed1f2485fffeOP3EyrekBUcRxn",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
