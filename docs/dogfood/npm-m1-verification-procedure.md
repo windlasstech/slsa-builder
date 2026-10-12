@@ -71,10 +71,23 @@ to the caller workflow is already confirmed working.
 3. Pin the caller workflow to a main SHA carrying the ADR 0082/0084/0085 pinned-toolchain
    implementation. The publish stage of that SHA provisions the pinned npm CLI (currently 11.21.0)
    before any npm invocation, and the build stage asserts the pinned Node.js 24 / npm pair
-   (currently 24.21.0 / 11.19.0) before first use. Record the selected SHA; it replaces the
-   reusable-workflow pin used by attempts 1-4.
+   (currently 24.21.0 / 11.19.0) before first use. Update
+   `windlasstech/vers-js/.github/workflows/publish.yml` so that its reusable-workflow `uses:`
+   reference ends with the full 40-hex SHA of the merged `windlasstech/slsa-builder` commit carrying
+   that implementation. Record the selected SHA; it replaces the reusable-workflow pin used by
+   attempts 1-4.
 
-4. Record the caller pin, operator, and start timestamp.
+4. Verify that the caller workflow pin equals the selected builder SHA.
+
+   ```bash
+   gh api repos/windlasstech/vers-js/contents/.github/workflows/publish.yml --jq '.content' | base64 -d
+   ```
+
+   Expected output: the decoded workflow's reusable-workflow `uses:` reference ends with the full
+   40-hex builder SHA selected in step 3. Stop if the `uses:` SHA differs; a stale caller would
+   invoke the old workflow.
+
+5. Record the caller pin, operator, and start timestamp.
 
    ```bash
     gh api "repos/windlasstech/vers-js/contents/.github/workflows/publish.yml?ref=main" --jq '.sha'
@@ -82,11 +95,11 @@ to the caller workflow is already confirmed working.
    date -u +%Y-%m-%dT%H:%M:%SZ
    ```
 
-   Record the observed workflow-file blob SHA as supporting evidence, the reusable-workflow pin
-   selected in step 3, the operator identity, and the timestamp. The `main` commit is invocation
-   context only, not the expected built-source revision.
+   Record the observed workflow-file blob SHA as supporting evidence, the reusable-workflow builder
+   SHA selected in step 3 and verified in step 4, the operator identity, and the timestamp. The
+   `main` commit is invocation context only, not the expected built-source revision.
 
-5. Dispatch the retry from `main`.
+6. Dispatch the retry from `main`.
 
    ```bash
    gh workflow run publish.yml -R windlasstech/vers-js --ref main -f release_tag=v0.1.3
