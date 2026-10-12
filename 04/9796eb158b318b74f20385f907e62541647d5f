@@ -1,0 +1,47 @@
+internal/workflowcheck/check_test.go
+  s_eae5e711d5f72b::t_6b8a2f6eb6c177 400-401,432,434
+  s_eae5e711d5f72b::t_4fae0b62fb950f 231,235
+  s_eae5e711d5f72b::t_0384206a77b4d9 431,433
+  s_eae5e711d5f72b::t_ff2bb9788a7a55 232,236
+internal/workflowcheck/toolchain.go
+  s_8c2e80f2dc6902::t_3db297d22aceab 23-25,54-56,123-129,131-147
+  s_8c2e80f2dc6902::t_77d5b985274a0a 19-21,29,66,107,113-114,130,148,150-161
+  s_8c2e80f2dc6902::t_a38b04e1267fb6 52-53,87,93-103
+  s_8c2e80f2dc6902::t_133e3960ae0867 6,92,108-112
+  s_eae5e711d5f72b::t_3c54ad62aeb1fb 13
+  s_eae5e711d5f72b::t_46bc3f5809e01e 72-74,81-83
+  s_8c2e80f2dc6902::t_a5198c1d99f822 149
+internal/workflowcheck/toolchain_conditions_test.go
+  s_8c2e80f2dc6902::t_e9cb561c13350f 1-72
+internal/workflowcheck/toolchain_arguments_test.go
+  s_8c2e80f2dc6902::t_1647e6c7259abb 1-18,20-29,31-84
+  s_8c2e80f2dc6902::t_6f741225f94046 19,30
+internal/workflowcheck/toolchain_binding_test.go
+  s_8c2e80f2dc6902::t_54cfa7747b2766 1-60
+internal/workflowcheck/check.go
+  s_8c2e80f2dc6902::t_a38b04e1267fb6 95,246,366-367,410
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "049796eb158b318b74f20385f907e62541647d5f",
+  "prompts": {},
+  "sessions": {
+    "s_8c2e80f2dc6902": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ecde28f4affe5cVepZdvL0wEGF",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
