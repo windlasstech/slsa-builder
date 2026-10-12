@@ -375,8 +375,14 @@ version set, enforced before install:
   field or in `devEngines.packageManager`. A manifest pinning a Yarn version outside the supported
   range (6 or newer, or older than v4) is rejected before install; Yarn 6 or newer is rejected with
   `windlass.verify.error.yarn-version-unsupported`.
-- **npm** is unaffected by these bounds; the profile uses the npm CLI bundled with the pinned
-  Node.js 24 toolchain.
+- **npm** is unaffected by these bounds. The build stage uses the npm CLI bundled with the exactly
+  pinned Node.js 24 patch (currently Node.js 24.21.0, bundling npm 11.19.0), asserted against the
+  pinned pair before first use
+  ([ADR 0085](docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md));
+  the publish stage provisions a separately pinned, digest-verified npm CLI (currently npm 11.21.0)
+  from its registry tarball
+  ([ADR 0082](docs/decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md),
+  [ADR 0084](docs/decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md)).
 
 The window exists so that every package manager the profile executes is one whose distribution the
 provenance record covers. Under Corepack, a pnpm 12 consumer's executed native binary arrives

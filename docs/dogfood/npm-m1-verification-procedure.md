@@ -1,29 +1,36 @@
 # npm M1 dogfood verification procedure
 
-Run this procedure for the live P06 M1 dogfood retry of vers-js v0.1.2. It publishes
-`@windlass/vers-js@0.1.2` through the SHA-pinned reusable workflow, collects the publication
+Run this procedure for the live P06 M1 dogfood retry of vers-js v0.1.3. It publishes
+`@windlass/vers-js@0.1.3` through the SHA-pinned reusable workflow, collects the publication
 evidence, and records the completed run in `docs/dogfood/npm-m1.md`. Do not create that evidence
 record until the run begins.
+
+Attempt 4 (run 31840088262) published `@windlass/vers-js@0.1.2`, but read-back rejected npm's
+auto-generated provenance; that publication remains on the registry and serves as the Phase 6
+foreign-conflict target. For this retry the publish stage provisions the pinned npm CLI (currently
+11.21.0) per ADR 0082/0084 instead of running the toolchain-bundled npm. The pinned CLI carries the
+upstream npm/cli#9882 fix, so the Windlass-signed bundle attaches as-is under trusted publishing
+through `npm publish --provenance-file`.
 
 The caller workflow is `.github/workflows/publish.yml`. Earlier planning material called it
 `release.yml`; that filename is obsolete for this runbook.
 
 ## Fixed target
 
-| Item                              | Value                                                             |
-| --------------------------------- | ----------------------------------------------------------------- |
-| Caller repository                 | `windlasstech/vers-js`                                            |
-| Caller workflow                   | `.github/workflows/publish.yml`                                   |
-| Reusable workflow pin             | `5964b19c5e4fa704595acbbe2ae30cc99fcbeb41`                        |
-| Package                           | `@windlass/vers-js@0.1.2`                                         |
-| Built source ref                  | `refs/tags/v0.1.2`                                                |
-| Annotated tag object              | `518569c61b8f52ddf22b3fa98f2a145a03048f68`                        |
-| Peeled source revision            | `68e6f0018d6824167ec490243b17a9edd6ba8fc7`                        |
-| Invocation ref                    | `refs/heads/main`                                                 |
-| Windlass predicate type           | `https://slsa.dev/provenance/v1`                                  |
-| npm publish-attestation predicate | `https://github.com/npm/attestation/tree/main/specs/publish/v0.1` |
+| Item                              | Value                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------ |
+| Caller repository                 | `windlasstech/vers-js`                                                               |
+| Caller workflow                   | `.github/workflows/publish.yml`                                                      |
+| Reusable workflow pin             | a main SHA carrying the ADR 0082/0084/0085 pinned-toolchain implementation (Phase 0) |
+| Package                           | `@windlass/vers-js@0.1.3`                                                            |
+| Built source ref                  | `refs/tags/v0.1.3`                                                                   |
+| Annotated tag object              | recorded in Phase 0                                                                  |
+| Peeled source revision            | recorded in Phase 0                                                                  |
+| Invocation ref                    | `refs/heads/main`                                                                    |
+| Windlass predicate type           | `https://slsa.dev/provenance/v1`                                                     |
+| npm publish-attestation predicate | `https://github.com/npm/attestation/tree/main/specs/publish/v0.1`                    |
 
-The tag's `package.json` declares version `0.1.2`. Its settings-only `pnpm-workspace.yaml` has no
+The tag's `package.json` declares version `0.1.3`. Its settings-only `pnpm-workspace.yaml` has no
 `packages` member, exercising issue #22 root-package resolution. The npm Trusted Publisher binding
 to the caller workflow is already confirmed working.
 
@@ -44,7 +51,7 @@ to the caller workflow is already confirmed working.
 1. Confirm that the version is unpublished. The command must return an error, normally `E404`.
 
    ```bash
-   npm view @windlass/vers-js@0.1.2 version
+   npm view @windlass/vers-js@0.1.3 version
    ```
 
    Expected output: no version value and an npm error indicating the version is absent. Stop if the
@@ -53,18 +60,21 @@ to the caller workflow is already confirmed working.
 2. Record the tag object and its peeled commit.
 
    ```bash
-   gh api repos/windlasstech/vers-js/git/ref/tags/v0.1.2 --jq '.object.sha'
-   gh api repos/windlasstech/vers-js/git/tags/518569c61b8f52ddf22b3fa98f2a145a03048f68 --jq '.object.sha'
+   gh api repos/windlasstech/vers-js/git/ref/tags/v0.1.3 --jq '.object.sha'
+   gh api repos/windlasstech/vers-js/git/tags/<TAG_OBJECT_SHA> --jq '.object.sha'
    ```
 
-   Expected output, in order:
+   Replace `<TAG_OBJECT_SHA>` with the output of the first command. Record both observed values;
+   they become the expected annotated tag object and peeled source revision for the rest of this
+   procedure.
 
-   ```text
-   518569c61b8f52ddf22b3fa98f2a145a03048f68
-   68e6f0018d6824167ec490243b17a9edd6ba8fc7
-   ```
+3. Pin the caller workflow to a main SHA carrying the ADR 0082/0084/0085 pinned-toolchain
+   implementation. The publish stage of that SHA provisions the pinned npm CLI (currently 11.21.0)
+   before any npm invocation, and the build stage asserts the pinned Node.js 24 / npm pair
+   (currently 24.21.0 / 11.19.0) before first use. Record the selected SHA; it replaces the
+   reusable-workflow pin used by attempts 1-4.
 
-3. Record the caller pin, operator, and start timestamp.
+4. Record the caller pin, operator, and start timestamp.
 
    ```bash
     gh api "repos/windlasstech/vers-js/contents/.github/workflows/publish.yml?ref=main" --jq '.sha'
@@ -72,17 +82,17 @@ to the caller workflow is already confirmed working.
    date -u +%Y-%m-%dT%H:%M:%SZ
    ```
 
-   Record the observed workflow-file blob SHA as supporting evidence, the fixed reusable-workflow
-   pin `5964b19c5e4fa704595acbbe2ae30cc99fcbeb41`, the operator identity, and the timestamp. The
-   `main` commit is invocation context only, not the expected built-source revision.
+   Record the observed workflow-file blob SHA as supporting evidence, the reusable-workflow pin
+   selected in step 3, the operator identity, and the timestamp. The `main` commit is invocation
+   context only, not the expected built-source revision.
 
-4. Dispatch the retry from `main`.
+5. Dispatch the retry from `main`.
 
    ```bash
-   gh workflow run publish.yml -R windlasstech/vers-js --ref main -f release_tag=v0.1.2
+   gh workflow run publish.yml -R windlasstech/vers-js --ref main -f release_tag=v0.1.3
    ```
 
-   Expected output: GitHub accepts the dispatch. The caller supplies `source-ref: refs/tags/v0.1.2`
+   Expected output: GitHub accepts the dispatch. The caller supplies `source-ref: refs/tags/v0.1.3`
    for dispatch and the exact empty string for tag pushes.
 
 ## Phase 1: run observation and early OIDC preflight
@@ -98,13 +108,18 @@ to the caller workflow is already confirmed working.
    `workflow_dispatch` run with `conclusion` `success`. Record the run ID, attempt, event, and
    `headSha`; the latter is the expected `source.invocation_revision`.
 
-2. Inspect the publish-job log for the ADR 0076 early npm OIDC exchange preflight.
+2. Inspect the publish-job log for the pinned npm provisioning and the ADR 0076 early npm OIDC
+   exchange preflight.
 
    ```bash
    gh run view <RUN_ID> -R windlasstech/vers-js --log
    ```
 
-   Expected success: the preflight succeeds before the first `npm publish` mutation, with no token
+   Expected success: the publish job provisions the pinned npm CLI (currently 11.21.0) from its
+   digest-verified registry tarball before any npm invocation in the job, and the provisioned
+   version matches the allowlist pin. The pinned CLI carries the upstream npm/cli#9882 fix, so the
+   Windlass-signed bundle attaches as-is under trusted publishing; no npm auto-generated provenance
+   is expected. The preflight succeeds before the first `npm publish` mutation, with no token
    fallback. A `trusted-publisher-mismatch` diagnostic means npm rejected the configured caller
    workflow identity, normally as an HTTP `401` or `404`. A
    `windlass.verify.error.npm-oidc-exchange-indeterminate` diagnostic means the exchange surface was
@@ -124,9 +139,9 @@ request_count=0
 while :; do
   observed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   request_count=$((request_count + 1))
-  packument=$(npm view @windlass/vers-js@0.1.2 version dist.integrity dist.shasum --json 2>&1)
+  packument=$(npm view @windlass/vers-js@0.1.3 version dist.integrity dist.shasum --json 2>&1)
   attestation=$(curl --silent --show-error --write-out '\nHTTP_STATUS:%{http_code}\n' \
-    'https://registry.npmjs.org/-/npm/v1/attestations/%40windlass%2Fvers-js@0.1.2')
+    'https://registry.npmjs.org/-/npm/v1/attestations/%40windlass%2Fvers-js@0.1.3')
   printf 'observed_at=%s request=%s\npackument=%s\nattestation=%s\n' \
     "$observed_at" "$request_count" "$packument" "$attestation"
   now_epoch=$(date -u +%s)
@@ -135,7 +150,7 @@ while :; do
 done
 ```
 
-Expected result: the packument confirms `0.1.2` and its `dist.integrity`, then the endpoint exposes
+Expected result: the packument confirms `0.1.3` and its `dist.integrity`, then the endpoint exposes
 an element whose `predicateType` is `https://slsa.dev/provenance/v1`. A `404 {"error":"Not found"}`
 does not say whether the version or its provenance is absent. Always pair it with the packument
 check. Record every observation, the first authenticated Windlass-attestation visibility, total
@@ -155,7 +170,7 @@ and specification update.
 
    ```bash
    curl --fail --silent --show-error \
-     'https://registry.npmjs.org/-/npm/v1/attestations/%40windlass%2Fvers-js@0.1.2' \
+     'https://registry.npmjs.org/-/npm/v1/attestations/%40windlass%2Fvers-js@0.1.3' \
      -o attestations.json
    jq '.attestations[] | select(.predicateType == "https://slsa.dev/provenance/v1")' attestations.json
    ```
@@ -204,8 +219,8 @@ workdir=$(mktemp -d)
 cd "$workdir"
 npm --version
 npm init -y
-npm install @windlass/vers-js@0.1.2
-npm view @windlass/vers-js@0.1.2 version dist.integrity dist.shasum --json
+npm install @windlass/vers-js@0.1.3
+npm view @windlass/vers-js@0.1.3 version dist.integrity dist.shasum --json
 npm audit signatures --json --include-attestations
 ```
 
@@ -229,19 +244,20 @@ fallback if online TUF acquisition fails.
    it supports.
 
    ```bash
-   npm pack @windlass/vers-js@0.1.2
-   gh attestation verify windlass-vers-js-0.1.2.tgz \
+   npm pack @windlass/vers-js@0.1.3
+   gh attestation verify windlass-vers-js-0.1.3.tgz \
      --bundle registry-bundle.json \
      --repo windlasstech/vers-js \
      --signer-workflow \
-       windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@5964b19c5e4fa704595acbbe2ae30cc99fcbeb41 \
+       windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@<REUSABLE_WORKFLOW_PIN> \
      --cert-oidc-issuer https://token.actions.githubusercontent.com \
      --predicate-type https://slsa.dev/provenance/v1 \
      --format json > gh-verified.json
    ```
 
-   Expected result: command success and JSON output for the exact tarball and supplied bundle.
-   Record the tarball SHA-256 and SHA-512, the command output, and the exact signer-workflow ref.
+   Replace `<REUSABLE_WORKFLOW_PIN>` with the main SHA selected in Phase 0 step 3. Expected result:
+   command success and JSON output for the exact tarball and supplied bundle. Record the tarball
+   SHA-256 and SHA-512, the command output, and the exact signer-workflow ref.
 
 2. Use a strict JSON parser and an X.509 parser to post-process the verified bundle and
    `gh-verified.json`. `jq` can inspect JSON values but cannot authoritatively decode certificate
@@ -252,8 +268,8 @@ fallback if online TUF acquisition fails.
    - URI SAN, Build Signer URI, and Build Signer Digest identify the full-SHA-pinned reusable
      workflow.
    - Runner Environment is exactly `github-hosted`.
-   - Signed built source ref is `refs/tags/v0.1.2`.
-   - Signed built source revision is `68e6f0018d6824167ec490243b17a9edd6ba8fc7`.
+   - Signed built source ref is `refs/tags/v0.1.3`.
+   - Signed built source revision is the peeled source revision recorded in Phase 0 step 2.
    - The certificate invocation claims match signed `source.invocation_ref` and
      `source.invocation_revision`.
    - `metadata.invocationId` and the Fulcio Run Invocation URI are byte-equal and contain
@@ -263,17 +279,17 @@ fallback if online TUF acquisition fails.
 
 1. Decode the verified Statement payload and record these issue #81 fields:
 
-   | Field                                           | Required value                             |
-   | ----------------------------------------------- | ------------------------------------------ |
-   | `externalParameters.source.ref`                 | `refs/tags/v0.1.2`                         |
-   | `externalParameters.source.revision`            | `68e6f0018d6824167ec490243b17a9edd6ba8fc7` |
-   | `externalParameters.source.input_ref`           | `refs/tags/v0.1.2`                         |
-   | `externalParameters.source.invocation_ref`      | `refs/heads/main`                          |
-   | `externalParameters.source.invocation_revision` | Phase 1 `headSha`                          |
-   | `run_invocation` and Run Invocation URI         | identify the dispatch run                  |
+   | Field                                           | Required value                 |
+   | ----------------------------------------------- | ------------------------------ |
+   | `externalParameters.source.ref`                 | `refs/tags/v0.1.3`             |
+   | `externalParameters.source.revision`            | Phase 0 step 2 peeled revision |
+   | `externalParameters.source.input_ref`           | `refs/tags/v0.1.3`             |
+   | `externalParameters.source.invocation_ref`      | `refs/heads/main`              |
+   | `externalParameters.source.invocation_revision` | Phase 1 `headSha`              |
+   | `run_invocation` and Run Invocation URI         | identify the dispatch run      |
 
    Also verify that `internalParameters` is exactly `{}`, the subject PURL is for
-   `@windlass/vers-js@0.1.2`, both subject digests match downloaded tarball bytes, and `builder.id`
+   `@windlass/vers-js@0.1.3`, both subject digests match downloaded tarball bytes, and `builder.id`
    contains the full reusable-workflow SHA.
 
 2. Inspect the build-job log for issue #22 acceptance.
@@ -296,8 +312,9 @@ fallback if online TUF acquisition fails.
    Record the new attempt, final conclusion, and evidence that the existing registry state was
    adopted only after integrity and authenticated attestation verification.
 
-4. Dispatch a new run with the same release tag to test foreign conflict. This is intentionally a
-   different run identity and must not adopt the existing publication.
+4. Dispatch a new run against the existing `@windlass/vers-js@0.1.2` publication from attempt 4
+   (run 31840088262) to test foreign conflict. This is intentionally a different run identity and
+   must not adopt the existing publication.
 
    ```bash
    gh workflow run publish.yml -R windlasstech/vers-js --ref main -f release_tag=v0.1.2
@@ -315,8 +332,8 @@ preserving command outputs and links where practical.
 ---
 run_id: <RUN_ID>
 attempt: <ATTEMPT>
-tag: refs/tags/v0.1.2
-commit: 68e6f0018d6824167ec490243b17a9edd6ba8fc7
+tag: refs/tags/v0.1.3
+commit: <PEELED_SOURCE_REVISION>
 operator: <OPERATOR>
 date: <ISO-8601 UTC timestamp>
 ---
@@ -326,14 +343,13 @@ date: <ISO-8601 UTC timestamp>
 ## Run identity
 
 - Caller: `windlasstech/vers-js/.github/workflows/publish.yml`
-- Reusable workflow pin: `5964b19c5e4fa704595acbbe2ae30cc99fcbeb41`
+- Reusable workflow pin: `<REUSABLE_WORKFLOW_PIN>`
 - Invocation ref and revision: `<refs/heads/main>`, `<headSha>`
-- Tag object and peeled commit: `518569c61b8f52ddf22b3fa98f2a145a03048f68`,
-  `68e6f0018d6824167ec490243b17a9edd6ba8fc7`
+- Tag object and peeled commit: `<TAG_OBJECT_SHA>`, `<PEELED_SOURCE_REVISION>`
 
 ## P06/M1 acceptance checklist
 
-- [ ] The real `@windlass/vers-js@0.1.2` version exists in npm.
+- [ ] The real `@windlass/vers-js@0.1.3` version exists in npm.
 - [ ] Downloaded tarball bytes match recorded SHA-256 and SHA-512 values.
 - [ ] The Statement subject is the expected npm Package URL and carries both digests.
 - [ ] Preserved and registry bundles have equal DSSE payload bytes and equal signature sets.

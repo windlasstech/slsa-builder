@@ -84,6 +84,25 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   `COREPACK_ENV_FILE=0`, and its presence produces a non-fatal warning (ADR 0096); a `.corepack.env`
   that would ship inside the packed tarball is rejected post-pack with
   `windlass.verify.error.packed-corepack-env-prohibited` (ADR 0097).
+- Added the publish-stage npm CLI pin (ADRs 0082-0084): the publish job provisions a pinned npm CLI
+  (initially npm 11.21.0, the latest 11-line release carrying the upstream npm/cli#9882
+  `--provenance-file` fix) from a digest-verified npm registry tarball before any npm invocation in
+  the job, selected from a reviewed allowlist whose single shared pin-data source is
+  `internal/toolchainpins/publish-npm.json`; provisioning failures (download, digest mismatch,
+  unsafe archive, post-extraction version mismatch) fail closed before any npm execution and before
+  any registry mutation.
+- Added the build-stage Node.js and npm toolchain pair pin (ADR 0085): the exact Node.js 24 patch
+  and its expected bundled npm (currently Node.js 24.21.0 and npm 11.19.0) are recorded in
+  `internal/toolchainpins/node-runtime.json` and asserted before the first npm invocation, with a
+  mismatch failing closed with `windlass.verify.error.toolchain-pair-mismatch`.
+- Added publish-side npm pin validation replacing the prior build/publish npm exact-equality check:
+  the publish job's npm version must equal the allowlist pin, a mismatch fails closed with
+  `windlass.verify.error.publish-npm-pin-mismatch` before any registry mutation, and the observed
+  version is recorded in the publish job's outcome report as
+  `diagnostic_metadata.publish_npm_version` on success and on failure whenever observed.
+- Added the `pin-check` drift gate to CI, which fails on any drift between the machine-readable
+  toolchain pin records (`internal/toolchainpins/publish-npm.json` and
+  `internal/toolchainpins/node-runtime.json`) and their human-readable specification tables.
 
 ### Security
 

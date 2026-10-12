@@ -364,8 +364,14 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   `4` 같은 축약형은 불가)이어야 합니다. 지원 범위 밖의 Yarn 버전(6 이상 또는 v4 미만)을 고정한
   매니페스트는 설치 전에 거부되며, Yarn 6 이상은 `windlass.verify.error.yarn-version-unsupported`
   진단과 함께 거부됩니다.
-- **npm**은 이 경계의 영향을 받지 않습니다. 프로파일은 고정된 Node.js 24 도구체인에 번들된 npm CLI를
-  사용합니다.
+- **npm**은 이 경계의 영향을 받지 않습니다. 빌드 단계는 정확히 고정된 Node.js 24 패치(현재 Node.js
+  24.21.0, npm 11.19.0 번들)에 번들된 npm CLI를 사용하며, 첫 사용 전에 기록된 쌍과의 정확한 일치를
+  단언합니다
+  ([ADR 0085](docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md)).
+  게시 단계는 별도로 고정된 다이제스트 검증 npm CLI(현재 npm 11.21.0)를 레지스트리 tarball에서
+  프로비저닝합니다
+  ([ADR 0082](docs/decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md),
+  [ADR 0084](docs/decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md)).
 
 이 윈도우는 프로파일이 실행하는 모든 패키지 매니저가 출처 증명 레코드가 커버하는 배포본을 갖도록
 하기 위해 존재합니다. Corepack 하에서 pnpm 12 소비자가 실제로 실행하는 네이티브 바이너리는 빌더의
