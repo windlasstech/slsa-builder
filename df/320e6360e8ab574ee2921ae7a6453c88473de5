@@ -1,0 +1,43 @@
+cmd/slsa-builder-internal/main.go
+  s_7f9627a8dd5250::t_7f318f9ad74d95 20
+internal/command/AGENTS.md
+  s_7f9627a8dd5250::t_51f85d28ff5884 34
+  s_e7eedd28b5387d::t_6388b5429eceb9 13-26,35-37
+internal/npmprofile/AGENTS.md
+  s_7f9627a8dd5250::t_51f85d28ff5884 18-19,77-78
+  s_e7eedd28b5387d::t_6388b5429eceb9 47,79-80
+internal/command/npm_profile_toolchain_assert.go
+  s_7f9627a8dd5250::t_7f318f9ad74d95 1-62
+internal/npmprofile/toolchain_assert_test.go
+  s_7f9627a8dd5250::t_88fff391f1acee 45-46,80
+  s_7f9627a8dd5250::t_e3887a046cd71b 1-24,26-44,47-79,81-85
+  s_7f9627a8dd5250::t_f6615a8ea53825 25
+internal/npmprofile/toolchain_assert.go
+  s_7f9627a8dd5250::t_095ea0e15b3880 1-57
+internal/command/npm_profile_toolchain_assert_test.go
+  s_7f9627a8dd5250::t_301f6caebe56ad 1-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df320e6360e8ab574ee2921ae7a6453c88473de5",
+  "prompts": {},
+  "sessions": {
+    "s_7f9627a8dd5250": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ece8086c9ffe23bqaXDmt9W8AJ",
+        "model": "gpt-6-sol-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_e7eedd28b5387d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece8086c9ffe23bqaXDmt9W8AJ",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
