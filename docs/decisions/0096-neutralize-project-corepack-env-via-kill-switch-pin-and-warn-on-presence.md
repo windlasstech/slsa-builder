@@ -15,6 +15,12 @@ relations:
     target: ADR-0088
   - type: see-also
     target: ADR-0095
+  - type: amended-by
+    target: ADR-0097
+    scope:
+      "ADR 0096 closed the build-influence channel of a project .corepack.env and left tarball
+      inclusion unaddressed; ADR 0097 adds a post-pack gate rejecting the file when it would ship in
+      the packed artifact. The COREPACK_ENV_FILE=0 pin and the presence warning are unchanged."
 ---
 
 # Neutralize the Project .corepack.env with a Pinned COREPACK_ENV_FILE=0 and Warn on Its Presence

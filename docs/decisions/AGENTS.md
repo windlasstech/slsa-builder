@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0096`.
+`0097`.
 
 ## STRUCTURE
 
@@ -28,11 +28,12 @@ docs/decisions/
 ├── 0094-pin-descriptor-digest-format-to-a-hex-suffix.md
 ├── 0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md
 ├── 0096-neutralize-project-corepack-env-via-kill-switch-pin-and-warn-on-presence.md
+├── 0097-reject-a-packed-corepack-env-at-the-post-pack-artifact-gate.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0096`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0097`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -79,7 +80,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | Uniform selection source       | `0091`                                                     | devEngines.packageManager selects any supported package manager.                                                               |
 | Descriptor digest declarations | `0092`–`0094`                                              | Optional declared digests, SRI algorithm set, hex-suffix format.                                                               |
 | npm descriptor semantics       | `0095`                                                     | Declared npm versions warn on mismatch; npm digest suffixes are rejected.                                                      |
-| Project .corepack.env policy   | `0096`                                                     | Neutralized by a pinned COREPACK_ENV_FILE=0; presence produces a non-fatal warning.                                            |
+| Project .corepack.env policy   | `0096`–`0097`                                              | Neutralized by a pinned COREPACK_ENV_FILE=0; presence warns. A packed file is rejected at the post-pack gate (0097).           |
 
 ## CONVENTIONS
 

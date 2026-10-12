@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0096`까지입니다.
+`0097`까지입니다.
 
 | 범위      | 주제                                      | 설명                                                                                                |
 | --------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -77,6 +77,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0094      | 다이제스트 형식 hex 접미사 핀             | 선언 다이제스트는 두 manifest 필드 모두 +algorithm.<hex> 접미사. SRI base64는 거부.                 |
 | 0095      | npm 선언 불일치 경고와 다이제스트 거부    | 선언 npm 버전은 불일치 경고와 함께 수용. npm 다이제스트 접미사는 거부. npm CLI 자체 강제는 범위 밖. |
 | 0096      | 프로젝트 .corepack.env 무력화와 경고      | 빌더가 COREPACK_ENV_FILE=0을 핀하여 프로젝트 파일을 로드하지 않음. 존재 시 비치명적 경고.           |
+| 0097      | 패킹된 .corepack.env의 post-pack 거부     | tarball에 포함될 .corepack.env를 파서 없이 post-pack에서 거부. 0096의 핀과 경고는 변경 없음.        |
 
 ## ADR status와 relations
 
@@ -232,6 +233,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0094 | Pin the descriptor digest format to a hex suffix                                                    | JS/TS npm build and pack(descriptor digest grammar), verification policy and fixtures                                                                                               |
 | 0095 | Accept npm version declarations with a mismatch warning and reject npm digests                      | JS/TS npm build and pack(npm descriptor semantics), verification policy and fixtures, README                                                                                        |
 | 0096 | Neutralize the project .corepack.env with a pinned COREPACK_ENV_FILE=0 and warn on its presence     | JS/TS npm build and pack(credential-configuration preflight), verification policy and fixtures                                                                                      |
+| 0097 | Reject a packed .corepack.env at the post-pack artifact gate                                        | JS/TS npm build and pack(post-pack artifact gate), verification policy and fixtures                                                                                                 |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

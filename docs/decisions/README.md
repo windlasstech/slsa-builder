@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0096`.
+sequence currently runs from `0000` through `0097`.
 
 | Range     | Topic                                                      | Notes                                                                                                                                   |
 | --------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -78,6 +78,7 @@ sequence currently runs from `0000` through `0096`.
 | 0094      | Digest format pinned to a hex suffix                       | Declared digests are written as +algorithm.<hex> suffixes in both manifest fields; SRI base64 is rejected.                              |
 | 0095      | npm declarations: warn on version mismatch, reject digests | Declared npm versions are accepted with a mismatch warning; npm digest suffixes are rejected; npm CLI self-enforcement is out of scope. |
 | 0096      | Project .corepack.env: neutralize and warn                 | The builder pins COREPACK_ENV_FILE=0 so the project file is never loaded; its presence yields a non-fatal warning.                      |
+| 0097      | Packed .corepack.env: reject at the post-pack gate         | A .corepack.env that would ship inside the packed tarball is rejected post-pack with no parser; the 0096 pin and warning are unchanged. |
 
 ## ADR status and relations
 
@@ -235,6 +236,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0094 | Pin the descriptor digest format to a hex suffix                                                    | JS/TS npm build and pack (descriptor digest grammar), verification policy and fixtures                                                                                                           |
 | 0095 | Accept npm version declarations with a mismatch warning and reject npm digests                      | JS/TS npm build and pack (npm descriptor semantics), verification policy and fixtures, README                                                                                                    |
 | 0096 | Neutralize the project .corepack.env with a pinned COREPACK_ENV_FILE=0 and warn on its presence     | JS/TS npm build and pack (credential-configuration preflight), verification policy and fixtures                                                                                                  |
+| 0097 | Reject a packed .corepack.env at the post-pack artifact gate                                        | JS/TS npm build and pack (post-pack artifact gate), verification policy and fixtures                                                                                                             |
 
 ### Superseded or deprecated ADRs (historical only)
 
