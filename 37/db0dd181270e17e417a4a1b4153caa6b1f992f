@@ -1,0 +1,29 @@
+internal/npmprofile/npm_purl_live_test.go
+  s_3e496810350264::t_4e2921078d25ce 3-11,13-15,20-46,51-75,77-122
+  s_3e496810350264::t_9fe28f5510953d 17-19,47-50,76
+  s_3e496810350264::t_35b3240a0e299d 1-2,12,16,123
+testdata/npm/packages/npm-purl-publish-11-21-0-scoped-valid/README.md
+  s_3e496810350264::t_70d9873dfd6eb0 9-13
+testdata/npm/packages/npm-purl-build-11-19-0-scoped-valid/README.md
+  s_3e496810350264::t_70d9873dfd6eb0 9-13
+testdata/npm/packages/npm-purl-publish-11-21-0-unscoped-valid/README.md
+  s_3e496810350264::t_70d9873dfd6eb0 9-13
+testdata/npm/packages/npm-purl-build-11-19-0-unscoped-valid/README.md
+  s_3e496810350264::t_70d9873dfd6eb0 9-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "37db0dd181270e17e417a4a1b4153caa6b1f992f",
+  "prompts": {},
+  "sessions": {
+    "s_3e496810350264": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ece2958bbffeWhS115pYM1BKNL",
+        "model": "gpt-6-sol-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
