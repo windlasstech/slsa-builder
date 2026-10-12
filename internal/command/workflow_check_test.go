@@ -118,10 +118,12 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: "24.21.0"}
       - working-directory: .slsa-builder
-        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only
+        env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
+        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only --report-path "$REPORT_PATH"
       - id: npm-provision
         working-directory: .slsa-builder
-        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory "${{ runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT"
+        env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
+        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory "${{ runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT" --report-path "$REPORT_PATH"
       - run: '"${{ steps.npm-provision.outputs.npm-executable }}" --version'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with: {name: "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"}
