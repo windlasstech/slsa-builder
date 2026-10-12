@@ -1,0 +1,51 @@
+docs/decisions/0095-accept-npm-version-declarations-with-mismatch-warning-and-reject-npm-digests.md
+  s_92db9df814a216::t_c696b758189254 28-29
+docs/decisions/0096-neutralize-project-corepack-env-via-kill-switch-pin-and-warn-on-presence.md
+  s_92db9df814a216::t_b507f3cd131406 24-30,46-54,58-63,65-71,82-83,92-93,104-107,119-121,123-124,126-127,134-137,146-151,157-158,162,172-176,194-195,201-202,207-211,220-221,228-231,235-236,241-246,269-270,274-275,277-279
+  s_92db9df814a216::t_732ef92fd72c87 213,217
+  s_92db9df814a216::t_0e8507a8516138 247-248,251,257
+  s_92db9df814a216::t_204f1ef24a02ce 1-3,5-23,31-45,64,72-81,84-91,94-95,97,101-103,108-118,122,125,128-133,138-145,152-156,159-161,163-171,177-193,196-198,200,203-206,212,214-216,218-219,222-227,232-234,237-240,268,273,276,280-282
+  s_92db9df814a216::t_9df6802e313b9c 55-57
+  s_92db9df814a216::t_4c311ea8700ba2 271-272
+  s_92db9df814a216::t_8494214d9e9992 96
+  s_92db9df814a216::t_1d284b5c6446ca 98-100
+  s_92db9df814a216::t_247426bf44e462 249-250,252-256,258-267
+  s_92db9df814a216::t_9b2ee569208c90 4
+  s_f0b25e6973a113::t_f367ad4084e7aa 199
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_92db9df814a216::t_a9e49ee9b92ddf 41-42
+docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+  s_92db9df814a216::t_0252fb6468e5dd 62-63
+docs/decisions/0016-use-corepack-for-pnpm-and-yarn-build-stages.md
+  s_92db9df814a216::t_133196595b8939 22-23
+docs/decisions/README.md
+  s_92db9df814a216::t_0db0db0ed7c806 32
+  s_92db9df814a216::t_15d8c5b670529d 80
+  s_92db9df814a216::t_59c5ca31e1848d 237
+docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md
+  s_92db9df814a216::t_75e90ba33215c6 36-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "77366e033e71a4075eb214ebe8831c9dcc694f5a",
+  "prompts": {},
+  "sessions": {
+    "s_92db9df814a216": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed1f2485fffeOP3EyrekBUcRxn",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f0b25e6973a113": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ed1f2485fffeOP3EyrekBUcRxn",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
