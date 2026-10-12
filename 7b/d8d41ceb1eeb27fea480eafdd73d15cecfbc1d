@@ -1,0 +1,22 @@
+internal/diagnostic/publish_metadata_test.go
+  s_e8f31289c3680b::t_e3c31536f23455 10-49
+internal/diagnostic/metadata_json.go
+  s_e8f31289c3680b::t_50c40b1780e3df 47-77
+  s_e8f31289c3680b::t_eb97394965af50 29-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7bd8d41ceb1eeb27fea480eafdd73d15cecfbc1d",
+  "prompts": {},
+  "sessions": {
+    "s_e8f31289c3680b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ece079822ffe7WKNe0S4n8txkN",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
