@@ -45,7 +45,7 @@ func installFakeToolchain(t *testing.T) {
 // verified Corepack behavior: the cache directory, the `.corepack`
 // locator.reference, and the Installing debug line carry the full reference
 // while `--version` still prints the plain version.
-func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReference string) {
+func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReference string) string {
 	t.Helper()
 	root := t.TempDir()
 	fakebin := filepath.Join(root, "fakebin")
@@ -77,6 +77,7 @@ func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReferen
 	writeScript(t, data, "yarn-shim", expand(fakeYarnShimScript))
 
 	t.Setenv("PATH", fakebin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return data
 }
 
 // distributionFetchLog records every URL the fake fetcher served so tests can
@@ -214,6 +215,7 @@ exit 0
 `
 
 const fakeCorepackScript = `#!/bin/sh
+printf '%s\n' "corepack corepack_env_file=${COREPACK_ENV_FILE-<unset>}" >> "@DATA_DIR@/invocations.log"
 case "$1" in
   --version)
     printf '` + fakeCorepackVersion + `\n'
@@ -244,6 +246,7 @@ exit 0
 `
 
 const fakePNPMShimScript = `#!/bin/sh
+printf '%s\n' "pnpm corepack_env_file=${COREPACK_ENV_FILE-<unset>}" >> "@DATA_DIR@/invocations.log"
 case "$1" in
   --version)
     reference=$(cat "@DATA_DIR@/pnpm.reference")
@@ -289,6 +292,7 @@ exit 0
 `
 
 const fakeYarnShimScript = `#!/bin/sh
+printf '%s\n' "yarn corepack_env_file=${COREPACK_ENV_FILE-<unset>}" >> "@DATA_DIR@/invocations.log"
 case "$1" in
   --version)
     reference=$(cat "@DATA_DIR@/yarn.reference")

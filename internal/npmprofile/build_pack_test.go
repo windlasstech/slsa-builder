@@ -81,6 +81,59 @@ func TestBuildMetadata(t *testing.T) {
 	}
 }
 
+func TestBuildPackCorepackEnvIgnoredOnCorepackPath(t *testing.T) {
+	clearToolchainRootEnvironment(t)
+	dataDir := installFakeToolchainWithReferences(t, fakePNPMVersion, fakeYarnVersion)
+	repository := filepath.Join(t.TempDir(), "repository")
+	source := filepath.Join(testRepositoryRoot(t), "testdata", "npm", "packages", "scoped-valid")
+	if err := os.CopyFS(repository, os.DirFS(source)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repository, ".corepack.env"), []byte("COREPACK_ENABLE_AUTO_PIN=0\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	selection := analyze(t, repository, ".")
+	output := filepath.Join(t.TempDir(), "output")
+	if err := os.Mkdir(output, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	t.Cleanup(cancel)
+	fetcher, _ := fakeDistributionFetcher(t)
+	result, err := BuildPack(ctx, BuildPackConfig{
+		Selection:          selection,
+		OutputDirectory:    output,
+		ArtifactName:       "js-ts-npm-package-tarball-123456789-1",
+		ExternalParameters: json.RawMessage(`{"test_case":"real-tool-build-pack"}`),
+		fetcher:            fetcher,
+	})
+	if err != nil {
+		t.Fatalf("BuildPack() error: %v", err)
+	}
+	count := 0
+	for _, entry := range result.Diagnostics {
+		if entry.ID == IDProjectCorepackEnvIgnored {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("diagnostics = %#v, want exactly one %s warning", result.Diagnostics, IDProjectCorepackEnvIgnored)
+	}
+	log, err := os.ReadFile(filepath.Join(dataDir, "invocations.log"))
+	if err != nil {
+		t.Fatalf("Corepack-path invocations were not recorded: %v", err)
+	}
+	invocations := strings.Split(strings.TrimSpace(string(log)), "\n")
+	for _, invocation := range invocations {
+		if !strings.Contains(invocation, "corepack_env_file=0") {
+			t.Fatalf("Corepack-path subprocess ran without the COREPACK_ENV_FILE=0 pin: %q", invocation)
+		}
+	}
+	if !strings.Contains(string(log), "pnpm") {
+		t.Fatalf("no Corepack-managed pnpm invocation recorded: %q", log)
+	}
+}
+
 func TestBuildPackCorepackEnvIgnored(t *testing.T) {
 	result := runBuildPackFixtureWithSetup(t, "npm-root-valid", func(t *testing.T, repository string) {
 		t.Helper()
