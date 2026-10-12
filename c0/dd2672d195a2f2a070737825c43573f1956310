@@ -1,0 +1,24 @@
+internal/npmprofile/build_pack_hermetic_test.go
+  s_92db9df814a216::t_68ac8f2c9a215f 218
+  s_92db9df814a216::t_4156eb791afa9d 48
+  s_92db9df814a216::t_d14d30e1a5f154 295
+  s_92db9df814a216::t_23082f64220d91 80,249
+internal/npmprofile/build_pack_test.go
+  s_92db9df814a216::t_0a0403e55faed4 84-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c0dd2672d195a2f2a070737825c43573f1956310",
+  "prompts": {},
+  "sessions": {
+    "s_92db9df814a216": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ed1f2485fffeOP3EyrekBUcRxn",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
