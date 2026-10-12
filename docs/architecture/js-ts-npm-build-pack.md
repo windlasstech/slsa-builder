@@ -698,6 +698,17 @@ ignored in release builds, and the build must proceed. An inspection failure oth
 degrades to the same warning instead of stopping the build, because the invariant no longer depends
 on the inspection (ADR 0096). The npm path is unaffected: npm builds never invoke Corepack.
 
+Independently of load neutralization, the packed artifact must not carry the file (ADR 0097). After
+the pack step completes and the packed artifact's identity is re-verified against the manifest, and
+before packed metadata is written, the packed tarball's entry list, which the archive inspection
+already path-validates and collects, must be screened: if any regular-file entry's final path
+segment is `.corepack.env`, the build must fail closed with
+`windlass.verify.error.packed-corepack-env-prohibited`, and the error must instruct the consumer to
+declare a `files` allowlist that excludes the file or to remove it before publishing. The screening
+is a filename comparison over already-validated entry paths; the file is never opened, read, or
+parsed. The rule applies uniformly to the npm, pnpm, and Yarn pack paths, because no manager's
+built-in pack ignore list covers `.corepack.env`.
+
 ### Packed tarball name
 
 The authoritative tarball name is the basename of the single file produced by the selected package
@@ -876,6 +887,7 @@ must emit the canonical diagnostic ID.
 | Captured runner-image evidence has a malformed descriptor, carries a digest, or disagrees with the observed runner values.                                                                                                                                                         | `windlass.verify.error.resolved-dependencies-runner-image`                 | `resolved-dependencies-runner-image`                 | verification | `1`       | `false`             |
 | `repository` is missing, malformed, unsupported, or normalizes to an identity different from the observed caller repository.                                                                                                                                                       | `windlass.verify.error.package-repository-identity-mismatch`               | `package-repository-identity-mismatch`               | policy       | `1`       | `false`             |
 | Packed `name` or `version` differs from the selected source manifest.                                                                                                                                                                                                              | `windlass.verify.error.packed-package-metadata-mismatch`                   | `packed-package-metadata-mismatch`                   | verification | `1`       | `false`             |
+| A packed tarball entry's final path segment is `.corepack.env`.                                                                                                                                                                                                                    | `windlass.verify.error.packed-corepack-env-prohibited`                     | `packed-corepack-env-prohibited`                     | verification | `1`       | `false`             |
 | The selected package manager's pack command fails, produces no file or more than one file, produces an unsafe basename, or produces a basename without a `.tgz` suffix.                                                                                                            | `windlass.verify.error.package-pack-failed`                                | `package-pack-failed`                                | verification | `1`       | `false`             |
 
 The package-repository-identity diagnostic stops before install, build, or pack. Every other policy

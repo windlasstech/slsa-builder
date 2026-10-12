@@ -197,6 +197,7 @@ package-repository-identity-mismatch
 package-resolution-invalid
 package-url-mismatch
 package-version-mismatch
+packed-corepack-env-prohibited
 packed-package-metadata-mismatch
 pnpm-version-unsupported
 policy-schema-invalid
