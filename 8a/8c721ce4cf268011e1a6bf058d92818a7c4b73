@@ -1,0 +1,46 @@
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_eae5e711d5f72b::t_30fda3c0b59d10 1545
+  s_eae5e711d5f72b::t_f3fabbb5669d22 1508-1513,1546-1548
+  s_eae5e711d5f72b::t_bce1f4798a7677 1504-1507
+  s_eae5e711d5f72b::t_e73b44a4885ac0 1528
+  s_eae5e711d5f72b::t_6995d5d54ffc5d 1499-1500
+docs/architecture/js-ts-npm-build-pack.md
+  s_eae5e711d5f72b::t_10efb94f6e8a58 707-709
+  s_eae5e711d5f72b::t_7590806a9f5472 653-656
+  s_eae5e711d5f72b::t_5f6f7bc8f292d6 719-721
+  s_eae5e711d5f72b::t_3f399503f8eb89 579-580
+  s_eae5e711d5f72b::t_0d5fbfb927efaa 663-667,674-679
+  s_eae5e711d5f72b::t_667ae306cfaf9d 646-647
+  s_eae5e711d5f72b::t_a0fe571212aded 586-589,595,605-610,614,625-630,633-637,641,644-645,662,668-672
+  s_eae5e711d5f72b::t_7cfc93d8474249 648-652
+  s_eae5e711d5f72b::t_985c2bcbf7c5ab 683,686-689,693-696
+  s_eae5e711d5f72b::t_f3fabbb5669d22 590-594,596-597,603-604,611-613,618-624,631-632,638-640,642-643,657-661,684-685,690-692,711-715,722-728,734-738
+  s_eae5e711d5f72b::t_18bf7b062bf40c 673
+docs/architecture/js-ts-npm-package-profile.md
+  s_eae5e711d5f72b::t_45619f210d4261 629
+docs/architecture/verification-policy-and-fixtures.md
+  s_eae5e711d5f72b::t_5af0c3666ee78c 1466
+  s_eae5e711d5f72b::t_f3fabbb5669d22 948-953,955-958,1328-1465,1467-1471
+  s_eae5e711d5f72b::t_1aaceeb7c653b0 954
+internal/diagnostic/registry.go
+  s_eae5e711d5f72b::t_7abbfcd45b1b1f 70-73
+  s_eae5e711d5f72b::t_4cd8e35461d6ec 186-190
+internal/diagnostic/diagnostic_test.go
+  s_eae5e711d5f72b::t_fcb01af9d869f6 162-163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8a8c721ce4cf268011e1a6bf058d92818a7c4b73",
+  "prompts": {},
+  "sessions": {
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
