@@ -15,11 +15,11 @@ func TestPublishExecutableBinding(t *testing.T) {
 				t.Parallel()
 				// Given diagnostics using the same environment variable as production.
 				contents := replaceOnce(t, validNPMOnlyWorkflow,
-					"      - run: '\""+provisionOutput+"\" --version'",
-					"      - run: '\"$NPM_EXECUTABLE\" --version'")
+					"      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'\n        run: '\""+provisionOutput+"\" --version'",
+					"      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'\n        run: '\"$NPM_EXECUTABLE\" --version'")
 				if scope == "step" {
-					contents = replaceOnce(t, contents, "      - run: '\"$NPM_EXECUTABLE\" --version'",
-						"      - env:\n          NPM_EXECUTABLE: \""+binding+"\"\n        run: '\"$NPM_EXECUTABLE\" --version'")
+					contents = replaceOnce(t, contents, "      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'\n        run: '\"$NPM_EXECUTABLE\" --version'",
+						"      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'\n        env:\n          NPM_EXECUTABLE: \""+binding+"\"\n        run: '\"$NPM_EXECUTABLE\" --version'")
 				} else {
 					contents = replaceOnce(t, contents, "  publish:\n", "  publish:\n    env:\n      NPM_EXECUTABLE: \""+binding+"\"\n")
 				}

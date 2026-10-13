@@ -11,6 +11,7 @@ const (
 	toolchainAssertCommand = "go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert"
 	provisionNPMCommand    = "go run ./cmd/slsa-builder-internal npm-profile-provision-npm"
 	outcomeReportPath      = "${{ runner.temp }}/windlass-npm-outcome-report.json"
+	publishToolchainGate   = "needs.build.result == 'success' && needs.provenance-sign.result == 'success'"
 )
 
 // Exclude npm-profile subcommands, npm-executable flags, and diagnostic labels (npm:).
@@ -58,6 +59,17 @@ func checkPublishToolchain(job workflowJob) error {
 	steps := job.Steps
 	if err := checkToolchainConditions(steps); err != nil {
 		return err
+	}
+	for _, current := range steps {
+		run := toolchainShellText(current.Run)
+		if (runtimeReferencePattern.MatchString(run) || strings.Contains(run, "npm-profile-provision-node") ||
+			strings.Contains(run, "GITHUB_PATH") || strings.Contains(run, "npm-profile-toolchain-assert") ||
+			strings.Contains(run, "npm-profile-provision-npm") || strings.Contains(run, "npm-profile-build") ||
+			strings.Contains(run, "npm-profile-sign") || strings.Contains(run, "npm-profile-publish") ||
+			strings.Contains(run, "npm-executable") || strings.Contains(run, "NPM_EXECUTABLE")) &&
+			normalizeExpression(strings.Join(strings.Fields(normalizeExpression(current.If)), " ")) != publishToolchainGate {
+			return fmt.Errorf("publish toolchain step conditions must use the upstream-success gate")
+		}
 	}
 	nodeReady := false
 	nodeID := ""

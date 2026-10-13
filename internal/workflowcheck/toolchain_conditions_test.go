@@ -54,11 +54,64 @@ func TestToolchainConditionsUniformGate(t *testing.T) {
 			// When the public workflow contract is checked.
 			_, err = CheckNPMOnlyProfile(writeWorkflowDocument(t, document))
 			// Then build and sign provisioning cannot be conditional, even uniformly.
-			wantError := gate != ""
-			if (err != nil) != wantError {
-				t.Fatalf("uniform gate error = %v, want error %v", err, wantError)
+			if err == nil {
+				t.Fatal("uniform gate was accepted, want rejection")
 			}
 		})
+	}
+}
+
+func TestPublishToolchainRequiresUpstreamSuccessGate(t *testing.T) {
+	t.Parallel()
+	const upstreamGate = "needs.build.result == 'success' && needs.provenance-sign.result == 'success'"
+	for _, test := range []struct {
+		name      string
+		condition string
+		wantError bool
+	}{
+		{name: "uniform success", condition: "success()", wantError: true},
+		{name: "uniform omission", condition: "", wantError: true},
+		{name: "partial gate", condition: "needs.build.result == 'success'", wantError: true},
+		{name: "expression wrapper and outer whitespace", condition: "  ${{  " + upstreamGate + "  }}  "},
+		{name: "production gate", condition: upstreamGate},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			// Given an otherwise valid workflow with the same condition on all publish toolchain steps.
+			document, err := decodeWorkflow([]byte(validNPMOnlyWorkflow))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for index, step := range document.Jobs["publish"].Steps {
+				if step.If == upstreamGate && (runtimeReferencePattern.MatchString(step.Run) ||
+					strings.Contains(step.Run, "npm-profile-provision-node") ||
+					strings.Contains(step.Run, "GITHUB_PATH") ||
+					strings.Contains(step.Run, "npm-profile-toolchain-assert") ||
+					strings.Contains(step.Run, "npm-profile-provision-npm") ||
+					strings.Contains(step.Run, "npm-profile-build") || strings.Contains(step.Run, "npm-profile-sign") ||
+					strings.Contains(step.Run, "npm-profile-publish") || strings.Contains(step.Run, "npm-executable") ||
+					strings.Contains(step.Run, "NPM_EXECUTABLE")) {
+					document.Jobs["publish"].Steps[index].If = test.condition
+				}
+			}
+			// When the public workflow contract is checked.
+			_, err = CheckNPMOnlyProfile(writeWorkflowDocument(t, document))
+			// Then only the normalized upstream-success gate is accepted.
+			if (err != nil) != test.wantError {
+				t.Fatalf("publish toolchain condition error = %v, want error %v", err, test.wantError)
+			}
+		})
+	}
+}
+
+func TestProductionWorkflowAcceptsPublishToolchainGate(t *testing.T) {
+	t.Parallel()
+	// Given the production workflow fixture with its checked-in upstream-success gates.
+	// When the public workflow contract is checked.
+	_, err := CheckNPMOnlyProfile("../../.github/workflows/js-ts-npm-package-slsa3.yml")
+	// Then the production gate remains accepted.
+	if err != nil {
+		t.Fatalf("production workflow rejected: %v", err)
 	}
 }
 

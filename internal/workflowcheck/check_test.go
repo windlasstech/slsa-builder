@@ -233,19 +233,25 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with: {name: "js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}"}
       - id: node-provision
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         working-directory: .slsa-builder
         env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
         run: go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{ runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT" --report-path "$REPORT_PATH"
-      - run: echo "${{ steps.node-provision.outputs.node-bin }}" >> "$GITHUB_PATH"
+      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        run: echo "${{ steps.node-provision.outputs.node-bin }}" >> "$GITHUB_PATH"
       - working-directory: .slsa-builder
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
         run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only --report-path "$REPORT_PATH"
       - id: npm-provision
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         working-directory: .slsa-builder
         env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
         run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory "${{ runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT" --report-path "$REPORT_PATH"
-      - run: '"${{ steps.npm-provision.outputs.npm-executable }}" --version'
+      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        run: '"${{ steps.npm-provision.outputs.npm-executable }}" --version'
       - id: publish
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         run: go run ./cmd/slsa-builder-internal npm-profile-publish --npm-executable "${{ steps.npm-provision.outputs.npm-executable }}"
       - if: always()
         run: go run ./cmd/slsa-builder-internal npm-profile-report
@@ -407,9 +413,10 @@ func writeWorkflow(t *testing.T, contents string) string {
 func TestToolchainContractRejectsDrift(t *testing.T) {
 	t.Parallel()
 	const pairStep = "      - working-directory: .slsa-builder\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert\n"
-	const nodeOnlyStep = "      - working-directory: .slsa-builder\n        env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only --report-path \"$REPORT_PATH\"\n"
-	const provisionStep = "      - id: npm-provision\n        working-directory: .slsa-builder\n        env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory \"${{ runner.temp }}/windlass-npm-cli\" --github-output \"$GITHUB_OUTPUT\" --report-path \"$REPORT_PATH\"\n"
-	const diagnostics = "      - run: '\"${{ steps.npm-provision.outputs.npm-executable }}\" --version'\n"
+	const publishGate = "if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'\n        "
+	const nodeOnlyStep = "      - working-directory: .slsa-builder\n        " + publishGate + "env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only --report-path \"$REPORT_PATH\"\n"
+	const provisionStep = "      - id: npm-provision\n        " + publishGate + "working-directory: .slsa-builder\n        env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory \"${{ runner.temp }}/windlass-npm-cli\" --github-output \"$GITHUB_OUTPUT\" --report-path \"$REPORT_PATH\"\n"
+	const diagnostics = "      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'\n        run: '\"${{ steps.npm-provision.outputs.npm-executable }}\" --version'\n"
 	const output = "${{ steps.npm-provision.outputs.npm-executable }}"
 
 	for _, job := range []string{"build", "provenance-sign", "publish"} {
@@ -484,8 +491,8 @@ func TestPublishToolchainAcceptsProvisionOutput(t *testing.T) {
 			t.Parallel()
 			// Given
 			contents := strings.ReplaceAll(validNPMOnlyWorkflow, "npm-provision", id)
-			contents = replaceOnce(t, contents, "      - run: '\"${{ steps."+id+".outputs.npm-executable }}\" --version'",
-				"      - run: |\n          echo \"node: $(node --version), npm: $(\"${{ steps."+id+".outputs.npm-executable }}\" --version)\"\n          \"${{ steps."+id+".outputs.npm-executable }}\" config ls")
+			contents = replaceOnce(t, contents, "      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'\n        run: '\"${{ steps."+id+".outputs.npm-executable }}\" --version'",
+				"      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'\n        run: |\n          echo \"node: $(node --version), npm: $(\"${{ steps."+id+".outputs.npm-executable }}\" --version)\"\n          \"${{ steps."+id+".outputs.npm-executable }}\" config ls")
 			// When
 			_, err := CheckPublishJob(writeWorkflow(t, contents))
 			// Then
