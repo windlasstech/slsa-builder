@@ -1,0 +1,19 @@
+docs/decisions/0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md
+  s_eae5e711d5f72b::t_012cf5ee48ec04 107-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e689169c6146988fc36cb40113456b13f1425fa",
+  "prompts": {},
+  "sessions": {
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
