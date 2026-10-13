@@ -408,7 +408,11 @@ func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
 	if !result.AlwaysRunReport {
 		return fmt.Errorf("publish job must always generate and upload the outcome report")
 	}
-	return checkToolchainSequence(job, toolchainPolicy{job: "publish", publish: true})
+	spine, err := checkNodeProvisioning(job, toolchainPolicy{job: "publish", publish: true})
+	if err != nil {
+		return err
+	}
+	return checkPublishToolchain(job, spine)
 }
 
 func sortedNeeds(value any) []string {
@@ -481,7 +485,12 @@ func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobRes
 	if result.BundleArtifactName != provenanceBundleArtifactName {
 		return fmt.Errorf("provenance bundle artifact name is %q, want %q", result.BundleArtifactName, provenanceBundleArtifactName)
 	}
-	return checkToolchainSequence(workflowJob{Steps: steps}, toolchainPolicy{job: "provenance-sign"})
+	policy := toolchainPolicy{job: "provenance-sign"}
+	spine, err := checkNodeProvisioning(workflowJob{Steps: steps}, policy)
+	if err != nil {
+		return err
+	}
+	return checkPairAssertion(steps, policy, spine)
 }
 
 func checkSteps(steps []workflowStep, result *BuildJobResult) error {
@@ -538,9 +547,10 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if resolverIndex < 0 || packageCheckoutIndex < 0 || resolverIndex >= packageCheckoutIndex {
 		return fmt.Errorf("source-ref resolver must precede the package source checkout")
 	}
-	sequenceErr := checkToolchainSequence(workflowJob{Steps: steps}, toolchainPolicy{job: "build"})
-	if _, usageError := sequenceErr.(*toolchainUsageError); sequenceErr != nil && !usageError {
-		return sequenceErr
+	policy := toolchainPolicy{job: "build"}
+	spine, err := checkNodeProvisioning(workflowJob{Steps: steps}, policy)
+	if err != nil {
+		return err
 	}
 	if !hasCorepack {
 		return fmt.Errorf("build job must enable Corepack")
@@ -548,7 +558,7 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if !hasBuild {
 		return fmt.Errorf("build job must invoke npm-profile-build")
 	}
-	return sequenceErr
+	return checkPairAssertion(steps, policy, spine)
 }
 
 func containsAll(value string, required ...string) bool {
