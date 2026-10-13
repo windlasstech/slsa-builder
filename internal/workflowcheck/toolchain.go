@@ -24,16 +24,16 @@ var npmExecutableArgumentPattern = regexp.MustCompile(`(?:^|[\s;|&])--npm-execut
 // errors, without repeating the Node.js sequencing validation.
 type toolchainUsageError struct{ error }
 
-func (sequence *toolchainSequence) checkUsageStep(current workflowStep, job workflowJob, name string) error {
+func (sequence *toolchainSequence) checkUsageStep(current workflowStep, job workflowJob, policy toolchainPolicy) error {
 	run := current.Run
-	if name != "publish" {
+	if !policy.publish {
 		if (npmReferencePattern.MatchString(run) || strings.Contains(run, "npm-profile-build") ||
 			strings.Contains(run, "npm-profile-sign")) && !sequence.asserted {
-			return fmt.Errorf("%s toolchain pair assertion must precede every npm invocation", name)
+			return fmt.Errorf("%s toolchain pair assertion must precede every npm invocation", policy.job)
 		}
 		if strings.Contains(run, "npm-profile-toolchain-assert") {
 			if !sequence.bound || current.WorkingDirectory != ".slsa-builder" || strings.TrimSpace(run) != toolchainAssertCommand {
-				return fmt.Errorf("%s job must invoke npm-profile-toolchain-assert from the trusted checkout after Node.js setup", name)
+				return fmt.Errorf("%s job must invoke npm-profile-toolchain-assert from the trusted checkout after Node.js setup", policy.job)
 			}
 			sequence.asserted = true
 		}

@@ -408,7 +408,7 @@ func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
 	if !result.AlwaysRunReport {
 		return fmt.Errorf("publish job must always generate and upload the outcome report")
 	}
-	return checkToolchainSequence(job, "publish")
+	return checkToolchainSequence(job, toolchainPolicy{job: "publish", publish: true})
 }
 
 func sortedNeeds(value any) []string {
@@ -481,7 +481,7 @@ func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobRes
 	if result.BundleArtifactName != provenanceBundleArtifactName {
 		return fmt.Errorf("provenance bundle artifact name is %q, want %q", result.BundleArtifactName, provenanceBundleArtifactName)
 	}
-	return checkToolchainSequence(workflowJob{Steps: steps}, "provenance-sign")
+	return checkToolchainSequence(workflowJob{Steps: steps}, toolchainPolicy{job: "provenance-sign"})
 }
 
 func checkSteps(steps []workflowStep, result *BuildJobResult) error {
@@ -538,7 +538,7 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if resolverIndex < 0 || packageCheckoutIndex < 0 || resolverIndex >= packageCheckoutIndex {
 		return fmt.Errorf("source-ref resolver must precede the package source checkout")
 	}
-	sequenceErr := checkToolchainSequence(workflowJob{Steps: steps}, "build")
+	sequenceErr := checkToolchainSequence(workflowJob{Steps: steps}, toolchainPolicy{job: "build"})
 	if _, usageError := sequenceErr.(*toolchainUsageError); sequenceErr != nil && !usageError {
 		return sequenceErr
 	}

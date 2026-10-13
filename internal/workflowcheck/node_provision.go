@@ -24,7 +24,14 @@ type toolchainSequence struct {
 	npmProvisionID string
 }
 
-func checkToolchainSequence(job workflowJob, name string) error {
+// toolchainPolicy states a job's toolchain requirements explicitly, so the
+// shared sequencing walk never branches on a free-form job name.
+type toolchainPolicy struct {
+	job     string
+	publish bool
+}
+
+func checkToolchainSequence(job workflowJob, policy toolchainPolicy) error {
 	if err := checkToolchainConditions(job.Steps); err != nil {
 		return err
 	}
@@ -37,10 +44,10 @@ func checkToolchainSequence(job workflowJob, name string) error {
 	var gateErr, usageErr error
 	for _, step := range job.Steps {
 		step.Run = toolchainShellText(step.Run)
-		if err := sequence.checkNodeStep(step, name); err != nil {
+		if err := sequence.checkNodeStep(step, policy); err != nil {
 			return err
 		}
-		if name == "publish" && (runtimeReferencePattern.MatchString(step.Run) || strings.Contains(step.Run, "npm-profile-provision-node") ||
+		if policy.publish && (runtimeReferencePattern.MatchString(step.Run) || strings.Contains(step.Run, "npm-profile-provision-node") ||
 			strings.Contains(step.Run, "GITHUB_PATH") || strings.Contains(step.Run, "npm-profile-toolchain-assert") ||
 			strings.Contains(step.Run, "npm-profile-provision-npm") || strings.Contains(step.Run, "npm-profile-build") ||
 			strings.Contains(step.Run, "npm-profile-sign") || strings.Contains(step.Run, "npm-profile-publish") ||
@@ -49,21 +56,21 @@ func checkToolchainSequence(job workflowJob, name string) error {
 			gateErr = fmt.Errorf("publish toolchain step conditions must use the upstream-success gate")
 		}
 		if usageErr == nil {
-			usageErr = sequence.checkUsageStep(step, job, name)
+			usageErr = sequence.checkUsageStep(step, job, policy)
 		}
 	}
 	if !sequence.bound {
-		return fmt.Errorf("%s job must provision and bind Node.js", name)
+		return fmt.Errorf("%s job must provision and bind Node.js", policy.job)
 	}
 	if gateErr != nil {
 		return gateErr
 	}
 	if usageErr == nil {
 		switch {
-		case name == "publish" && (!sequence.asserted || sequence.npmProvisionID == ""):
+		case policy.publish && (!sequence.asserted || sequence.npmProvisionID == ""):
 			usageErr = fmt.Errorf("publish job must invoke npm-profile-toolchain-assert --node-only and npm-profile-provision-npm")
-		case name != "publish" && !sequence.asserted:
-			usageErr = fmt.Errorf("%s job must invoke npm-profile-toolchain-assert before npm", name)
+		case !policy.publish && !sequence.asserted:
+			usageErr = fmt.Errorf("%s job must invoke npm-profile-toolchain-assert before npm", policy.job)
 		}
 	}
 	if usageErr != nil {
@@ -72,35 +79,35 @@ func checkToolchainSequence(job workflowJob, name string) error {
 	return nil
 }
 
-func (sequence *toolchainSequence) checkNodeStep(step workflowStep, name string) error {
+func (sequence *toolchainSequence) checkNodeStep(step workflowStep, policy toolchainPolicy) error {
 	run := strings.TrimSpace(step.Run)
 	if strings.Contains(strings.ToLower(step.Uses), "setup-node@") || runnerToolcacheReference(run) {
-		return fmt.Errorf("%s job must not obtain Node.js from a setup action or runner toolcache", name)
+		return fmt.Errorf("%s job must not obtain Node.js from a setup action or runner toolcache", policy.job)
 	}
 	if runtimePathOverridePattern.MatchString(run) {
-		return fmt.Errorf("%s runtime use must resolve through the provisioned PATH", name)
+		return fmt.Errorf("%s runtime use must resolve through the provisioned PATH", policy.job)
 	}
 	if err := checkNodeEnvironment(step.Env); err != nil {
 		return err
 	}
 	if strings.Contains(run, "npm-profile-provision-node") {
 		want := provisionNodeCommand
-		if name == "publish" {
+		if policy.publish {
 			want += ` --report-path "$REPORT_PATH"`
 			if step.Env["REPORT_PATH"] != outcomeReportPath {
 				return fmt.Errorf("publish Node.js provisioning must persist the outcome report")
 			}
 		}
 		if sequence.provisionID != "" || step.ID == "" || step.WorkingDirectory != ".slsa-builder" ||
-			strings.Join(strings.Fields(run), " ") != want || (name != "publish" && strings.TrimSpace(step.If) != "") {
-			return fmt.Errorf("%s job must provision Node.js unconditionally from the trusted checkout with an id, output directory, and GitHub output", name)
+			strings.Join(strings.Fields(run), " ") != want || (!policy.publish && strings.TrimSpace(step.If) != "") {
+			return fmt.Errorf("%s job must provision Node.js unconditionally from the trusted checkout with an id, output directory, and GitHub output", policy.job)
 		}
 		*sequence = toolchainSequence{provisionID: step.ID}
 		return nil
 	}
 	if strings.Contains(run, "GITHUB_PATH") || strings.Contains(run, ".outputs.node-bin") {
 		if sequence.provisionID == "" || sequence.bound || run != nodeBindingCommand(sequence.provisionID) {
-			return fmt.Errorf("%s job must bind PATH exactly to the Node.js provisioning output", name)
+			return fmt.Errorf("%s job must bind PATH exactly to the Node.js provisioning output", policy.job)
 		}
 		sequence.bound = true
 		return nil
@@ -108,7 +115,7 @@ func (sequence *toolchainSequence) checkNodeStep(step workflowStep, name string)
 	if !sequence.bound && (runtimeReferencePattern.MatchString(run) || strings.Contains(run, "npm-profile-toolchain-assert") ||
 		strings.Contains(run, "npm-profile-provision-npm") || strings.Contains(run, "npm-profile-build") ||
 		strings.Contains(run, "npm-profile-sign") || strings.Contains(run, "npm-profile-publish")) {
-		return fmt.Errorf("%s job must provision and bind Node.js before runtime use", name)
+		return fmt.Errorf("%s job must provision and bind Node.js before runtime use", policy.job)
 	}
 	return nil
 }
