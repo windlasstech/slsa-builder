@@ -1,0 +1,24 @@
+CHANGELOG.md
+  s_e8684d6899a4f4::t_3f033d59546300 106-112
+docs/dogfood/npm-m1-verification-procedure.md
+  s_e8684d6899a4f4::t_0062a195ff6a08 75-81
+  s_e8684d6899a4f4::t_7c11523836dd31 24-27,29-35,138-141
+  s_e8684d6899a4f4::t_b7e99831ec308d 13-17
+  s_e8684d6899a4f4::t_2e82854e0fce3d 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c1033ff915f80f23fbc163c207e5b28055e0f40d",
+  "prompts": {},
+  "sessions": {
+    "s_e8684d6899a4f4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eca77d637ffeZky5WfEHkxF5UX",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
