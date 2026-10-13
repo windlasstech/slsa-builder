@@ -1,0 +1,38 @@
+internal/workflowcheck/node_provision.go
+  s_e1d73f0f34ca32::t_dfd756bd2036dc 62
+  s_e1d73f0f34ca32::t_49c62445ecbd49 20-22,26,32,34,37,39-43,45-46,48-49,51-57,59-61,63-64,66-71,73-76,79-80,82
+internal/workflowcheck/check.go
+  s_e1d73f0f34ca32::t_abbb9e2d01caad 411-415,488-493,550-553,561
+internal/workflowcheck/toolchain_boundary_test.go
+  s_e1d73f0f34ca32::t_30564c635c37ad 1-10,12,14-84
+  s_b0e09492180bfc::t_f015ea5305e2b1 11,13
+internal/workflowcheck/toolchain.go
+  s_e1d73f0f34ca32::t_7e23449dba22e3 23-26,28,32,35,38-39,41-53,56-62,64-68,70,72-77,79-80,82,84-97,99-109,113-114
+  s_e1d73f0f34ca32::t_56b82b6535ef63 78,98
+  s_e1d73f0f34ca32::t_f1f9c6c8be88e4 83
+  s_e1d73f0f34ca32::t_afb9b2dcc0f734 115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9818639d663c4b9e7b83fede11ee0aad3e24bc50",
+  "prompts": {},
+  "sessions": {
+    "s_b0e09492180bfc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eca09d670ffeLWUiKSWc4dNsVi",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_e1d73f0f34ca32": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eca09d670ffeLWUiKSWc4dNsVi",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
