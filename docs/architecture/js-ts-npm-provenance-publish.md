@@ -1537,6 +1537,18 @@ introduced at adoption time. If a cache is added later, only the original compre
 cached, and the recorded SHA-512 digest must be re-verified after every restore: a cache-key match
 does not authenticate cached bytes.
 
+The workflow conformance gate
+([build and pack specification](js-ts-npm-build-pack.md#workflow-conformance)) statically enforces
+this provisioning's placement and consumption: exactly one step runs
+`go run ./cmd/slsa-builder-internal npm-profile-provision-npm` from the trusted checkout
+(`working-directory: .slsa-builder`) with
+`--output-directory "${{ runner.temp }}/windlass-npm-cli"`, `--github-output "$GITHUB_OUTPUT"`, and
+`--report-path "$REPORT_PATH"`, carries an `id`, and sets `REPORT_PATH` to the outcome report path;
+it executes after the node-only pair assertion and before any npm consumer. Every npm executable
+reference in the job resolves to exactly `${{ steps.<npm-provision-id>.outputs.npm-executable }}`,
+including the `NPM_EXECUTABLE` environment binding and the publish subcommand's single
+`--npm-executable` argument; an ambient npm invocation is a conformance failure.
+
 ## Publish-stage npm pin validation
 
 The publish job's npm version must equal the allowlist pin recorded in

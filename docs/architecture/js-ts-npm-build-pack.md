@@ -671,14 +671,37 @@ job. No download cache is introduced at adoption time. If a cache is added later
 compressed tarball may be cached, and the recorded SHA-256 digest must be re-verified after every
 restore: a cache-key match does not authenticate cached bytes.
 
-The reusable workflow is statically checked for this contract: in every job that uses the runtime,
-the runtime provisioning step must carry exactly the job's shared toolchain-step conditions, with no
-additional gating: no conditions in the build and provenance-sign jobs, and the upstream-success
-gate shared by every toolchain step in the publish job. It must execute before any step that invokes
-`node`, `npm`, `npx`, or Corepack, no step may obtain the runtime from a setup action or the runner
-toolcache, and subsequent runtime use must bind to the provisioning step's emitted path. A workflow
-that violates this shape fails the workflow conformance gate (the `workflow-check` CI check) before
-any run.
+### Workflow conformance
+
+The reusable workflow is statically checked for this contract by the `workflow-check` CI gate, and a
+workflow that violates any rule fails the gate before any run. Conformance violations are invocation
+failures of the check, not registered verification diagnostics.
+
+In every job that uses the runtime (build, provenance-sign, and publish):
+
+1. **Provisioning step.** Exactly one step runs
+   `go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{ runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT"`
+   from the trusted checkout (`working-directory: .slsa-builder`) and carries an `id`. In the
+   publish job the step additionally passes `--report-path "$REPORT_PATH"`, with `REPORT_PATH` set
+   to the outcome report path `${{ runner.temp }}/windlass-npm-outcome-report.json`.
+2. **Binding step.** Exactly one step binds subsequent runtime resolution to the provisioning output
+   with `echo "${{ steps.<id>.outputs.node-bin }}" >> "$GITHUB_PATH"`, referencing the provisioning
+   step's `id`. No step or job environment may set `PATH` or reference the runner toolcache
+   (`RUNNER_TOOL_CACHE`, `runner.tool_cache`, or `/opt/hostedtoolcache`).
+3. **Ordering.** No step before the binding step may invoke `node`, `npm`, `npx`, or Corepack, run
+   the pair assertion, provision npm, or run an npm-profile build, sign, or publish subcommand. The
+   pair assertion follows the binding step: `npm-profile-toolchain-assert` from `.slsa-builder`, and
+   in the publish job exactly
+   `npm-profile-toolchain-assert --node-only --report-path "$REPORT_PATH"` with the same
+   `REPORT_PATH` binding. The publish job orders its toolchain as runtime provisioning, PATH
+   binding, the node-only pair assertion, npm CLI provisioning, and then npm consumers, per the
+   [provenance and publish specification](js-ts-npm-provenance-publish.md#publish-stage-npm-provisioning).
+4. **Conditions.** Toolchain steps carry identical conditions: none in the build and provenance-sign
+   jobs, and exactly the upstream-success gate
+   `needs.build.result == 'success' && needs.provenance-sign.result == 'success'` in the publish
+   job. A constant-false condition is a conformance failure.
+5. **Prohibited sources.** No step may obtain the runtime from a setup action (for example
+   `actions/setup-node`) or from the runner toolcache.
 
 ### Pre-install pair assertion
 
@@ -689,8 +712,9 @@ comparison strips the single leading `v` from the observed output (`node --versi
 assertion is the observational guard that detects provisioning drift; the artifact's integrity
 control is the digest verification in the provisioning step, not this assertion. The pair assertion
 is the exempt preflight that observes the versions; it must complete before any subsequent npm
-invocation that performs a package operation. A mismatch fails the job before any install, build, or
-pack step with `windlass.verify.error.toolchain-pair-mismatch` (check `npm.build.toolchain`). An npm
+invocation that performs a package operation, and the [workflow conformance](#workflow-conformance)
+gate statically enforces this ordering. A mismatch fails the job before any install, build, or pack
+step with `windlass.verify.error.toolchain-pair-mismatch` (check `npm.build.toolchain`). An npm
 invocation is an invocation of the npm CLI by a step of the job's workflow (for example, a
 diagnostics, install, build, or pack command); the pair assertion's own version observation and the
 runtime provisioning step's internal, read-only verification and reporting are part of the
