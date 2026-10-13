@@ -40,6 +40,8 @@ relations:
     target: ADR-0093
   - type: see-also
     target: ADR-0096
+  - type: see-also
+    target: ADR-0098
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies
