@@ -10,21 +10,22 @@ here.
 
 Registered via constructors in the `NewDispatcher(...)` call in `cmd/slsa-builder-internal/main.go`.
 
-| Subcommand                     | Delegates to                                         | Purpose                                                      |
-| ------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------ |
-| `fixture-check`                | `fixture`                                            | Validate the fixture registry and corpus.                    |
-| `npm-profile-build`            | `npmprofile` + `handoff` + `digest`                  | Build, pack, and hand off the npm tarball.                   |
-| `npm-profile-publish`          | `npmprofile` + `attestation` + `policy` + `handoff`  | Publish with provenance and attestation.                     |
-| `npm-profile-provision-npm`    | `npmprofile.ProvisionNPM`                            | Provision the digest-verified publish npm without execution. |
-| `npm-profile-report`           | `diagnostic`                                         | Validate and persist the outcome report.                     |
-| `npm-profile-sign`             | `npmprofile` + `signing` + `attestation` + `handoff` | Sign and attest built provenance.                            |
-| `npm-profile-select`           | `npmprofile.Analyze`                                 | Resolve and describe the target package.                     |
-| `npm-profile-source-ref`       | `npmprofile.ResolveSourceRefTag`                     | Resolve the tags-only build source ref.                      |
-| `npm-profile-toolchain-assert` | `npmprofile.AssertToolchainPair`                     | Assert the embedded Node.js/npm pair before install.         |
-| `pin-check`                    | `toolchainpins.CheckDrift`                           | Compare disk pin records with specification tables.          |
-| `verify-handoff`               | `handoff`                                            | Verify a producer-to-publisher handoff.                      |
-| `verify-attestation`           | `attestation` + `policy` + `provenance`              | Verify a signed attestation against policy.                  |
-| `workflow-check`               | `workflowcheck`                                      | Static workflow conformance check.                           |
+| Subcommand                     | Delegates to                                         | Purpose                                                          |
+| ------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------- |
+| `fixture-check`                | `fixture`                                            | Validate the fixture registry and corpus.                        |
+| `npm-profile-build`            | `npmprofile` + `handoff` + `digest`                  | Build, pack, and hand off the npm tarball.                       |
+| `npm-profile-publish`          | `npmprofile` + `attestation` + `policy` + `handoff`  | Publish with provenance and attestation.                         |
+| `npm-profile-provision-npm`    | `npmprofile.ProvisionNPM`                            | Provision the digest-verified publish npm without execution.     |
+| `npm-profile-provision-node`   | `npmprofile.ProvisionNode`                           | Provision the digest-verified Node.js runtime without execution. |
+| `npm-profile-report`           | `diagnostic`                                         | Validate and persist the outcome report.                         |
+| `npm-profile-sign`             | `npmprofile` + `signing` + `attestation` + `handoff` | Sign and attest built provenance.                                |
+| `npm-profile-select`           | `npmprofile.Analyze`                                 | Resolve and describe the target package.                         |
+| `npm-profile-source-ref`       | `npmprofile.ResolveSourceRefTag`                     | Resolve the tags-only build source ref.                          |
+| `npm-profile-toolchain-assert` | `npmprofile.AssertToolchainPair`                     | Assert the embedded Node.js/npm pair before install.             |
+| `pin-check`                    | `toolchainpins.CheckDrift`                           | Compare disk pin records with specification tables.              |
+| `verify-handoff`               | `handoff`                                            | Verify a producer-to-publisher handoff.                          |
+| `verify-attestation`           | `attestation` + `policy` + `provenance`              | Verify a signed attestation against policy.                      |
+| `workflow-check`               | `workflowcheck`                                      | Static workflow conformance check.                               |
 
 ## WHERE TO LOOK
 
@@ -38,6 +39,13 @@ or invalid invocations exit 2.
 and, when requested, appends `npm-executable=<path>` to the GitHub output file. Verification
 failures emit a canonical report and exit 1, and additionally persist that report at `--report-path`
 when given (a successful run writes no report file); invalid invocations exit 2.
+
+`npm-profile-provision-node` requires `--output-directory <dir>` and accepts optional
+`--github-output <path>` and `--report-path <path>`. It prints the provisioned `bin` directory on
+stdout and, when requested, appends `node-bin=<path>` to the GitHub output file. Verification
+failures emit a canonical report for `npm.toolchain.provision` and exit 1, and additionally persist
+that report at `--report-path` when given (a successful run writes no report file); invalid
+invocations exit 2.
 
 `npm-profile-toolchain-assert` accepts optional `--node-only` for the publish job, where npm may not
 be installed, and optional `--report-path <path>`. It emits no GitHub outputs; success prints a
