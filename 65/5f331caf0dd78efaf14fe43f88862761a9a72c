@@ -1,0 +1,43 @@
+internal/command/pin_check_test.go
+  s_f0abdc1b8d9475::t_3a61976ebad6b2 107-108,111,113
+internal/toolchainpins/drift.go
+  s_f0abdc1b8d9475::t_1a349c6a1ce1b3 44-48,59-61
+internal/toolchainpins/toolchainpins.go
+  s_f0abdc1b8d9475::t_ab4254c8f0a214 26-33,35-37,46-50,53-54
+  s_f0abdc1b8d9475::t_a316655cdb2be5 100-117
+  s_f0abdc1b8d9475::t_c8ee05d0d20733 55
+internal/toolchainpins/node-runtime.json
+  s_f0abdc1b8d9475::t_11044e57cd8f84 3-9
+internal/toolchainpins/toolchainpins_test.go
+  s_f0abdc1b8d9475::t_07978bfd06e439 14-15
+  s_f0abdc1b8d9475::t_c1778f83edddbd 101,105
+  s_f0abdc1b8d9475::t_2a645900e82c6f 40-46
+  s_f0abdc1b8d9475::t_a1e16b1bf9c097 88-89,99-100,102-104,106-112,126-139
+  s_51edb7181c9cf4::t_708e637f1d382f 140-141
+internal/toolchainpins/drift_test.go
+  s_f0abdc1b8d9475::t_cf7f0d6e138b3e 20-24,26,28,43-47,51,57,60,63,66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "655f331caf0dd78efaf14fe43f88862761a9a72c",
+  "prompts": {},
+  "sessions": {
+    "s_51edb7181c9cf4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ecab4ac62ffeHJJQ92FeZxJ6Ve",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f0abdc1b8d9475": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecab4ac62ffeHJJQ92FeZxJ6Ve",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
