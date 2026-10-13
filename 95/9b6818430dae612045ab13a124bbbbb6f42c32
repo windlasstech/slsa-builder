@@ -1,0 +1,75 @@
+docs/decisions/README.md
+  s_eae5e711d5f72b::t_a9d5c74e7e9b24 34-82,148-241
+  s_eae5e711d5f72b::t_0de2c99889542f 32
+  s_2e868d951b3d9a::t_524081f268fd07 33
+docs/decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md
+  s_eae5e711d5f72b::t_187b196ac04852 31-32
+docs/decisions/README.ko.md
+  s_eae5e711d5f72b::t_341c92504f48b8 31
+  s_eae5e711d5f72b::t_a9d5c74e7e9b24 33-81,238
+  s_2e868d951b3d9a::t_cc3892fb231843 32
+docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md
+  s_eae5e711d5f72b::t_885ced5a49d723 35-40
+  s_eae5e711d5f72b::t_3b55bad1cd33f5 32-34
+AGENTS.md
+  s_eae5e711d5f72b::t_35c1d1eb02ec38 44
+  s_eae5e711d5f72b::t_f3b0eb4e211c19 25
+docs/decisions/0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md
+  s_eae5e711d5f72b::t_885ced5a49d723 11-16,29-30,46-48,50-53,61-62,94,96-100,134-135,150-152,186-187,194-197,203-204,206-208,219-221,228-229,231-232
+  s_eae5e711d5f72b::t_b7168aed3c9c31 145-146
+  s_eae5e711d5f72b::t_186f7e2a98d7d7 58
+  s_eae5e711d5f72b::t_925f8164d34f18 95
+  s_eae5e711d5f72b::t_ff11fa0e42eccb 170-173
+  s_eae5e711d5f72b::t_5f9f3dc1474b3a 49
+  s_eae5e711d5f72b::t_f9e247f1c042eb 179-180
+  s_eae5e711d5f72b::t_927186be78e0d5 176
+  s_eae5e711d5f72b::t_a5bc7774b3b352 247-269
+  s_eae5e711d5f72b::t_5390a14fc56af2 39-44,153-154
+  s_eae5e711d5f72b::t_5d0fc978d5bc22 1-3,5-10,17-28,31-38,45,54,59-60,63-93,101-133,139-144,147-149,155-169,174-175,177-178,181-185,188-193,198-202,205,209-218,222-227,230,233-246
+  s_eae5e711d5f72b::t_e56004ae387b10 55-57
+  s_eae5e711d5f72b::t_d6bc1c3e2e71b6 136-138
+  s_2e868d951b3d9a::t_b33850835f50e0 4
+docs/decisions/AGENTS.md
+  s_eae5e711d5f72b::t_a9d5c74e7e9b24 45-84
+  s_eae5e711d5f72b::t_fe359fe47dc7c7 7,37
+  s_eae5e711d5f72b::t_6a90458fd9f823 32,85
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_eae5e711d5f72b::t_469b3c24dec0cb 43-44
+docs/architecture/README.md
+  s_eae5e711d5f72b::t_a9d5c74e7e9b24 30-34,38-41,79
+  s_eae5e711d5f72b::t_d383e76cc2092e 42
+  s_eae5e711d5f72b::t_739be22c66a427 36
+  s_eae5e711d5f72b::t_0371c04737b87a 35
+  s_eae5e711d5f72b::t_92075f3bf9066a 37
+docs/decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md
+  s_eae5e711d5f72b::t_aa905e6b25ad0a 49-50
+docs/architecture/README.ko.md
+  s_eae5e711d5f72b::t_8d9ec15bf3c00f 42
+  s_eae5e711d5f72b::t_8c4a6b868eadc9 36
+  s_eae5e711d5f72b::t_149ab676d924c0 35,37
+  s_eae5e711d5f72b::t_a9d5c74e7e9b24 30-34,38-41,78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "959b6818430dae612045ab13a124bbbbb6f42c32",
+  "prompts": {},
+  "sessions": {
+    "s_2e868d951b3d9a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
