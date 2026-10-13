@@ -80,7 +80,7 @@ to the caller workflow is already confirmed working.
 4. Verify that the caller workflow pin equals the selected builder SHA.
 
    ```bash
-   gh api repos/windlasstech/vers-js/contents/.github/workflows/publish.yml --jq '.content' | base64 -d
+   gh api "repos/windlasstech/vers-js/contents/.github/workflows/publish.yml?ref=main" --jq '.content' | base64 -d
    ```
 
    Expected output: the decoded workflow's reusable-workflow `uses:` reference ends with the full

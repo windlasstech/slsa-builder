@@ -430,6 +430,7 @@ func TestToolchainContractRejectsDrift(t *testing.T) {
 				tests["missing github output"] = replaceOnce(t, body, ` --github-output "$GITHUB_OUTPUT"`, "")
 				tests["missing assert report-path"] = replaceOnce(t, body, ` --node-only --report-path "$REPORT_PATH"`, " --node-only")
 				tests["missing assert report env"] = replaceOnce(t, body, "        env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert", "        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert")
+				tests["wrong assert report env"] = replaceOnce(t, body, "env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert", "env: {REPORT_PATH: \"${{ runner.temp }}/other.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert")
 				tests["missing provision report-path"] = replaceOnce(t, body, ` --github-output "$GITHUB_OUTPUT" --report-path "$REPORT_PATH"`, ` --github-output "$GITHUB_OUTPUT"`)
 				tests["wrong provision report env"] = replaceOnce(t, body, "env: {REPORT_PATH: \"${{ runner.temp }}/windlass-npm-outcome-report.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm", "env: {REPORT_PATH: \"${{ runner.temp }}/other.json\"}\n        run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm")
 			} else {

@@ -596,7 +596,7 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
   ],
   "runDetails": {
     "builder": {
-      "version": { "nodejs": "v24.0.0" },
+      "version": { "nodejs": "v24.21.0" },
       "builderDependencies": [
         {
           "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
