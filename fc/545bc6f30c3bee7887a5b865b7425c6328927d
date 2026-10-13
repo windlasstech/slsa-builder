@@ -1,0 +1,35 @@
+internal/workflowcheck/toolchain_conditions_test.go
+  s_b323bf61d0d9e1::t_2166a1327aabef 64-87,89-90,94-117
+  s_b323bf61d0d9e1::t_76b4c8bdba9a17 88,91-93
+  s_b323bf61d0d9e1::t_d8cb1be6b1d35b 57-58
+internal/workflowcheck/toolchain.go
+  s_b323bf61d0d9e1::t_1fe4016fa23248 71
+  s_b323bf61d0d9e1::t_9960d468fa076c 14,63-70,72
+  s_b323bf61d0d9e1::t_1bbc78273a535d 73
+internal/workflowcheck/toolchain_binding_test.go
+  s_b323bf61d0d9e1::t_fd3ad3362c248c 18-19,21-22
+internal/workflowcheck/check_test.go
+  s_b323bf61d0d9e1::t_161eb2cd076cdf 247,251-252,254
+  s_b323bf61d0d9e1::t_12a86f43074454 416,418-419,494-495
+  s_b323bf61d0d9e1::t_3dc2fafa6b4878 236,240-241,243
+  s_b323bf61d0d9e1::t_8e3ce95a2886ac 417
+internal/command/workflow_check_test.go
+  s_b323bf61d0d9e1::t_355198565aff1c 123,127-128,130
+  s_b323bf61d0d9e1::t_139788e12930ec 134,138-139,144-145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fc545bc6f30c3bee7887a5b865b7425c6328927d",
+  "prompts": {},
+  "sessions": {
+    "s_b323bf61d0d9e1": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eca490b59ffeE5TAyiWagnNEky",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
