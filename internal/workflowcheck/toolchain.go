@@ -160,13 +160,35 @@ func checkToolchainConditions(steps []workflowStep) error {
 	return nil
 }
 
-// This conservative line-based strip treats every # as a comment delimiter,
-// including inside quotes. It is not a shell evaluator; ambiguous syntax fails
-// closed. Strip before joining continuations so comments cannot supply evidence.
+// Strip shell comments before joining continuations so comments cannot supply
+// evidence, while preserving quoted or escaped hashes in executable shell text.
 func toolchainShellText(run string) string {
 	lines := strings.Split(run, "\n")
+	var quote rune
 	for index, line := range lines {
-		lines[index], _, _ = strings.Cut(line, "#")
+		escaped := false
+		for offset, char := range line {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if char == '\\' && quote != '\'' {
+				escaped = true
+				continue
+			}
+			if quote != 0 {
+				if char == quote {
+					quote = 0
+				}
+				continue
+			}
+			if char == '\'' || char == '"' {
+				quote = char
+			} else if char == '#' && (offset == 0 || strings.ContainsRune(" \t\r\v\f", rune(line[offset-1]))) {
+				lines[index] = line[:offset]
+				break
+			}
+		}
 	}
 	return strings.ReplaceAll(strings.Join(lines, "\n"), "\\\n", " ")
 }

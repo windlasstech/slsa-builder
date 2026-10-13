@@ -43,6 +43,7 @@ func TestNodeProvisioningRejectsContractDrift(t *testing.T) {
 			"commented provision", "conditional shell provision", "extra provision command",
 			"job PATH override", "step PATH override", "shell PATH override", "absolute runtime",
 			"missing node report", "wrong node report", "duplicate provision", "duplicate bind",
+			"quoted hash before provision", "multiline quoted hash before provision",
 		} {
 			t.Run(jobName+"/"+mutation, func(t *testing.T) {
 				t.Parallel()
@@ -83,6 +84,10 @@ func TestNodeProvisioningRejectsContractDrift(t *testing.T) {
 					job.Steps = append(job.Steps, workflowStep{Run: `echo "$RUNNER_TOOL_CACHE/node/24.21.0/x64/bin" >> "$GITHUB_PATH"`})
 				case "node before bind", "npm before bind", "npx before bind", "corepack before bind":
 					job.Steps = slices.Insert(job.Steps, index+1, workflowStep{Run: strings.Fields(mutation)[0] + " --version"})
+				case "quoted hash before provision":
+					job.Steps = slices.Insert(job.Steps, index, workflowStep{Run: `echo "# diagnostic"; node --version`})
+				case "multiline quoted hash before provision":
+					job.Steps = slices.Insert(job.Steps, index, workflowStep{Run: "echo \"\n# diagnostic\"; node --version"})
 				case "assertion before provision":
 					assertion := job.Steps[index+2]
 					job.Steps = slices.Delete(job.Steps, index+2, index+3)
@@ -139,5 +144,56 @@ func TestNodeProvisioningProductionWorkflow(t *testing.T) {
 	// Then the migrated production shape passes.
 	if err != nil || result.Result != "pass" {
 		t.Fatalf("production workflow: result=%+v error=%v", result, err)
+	}
+}
+
+func TestToolchainShellText_whenHashIsQuotedOrEscaped(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name string
+		run  string
+		want string
+	}{
+		{name: "double quoted", run: `echo "# diagnostic"; node --version`, want: `echo "# diagnostic"; node --version`},
+		{name: "multiline quoted", run: "echo \"\n# diagnostic\"; node --version", want: "echo \"\n# diagnostic\"; node --version"},
+		{name: "single quoted", run: `echo '# diagnostic'; node --version`, want: `echo '# diagnostic'; node --version`},
+		{name: "escaped hash", run: `echo \#; node --version`, want: `echo \#; node --version`},
+		{name: "embedded hash", run: `echo value#suffix; node --version`, want: `echo value#suffix; node --version`},
+		{name: "escaped quote", run: `echo "\"# diagnostic"; node --version`, want: `echo "\"# diagnostic"; node --version`},
+		{name: "single quoted backslash", run: `echo '\' # node --version`, want: `echo '\' `},
+		{name: "trailing comment", run: `echo "# diagnostic" # node --version`, want: `echo "# diagnostic" `},
+		{name: "whole line comment", run: `# node --version`, want: ""},
+		{name: "tab comment", run: "echo ok\t# node --version", want: "echo ok\t"},
+		{name: "continuation", run: "node \\\n--version # diagnostic", want: "node  --version "},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			// Given shell text containing a quoted, escaped, or comment hash.
+			// When normalizing it for runtime invocation scanning.
+			got := toolchainShellText(test.run)
+			// Then only actual comments are removed.
+			if got != test.want {
+				t.Fatalf("shell text = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestNodeProvisioningAcceptsQuotedHashDiagnostics(t *testing.T) {
+	t.Parallel()
+	// Given a harmless quoted hash before provisioning in a valid workflow.
+	document, err := decodeWorkflow([]byte(validNPMOnlyWorkflow))
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := document.Jobs["build"]
+	index := slices.IndexFunc(job.Steps, func(step workflowStep) bool { return step.ID == "node-provision" })
+	job.Steps = slices.Insert(job.Steps, index, workflowStep{Run: `echo "# diagnostic"; echo '# status'`})
+	document.Jobs["build"] = job
+	// When checked through the public YAML entry point.
+	result, err := CheckNPMOnlyProfile(writeWorkflowDocument(t, document))
+	// Then non-runtime diagnostics remain valid.
+	if err != nil || result.Result != "pass" {
+		t.Fatalf("quoted hash diagnostic rejected: result=%+v error=%v", result, err)
 	}
 }
