@@ -104,11 +104,13 @@ func pinCheckArgs(t *testing.T, drift bool) []string {
 	if drift {
 		specIntegrity = strings.Replace(integrity, "sha512-A", "sha512-B", 1)
 	}
+	nodeArtifactURL := "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.gz"
+	nodeArtifactSHA := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	files := []struct{ flag, name, content string }{
 		{"--publish-pin", "pin.json", fmt.Sprintf(`{"version":"11.20.0","tarball_url":"https://registry.npmjs.org/npm/-/npm-11.20.0.tgz","integrity":%q}`, integrity)},
-		{"--pair-record", "pair.json", `{"node_version":"24.20.0","npm_version":"11.18.0"}`},
+		{"--pair-record", "pair.json", fmt.Sprintf(`{"node_version":"24.20.0","npm_version":"11.18.0","artifacts":{"linux-x64":{"url":%q,"sha256":%q}}}`, nodeArtifactURL, nodeArtifactSHA)},
 		{"--publish-spec", "publish.md", "## Publish-stage npm CLI allowlist\n\n| Version | Tarball URL | SHA-512 (SRI) |\n| --- | --- | --- |\n| 11.20.0 | https://registry.npmjs.org/npm/-/npm-11.20.0.tgz | " + specIntegrity + " |\n"},
-		{"--build-spec", "build.md", "## Node.js and npm toolchain pair\n\n### Pinned runtime table\n\n| Node.js version | Bundled npm version |\n| --- | --- |\n| 24.20.0 | 11.18.0 |\n"},
+		{"--build-spec", "build.md", "## Node.js and npm toolchain pair\n\n### Pinned runtime table\n\n| Node.js version | Bundled npm version |\n| --- | --- |\n| 24.20.0 | 11.18.0 |\n\n| Platform | Tarball URL | SHA-256 (hex) |\n| --- | --- | --- |\n| linux-x64 | " + nodeArtifactURL + " | " + nodeArtifactSHA + " |\n"},
 	}
 	directory := t.TempDir()
 	args := []string{"pin-check"}

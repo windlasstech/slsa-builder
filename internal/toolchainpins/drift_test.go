@@ -17,10 +17,15 @@ func TestCheckDrift(t *testing.T) {
 	integrity := "sha512-" + base64.StdEncoding.EncodeToString(make([]byte, 64))
 	publish := "## Publish-stage npm CLI allowlist\n\n| Version | Tarball URL | SHA-512 (SRI) |\n| --- | --- | --- |\n" +
 		"| `11.20.0` | `https://registry.npmjs.org/npm/-/npm-11.20.0.tgz` | `" + integrity + "` |\n"
+	artifactURL := "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.gz"
+	artifactSHA := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	pairRow := "| `24.20.0` | `11.18.0` |\n"
+	artifactTable := "| Platform | Tarball URL | SHA-256 (hex) |\n| --- | --- | --- |\n" +
+		"| `linux-x64` | `" + artifactURL + "` | `" + artifactSHA + "` |\n"
 	build := "## Node.js and npm toolchain pair\n\n### Pinned runtime table\n\n" +
-		"| Node.js version | Bundled npm version |\n| --- | --- |\n| `24.20.0` | `11.18.0` |\n"
+		"| Node.js version | Bundled npm version |\n| --- | --- |\n" + pairRow + "\n" + artifactTable
 	pin := fmt.Sprintf(`{"version":"11.20.0","tarball_url":"https://registry.npmjs.org/npm/-/npm-11.20.0.tgz","integrity":%q}`, integrity)
-	pair := `{"node_version":"24.20.0","npm_version":"11.18.0"}`
+	pair := fmt.Sprintf(`{"node_version":"24.20.0","npm_version":"11.18.0","artifacts":{"linux-x64":{"url":%q,"sha256":%q}}}`, artifactURL, artifactSHA)
 	tests := []struct {
 		name, publish, build, pin, pair string
 		pass                            bool
@@ -35,23 +40,30 @@ func TestCheckDrift(t *testing.T) {
 		{name: "SRI drift", publish: strings.Replace(publish, "sha512-A", "sha512-B", 1)},
 		{name: "node drift", build: strings.Replace(build, "24.20.0", "24.20.1", 1)},
 		{name: "bundled npm drift", build: strings.Replace(build, "11.18.0", "11.18.1", 1)},
+		{name: "artifact URL drift", build: strings.Replace(build, artifactURL, strings.Replace(artifactURL, "v24.20.0", "v24.20.1", 1), 1)},
+		{name: "artifact SHA drift", build: strings.Replace(build, artifactSHA, "f"+artifactSHA[1:], 1)},
+		{name: "artifact platform drift", build: strings.Replace(build, "`linux-x64`", "`linux-arm64`", 1)},
+		{name: "missing artifact table", build: strings.Replace(build, "\n"+artifactTable, "\n", 1)},
+		{name: "extra artifact row", build: build + "| `darwin-arm64` | `" + artifactURL + "` | `" + artifactSHA + "` |\n"},
 		{name: "missing publish section", publish: strings.Replace(publish, "## Publish-stage npm CLI allowlist", "## Other", 1)},
 		{name: "missing build section", build: strings.Replace(build, "## Node.js and npm toolchain pair", "## Other", 1)},
 		{name: "missing publish table", publish: "## Publish-stage npm CLI allowlist\n"},
-		{name: "missing build table", build: "## Node.js and npm toolchain pair\n"},
+		{name: "missing build tables", build: "## Node.js and npm toolchain pair\n"},
 		{name: "table in another section", publish: strings.Replace(publish, "\n\n", "\n\n## Other\n", 1)},
 		{name: "malformed row", publish: strings.Replace(publish, " | `sha512-", " `sha512-", 1)},
 		{name: "empty cell", build: strings.Replace(build, "`24.20.0`", "", 1)},
 		{name: "unbalanced code", build: strings.Replace(build, "`24.20.0`", "`24.20.0", 1)},
 		{name: "malformed separator", build: strings.Replace(build, "| --- | --- |", "| -- | --- |", 1)},
-		{name: "extra row", build: build + "| `24.20.0` | `11.18.0` |\n"},
+		{name: "extra row", build: strings.Replace(build, pairRow, pairRow+pairRow, 1)},
 		{name: "malformed trailing row", build: build + "| broken |\n"},
 		{name: "malformed pipe row after table", publish: publish + "| `11.20.0` |\n"},
-		{name: "duplicate table", build: build + "\n" + strings.SplitN(build, "### Pinned runtime table\n\n", 2)[1]},
+		{name: "duplicate tables", build: build + "\n" + strings.SplitN(build, "### Pinned runtime table\n\n", 2)[1]},
 		{name: "record drift", pin: strings.Replace(pin, "11.20.0", "11.20.1", 1)},
 		{name: "pair record drift", pair: strings.Replace(pair, "24.20.0", "24.20.1", 1)},
+		{name: "pair record artifact drift", pair: strings.Replace(pair, artifactSHA, "f"+artifactSHA[1:], 1)},
 		{name: "invalid record", pin: "{}"},
 		{name: "invalid pair", pair: "{}"},
+		{name: "pair without artifacts", pair: `{"node_version":"24.20.0","npm_version":"11.18.0"}`},
 		{name: "duplicate JSON member", pair: `{"node_version":"24.20.0","node_version":"24.20.0","npm_version":"11.18.0"}`},
 	}
 	for _, test := range tests {

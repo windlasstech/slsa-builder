@@ -11,6 +11,8 @@ import (
 const (
 	wantTarballURL = "https://registry.npmjs.org/npm/-/npm-11.21.0.tgz"
 	wantIntegrity  = "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+	wantNodeURL    = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz"
+	wantNodeSHA256 = "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
 )
 
 func TestPublishPinReturnsEmbeddedRecord(t *testing.T) {
@@ -34,6 +36,13 @@ func TestNodeRuntimePairReturnsEmbeddedRecord(t *testing.T) {
 	}
 	if got.NodeVersion != "24.21.0" || got.NPMVersion != "11.19.0" {
 		t.Fatalf("runtime pair = %+v, want Node.js 24.21.0 / npm 11.19.0", got)
+	}
+	if len(got.Artifacts) != 1 {
+		t.Fatalf("artifacts = %+v, want exactly the linux-x64 pin", got.Artifacts)
+	}
+	artifact, ok := got.Artifacts["linux-x64"]
+	if !ok || artifact.URL != wantNodeURL || artifact.SHA256 != wantNodeSHA256 {
+		t.Fatalf("linux-x64 artifact = %+v, want URL %q, SHA-256 %q", artifact, wantNodeURL, wantNodeSHA256)
 	}
 }
 
@@ -76,6 +85,8 @@ func TestDecodePublishPinRejectsInvalidRecords(t *testing.T) {
 func TestDecodeNodeRuntimePairRejectsInvalidRecords(t *testing.T) {
 	t.Parallel()
 
+	artifact := `"url":"` + wantNodeURL + `","sha256":"` + wantNodeSHA256 + `"`
+	valid := `{"node_version":"24.21.0","npm_version":"11.19.0","artifacts":{"linux-x64":{` + artifact + `}}}`
 	tests := []struct {
 		name      string
 		input     string
@@ -85,6 +96,20 @@ func TestDecodeNodeRuntimePairRejectsInvalidRecords(t *testing.T) {
 		{"unknown member", `{"node_version":"24.21.0","npm_version":"11.19.0","extra":1}`, "unknown field"},
 		{"invalid Node.js version", `{"node_version":"24.21","npm_version":"11.19.0"}`, "node_version"},
 		{"invalid npm version", `{"node_version":"24.21.0","npm_version":"v11.19.0"}`, "npm_version"},
+		{"missing artifacts", `{"node_version":"24.21.0","npm_version":"11.19.0"}`, "artifacts"},
+		{"empty artifacts", `{"node_version":"24.21.0","npm_version":"11.19.0","artifacts":{}}`, "artifacts"},
+		{"two platforms", strings.Replace(valid, `}}`, `},"darwin-arm64":{`+artifact+`}}`, 1), "exactly one platform"},
+		{"unsupported platform", strings.Replace(valid, `"linux-x64"`, `"linux-arm64"`, 1), "platform"},
+		{"uppercase platform key", strings.Replace(valid, `"linux-x64"`, `"Linux-x64"`, 1), "platform"},
+		{"underscore platform key", strings.Replace(valid, `"linux-x64"`, `"linux_x64"`, 1), "platform"},
+		{"duplicate platform key", strings.Replace(valid, `}}`, `},"linux-x64":{`+artifact+`}}`, 1), "duplicate JSON object member"},
+		{"unknown artifact member", strings.Replace(valid, artifact, artifact+`,"size":1`, 1), "unknown field"},
+		{"http artifact URL", strings.Replace(valid, "https://", "http://", 1), "url"},
+		{"credentialed artifact URL", strings.Replace(valid, "https://nodejs.org", "https://user:secret@nodejs.org", 1), "url"},
+		{"pathless artifact URL", strings.Replace(valid, wantNodeURL, "https://nodejs.org", 1), "url"},
+		{"short sha256", strings.Replace(valid, wantNodeSHA256, "abc123", 1), "sha256"},
+		{"uppercase sha256", strings.Replace(valid, wantNodeSHA256, strings.ToUpper(wantNodeSHA256), 1), "sha256"},
+		{"non-hex sha256", strings.Replace(valid, wantNodeSHA256, "g"+wantNodeSHA256[1:], 1), "sha256"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -95,6 +120,22 @@ func TestDecodeNodeRuntimePairRejectsInvalidRecords(t *testing.T) {
 				t.Fatalf("decode runtime pair error = %v, want %q", err, test.wantError)
 			}
 		})
+	}
+}
+
+func TestDecodeNodeRuntimePairAcceptsNonNodeJSHost(t *testing.T) {
+	t.Parallel()
+
+	// The artifact pin binds the digest, not the host: a mirror URL is valid.
+	mirrorURL := "https://mirror.example.com/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz"
+	input := `{"node_version":"24.21.0","npm_version":"11.19.0","artifacts":{"linux-x64":{"url":"` + mirrorURL + `","sha256":"` + wantNodeSHA256 + `"}}}`
+	pair, err := decodeNodeRuntimePair([]byte(input))
+	if err != nil {
+		t.Fatalf("decode runtime pair: %v", err)
+	}
+	artifact, ok := pair.Artifacts["linux-x64"]
+	if !ok || artifact.URL != mirrorURL || artifact.SHA256 != wantNodeSHA256 {
+		t.Fatalf("artifacts = %+v, want linux-x64 pin with URL %q", pair.Artifacts, mirrorURL)
 	}
 }
 

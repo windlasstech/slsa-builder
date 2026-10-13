@@ -23,10 +23,18 @@ type PublishNPM struct {
 	Integrity  string `json:"integrity"`
 }
 
-// NodeRuntime is the pinned Node.js patch and its bundled npm version.
+// NodeArtifact is the pinned official Node.js release artifact for one platform.
+type NodeArtifact struct {
+	URL    string `json:"url"`
+	SHA256 string `json:"sha256"`
+}
+
+// NodeRuntime is the pinned Node.js patch, its bundled npm version, and the
+// per-platform release artifact pins.
 type NodeRuntime struct {
-	NodeVersion string `json:"node_version"`
-	NPMVersion  string `json:"npm_version"`
+	NodeVersion string                  `json:"node_version"`
+	NPMVersion  string                  `json:"npm_version"`
+	Artifacts   map[string]NodeArtifact `json:"artifacts"`
 }
 
 var (
@@ -35,10 +43,15 @@ var (
 	//go:embed node-runtime.json
 	runtimeData []byte
 
-	versionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
-	loadPublish    = sync.OnceValues(func() (PublishNPM, error) { return decodePublishPin(publishData) })
-	loadRuntime    = sync.OnceValues(func() (NodeRuntime, error) { return decodeNodeRuntimePair(runtimeData) })
+	versionPattern  = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
+	platformPattern = regexp.MustCompile(`^[a-z0-9]+-[a-z0-9]+$`)
+	sha256Pattern   = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	loadPublish     = sync.OnceValues(func() (PublishNPM, error) { return decodePublishPin(publishData) })
+	loadRuntime     = sync.OnceValues(func() (NodeRuntime, error) { return decodeNodeRuntimePair(runtimeData) })
 )
+
+// nodeRuntimePlatform is the sole supported build-runner platform (ADR 0027).
+const nodeRuntimePlatform = "linux-x64"
 
 // PublishPin returns the validated, embedded publish-stage npm pin.
 func PublishPin() (PublishNPM, error) {
@@ -83,6 +96,24 @@ func decodeNodeRuntimePair(data []byte) (NodeRuntime, error) {
 	}
 	if !versionPattern.MatchString(pair.NPMVersion) {
 		return NodeRuntime{}, errors.New("npm_version must be an exact three-part SemVer version")
+	}
+	if len(pair.Artifacts) != 1 {
+		return NodeRuntime{}, errors.New("artifacts must pin exactly one platform")
+	}
+	for platform, artifact := range pair.Artifacts {
+		if !platformPattern.MatchString(platform) {
+			return NodeRuntime{}, fmt.Errorf("artifacts platform key %q must be a lowercase <os>-<arch> pair", platform)
+		}
+		if platform != nodeRuntimePlatform {
+			return NodeRuntime{}, fmt.Errorf("artifacts platform %q is not the supported platform %q", platform, nodeRuntimePlatform)
+		}
+		parsed, err := url.Parse(artifact.URL)
+		if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil || parsed.Path == "" {
+			return NodeRuntime{}, errors.New("artifact url must be an uncredentialed HTTPS URL with a non-empty path")
+		}
+		if !sha256Pattern.MatchString(artifact.SHA256) {
+			return NodeRuntime{}, errors.New("artifact sha256 must be exactly 64 lowercase hexadecimal characters")
+		}
 	}
 	return pair, nil
 }
