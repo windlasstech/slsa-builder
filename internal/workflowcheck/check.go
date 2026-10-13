@@ -408,10 +408,7 @@ func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
 	if !result.AlwaysRunReport {
 		return fmt.Errorf("publish job must always generate and upload the outcome report")
 	}
-	if err := checkNodeProvisioning(job, "publish"); err != nil {
-		return err
-	}
-	return checkPublishToolchain(job)
+	return checkToolchainSequence(job, "publish")
 }
 
 func sortedNeeds(value any) []string {
@@ -484,10 +481,7 @@ func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobRes
 	if result.BundleArtifactName != provenanceBundleArtifactName {
 		return fmt.Errorf("provenance bundle artifact name is %q, want %q", result.BundleArtifactName, provenanceBundleArtifactName)
 	}
-	if err := checkNodeProvisioning(workflowJob{Steps: steps}, "provenance-sign"); err != nil {
-		return err
-	}
-	return checkPairAssertion(steps, "provenance-sign")
+	return checkToolchainSequence(workflowJob{Steps: steps}, "provenance-sign")
 }
 
 func checkSteps(steps []workflowStep, result *BuildJobResult) error {
@@ -544,8 +538,9 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if resolverIndex < 0 || packageCheckoutIndex < 0 || resolverIndex >= packageCheckoutIndex {
 		return fmt.Errorf("source-ref resolver must precede the package source checkout")
 	}
-	if err := checkNodeProvisioning(workflowJob{Steps: steps}, "build"); err != nil {
-		return err
+	sequenceErr := checkToolchainSequence(workflowJob{Steps: steps}, "build")
+	if _, usageError := sequenceErr.(*toolchainUsageError); sequenceErr != nil && !usageError {
+		return sequenceErr
 	}
 	if !hasCorepack {
 		return fmt.Errorf("build job must enable Corepack")
@@ -553,7 +548,7 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if !hasBuild {
 		return fmt.Errorf("build job must invoke npm-profile-build")
 	}
-	return checkPairAssertion(steps, "build")
+	return sequenceErr
 }
 
 func containsAll(value string, required ...string) bool {
