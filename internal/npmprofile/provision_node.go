@@ -162,6 +162,10 @@ func verifyNodeRuntimeLayout(directory string) error {
 			if err != nil || within == ".." || strings.HasPrefix(within, ".."+string(filepath.Separator)) {
 				return nodeProvisionFailure("layout-violation")
 			}
+			info, err := os.Stat(resolved)
+			if err != nil || !info.Mode().IsRegular() {
+				return nodeProvisionFailure("layout-violation")
+			}
 		case entry.IsDir(), entry.Type().IsRegular():
 		default:
 			return nodeProvisionFailure("layout-violation")

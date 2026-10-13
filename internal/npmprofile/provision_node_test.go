@@ -124,7 +124,7 @@ func requireNodeProvisionID(t *testing.T, err error, suffix string) {
 
 func TestProvisionNodeLayoutViolations(t *testing.T) {
 	t.Parallel()
-	for _, name := range []string{"missing top entry", "extra top entry", "missing symlink", "extra bin entry", "node directory", "node not executable", "top file directory"} {
+	for _, name := range []string{"missing top entry", "extra top entry", "missing symlink", "extra bin entry", "node directory", "node not executable", "top file directory", "symlink target directory"} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			// Given one layout defect in an otherwise safe authenticated archive.
@@ -135,6 +135,8 @@ func TestProvisionNodeLayoutViolations(t *testing.T) {
 				case name == "missing top entry" && entry.header.Name == nodeFixtureRoot+"/LICENSE", name == "missing symlink" && entry.header.Name == nodeFixtureRoot+"/bin/npm":
 					entries = append(entries[:i], entries[i+1:]...)
 				case name == "node directory" && entry.header.Name == nodeFixtureRoot+"/bin/node", name == "top file directory" && entry.header.Name == nodeFixtureRoot+"/LICENSE":
+					entry.header.Typeflag, entry.body = tar.TypeDir, ""
+				case name == "symlink target directory" && entry.header.Name == nodeFixtureRoot+"/lib/node_modules/npm/bin/npm-cli.js":
 					entry.header.Typeflag, entry.body = tar.TypeDir, ""
 				case name == "node not executable" && entry.header.Name == nodeFixtureRoot+"/bin/node":
 					entry.header.Mode = 0o644

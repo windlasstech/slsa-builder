@@ -648,8 +648,9 @@ Provisioning performs exactly these steps, in this order:
    `../lib/node_modules/npm/bin/npm-cli.js`, `npx` → `../lib/node_modules/npm/bin/npx-cli.js`, and
    `corepack` → `../lib/node_modules/corepack/dist/corepack.js`. Any missing or unexpected entry,
    any entry that is neither a regular file nor a directory outside this symlink set, any link
-   target unequal to these documented values, and any link target escaping the root fails the job
-   with `windlass.verify.error.node-runtime-provision-layout-violation` (check
+   target unequal to these documented values, any link target that does not resolve to a regular
+   file, and any link target escaping the root fails the job with
+   `windlass.verify.error.node-runtime-provision-layout-violation` (check
    `npm.toolchain.provision`). ADR 0098 admits these three symlinks: the official archive's own
    documented in-root symlinks are part of the exact layout rather than a violation of the
    publish-stage no-symlink discipline (ADR 0084), they are verified against the real artifact at
