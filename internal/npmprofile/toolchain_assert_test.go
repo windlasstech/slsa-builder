@@ -70,6 +70,25 @@ func TestAssertToolchainPair_whenObservationsDiffer(t *testing.T) {
 	}
 }
 
+func TestAssertToolchainPair_observesFirstNodeOnPath(t *testing.T) {
+	// Given two node executables on PATH, with only the first matching the pin.
+	first := t.TempDir()
+	second := t.TempDir()
+	writeVersionTool(t, first, "node", "v24.21.0", "")
+	writeVersionTool(t, second, "node", "v24.20.0", "")
+	t.Setenv("PATH", first+string(os.PathListSeparator)+second)
+	t.Setenv("RUNNER_TOOL_CACHE", "")
+	t.Setenv("MISE_DATA_DIR", t.TempDir())
+
+	// When the full toolchain assertion resolves node.
+	err := npmprofile.AssertToolchainPair(t.Context(), true)
+
+	// Then the matching first PATH entry is observed.
+	if err != nil {
+		t.Fatalf("first node on PATH was not observed: %v", err)
+	}
+}
+
 func writeVersionTool(t *testing.T, bin, name, version, counter string) {
 	t.Helper()
 	script := "#!/bin/sh\n"

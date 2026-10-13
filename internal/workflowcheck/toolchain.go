@@ -25,11 +25,16 @@ func checkPairAssertion(steps []workflowStep, job string) error {
 	}
 	asserted := false
 	nodeReady := false
+	nodeID := ""
 	for _, current := range steps {
 		current.Run = toolchainShellText(current.Run)
-		if strings.HasPrefix(current.Uses, "actions/setup-node@") {
-			nodeReady = true
+		if strings.Contains(current.Run, "npm-profile-provision-node") {
+			nodeID = current.ID
+			nodeReady = false
 			asserted = false
+		}
+		if nodeID != "" && strings.TrimSpace(current.Run) == nodeBindingCommand(nodeID) {
+			nodeReady = true
 		}
 		if (npmReferencePattern.MatchString(current.Run) || strings.Contains(current.Run, "npm-profile-build") ||
 			strings.Contains(current.Run, "npm-profile-sign")) && !asserted {
@@ -55,15 +60,20 @@ func checkPublishToolchain(job workflowJob) error {
 		return err
 	}
 	nodeReady := false
+	nodeID := ""
 	asserted := false
 	provisionID := ""
 	for _, current := range steps {
-		if strings.HasPrefix(current.Uses, "actions/setup-node@") {
-			nodeReady = true
+		run := toolchainShellText(current.Run)
+		if strings.Contains(run, "npm-profile-provision-node") {
+			nodeID = current.ID
+			nodeReady = false
 			asserted = false
 			provisionID = ""
 		}
-		run := toolchainShellText(current.Run)
+		if nodeID != "" && strings.TrimSpace(run) == nodeBindingCommand(nodeID) {
+			nodeReady = true
+		}
 		if npmReferencePattern.MatchString(run) {
 			return fmt.Errorf("publish job must use the provisioning output instead of ambient npm")
 		}
@@ -128,8 +138,9 @@ func checkToolchainConditions(steps []workflowStep) error {
 	seen := false
 	for _, step := range steps {
 		step.Run = toolchainShellText(step.Run)
-		if !strings.HasPrefix(step.Uses, "actions/setup-node@") &&
-			!npmReferencePattern.MatchString(step.Run) &&
+		if !runtimeReferencePattern.MatchString(step.Run) &&
+			!strings.Contains(step.Run, "npm-profile-provision-node") &&
+			!strings.Contains(step.Run, "GITHUB_PATH") &&
 			!strings.Contains(step.Run, "npm-profile-toolchain-assert") &&
 			!strings.Contains(step.Run, "npm-profile-provision-npm") &&
 			!strings.Contains(step.Run, "npm-profile-build") &&
@@ -139,7 +150,7 @@ func checkToolchainConditions(steps []workflowStep) error {
 			!strings.Contains(step.Run, "NPM_EXECUTABLE") {
 			continue
 		}
-		condition := strings.Join(strings.Fields(step.If), " ")
+		condition := strings.Join(strings.Fields(normalizeExpression(step.If)), " ")
 		if normalizeExpression(condition) == "false" || (seen && condition != gate) {
 			return fmt.Errorf("toolchain step conditions must be identical and not constant false")
 		}

@@ -53,8 +53,8 @@ func TestToolchainConditionsUniformGate(t *testing.T) {
 			}
 			// When the public workflow contract is checked.
 			_, err = CheckNPMOnlyProfile(writeWorkflowDocument(t, document))
-			// Then uniform live gates pass but literal false never does.
-			wantError := strings.Contains(gate, "false")
+			// Then build and sign provisioning cannot be conditional, even uniformly.
+			wantError := gate != ""
 			if (err != nil) != wantError {
 				t.Fatalf("uniform gate error = %v, want error %v", err, wantError)
 			}
