@@ -626,7 +626,7 @@ dispatch that neither runs on the version tag nor names it through `source-ref`,
 - The Node.js runtime must be exactly `24.21.0`, the pinned patch recorded in the build toolchain
   pair record (see the
   [build and pack specification's runtime table](js-ts-npm-build-pack.md#nodejs-and-npm-toolchain-pair);
-  ADR 0085).
+  ADRs 0085 and 0098).
 
 ## Manual dispatch constraints
 

@@ -67,7 +67,10 @@ func buildRegistry() map[string]Definition {
 		"release-target-immutable", "handoff-schema-mismatch", "publisher-remote-digest-unproven",
 		"npm-oidc-exchange-indeterminate", "oidc-capability-unavailable", "source-ref-invalid",
 		"npm-provision-download", "npm-provision-digest-mismatch", "npm-provision-archive-unsafe",
-		"npm-provision-version-mismatch", "publish-npm-pin-mismatch",
+		"npm-provision-version-mismatch", "node-runtime-provision-download",
+		"node-runtime-provision-digest-mismatch", "node-runtime-provision-archive-unsafe",
+		"node-runtime-provision-layout-violation", "node-runtime-provision-version-mismatch",
+		"publish-npm-pin-mismatch",
 		"toolchain-pair-mismatch", "toolchain-pin-drift")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, false, 7, "mutation-permission-denied")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, true, 7,
@@ -180,6 +183,11 @@ mutation-permission-denied
 mutation-queue-overflow
 native-locator-digest-mismatch
 native-locator-malformed
+node-runtime-provision-archive-unsafe
+node-runtime-provision-digest-mismatch
+node-runtime-provision-download
+node-runtime-provision-layout-violation
+node-runtime-provision-version-mismatch
 npm-oidc-exchange-indeterminate
 npm-provision-archive-unsafe
 npm-provision-digest-mismatch

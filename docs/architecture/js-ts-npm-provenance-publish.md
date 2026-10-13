@@ -1496,18 +1496,21 @@ and the full CI gate passes on the new pin.
 
 The supported publish-stage npm CLI set is exactly this allowlist. The complete supported npm CLI
 version set for the PURL-derivation compatibility fixture obligation is this allowlist plus the
-build-stage npm bundled with the pinned Node.js 24 toolchain pair (ADR 0085); the build-side half of
-that keying is specified with the build-side runtime table.
+build-stage npm bundled with the pinned Node.js 24 toolchain pair (ADRs 0085 and 0098); the
+build-side half of that keying is specified with the build-side runtime table.
 
 ## Publish-stage npm provisioning
 
-The `publish` job must provision the pinned npm CLI before any npm invocation in the job, including
-diagnostic invocations. In every npm-invocation requirement of this specification, an npm invocation
-is an invocation of the npm CLI by a step of the job's workflow (for example, a diagnostics,
-install, build, pack, or publish command). The pinned setup mechanism's internal, read-only
-environment logging, such as the version reporting that `actions/setup-node` performs after
-installing Node.js, is part of the authenticated toolchain setup, touches no package operation, and
-is not an npm invocation for the purposes of this specification. Per
+The `publish` job first provisions the pinned Node.js runtime per the
+[build and pack specification's digest-verified runtime provisioning](js-ts-npm-build-pack.md#digest-verified-runtime-provisioning)
+([ADR 0098](../decisions/0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md));
+the npm provisioning below runs against that provisioned runtime. The `publish` job must provision
+the pinned npm CLI before any npm invocation in the job, including diagnostic invocations. In every
+npm-invocation requirement of this specification, an npm invocation is an invocation of the npm CLI
+by a step of the job's workflow (for example, a diagnostics, install, build, pack, or publish
+command). The runtime provisioning step's internal, read-only verification and reporting is part of
+the authenticated toolchain setup, touches no package operation, and is not an npm invocation for
+the purposes of this specification. Per
 [ADR 0004](../decisions/0004-use-go-as-primary-implementation-language.md), the
 fetch-verify-extract-emit logic lives in the trusted Go boundary; the workflow step only invokes it.
 Provisioning performs exactly these steps, in this order:
@@ -1522,7 +1525,7 @@ Provisioning performs exactly these steps, in this order:
 3. Extract into a fresh private directory with archive-safety checks: a single `package/` root, and
    no absolute or parent-traversing entries. A violation fails the job with
    `windlass.verify.error.npm-provision-archive-unsafe` (check `npm.publish.provision`).
-4. Create a launcher named `npm` that execs the setup-node-provided `node` at its absolute path
+4. Create a launcher named `npm` that execs the provisioned runtime's `node` at its absolute path
    against the extracted `bin/npm-cli.js`. The launcher's absolute path is passed to the publish
    command's `--npm-executable`. The version recorded in the extracted tree must equal the pinned
    version; a post-extraction version mismatch fails before any npm execution with
@@ -1539,10 +1542,10 @@ does not authenticate cached bytes.
 The publish job's npm version must equal the allowlist pin recorded in
 `internal/toolchainpins/publish-npm.json`. This pin validation replaces the prior publish-side
 exact-equality check against the build-time npm record: the build-stage npm remains
-toolchain-bundled (pinned separately per ADR 0085) while the publish npm is pinned independently, so
-equality between the two is no longer the invariant. The build stage continues to record the npm it
-observed in `externalParameters.runtime.npm_version` unchanged, and the floor that value must
-satisfy (`>= 11.5.1`) is retained as defense in depth (ADR 0085).
+toolchain-bundled (pinned separately per ADR 0085, provisioned per ADR 0098) while the publish npm
+is pinned independently, so equality between the two is no longer the invariant. The build stage
+continues to record the npm it observed in `externalParameters.runtime.npm_version` unchanged, and
+the floor that value must satisfy (`>= 11.5.1`) is retained as defense in depth (ADR 0085).
 
 The publish npm version is recorded in the publish job's outcome report as the
 `diagnostic_metadata.publish_npm_version` member defined by the
