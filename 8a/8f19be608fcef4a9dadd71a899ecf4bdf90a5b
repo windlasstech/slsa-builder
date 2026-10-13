@@ -1,0 +1,33 @@
+docs/architecture/js-ts-npm-build-pack.md
+  s_eae5e711d5f72b::t_677f77087c33ae 674-693,698,701-704
+  s_eae5e711d5f72b::t_b9051ed001b840 715
+  s_eae5e711d5f72b::t_3916be9faa7fdb 694-697,699-700
+  s_b0e09492180bfc::t_383708ae8cb69c 716-717
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_eae5e711d5f72b::t_3916be9faa7fdb 1544-1550
+  s_eae5e711d5f72b::t_199115ce58b994 1540-1543,1551
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8a8f19be608fcef4a9dadd71a899ecf4bdf90a5b",
+  "prompts": {},
+  "sessions": {
+    "s_b0e09492180bfc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eca09d670ffeLWUiKSWc4dNsVi",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
