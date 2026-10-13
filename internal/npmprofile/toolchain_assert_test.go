@@ -89,6 +89,58 @@ func TestAssertToolchainPair_observesFirstNodeOnPath(t *testing.T) {
 	}
 }
 
+func TestAssertToolchainPair_whenRuntimeHasOfficialLayout(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		nodeOnly bool
+		escape   bool
+	}{
+		{name: "full pair"},
+		{name: "node only", nodeOnly: true},
+		{name: "escaping npm", escape: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// Given an official-layout runtime on a private PATH with a bundled npm symlink.
+			root := filepath.Join(t.TempDir(), "node-v24.21.0-linux-x64")
+			bin := filepath.Join(root, "bin")
+			npmBin := filepath.Join(root, "lib", "node_modules", "npm", "bin")
+			if test.escape {
+				npmBin = t.TempDir()
+			}
+			for _, directory := range []string{bin, npmBin} {
+				if err := os.MkdirAll(directory, 0o700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			writeVersionTool(t, bin, "node", "v24.21.0", "")
+			writeVersionTool(t, npmBin, "npm-cli.js", "11.19.0", "")
+			target, err := filepath.Rel(bin, filepath.Join(npmBin, "npm-cli.js"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(target, filepath.Join(bin, "npm")); err != nil {
+				t.Fatal(err)
+			}
+			t.Setenv("PATH", bin)
+			t.Setenv("RUNNER_TOOL_CACHE", "")
+			t.Setenv("MISE_DATA_DIR", t.TempDir())
+
+			// When the assertion observes the provisioned runtime.
+			err = npmprofile.AssertToolchainPair(t.Context(), test.nodeOnly)
+
+			// Then in-root npm is accepted, but an escaping symlink is rejected.
+			if test.escape {
+				var mismatch *npmprofile.ToolchainPairMismatchError
+				if !errors.As(err, &mismatch) || mismatch.DiagnosticID() != "windlass.verify.error.toolchain-pair-mismatch" {
+					t.Fatalf("error = %v, want toolchain-pair-mismatch", err)
+				}
+			} else if err != nil {
+				t.Fatalf("official runtime rejected: %v", err)
+			}
+		})
+	}
+}
+
 func writeVersionTool(t *testing.T, bin, name, version, counter string) {
 	t.Helper()
 	script := "#!/bin/sh\n"
