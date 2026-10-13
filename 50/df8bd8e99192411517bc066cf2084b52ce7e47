@@ -1,0 +1,25 @@
+internal/workflowcheck/check.go
+  s_eae5e711d5f72b::t_7a892acfa95b25 411,484,541
+internal/workflowcheck/node_provision.go
+  s_eae5e711d5f72b::t_b8719bb1b47c3c 30-31
+  s_eae5e711d5f72b::t_83c5cc7c8b4841 27-29,32-34
+  s_eae5e711d5f72b::t_8a09fd7e2b5baf 47,50,59,63,70,72-73,82,85,88,95,102-103,110,118
+internal/workflowcheck/toolchain.go
+  s_eae5e711d5f72b::t_8a09fd7e2b5baf 27,29,32,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "50df8bd8e99192411517bc066cf2084b52ce7e47",
+  "prompts": {},
+  "sessions": {
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
