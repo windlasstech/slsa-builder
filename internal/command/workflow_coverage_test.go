@@ -2,11 +2,34 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/windlasstech/slsa-builder/internal/workflowcheck"
 )
+
+func TestWorkflowCheckAcceptsProductionWorkflow(t *testing.T) {
+	t.Parallel()
+	// Given the real production reusable workflow, the documented workflow-check contract gate target.
+	production := filepath.Join("..", "..", ".github", "workflows", "js-ts-npm-package-slsa3.yml")
+	var output bytes.Buffer
+	// When the full npm-only profile contract runs against it.
+	err := NewWorkflowCheckCommand().Execute(t.Context(), []string{"--workflow", production, "--profile", "npm-only"}, &output)
+	// Then the contract reports no findings.
+	if err != nil {
+		t.Fatalf("production workflow conformance = %v", err)
+	}
+	var result workflowcheck.NPMOnlyProfileResult
+	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+		t.Fatalf("output = %q: %v", output.Bytes(), err)
+	}
+	if result.Result != "pass" || result.Profile != "npm-only" {
+		t.Fatalf("result = %+v, want a passing npm-only profile", result)
+	}
+}
 
 func TestWorkflowCheckRejectsUnsupportedTargets(t *testing.T) {
 	t.Parallel()
@@ -28,7 +51,7 @@ func TestWorkflowCheckPropagatesOutputAndInputFailures(t *testing.T) {
 		t.Run(job, func(t *testing.T) {
 			t.Parallel()
 			cause := errors.New("workflow output failed")
-			err := NewWorkflowCheckCommand().Execute(t.Context(), []string{"--workflow", "../../.github/workflows/js-ts-npm-package-slsa3.yml", "--job", job}, &stagedWriter{err: cause})
+			err := NewWorkflowCheckCommand().Execute(t.Context(), []string{"--workflow", writeWorkflowCheckFixture(t), "--job", job}, &stagedWriter{err: cause})
 			if !errors.Is(err, cause) {
 				t.Fatalf("writer error = %v, want original cause", err)
 			}

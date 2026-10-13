@@ -65,7 +65,10 @@ func buildRegistry() map[string]Definition {
 
 	set(definitions, PhasePreMutation, ExitCodePolicyFailure, false, 7,
 		"release-target-immutable", "handoff-schema-mismatch", "publisher-remote-digest-unproven",
-		"npm-oidc-exchange-indeterminate", "oidc-capability-unavailable", "source-ref-invalid")
+		"npm-oidc-exchange-indeterminate", "oidc-capability-unavailable", "source-ref-invalid",
+		"npm-provision-download", "npm-provision-digest-mismatch", "npm-provision-archive-unsafe",
+		"npm-provision-version-mismatch", "publish-npm-pin-mismatch",
+		"toolchain-pair-mismatch", "toolchain-pin-drift")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, false, 7, "mutation-permission-denied")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, true, 7,
 		"publisher-indeterminate-primary-upload", "mutation-queue-overflow",
@@ -178,6 +181,10 @@ mutation-queue-overflow
 native-locator-digest-mismatch
 native-locator-malformed
 npm-oidc-exchange-indeterminate
+npm-provision-archive-unsafe
+npm-provision-digest-mismatch
+npm-provision-download
+npm-provision-version-mismatch
 npm-purl-subject-mismatch
 npm-version-too-old
 oidc-capability-unavailable
@@ -205,6 +212,7 @@ predicate-type-invalid
 prepublish-registry-metadata-required
 private-package
 publish-intent-conflict
+publish-npm-pin-mismatch
 publisher-handoff-field-error
 publisher-indeterminate-primary-upload
 publisher-permission-boundary-violation
@@ -257,6 +265,8 @@ subject-sha256-missing
 tarball-filename-subject-rejected
 timestamp-format-invalid
 timestamp-ordering-invalid
+toolchain-pair-mismatch
+toolchain-pin-drift
 trusted-core-boundary-violation
 trusted-producer-policy-conflict
 trusted-publisher-mismatch

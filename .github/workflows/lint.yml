@@ -88,6 +88,14 @@ jobs:
       - name: Run Go tests
         run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
+      - name: Check toolchain pin records against specifications
+        run: >-
+          go run ./cmd/slsa-builder-internal pin-check --publish-pin
+          internal/toolchainpins/publish-npm.json --pair-record
+          internal/toolchainpins/node-runtime.json --publish-spec
+          docs/architecture/js-ts-npm-provenance-publish.md --build-spec
+          docs/architecture/js-ts-npm-build-pack.md
+
       # Coverage comes from this job only: Go forbids -coverprofile with -fuzz, so the
       # fuzz-smoke matrix cannot emit a profile, and `go test ./...` already executes every
       # fuzz target's seed corpus as unit tests.
@@ -182,6 +190,8 @@ jobs:
             target: FuzzDecodeNPMExchangeResponse
           - package: internal/npmprofile
             target: FuzzParseExchangeTimestamp
+          - package: internal/npmprofile
+            target: FuzzExtractNPMDistribution
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
     steps:

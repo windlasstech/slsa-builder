@@ -27,6 +27,58 @@
       "covered-requirement": "ADR-0014.package-manager-matrix"
     },
     {
+      "name": "npm-purl-publish-11-21-0-scoped-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/npm-purl-publish-11-21-0-scoped-valid/package.json",
+      "provenance": "testdata/npm/packages/npm-purl-publish-11-21-0-scoped-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0082.publish-npm-purl-compat"
+    },
+    {
+      "name": "npm-purl-publish-11-21-0-unscoped-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/npm-purl-publish-11-21-0-unscoped-valid/package.json",
+      "provenance": "testdata/npm/packages/npm-purl-publish-11-21-0-unscoped-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0082.publish-npm-purl-compat"
+    },
+    {
+      "name": "npm-purl-build-11-19-0-scoped-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/npm-purl-build-11-19-0-scoped-valid/package.json",
+      "provenance": "testdata/npm/packages/npm-purl-build-11-19-0-scoped-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0085.build-npm-purl-compat"
+    },
+    {
+      "name": "npm-purl-build-11-19-0-unscoped-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/packages/npm-purl-build-11-19-0-unscoped-valid/package.json",
+      "provenance": "testdata/npm/packages/npm-purl-build-11-19-0-unscoped-valid/fixture.json",
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0085.build-npm-purl-compat"
+    },
+    {
       "name": "pnpm-root-valid",
       "type": "accepted",
       "surface": "npm",

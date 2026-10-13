@@ -68,6 +68,7 @@ func runCommandWithShimRoot(ctx context.Context, directory, executable string, e
 
 func runPublishCommand(ctx context.Context, directory, executable string, environment, arguments []string) (string, error) {
 	return runCommandAtBoundary(ctx, directory, executable, environment, arguments, commandBoundaryOptions{
+		shimDirectory: publishProvisionedShimRoot(executable),
 		maximumOutput: maxNPMOutputSize,
 	})
 }

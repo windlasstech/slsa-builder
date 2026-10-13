@@ -590,13 +590,13 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
       "annotations": {
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
-        "node_version": "v24.0.0"
+        "node_version": "v24.21.0"
       }
     }
   ],
   "runDetails": {
     "builder": {
-      "version": { "nodejs": "v24.0.0" },
+      "version": { "nodejs": "v24.21.0" },
       "builderDependencies": [
         {
           "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
@@ -625,7 +625,7 @@ because the runner image carries a digest:
       "annotations": {
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
-        "node_version": "v24.0.0"
+        "node_version": "v24.21.0"
       }
     }
   ]
@@ -908,6 +908,12 @@ include:
 | `expected-secondary-ids`    | Ordered independent secondary diagnostic IDs, when applicable. |
 | `covered-requirement`       | Spec or ADR requirement covered by the fixture.                |
 
+The npm PURL-derivation compatibility fixture family required by the
+[JS/TS npm provenance and publish specification](js-ts-npm-provenance-publish.md#npm-package-subject-naming)
+is keyed per supported npm CLI version: one key per publish allowlist entry and one per build-stage
+pinned npm pair (currently npm `11.19.0` bundled with Node.js `24.21.0`). The build-side keying is
+specified with the build-side runtime table.
+
 ## Diagnostics contract
 
 This section specifies the conformance diagnostics required by ADRs 0037 and 0062. It does not
@@ -939,17 +945,17 @@ row's same phase, exit code, and mutation flag. The rejected-fixture category re
 registers every remaining canonical error alias not expanded here, with `verification`, exit code
 `1`, and `mutation_possible: false`, unless a more specific row below applies.
 
-| diagnostic_id                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | phase                           | exit_code            | mutation_possible    |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | -------------------- | -------------------- |
-| `windlass.verify.error.verification-mode-invalid`, `windlass.verify.error.input-unavailable`, `windlass.verify.error.verifier-execution-failure`                                                                                                                                                                                                                                                                                                                                       | invocation                      | `2`                  | `false`              |
-| `windlass.verify.error.policy-schema-invalid`, `windlass.verify.error.duplicate-json-member`, `windlass.verify.error.legacy-trust-root-override`                                                                                                                                                                                                                                                                                                                                       | policy                          | `1`                  | `false`              |
-| `windlass.verify.error.ungoverned-trust-root`, `windlass.verify.error.stale-pinned-trust-root`, `windlass.verify.error.verification-network-call`                                                                                                                                                                                                                                                                                                                                      | verification                    | `1`                  | `false`              |
-| `windlass.verify.error.run-invocation-uri-invalid`, `windlass.verify.error.diagnostics-contract-invalid`, `windlass.verify.error.release-manifest-mismatch`, `windlass.verify.error.trusted-producer-policy-conflict`                                                                                                                                                                                                                                                                  | verification                    | `1`                  | `false`              |
-| `windlass.verify.error.release-target-immutable`, `windlass.verify.error.handoff-schema-mismatch`, `windlass.verify.error.publisher-remote-digest-unproven`, `windlass.verify.error.npm-oidc-exchange-indeterminate`, `windlass.verify.error.oidc-capability-unavailable`, `windlass.verify.error.source-ref-invalid`                                                                                                                                                                  | pre-mutation                    | `1`                  | `false`              |
-| `windlass.verify.error.mutation-permission-denied`                                                                                                                                                                                                                                                                                                                                                                                                                                     | mutation                        | `1`                  | `false`              |
-| `windlass.verify.error.publisher-indeterminate-primary-upload`, `windlass.verify.error.mutation-queue-overflow`, `windlass.verify.error.manifest-partial-json-uploaded`, `windlass.verify.error.manifest-indeterminate-json-upload`, `windlass.verify.error.manifest-remote-digest-unproven`                                                                                                                                                                                           | mutation                        | `1`                  | `true`               |
-| `windlass.verify.error.sidecar-upload-partial-failure`, `windlass.verify.error.duplicate-release-asset`, `windlass.verify.error.duplicate-sidecar-asset`, `windlass.verify.error.registry-linkage-mismatch`, `windlass.verify.error.custom-registry-tokenless-auth-failed`, `windlass.verify.error.custom-registry-provenance-submission-rejected`, `windlass.verify.error.custom-registry-linkage-metadata-absent`, `windlass.verify.error.custom-registry-digest-semantics-mismatch` | mutation                        | `1`                  | `true`               |
-| `release-target-immutable`, `handoff-schema-mismatch`, `policy-schema-invalid`, `publisher-indeterminate-primary-upload`, `mutation-queue-overflow`, `run-invocation-uri-invalid`                                                                                                                                                                                                                                                                                                      | Alias of the canonical ID above | Same as canonical ID | Same as canonical ID |
+| diagnostic_id                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | phase                           | exit_code            | mutation_possible    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- | -------------------- | -------------------- |
+| `windlass.verify.error.verification-mode-invalid`, `windlass.verify.error.input-unavailable`, `windlass.verify.error.verifier-execution-failure`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | invocation                      | `2`                  | `false`              |
+| `windlass.verify.error.policy-schema-invalid`, `windlass.verify.error.duplicate-json-member`, `windlass.verify.error.legacy-trust-root-override`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | policy                          | `1`                  | `false`              |
+| `windlass.verify.error.ungoverned-trust-root`, `windlass.verify.error.stale-pinned-trust-root`, `windlass.verify.error.verification-network-call`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | verification                    | `1`                  | `false`              |
+| `windlass.verify.error.run-invocation-uri-invalid`, `windlass.verify.error.diagnostics-contract-invalid`, `windlass.verify.error.release-manifest-mismatch`, `windlass.verify.error.trusted-producer-policy-conflict`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | verification                    | `1`                  | `false`              |
+| `windlass.verify.error.release-target-immutable`, `windlass.verify.error.handoff-schema-mismatch`, `windlass.verify.error.publisher-remote-digest-unproven`, `windlass.verify.error.npm-oidc-exchange-indeterminate`, `windlass.verify.error.oidc-capability-unavailable`, `windlass.verify.error.source-ref-invalid`, `windlass.verify.error.npm-provision-download`, `windlass.verify.error.npm-provision-digest-mismatch`, `windlass.verify.error.npm-provision-archive-unsafe`, `windlass.verify.error.npm-provision-version-mismatch`, `windlass.verify.error.publish-npm-pin-mismatch`, `windlass.verify.error.toolchain-pair-mismatch`, `windlass.verify.error.toolchain-pin-drift` | pre-mutation                    | `1`                  | `false`              |
+| `windlass.verify.error.mutation-permission-denied`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | mutation                        | `1`                  | `false`              |
+| `windlass.verify.error.publisher-indeterminate-primary-upload`, `windlass.verify.error.mutation-queue-overflow`, `windlass.verify.error.manifest-partial-json-uploaded`, `windlass.verify.error.manifest-indeterminate-json-upload`, `windlass.verify.error.manifest-remote-digest-unproven`                                                                                                                                                                                                                                                                                                                                                                                               | mutation                        | `1`                  | `true`               |
+| `windlass.verify.error.sidecar-upload-partial-failure`, `windlass.verify.error.duplicate-release-asset`, `windlass.verify.error.duplicate-sidecar-asset`, `windlass.verify.error.registry-linkage-mismatch`, `windlass.verify.error.custom-registry-tokenless-auth-failed`, `windlass.verify.error.custom-registry-provenance-submission-rejected`, `windlass.verify.error.custom-registry-linkage-metadata-absent`, `windlass.verify.error.custom-registry-digest-semantics-mismatch`                                                                                                                                                                                                     | mutation                        | `1`                  | `true`               |
+| `release-target-immutable`, `handoff-schema-mismatch`, `policy-schema-invalid`, `publisher-indeterminate-primary-upload`, `mutation-queue-overflow`, `run-invocation-uri-invalid`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Alias of the canonical ID above | Same as canonical ID | Same as canonical ID |
 
 `policy-schema-invalid` is the sole diagnostic for a malformed or otherwise unusable explicit policy
 or manifest expectation. It is a completed policy-validation failure, not an invocation failure, and
@@ -1104,9 +1110,10 @@ identifiers such as an OID, bundle path, artifact digest, or certificate fingerp
 #### Producer diagnostic metadata extension
 
 `diagnostic_metadata`, when present, is a closed object containing only the optional closed
-`package_manifest` object. It records raw, non-trust package metadata for diagnostic reports. It
-does not change verifier policy, publication policy, or provenance. In particular, no raw package
-metadata belongs in SLSA `internalParameters` or `externalParameters`; the separately normalized
+`package_manifest` object and the optional `publish_npm_version` member defined below. It records
+raw, non-trust package metadata for diagnostic reports. It does not change verifier policy,
+publication policy, or provenance. In particular, no raw package metadata belongs in SLSA
+`internalParameters` or `externalParameters`; the separately normalized
 `externalParameters.package.repository` value is defined by the npm producer specification.
 
 `package_manifest` may contain only the following members. Absent source fields are omitted. `null`,
@@ -1126,6 +1133,16 @@ The object alternatives in this table are closed, and the report preserves the s
 rather than normalizing an object to a string or a string to an object. A field with another JSON
 type, an unknown object member, an empty credential-bearing URL, a token-like member or value, or a
 duplicate member is invalid and fails with `windlass.verify.error.diagnostics-contract-invalid`.
+
+`publish_npm_version`, when present, is a string holding the exact three-part SemVer version of the
+publish-stage npm CLI observed by the publish job (see the
+[JS/TS npm provenance and publish specification](js-ts-npm-provenance-publish.md#publish-stage-npm-pin-validation)).
+It is non-trust observational metadata: the trust claim is the pin validation itself
+(`windlass.verify.error.publish-npm-pin-mismatch` on failure), and this member is never merged into
+the build-time `externalParameters.runtime.npm_version` record. It is recorded on the publish job's
+outcome report, success or failure, whenever the publish npm version was observed. A `null` value, a
+non-string value, or a value that is not an exact three-part SemVer version fails with
+`windlass.verify.error.diagnostics-contract-invalid`.
 
 Valid diagnostic metadata example:
 
@@ -1440,6 +1457,13 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `prepublish-registry-metadata-required`              | Workflow required post-publish registry metadata before publish.                                                                         |
 | `release-version-semver-mismatch`                    | Release manifest version or tag is not valid SemVer 2.0.0.                                                                               |
 | `trusted-core-boundary-violation`                    | Trusted policy/provenance logic depends on profile ecosystem tooling.                                                                    |
+| `npm-provision-download`                             | The pinned publish-stage npm tarball cannot be downloaded before provisioning completes.                                                 |
+| `npm-provision-digest-mismatch`                      | The downloaded publish-stage npm tarball digest differs from the pinned SHA-512.                                                         |
+| `npm-provision-archive-unsafe`                       | The publish-stage npm tarball has no single `package/` root or contains absolute, parent-traversing, link, or special-file entries.      |
+| `npm-provision-version-mismatch`                     | The extracted publish-stage npm tree reports a version different from the pin.                                                           |
+| `publish-npm-pin-mismatch`                           | The publish job's npm version differs from the publish allowlist pin.                                                                    |
+| `toolchain-pair-mismatch`                            | The observed Node.js or bundled npm version differs from the pinned build toolchain pair.                                                |
+| `toolchain-pin-drift`                                | The publish npm pin or Node.js/npm pair record disagrees with its human-readable specification table.                                    |
 
 ## Error categories
 

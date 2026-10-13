@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/goccy/go-yaml"
+
+	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 const (
@@ -90,6 +92,7 @@ type workflowOutput struct {
 }
 
 type workflowJob struct {
+	Env         map[string]string `yaml:"env"`
 	If          string            `yaml:"if"`
 	Needs       any               `yaml:"needs"`
 	RunsOn      string            `yaml:"runs-on"`
@@ -240,7 +243,7 @@ func CheckPublishJob(path string) (PublishJobResult, error) {
 	if result.MutationKey != publishConcurrencyGroup || result.CancelInProgress || result.Queue != "max" {
 		return PublishJobResult{}, fmt.Errorf("publish job must use the exact queued mutation concurrency contract")
 	}
-	if err := checkPublishSteps(job.Steps, &result); err != nil {
+	if err := checkPublishSteps(job, &result); err != nil {
 		return PublishJobResult{}, err
 	}
 	result.Result = "pass"
@@ -360,7 +363,8 @@ func checkNPMWorkflowCall(call workflowCall) error {
 	return nil
 }
 
-func checkPublishSteps(steps []workflowStep, result *PublishJobResult) error {
+func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
+	steps := job.Steps
 	if len(steps) == 0 || !strings.HasPrefix(steps[0].Uses, "step-security/harden-runner@") || scalar(steps[0].With["egress-policy"]) != "audit" {
 		return fmt.Errorf("harden-runner with audit egress must be the first publish step")
 	}
@@ -400,7 +404,10 @@ func checkPublishSteps(steps []workflowStep, result *PublishJobResult) error {
 	if !result.AlwaysRunReport {
 		return fmt.Errorf("publish job must always generate and upload the outcome report")
 	}
-	return nil
+	if err := checkPinnedNode(steps, "publish"); err != nil {
+		return err
+	}
+	return checkPublishToolchain(job)
 }
 
 func sortedNeeds(value any) []string {
@@ -473,7 +480,10 @@ func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobRes
 	if result.BundleArtifactName != provenanceBundleArtifactName {
 		return fmt.Errorf("provenance bundle artifact name is %q, want %q", result.BundleArtifactName, provenanceBundleArtifactName)
 	}
-	return nil
+	if err := checkPinnedNode(steps, "provenance-sign"); err != nil {
+		return err
+	}
+	return checkPairAssertion(steps, "provenance-sign")
 }
 
 func checkSteps(steps []workflowStep, result *BuildJobResult) error {
@@ -486,7 +496,6 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	hasTrustedCheckout := false
 	resolverIndex := -1
 	packageCheckoutIndex := -1
-	hasNode24 := false
 	hasCorepack := false
 	hasBuild := false
 	for index, current := range steps {
@@ -507,8 +516,6 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 					return fmt.Errorf("package source checkout must use the resolved built revision without persisted credentials")
 				}
 			}
-		case strings.HasPrefix(current.Uses, "actions/setup-node@"):
-			hasNode24 = scalar(current.With["node-version"]) == "24"
 		case strings.HasPrefix(current.Uses, "actions/upload-artifact@"):
 			result.ArtifactNames = append(result.ArtifactNames, scalar(current.With["name"]))
 		}
@@ -533,14 +540,34 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if resolverIndex < 0 || packageCheckoutIndex < 0 || resolverIndex >= packageCheckoutIndex {
 		return fmt.Errorf("source-ref resolver must precede the package source checkout")
 	}
-	if !hasNode24 {
-		return fmt.Errorf("build job must set up Node.js 24")
+	if err := checkPinnedNode(steps, "build"); err != nil {
+		return err
 	}
 	if !hasCorepack {
 		return fmt.Errorf("build job must enable Corepack")
 	}
 	if !hasBuild {
 		return fmt.Errorf("build job must invoke npm-profile-build")
+	}
+	return checkPairAssertion(steps, "build")
+}
+
+func checkPinnedNode(steps []workflowStep, job string) error {
+	pair, err := toolchainpins.NodeRuntimePair()
+	if err != nil {
+		return fmt.Errorf("load Node.js runtime pair: %w", err)
+	}
+	hasNode := false
+	for _, current := range steps {
+		if strings.HasPrefix(current.Uses, "actions/setup-node@") {
+			if scalar(current.With["node-version"]) != pair.NodeVersion {
+				return fmt.Errorf("%s job must set up Node.js %s exactly", job, pair.NodeVersion)
+			}
+			hasNode = true
+		}
+	}
+	if !hasNode {
+		return fmt.Errorf("%s job must set up Node.js %s exactly", job, pair.NodeVersion)
 	}
 	return nil
 }

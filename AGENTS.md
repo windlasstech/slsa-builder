@@ -253,9 +253,11 @@ to the ADR whose confirmation criteria or scope produced it.
   revisions today; tracked in [#105](https://github.com/windlasstech/slsa-builder/issues/105).
 - **M1 dogfood completion** (P06, issue #30): attempts 1-4 failed closed with no unintended
   mutation; attempt 4 published `@windlass/vers-js@0.1.2` but read-back rejected npm's
-  auto-generated provenance. The upstream fix has shipped (npm 12.1.0 / 11.20.0; #97 closed); retry
-  as v0.1.3 after the ADR 0082 initial pin is selected (preferring npm 11.20.0 per ADR 0083) and the
-  pinned npm CLI is provisioned.
+  auto-generated provenance. The upstream fix has shipped (npm 12.1.0 / 11.20.0; #97 closed), and
+  the ADR 0082 initial pin is selected as npm 11.21.0, the latest 11-line release carrying the
+  npm/cli#9882 fix per ADR 0083's 11-line preference. The ADR 0082/0084 provisioning implementation
+  and the ADR 0085 pair pin have landed on the feature branch; the remaining steps are the vers-js
+  caller pin bump and the v0.1.3 dispatch with the verification runbook phases 1-6.
 - **pnpm 10.x support horizon** (ADR 0090 confirmation): pnpm's official security policy lists the
   10.x line as supported through 2027-04-30 (the same horizon as 11.x). At that horizon, re-apply
   the ADR 0090 boundary rule and restate the supported pnpm floor — expected to revert to the 11.x

@@ -20,6 +20,7 @@ import (
 
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
+	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 const (
@@ -51,7 +52,7 @@ func TestPublishSameRunRetry(t *testing.T) {
 	if result.State != PublishCommittedAsExpected || result.MutationAttempted {
 		t.Fatalf("Publish() result = %#v, want read-only convergence", result)
 	}
-	fixture.requireInvocations(t, nil)
+	fixture.requireInvocations(t, [][]string{{"--version"}})
 }
 
 func TestPublishForeignConflict(t *testing.T) {
@@ -148,8 +149,8 @@ func TestPublishRejectsNPMVersionMismatchBeforeMutation(t *testing.T) {
 	if result.MutationAttempted {
 		t.Fatalf("Publish() result = %#v, want zero mutations", result)
 	}
-	if result.Report.PrimaryID == nil || *result.Report.PrimaryID != "windlass.verify.error.builder-version-mismatch" {
-		t.Fatalf("Publish() primary diagnostic = %v, want builder-version-mismatch", result.Report.PrimaryID)
+	if result.Report.PrimaryID == nil || *result.Report.PrimaryID != "windlass.verify.error.publish-npm-pin-mismatch" {
+		t.Fatalf("Publish() primary diagnostic = %v, want publish-npm-pin-mismatch", result.Report.PrimaryID)
 	}
 	fixture.requireInvocations(t, [][]string{{"--version"}})
 	if fixture.packumentRequests != 1 || fixture.attestationRequests != 1 {
@@ -165,6 +166,7 @@ type publishFixtureOptions struct {
 	npmExitCode           int
 	npmError              string
 	npmVersion            string
+	buildNPMVersion       string
 }
 
 type publishFixture struct {
@@ -196,6 +198,9 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 	sha512Value := digest.SumSHA512(tarballBytes)
 	expectedSRI := "sha512-" + base64.StdEncoding.EncodeToString(sha512Value[:])
 	parameters := validExternalParameters(ManagerNPM)
+	if options.buildNPMVersion != "" {
+		parameters.Runtime.NPMVersion = options.buildNPMVersion
+	}
 
 	fixture := &publishFixture{bundleBytes: bundleBytes, logPath: filepath.Join(directory, "npm.log")}
 	server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -261,9 +266,14 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 	t.Setenv("FAKE_NPM_ERROR", options.npmError)
 	npmVersion := options.npmVersion
 	if npmVersion == "" {
-		npmVersion = parameters.Runtime.NPMVersion
+		pin, pinErr := toolchainpins.PublishPin()
+		if pinErr != nil {
+			t.Fatal(pinErr)
+		}
+		npmVersion = pin.Version
 	}
 	t.Setenv("FAKE_NPM_VERSION", npmVersion)
+	t.Setenv("FAKE_NPM_VERSION_EXIT", "0")
 	t.Setenv("NPM_TOKEN", "must-not-reach-fake-npm")
 	t.Setenv("NODE_AUTH_TOKEN", "must-not-reach-fake-npm")
 	untrustedHome := filepath.Join(directory, "untrusted-home")
@@ -371,7 +381,7 @@ fi
 python3 -c 'import json, os, sys; open(os.environ["NPM_LOG"], "a", encoding="utf-8").write(json.dumps(sys.argv[1:]) + "\n")' "$@"
 if [ "$#" -eq 1 ] && [ "$1" = "--version" ]; then
   printf '%s\n' "$FAKE_NPM_VERSION"
-  exit 0
+  exit "${FAKE_NPM_VERSION_EXIT:-0}"
 fi
 if [ -n "${FAKE_NPM_ERROR-}" ]; then
   printf '%s\n' "$FAKE_NPM_ERROR" >&2

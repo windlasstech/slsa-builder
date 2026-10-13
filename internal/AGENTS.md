@@ -22,6 +22,7 @@ internal/
 ├── policy/           # Closed verifier-policy decode + producer-policy intersection.
 ├── provenance/       # Profile-neutral in-toto/SLSA v1 models.
 ├── signing/          # Go-native Sigstore DSSE signing for GitHub Actions (ADR 0077).
+├── toolchainpins/    # Embedded builder-owned publish npm and Node.js/npm toolchain pin records.
 ├── workflowcheck/    # Static workflow conformance: permissions, SHA pins, harden-runner-first, job graph, queue:max.
 └── AGENTS.md         # this file
 ```

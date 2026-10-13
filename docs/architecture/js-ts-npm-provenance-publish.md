@@ -30,7 +30,12 @@ the package to an npm registry through a three-job digest-verified graph.
   [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   and
   [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
-  [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md)
+  [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md),
+  [0082](../decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md),
+  [0083](../decisions/0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md),
+  [0084](../decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md),
+  and
+  [0085](../decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -108,6 +113,8 @@ or `release-upload` before `publish`.
 - Recomputes both digests and verifies them against the handoff.
 - Verifies the provenance signature, signer identity, `builder.id`, `buildType`, subject digest,
   subject name, and `externalParameters`.
+- Provisions the pinned publish-stage npm CLI before any npm invocation in the job, including
+  diagnostics, and validates the provisioned npm against the publish allowlist pin.
 - Publishes the tarball using `npm publish --provenance-file`.
 - Verifies registry metadata after publish.
 - Permissions:
@@ -341,10 +348,15 @@ as `%40`.
 For example, validated `@windlass/slsa-builder` version `1.2.3` derives
 `pkg:npm/%40windlass/slsa-builder@1.2.3`. The producer must derive this value before signing and
 must verify that it exactly equals the Package URL accepted by the npm CLI version recorded in
-`externalParameters.runtime.npm_version`. A compatibility fixture is required for every supported
-npm CLI version and must cover both scoped and unscoped names. Any CLI-version variance from this
-derivation is a production conformance failure until this specification and its compatibility
-fixtures are updated; an implementation must not silently delegate the subject value to the CLI.
+`externalParameters.runtime.npm_version`. The supported npm CLI version set for the compatibility
+fixture obligation is enumerable: every entry of the
+[publish-stage npm CLI allowlist](#publish-stage-npm-cli-allowlist) plus the build-stage npm bundled
+with the pinned Node.js 24 toolchain pair
+([ADR 0085](../decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md)).
+A compatibility fixture is required for every version in that set and must cover both scoped and
+unscoped names. Any CLI-version variance from this derivation is a production conformance failure
+until this specification and its compatibility fixtures are updated; an implementation must not
+silently delegate the subject value to the CLI.
 
 ## JS/TS npm `externalParameters` schema
 
@@ -368,8 +380,8 @@ fields must be rejected by producer-side verification and by strict consumer pol
   },
   "runtime": {
     "runner": "ubuntu-24.04",
-    "node_version": "24.0.0",
-    "npm_version": "11.5.1"
+    "node_version": "24.21.0",
+    "npm_version": "11.19.0"
   },
   "package": {
     "directory": ".",
@@ -553,7 +565,9 @@ absent, violating the conditional-presence rule; it fails with
 - `workflow.builder_id` must equal the SHA-based builder identity for `workflow.path` and
   `workflow.sha`.
 - `runtime.runner` must be `ubuntu-24.04`.
-- `runtime.node_version` must have major version `24`.
+- `runtime.node_version` must have major version `24`. This floor is retained unchanged as defense
+  in depth, with the exact pinned Node.js 24 and bundled npm pair asserted before first use per the
+  [build and pack specification](js-ts-npm-build-pack.md#pre-install-pair-assertion) (ADR 0085).
 - `runtime.npm_version` must be greater than or equal to `11.5.1`, the minimum npm CLI version for
   the initial trusted publishing contract. The comparison is a SemVer numeric comparison over major,
   minor, and patch components; pre-release versions are not accepted for the production profile.
@@ -808,7 +822,7 @@ Valid complete-schema repository identity example:
     "sha": "0123456789abcdef0123456789abcdef01234567",
     "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@0123456789abcdef0123456789abcdef01234567"
   },
-  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.0.0", "npm_version": "11.5.1" },
+  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.21.0", "npm_version": "11.19.0" },
   "package": {
     "directory": ".",
     "workspace_root": null,
@@ -875,7 +889,7 @@ from the normalized source and observed caller identity:
     "sha": "0123456789abcdef0123456789abcdef01234567",
     "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@0123456789abcdef0123456789abcdef01234567"
   },
-  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.0.0", "npm_version": "11.5.1" },
+  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.21.0", "npm_version": "11.19.0" },
   "package": {
     "directory": ".",
     "workspace_root": null,
@@ -1164,7 +1178,7 @@ output. A valid descriptor is:
   "annotations": {
     "image_os": "ubuntu24",
     "image_version": "20260801.1.0",
-    "node_version": "v24.0.0"
+    "node_version": "v24.21.0"
   }
 }
 ```
@@ -1188,7 +1202,7 @@ This invalid descriptor carries a prohibited digest:
   "annotations": {
     "image_os": "ubuntu24",
     "image_version": "20260801.1.0",
-    "node_version": "v24.0.0"
+    "node_version": "v24.21.0"
   }
 }
 ```
@@ -1426,6 +1440,119 @@ short SHA ref, a signer identity that does not match `runDetails.builder.id`, a 
 does not match `externalParameters.source`, or a non-GitHub OIDC issuer must be rejected before
 publish.
 
+## Publish-stage npm CLI allowlist
+
+This section is normative under
+[ADR 0082](../decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md),
+[ADR 0083](../decisions/0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md),
+and
+[ADR 0084](../decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md).
+
+The publish-stage npm CLI is pinned. The single shared pin-data source is the machine-readable file
+`internal/toolchainpins/publish-npm.json`, which records, per allowlist entry, the pinned npm
+version, the exact npm registry tarball URL, and the SHA-512 digest of the compressed tarball in SRI
+form (`sha512-<base64>`), byte-identical to the registry packument's `dist.integrity` field. The
+provisioning step and the publish-side pin validation both read this file. The human-readable
+allowlist table below mirrors it, and a CI check fails on any drift between the file and the table.
+
+| Version   | Tarball URL                                        | SHA-512 (SRI)                                                                                     |
+| --------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `11.21.0` | `https://registry.npmjs.org/npm/-/npm-11.21.0.tgz` | `sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg==` |
+
+The initial entry is npm `11.21.0`: the latest npm 11-line release containing the upstream
+npm/cli#9882 fix (shipped in npm 12.1.0 and backported to the 11 line as npm/cli#9947), selected per
+ADR 0083's 11-line preference.
+
+Review note for the initial entry (the ADR 0082 internals checklist plus the ADR 0084 cross-checks,
+verified 12026-10-13 against the real tarball and npm/cli):
+
+1. `lib/utils/oidc.js:225` carries the auto-enable guard
+   `isDefaultProvenance && !ciInfo.CIRCLE && !opts.provenanceFile`: the npm/cli#9882/#9947 fix is
+   present.
+2. The bundled libnpmpublish is 11.2.1, with `EPROVENANCECONFLICT` on
+   `provenance === true && provenanceFile` and the `verifyProvenance(subject, provenanceFile)` path.
+3. `@npmcli/config` 10.14.0 keeps exclusive enforcement with the CLI-data carve-out, matching the
+   previously reviewed structure.
+4. `publishConfig` flatten timing is irrelevant on the profile's path because `--provenance-file`
+   arrives via pinned argv (cliData).
+5. The bundled sigstore-js is 4.1.1 (the v4 major, the same major as the libnpmpublish 11.2.0 line
+   exercised by the dogfood on npm 11.17.0; the sigstore-js v5 compatibility criterion in ADR 0083
+   applies only to the npm 12 line).
+6. Registry cross-checks: `dist.integrity` is byte-equal to the pinned SRI (verified over the
+   downloaded bytes), `dist.shasum` `7184c24ba6c6d8c1419ed1c4a187377bc05b254c` is consistent, and
+   two registry ECDSA signatures are present.
+7. Deviation, stated plainly: the packument `gitHead` `5fd1e17e468d58e7f14dc6cbb5390029ff49a41d` is
+   the `chore: release 11.21.0` commit in npm/cli (verified via the commits API), but npm/cli
+   published no git tag and no GitHub Release for v11.21.0, so the ADR 0084 `gitHead` cross-check
+   resolves at the release-commit level for this pin.
+
+Every allowlist bump follows the ADR 0082 bump procedure: the pinned version and distribution digest
+are updated together; the npm-internals checklist (`lib/utils/oidc.js` early-return and auto-enable
+structure, libnpmpublish `buildMetadata()` branch structure, `@npmcli/config` exclusive enforcement
+including the env-layer carve-out, `publishConfig` flatten timing, and the bundled sigstore-js major
+version) is diff-reviewed for the new version; the ADR 0084 review-time registry cross-checks are
+refreshed; the specification-required compatibility fixtures are added or refreshed for the new pin;
+and the full CI gate passes on the new pin.
+
+The supported publish-stage npm CLI set is exactly this allowlist. The complete supported npm CLI
+version set for the PURL-derivation compatibility fixture obligation is this allowlist plus the
+build-stage npm bundled with the pinned Node.js 24 toolchain pair (ADR 0085); the build-side half of
+that keying is specified with the build-side runtime table.
+
+## Publish-stage npm provisioning
+
+The `publish` job must provision the pinned npm CLI before any npm invocation in the job, including
+diagnostic invocations. In every npm-invocation requirement of this specification, an npm invocation
+is an invocation of the npm CLI by a step of the job's workflow (for example, a diagnostics,
+install, build, pack, or publish command). The pinned setup mechanism's internal, read-only
+environment logging, such as the version reporting that `actions/setup-node` performs after
+installing Node.js, is part of the authenticated toolchain setup, touches no package operation, and
+is not an npm invocation for the purposes of this specification. Per
+[ADR 0004](../decisions/0004-use-go-as-primary-implementation-language.md), the
+fetch-verify-extract-emit logic lives in the trusted Go boundary; the workflow step only invokes it.
+Provisioning performs exactly these steps, in this order:
+
+1. Download the exact tarball URL recorded in `internal/toolchainpins/publish-npm.json` over HTTPS.
+   No URL, version, or integrity value is derived from registry metadata at run time. A download
+   failure fails the job with `windlass.verify.error.npm-provision-download` (check
+   `npm.publish.provision`).
+2. Hash the compressed bytes and require equality with the recorded SHA-512 digest. A mismatch fails
+   the job before extraction with `windlass.verify.error.npm-provision-digest-mismatch` (check
+   `npm.publish.provision`).
+3. Extract into a fresh private directory with archive-safety checks: a single `package/` root, and
+   no absolute or parent-traversing entries. A violation fails the job with
+   `windlass.verify.error.npm-provision-archive-unsafe` (check `npm.publish.provision`).
+4. Create a launcher named `npm` that execs the setup-node-provided `node` at its absolute path
+   against the extracted `bin/npm-cli.js`. The launcher's absolute path is passed to the publish
+   command's `--npm-executable`. The version recorded in the extracted tree must equal the pinned
+   version; a post-extraction version mismatch fails before any npm execution with
+   `windlass.verify.error.npm-provision-version-mismatch` (check `npm.publish.provision`).
+
+Every provisioning failure occurs before any npm execution and before any registry mutation. No
+global installation is performed, no `PATH` mutation is required, and no download cache is
+introduced at adoption time. If a cache is added later, only the original compressed tarball may be
+cached, and the recorded SHA-512 digest must be re-verified after every restore: a cache-key match
+does not authenticate cached bytes.
+
+## Publish-stage npm pin validation
+
+The publish job's npm version must equal the allowlist pin recorded in
+`internal/toolchainpins/publish-npm.json`. This pin validation replaces the prior publish-side
+exact-equality check against the build-time npm record: the build-stage npm remains
+toolchain-bundled (pinned separately per ADR 0085) while the publish npm is pinned independently, so
+equality between the two is no longer the invariant. The build stage continues to record the npm it
+observed in `externalParameters.runtime.npm_version` unchanged, and the floor that value must
+satisfy (`>= 11.5.1`) is retained as defense in depth (ADR 0085).
+
+The publish npm version is recorded in the publish job's outcome report as the
+`diagnostic_metadata.publish_npm_version` member defined by the
+[verification policy and fixtures specification](verification-policy-and-fixtures.md), on success
+and on failure whenever the version was observed; a pin-mismatch failure additionally carries the
+observed version in the failing diagnostic's `evidence`. It is not merged into the build-time
+record. A mismatch between the provisioned npm's version and the allowlist pin fails closed with
+`windlass.verify.error.publish-npm-pin-mismatch` (check `npm.publish.toolchain`) before any registry
+mutation.
+
 ## `npm publish --provenance-file`
 
 - The `publish` job must invoke exactly this argv, in this order, with the optional final argument
@@ -1626,6 +1753,15 @@ failed rather than silently claim convergence.
 ## npm trusted publishing authentication
 
 - The `publish` job uses OIDC trusted publishing.
+- npm-native trusted publishing performs the OIDC exchange inside `npm publish`, and the pinned
+  `--provenance-file` argv above is unchanged
+  ([ADR 0083](../decisions/0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md)).
+  No OIDC-environment suppression, no token injection into an isolated npmrc, and no `publishConfig`
+  credential allowlist is specified or implemented.
+- The [ADR 0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md)
+  exchange preflight is retained as a non-mutating observation preflight for early detection of
+  trusted-publishing misconfiguration. The minted token is discarded and is never consumed as a
+  publish credential.
 - The caller job invoking the reusable workflow must grant `contents: read` and `id-token: write` so
   the called workflow can obtain the OIDC token required by npm trusted publishing.
 - npm trusted publisher configuration must identify the caller repository and caller workflow
@@ -1662,10 +1798,12 @@ This section pins the success-status and response-body contract the exchange cli
   internally to instants. Any other type or value fails as above.
 - `expires` must be later than `created`, and `expires` must be later than the exchange time. An
   inverted or already-expired lifetime fails as above.
-- The exchange-token lifetime observed from the live registry is 15 minutes, and all timing must
-  follow it: the publish-time exchange must occur immediately before the publish mutation, token
-  expiry must be re-validated at use time, and a token minted by an early preflight exchange
-  validates configuration only. It must never be assumed usable at publish time.
+- The exchange-token lifetime observed from the live registry is 15 minutes. The Windlass-side
+  exchange exists only as the early, non-mutating observation preflight: a token minted by that
+  preflight validates configuration only and is discarded. It must never be assumed usable at
+  publish time and must never be consumed as a publish credential. The publish-time exchange is
+  performed by npm itself inside `npm publish` under trusted publishing, per the finalized
+  authentication path above.
 - Token material is secret: token values must never appear in logs, diagnostics, reports, or
   artifacts. Failure diagnostics may name the violated rule (for example, the timestamp
   representation) but must never include token material.
@@ -1877,6 +2015,9 @@ The `publish` job must fail before `npm publish` when:
   mutation job, uses an invalid key component, includes `github.workflow`, places a `queue` key on a
   pre-mutation job, or combines `queue: max` with `cancel-in-progress: true`.
 - Runtime policy mismatch.
+- Publish-stage npm provisioning fails (download failure, distribution digest mismatch, unsafe
+  archive layout, or post-extraction version mismatch), or the provisioned publish npm differs from
+  the allowlist pin, as defined by the publish-stage npm sections above.
 
 The `publish` job must fail after `npm publish` when npmjs post-publish registry metadata
 verification reaches `foreign-conflict` or `indeterminate`. This is a partial-publication failure:
@@ -1892,6 +2033,18 @@ have committed. The job must fail post-publication when linkage metadata is abse
 semantics are absent, malformed, incompatible, or mismatched. Each post-publication failure must
 report that publication may already have committed and must not retry with a token, automatic
 provenance, unsigned provenance, or an altered bundle.
+
+The publish-stage npm toolchain failures defined by the allowlist, provisioning, and pin-validation
+sections emit the following diagnostics. Each is emitted before any registry mutation, so
+`mutation_possible` is always `false`:
+
+| Condition                                                                                               | Diagnostic ID                                          | Phase        | Exit code | Mutation possible |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------ | --------- | ----------------- |
+| The pinned publish-stage npm tarball cannot be downloaded.                                              | `windlass.verify.error.npm-provision-download`         | pre-mutation | `1`       | `false`           |
+| The downloaded publish-stage npm tarball digest differs from the pinned SHA-512.                        | `windlass.verify.error.npm-provision-digest-mismatch`  | pre-mutation | `1`       | `false`           |
+| The publish-stage npm tarball has an unsafe archive layout (no single `package/` root, unsafe entries). | `windlass.verify.error.npm-provision-archive-unsafe`   | pre-mutation | `1`       | `false`           |
+| The extracted publish-stage npm tree reports a version different from the pin.                          | `windlass.verify.error.npm-provision-version-mismatch` | pre-mutation | `1`       | `false`           |
+| The publish job's npm version differs from the allowlist pin.                                           | `windlass.verify.error.publish-npm-pin-mismatch`       | pre-mutation | `1`       | `false`           |
 
 The profile must not fall back to:
 
@@ -1977,5 +2130,11 @@ The profile must not fall back to:
   `github.workflow`, a mutation job without `queue: max`, a pre-mutation job with `queue`, or
   `queue: max` combined with `cancel-in-progress: true` are rejected statically.
 - A fixture proving that the `publish` job cannot publish without the signed bundle.
+- Rejected publish-stage npm fixtures: tarball download failure (`npm-provision-download`),
+  distribution digest mismatch (`npm-provision-digest-mismatch`), unsafe archive layout
+  (`npm-provision-archive-unsafe`), post-extraction version mismatch
+  (`npm-provision-version-mismatch`), and publish npm pin mismatch (`publish-npm-pin-mismatch`).
+  Each fails before any npm execution and before any registry mutation, and the pin file and the
+  human-readable allowlist table are proven drift-free.
 - Successful registry-conformance fixtures use `https://registry.npmjs.org/` only. Synthetic custom
   registry fixtures cover warning and fail-clearly behavior only.

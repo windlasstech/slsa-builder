@@ -11,15 +11,21 @@ import (
 
 func TestAdapterInvocationGuards(t *testing.T) {
 	t.Parallel()
-	for _, command := range []Command{NewFixtureCheckCommand(), NewNPMProfileBuildCommand(), NewNPMProfilePublishCommand(), NewNPMProfileReportCommand(), NewNPMProfileSelectCommand(), NewNPMProfileSignCommand(), NewNPMProfileSourceRefCommand(), NewVerifyAttestationCommand(), NewVerifyHandoffCommand(), NewWorkflowCheckCommand()} {
+	for _, command := range []Command{NewFixtureCheckCommand(), NewNPMProfileBuildCommand(), NewNPMProfileProvisionNPMCommand(), NewNPMProfilePublishCommand(), NewNPMProfileReportCommand(), NewNPMProfileSelectCommand(), NewNPMProfileSignCommand(), NewNPMProfileSourceRefCommand(), NewNPMProfileToolchainAssertCommand(), NewPinCheckCommand(), NewVerifyAttestationCommand(), NewVerifyHandoffCommand(), NewWorkflowCheckCommand()} {
 		t.Run(command.Name(), func(t *testing.T) {
 			t.Parallel()
-			for _, test := range []struct {
+			invalid := []struct {
 				name string
 				args []string
 			}{
 				{"missing flags", nil}, {"unknown flag", []string{"--unknown-flag"}},
-			} {
+			}
+			if command.Name() == "npm-profile-toolchain-assert" {
+				// nil is a valid toolchain-assert invocation that would run the real
+				// toolchain; a positional argument exercises the same guard hermetically.
+				invalid[0].args = []string{"positional"}
+			}
+			for _, test := range invalid {
 				t.Run(test.name, func(t *testing.T) {
 					t.Parallel()
 					var output bytes.Buffer

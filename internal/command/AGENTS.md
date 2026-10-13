@@ -10,20 +10,40 @@ here.
 
 Registered via constructors in the `NewDispatcher(...)` call in `cmd/slsa-builder-internal/main.go`.
 
-| Subcommand               | Delegates to                                         | Purpose                                     |
-| ------------------------ | ---------------------------------------------------- | ------------------------------------------- |
-| `fixture-check`          | `fixture`                                            | Validate the fixture registry and corpus.   |
-| `npm-profile-build`      | `npmprofile` + `handoff` + `digest`                  | Build, pack, and hand off the npm tarball.  |
-| `npm-profile-publish`    | `npmprofile` + `attestation` + `policy` + `handoff`  | Publish with provenance and attestation.    |
-| `npm-profile-report`     | `diagnostic`                                         | Validate and persist the outcome report.    |
-| `npm-profile-sign`       | `npmprofile` + `signing` + `attestation` + `handoff` | Sign and attest built provenance.           |
-| `npm-profile-select`     | `npmprofile.Analyze`                                 | Resolve and describe the target package.    |
-| `npm-profile-source-ref` | `npmprofile.ResolveSourceRefTag`                     | Resolve the tags-only build source ref.     |
-| `verify-handoff`         | `handoff`                                            | Verify a producer-to-publisher handoff.     |
-| `verify-attestation`     | `attestation` + `policy` + `provenance`              | Verify a signed attestation against policy. |
-| `workflow-check`         | `workflowcheck`                                      | Static workflow conformance check.          |
+| Subcommand                     | Delegates to                                         | Purpose                                                      |
+| ------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------ |
+| `fixture-check`                | `fixture`                                            | Validate the fixture registry and corpus.                    |
+| `npm-profile-build`            | `npmprofile` + `handoff` + `digest`                  | Build, pack, and hand off the npm tarball.                   |
+| `npm-profile-publish`          | `npmprofile` + `attestation` + `policy` + `handoff`  | Publish with provenance and attestation.                     |
+| `npm-profile-provision-npm`    | `npmprofile.ProvisionNPM`                            | Provision the digest-verified publish npm without execution. |
+| `npm-profile-report`           | `diagnostic`                                         | Validate and persist the outcome report.                     |
+| `npm-profile-sign`             | `npmprofile` + `signing` + `attestation` + `handoff` | Sign and attest built provenance.                            |
+| `npm-profile-select`           | `npmprofile.Analyze`                                 | Resolve and describe the target package.                     |
+| `npm-profile-source-ref`       | `npmprofile.ResolveSourceRefTag`                     | Resolve the tags-only build source ref.                      |
+| `npm-profile-toolchain-assert` | `npmprofile.AssertToolchainPair`                     | Assert the embedded Node.js/npm pair before install.         |
+| `pin-check`                    | `toolchainpins.CheckDrift`                           | Compare disk pin records with specification tables.          |
+| `verify-handoff`               | `handoff`                                            | Verify a producer-to-publisher handoff.                      |
+| `verify-attestation`           | `attestation` + `policy` + `provenance`              | Verify a signed attestation against policy.                  |
+| `workflow-check`               | `workflowcheck`                                      | Static workflow conformance check.                           |
 
 ## WHERE TO LOOK
+
+`pin-check` requires `--publish-pin <path>`, `--pair-record <path>`, `--publish-spec <path>`, and
+`--build-spec <path>`. It compares disk files, not embedded records. Success exits 0; drift or
+unreadable/malformed inputs emit a canonical `toolchain.pins.drift` report and exit 1. Missing flags
+or invalid invocations exit 2.
+
+`npm-profile-provision-npm` requires `--output-directory <dir>` and accepts optional
+`--github-output <path>` and `--report-path <path>`. It prints the absolute launcher path on stdout
+and, when requested, appends `npm-executable=<path>` to the GitHub output file. Verification
+failures emit a canonical report and exit 1, and additionally persist that report at `--report-path`
+when given (a successful run writes no report file); invalid invocations exit 2.
+
+`npm-profile-toolchain-assert` accepts optional `--node-only` for the publish job, where npm may not
+be installed, and optional `--report-path <path>`. It emits no GitHub outputs; success prints a
+confirmation. A pair mismatch emits a canonical report for `npm.build.toolchain` and exits 1, and
+additionally persists that report at `--report-path` when given (a successful run writes no report
+file); invalid invocations exit 2.
 
 | Task                         | Location                          | Notes                                                      |
 | ---------------------------- | --------------------------------- | ---------------------------------------------------------- |
@@ -31,6 +51,7 @@ Registered via constructors in the `NewDispatcher(...)` call in `cmd/slsa-builde
 | Shared I/O adapters          | `io.go`                           | `ReadTypedJSON`, `WriteFileAtomic`, outputs, redaction.    |
 | Add a subcommand             | Steps in CONVENTIONS below        | Registration lives in `cmd/slsa-builder-internal/main.go`. |
 | Workflow conformance catalog | `internal/workflowcheck/check.go` | Checks enforced by `workflow-check`.                       |
+| Pin-record/spec parity       | `pin_check.go`                    | Adapts `internal/toolchainpins/drift.go` to `pin-check`.   |
 | Shared core rules            | `internal/AGENTS.md`              | Diagnostic registry, JCS reports, strict JSON, exit codes. |
 | npm domain detail            | `internal/npmprofile/AGENTS.md`   | Profile behavior the npm adapters delegate to.             |
 
