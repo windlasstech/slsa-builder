@@ -1,0 +1,23 @@
+docs/dogfood/npm-m1-verification-procedure.md
+  s_eae5e711d5f72b::t_541901e04c6686 83
+docs/architecture/verification-policy-and-fixtures.md
+  s_eae5e711d5f72b::t_87f308bedad30b 599
+internal/workflowcheck/check_test.go
+  s_eae5e711d5f72b::t_fd3ba229af2daa 433
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f69846ec66629874e5d4cafd5a56eaf5ae8b5ea4",
+  "prompts": {},
+  "sessions": {
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
