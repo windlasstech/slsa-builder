@@ -76,17 +76,15 @@ func TestExtractNodeRuntimeAcceptsDocumentedLinks(t *testing.T) {
 func TestExtractNodeRuntimeRejectsUnsafeArchives(t *testing.T) {
 	t.Parallel()
 	for name, header := range map[string]tar.Header{
-		"absolute":      {Name: "/absolute", Typeflag: tar.TypeReg},
-		"parent":        {Name: nodeFixtureRoot + "/../escape", Typeflag: tar.TypeReg},
-		"backslash":     {Name: nodeFixtureRoot + `/bin\escape`, Typeflag: tar.TypeReg},
-		"hardlink":      {Name: nodeFixtureRoot + "/hard", Typeflag: tar.TypeLink, Linkname: nodeFixtureRoot + "/LICENSE"},
-		"device":        {Name: nodeFixtureRoot + "/device", Typeflag: tar.TypeChar},
-		"fifo":          {Name: nodeFixtureRoot + "/fifo", Typeflag: tar.TypeFifo},
-		"multi root":    {Name: "node-v0.0.1-linux-x64/file", Typeflag: tar.TypeReg},
-		"wrong root":    {Name: "package/file", Typeflag: tar.TypeReg},
-		"duplicate":     {Name: nodeFixtureRoot + "/LICENSE", Typeflag: tar.TypeReg},
-		"other symlink": {Name: nodeFixtureRoot + "/link", Typeflag: tar.TypeSymlink, Linkname: "LICENSE"},
-		"wrong target":  {Name: nodeFixtureRoot + "/bin/npm", Typeflag: tar.TypeSymlink, Linkname: "../../escape"},
+		"absolute":   {Name: "/absolute", Typeflag: tar.TypeReg},
+		"parent":     {Name: nodeFixtureRoot + "/../escape", Typeflag: tar.TypeReg},
+		"backslash":  {Name: nodeFixtureRoot + `/bin\escape`, Typeflag: tar.TypeReg},
+		"hardlink":   {Name: nodeFixtureRoot + "/hard", Typeflag: tar.TypeLink, Linkname: nodeFixtureRoot + "/LICENSE"},
+		"device":     {Name: nodeFixtureRoot + "/device", Typeflag: tar.TypeChar},
+		"fifo":       {Name: nodeFixtureRoot + "/fifo", Typeflag: tar.TypeFifo},
+		"multi root": {Name: "node-v0.0.1-linux-x64/file", Typeflag: tar.TypeReg},
+		"wrong root": {Name: "package/file", Typeflag: tar.TypeReg},
+		"duplicate":  {Name: nodeFixtureRoot + "/LICENSE", Typeflag: tar.TypeReg},
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -128,6 +126,41 @@ func TestExtractNodeRuntimeRejectsInvalidStreams(t *testing.T) {
 			_, err := provisionNode(t.Context(), t.TempDir(), source)
 			// Then malformed or oversized bytes cannot be accepted.
 			requireNodeProvisionID(t, err, "archive-unsafe")
+		})
+	}
+}
+
+func TestProvisionNodeRejectsSymlinkLayout(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		path   string
+		target string
+	}{
+		{name: "wrong in-root target", path: "bin/npm", target: "../lib/node_modules/npm/bin/npx-cli.js"},
+		{name: "unknown symlink", path: "bin/foo", target: "../lib/node_modules/npm/bin/npm-cli.js"},
+		{name: "escaping target", path: "bin/npm", target: "../../escape"},
+		{name: "absolute target", path: "bin/npm", target: "/escape"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			// Given one invalid symlink in an otherwise valid authenticated archive.
+			entries := nodeRuntimeEntries()
+			for i := range entries {
+				if entries[i].header.Name == nodeFixtureRoot+"/bin/npm" {
+					entries[i].header.Name = nodeFixtureRoot + "/" + test.path
+					entries[i].header.Linkname = test.target
+				}
+			}
+			output := t.TempDir()
+			// When provisioning encounters the invalid symlink.
+			_, err := provisionNode(t.Context(), output, nodeProvisionFixture(t, nodeRuntimeArchive(t, entries)))
+			// Then the exact layout diagnostic is returned and no partial runtime remains.
+			requireNodeProvisionID(t, err, "layout-violation")
+			files, err := os.ReadDir(output)
+			if err != nil || len(files) != 0 {
+				t.Fatalf("partial output: %v, %v", files, err)
+			}
 		})
 	}
 }

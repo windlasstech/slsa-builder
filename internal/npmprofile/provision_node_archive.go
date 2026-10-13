@@ -15,6 +15,8 @@ import (
 
 var nodeArchiveRootPattern = regexp.MustCompile(`^node-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-linux-x64$`)
 
+var errNodeLayout = errors.New("node runtime symlink layout violation")
+
 func nodeRuntimeLink(name string) string {
 	switch name {
 	case "bin/npm":
@@ -107,7 +109,7 @@ func extractNodeRuntime(ctx context.Context, encoded []byte, directory string) (
 		case tar.TypeSymlink:
 			target := nodeRuntimeLink(strings.TrimPrefix(name, rootName+"/"))
 			if target == "" || header.Linkname != target {
-				return "", nodeProvisionFailure("archive-unsafe")
+				return "", errNodeLayout
 			}
 			if err := root.MkdirAll(path.Dir(name), 0o700); err != nil {
 				return "", err

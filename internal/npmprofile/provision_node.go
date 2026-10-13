@@ -84,6 +84,9 @@ func provisionNode(ctx context.Context, outputDirectory string, source nodeProvi
 	}()
 	name, err := extractNodeRuntime(ctx, encoded, private)
 	if err != nil {
+		if errors.Is(err, errNodeLayout) {
+			return "", nodeProvisionFailure("layout-violation")
+		}
 		return "", nodeProvisionFailure("archive-unsafe")
 	}
 	runtimeRoot := filepath.Join(private, name)
