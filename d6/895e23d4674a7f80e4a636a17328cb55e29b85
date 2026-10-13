@@ -1,0 +1,34 @@
+internal/npmprofile/provision_node_archive.go
+  s_00c6080cbf220d::t_b4dc3139913ed5 19,112
+  s_00c6080cbf220d::t_d69a18104206a3 18
+internal/npmprofile/provision_node_archive_test.go
+  s_7135385cd8fe75::t_bb1d5ca3f397ec 79-87
+  s_00c6080cbf220d::t_464f4b1da8dd6f 133-163
+  s_00c6080cbf220d::t_8fe694773ce134 164-167
+internal/npmprofile/provision_node.go
+  s_00c6080cbf220d::t_b4dc3139913ed5 87-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6895e23d4674a7f80e4a636a17328cb55e29b85",
+  "prompts": {},
+  "sessions": {
+    "s_00c6080cbf220d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eca66432fffe2oRzPO8C8TxmYO",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_7135385cd8fe75": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_eca66432fffe2oRzPO8C8TxmYO",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
