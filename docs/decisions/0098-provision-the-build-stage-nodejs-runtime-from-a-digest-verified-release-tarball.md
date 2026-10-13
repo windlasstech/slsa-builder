@@ -104,7 +104,11 @@ chooses symmetry for the runtime, not because any external standard compels it.
 - The trusted core downloads the official Node.js release tarball for the pinned version and
   platform from nodejs.org, verifies it against the SHA-256 digest recorded in a toolchain pin
   record committed to this repository, and provisions it under the same boundary discipline as the
-  publish-stage npm provisioning (exact layout, no symlinks, fail-closed behavior).
+  publish-stage npm provisioning (exact layout, fail-closed behavior), with one adaptation the
+  artifact itself requires: the official Node.js release archive's own symlinks — exactly `bin/npm`,
+  `bin/npx`, and `bin/corepack`, each with its documented relative target inside the root — are part
+  of the exact layout rather than a violation, and every other link remains prohibited. The
+  specification pins the exact set.
 - The pinned setup action and the runner toolcache no longer supply the Node.js runtime. The pair
   assertion is re-expressed at the specification level as an observational guard over the
   provisioned runtime: it detects provisioning drift and is no longer the integrity control.
