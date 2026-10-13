@@ -672,8 +672,10 @@ compressed tarball may be cached, and the recorded SHA-256 digest must be re-ver
 restore: a cache-key match does not authenticate cached bytes.
 
 The reusable workflow is statically checked for this contract: in every job that uses the runtime,
-the runtime provisioning step must execute unconditionally and before any step that invokes `node`,
-`npm`, `npx`, or Corepack, no step may obtain the runtime from a setup action or the runner
+the runtime provisioning step must carry exactly the job's shared toolchain-step conditions, with no
+additional gating: no conditions in the build and provenance-sign jobs, and the upstream-success
+gate shared by every toolchain step in the publish job. It must execute before any step that invokes
+`node`, `npm`, `npx`, or Corepack, no step may obtain the runtime from a setup action or the runner
 toolcache, and subsequent runtime use must bind to the provisioning step's emitted path. A workflow
 that violates this shape fails the workflow conformance gate (the `workflow-check` CI check) before
 any run.
