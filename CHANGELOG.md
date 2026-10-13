@@ -103,6 +103,13 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Added the `pin-check` drift gate to CI, which fails on any drift between the machine-readable
   toolchain pin records (`internal/toolchainpins/publish-npm.json` and
   `internal/toolchainpins/node-runtime.json`) and their human-readable specification tables.
+- Added digest-verified Node.js runtime provisioning for governed jobs (ADR 0098): the JS/TS npm
+  reusable workflow provisions the pinned Node.js 24.21.0 runtime from the official release tarball
+  through the trusted core's new `npm-profile-provision-node` step before any `node`, `npm`, `npx`,
+  or Corepack invocation in the job, verifying the artifact's recorded SHA-256 digest, archive
+  safety, exact layout, and version identity. The runtime artifact pin (tarball URL and SHA-256 per
+  platform) is recorded in `internal/toolchainpins/node-runtime.json`; `actions/setup-node` no
+  longer supplies the runtime, and the toolchain pair assertion observes the provisioned runtime.
 
 ### Security
 
