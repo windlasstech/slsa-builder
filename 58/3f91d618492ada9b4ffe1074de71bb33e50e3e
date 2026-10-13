@@ -1,0 +1,21 @@
+internal/npmprofile/exec_boundary.go
+  s_00c6080cbf220d::t_3c893cf06bfbcf 11,151-153,169-176
+internal/npmprofile/toolchain_assert_test.go
+  s_00c6080cbf220d::t_9927d239b80ce3 92-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "583f91d618492ada9b4ffe1074de71bb33e50e3e",
+  "prompts": {},
+  "sessions": {
+    "s_00c6080cbf220d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eca66432fffe2oRzPO8C8TxmYO",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
