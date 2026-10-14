@@ -76,13 +76,13 @@ to the caller workflow is already confirmed working.
    implementation. In every governed job of that SHA, the `npm-profile-provision-node` step
    provisions the pinned Node.js 24.21.0 runtime digest-verified from the official release tarball
    before any `node`, `npm`, `npx`, or Corepack invocation, and no setup action supplies the
-   runtime. The publish stage additionally provisions the pinned npm CLI (currently 11.21.0) before
-   any npm invocation, and each job asserts the pinned Node.js 24 / npm pair (currently 24.21.0 /
-   11.19.0) against the provisioned runtime before first use. Update
-   `windlasstech/vers-js/.github/workflows/publish.yml` so that its reusable-workflow `uses:`
-   reference ends with the full 40-hex SHA of the merged `windlasstech/slsa-builder` commit carrying
-   that implementation. Record the selected SHA; it replaces the reusable-workflow pin used by
-   attempts 1-4.
+   runtime. The build and provenance-sign jobs assert the pinned Node.js 24 / bundled npm pair
+   (currently 24.21.0 / 11.19.0) before first use. The publish job asserts the provisioned Node.js
+   runtime only (`--node-only`), then separately provisions the pinned npm CLI (currently 11.21.0)
+   before any npm invocation. Update `windlasstech/vers-js/.github/workflows/publish.yml` so that
+   its reusable-workflow `uses:` reference ends with the full 40-hex SHA of the merged
+   `windlasstech/slsa-builder` commit carrying that implementation. Record the selected SHA; it
+   replaces the reusable-workflow pin used by attempts 1-4.
 
 4. Verify that the caller workflow pin equals the selected builder SHA.
 

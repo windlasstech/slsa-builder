@@ -588,13 +588,14 @@ version and the npm version that exact patch bundles — and, per supported plat
 artifact pin: the exact official release tarball URL and the SHA-256 digest of the compressed
 tarball in lowercase hexadecimal, byte-identical to the artifact's line in the release's
 `SHASUMS256.txt`. Platforms are keyed `<os>-<arch>`; the supported platform set is initially exactly
-`linux-x64`, the ADR 0027 production runner platform, and wider platform coverage is a record
-extension, not a contract change. The pair is cross-checked against the Node.js release metadata
-(<https://nodejs.org/dist/index.json>) whenever the pair changes, and the artifact digest is
-obtained at review time by verifying the release's signed `SHASUMS256.txt` against the Node.js
-release-team keyring (ADR 0098); no release metadata is consulted at run time. The human-readable
-runtime tables below mirror the record, and a CI check fails on any drift between the record and the
-tables with `windlass.verify.error.toolchain-pin-drift` (check `toolchain.pins.drift`).
+`linux-x64`, the ADR 0027 production runner platform. Wider platform coverage extends the record and
+its decoding in the same change; it is not a contract change. The pair is cross-checked against the
+Node.js release metadata (<https://nodejs.org/dist/index.json>) whenever the pair changes, and the
+artifact digest is obtained at review time by verifying the release's signed `SHASUMS256.txt`
+against the Node.js release-team keyring (ADR 0098); no release metadata is consulted at run time.
+The human-readable runtime tables below mirror the record, and a CI check fails on any drift between
+the record and the tables with `windlass.verify.error.toolchain-pin-drift` (check
+`toolchain.pins.drift`).
 
 | Node.js version | Bundled npm version |
 | --------------- | ------------------- |

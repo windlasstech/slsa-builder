@@ -44,7 +44,7 @@ spec'd but not yet implemented.
 | Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0098`.                           |
 | Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`.                  |
 | Trusted-core Go code     | `internal/`                                                | Shared rules in `internal/AGENTS.md`; sub-packages have their own. |
-| CLI subcommands          | `cmd/slsa-builder-internal/main.go`                        | 11 subcommands; adapter rules in `internal/command/AGENTS.md`.     |
+| CLI subcommands          | `cmd/slsa-builder-internal/main.go`                        | 14 subcommands; adapter rules in `internal/command/AGENTS.md`.     |
 | npm profile domain       | `internal/npmprofile/`                                     | See `internal/npmprofile/AGENTS.md`.                               |
 | Fixture corpus rules     | `testdata/`                                                | See `testdata/AGENTS.md`; byte-exact, prettier-excluded.           |
 | Writing Go tests         | `docs/testing-guide.md`                                    | Hermetic default, fuzz policy, gated `Live` tests.                 |

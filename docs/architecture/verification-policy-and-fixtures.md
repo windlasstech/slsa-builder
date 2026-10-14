@@ -1465,7 +1465,7 @@ usage declares its non-null `expected-primary-id` explicitly.
 | `node-runtime-provision-digest-mismatch`             | The downloaded Node.js runtime tarball digest differs from the pinned SHA-256.                                                                           |
 | `node-runtime-provision-archive-unsafe`              | The Node.js runtime tarball has no single `node-v<version>-<platform>/` root or contains absolute, parent-traversing, hardlink, device, or FIFO entries. |
 | `node-runtime-provision-layout-violation`            | The extracted Node.js runtime tree deviates from the exact official layout or the documented in-root symlink set.                                        |
-| `node-runtime-provision-version-mismatch`            | The extracted Node.js runtime tree identifies a version different from the recorded pair.                                                                |
+| `node-runtime-provision-version-mismatch`            | The extracted runtime tree does not identify the recorded pair because its root version or bundled npm manifest is missing, malformed, or mismatched.    |
 | `publish-npm-pin-mismatch`                           | The publish job's npm version differs from the publish allowlist pin.                                                                                    |
 | `toolchain-pair-mismatch`                            | The observed Node.js or bundled npm version differs from the pinned build toolchain pair.                                                                |
 | `toolchain-pin-drift`                                | The publish npm pin or Node.js toolchain record (pair and runtime artifact pin) disagrees with its human-readable specification table.                   |
