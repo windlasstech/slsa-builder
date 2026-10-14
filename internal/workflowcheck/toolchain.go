@@ -151,10 +151,12 @@ func checkToolchainConditions(steps []workflowStep) error {
 }
 
 // Strip shell comments before joining continuations so comments cannot supply
-// evidence, while preserving quoted or escaped hashes in executable shell text.
+// evidence, while preserving quoted, escaped, or parameter-expansion-internal
+// hashes in executable shell text.
 func toolchainShellText(run string) string {
 	lines := strings.Split(run, "\n")
 	var quote rune
+	expansion := 0
 	for index, line := range lines {
 		escaped := false
 		wordStart := true
@@ -176,7 +178,19 @@ func toolchainShellText(run string) string {
 				}
 				continue
 			}
-			if char == '\'' || char == '"' {
+			if expansion > 0 {
+				wordStart = false
+				if char == '$' && offset+1 < len(line) && line[offset+1] == '{' {
+					expansion++
+				} else if char == '}' {
+					expansion--
+				}
+				continue
+			}
+			if char == '$' && offset+1 < len(line) && line[offset+1] == '{' {
+				expansion++
+				wordStart = false
+			} else if char == '\'' || char == '"' {
 				quote = char
 				wordStart = false
 			} else if char == '#' && wordStart {

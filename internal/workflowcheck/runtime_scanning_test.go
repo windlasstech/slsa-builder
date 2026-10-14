@@ -9,7 +9,7 @@ import (
 func TestRuntimeScanningRejectsMutations(t *testing.T) {
 	t.Parallel()
 	for _, jobName := range []string{"build", "provenance-sign", "publish"} {
-		for _, mutation := range []string{"job toolcache key", "step toolcache key", "PATH append", "quoted node", "escaped node", "mixed quoted node", "quoted subcommand"} {
+		for _, mutation := range []string{"job toolcache key", "step toolcache key", "PATH append", "quoted node", "escaped node", "mixed quoted node", "quoted subcommand", "expansion node", "nested expansion npm"} {
 			t.Run(jobName+"/"+mutation, func(t *testing.T) {
 				t.Parallel()
 				// Given a valid workflow with one runtime boundary mutation.
@@ -38,6 +38,10 @@ func TestRuntimeScanningRejectsMutations(t *testing.T) {
 					step.Run = `"n"ode --version`
 				case "quoted subcommand":
 					step.Run = "go run ./cmd/slsa-builder-internal npm-profile-bu''ild"
+				case "expansion node":
+					step.Run = "echo ${x:-;#}; node --version"
+				case "nested expansion npm":
+					step.Run = "echo ${x:-${y:-;#}}; npm ci"
 				}
 				job.Steps = slices.Insert(job.Steps, index, step)
 				document.Jobs[jobName] = job
@@ -134,6 +138,10 @@ func TestToolchainShellTextOperatorBoundaries(t *testing.T) {
 		{run: "(echo ok)# comment", want: "(echo ok)"},
 		{run: `echo \;#suffix`, want: `echo \;#suffix`},
 		{run: "echo \"line\n\"#suffix", want: "echo \"line\n\"#suffix"},
+		{run: "echo ${x:-;#}", want: "echo ${x:-;#}"},
+		{run: "echo ${x:-;#} # comment", want: "echo ${x:-;#} "},
+		{run: "echo ${x:-${y:-;#}}; npm", want: "echo ${x:-${y:-;#}}; npm"},
+		{run: `echo ${x:-"}#"}; foo`, want: `echo ${x:-"}#"}; foo`},
 	} {
 		t.Run(test.run, func(t *testing.T) {
 			t.Parallel()
