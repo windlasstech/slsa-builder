@@ -1,0 +1,27 @@
+docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md
+  s_eae5e711d5f72b::t_39d046d48a48fa 36-38
+  s_eae5e711d5f72b::t_6c9c7cd47be64d 39-40
+docs/decisions/0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md
+  s_eae5e711d5f72b::t_d349cd8287177a 229-231
+  s_eae5e711d5f72b::t_d5827b6b3dcf80 12-14,21,23
+  s_eae5e711d5f72b::t_6c9c7cd47be64d 15-16,24-25
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_eae5e711d5f72b::t_5f529fbb348359 43,45
+  s_eae5e711d5f72b::t_6c9c7cd47be64d 46-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "10411d959685a836981c3a07b5076221eb4fc77e",
+  "prompts": {},
+  "sessions": {
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
