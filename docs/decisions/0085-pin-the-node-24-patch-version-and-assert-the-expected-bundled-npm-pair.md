@@ -33,11 +33,11 @@ relations:
     target: ADR-0098
     scope:
       "the clauses under which the pinned setup action, the GitHub-hosted runner toolcache, and its
-      download fallback supply the build-stage Node.js runtime, and the premise that the bundled npm
-      CLI is authenticated as part of the Node.js artifact through the pinned setup mechanism's
-      checksum verification; the Node.js 24 major selection, the exact-patch pin requirement, the
-      pair assertion as an observational guard, the npm floor check, and the runner and OS image
-      constraints remain in force"
+      download fallback supply the Node.js runtime in the workflow's governed jobs, and the premise
+      that the bundled npm CLI is authenticated as part of the Node.js artifact through the pinned
+      setup mechanism's checksum verification; the Node.js 24 major selection, the exact-patch pin
+      requirement, the pair assertion as an observational guard, the npm floor check, and the runner
+      and OS image constraints remain in force"
 ---
 
 # Pin the Node.js 24 Patch Version and Assert the Expected Bundled npm Pair

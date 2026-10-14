@@ -9,17 +9,20 @@ relations:
     target: ADR-0085
     scope:
       "the clauses under which the pinned setup action, the GitHub-hosted runner toolcache, and its
-      download fallback supply the build-stage Node.js runtime, and the premise that the bundled npm
-      CLI is authenticated as part of the Node.js artifact through the pinned setup mechanism's
-      checksum verification; the Node.js 24 major selection, the exact-patch pin requirement, the
-      pair assertion as an observational guard, the npm floor check, and the runner and OS image
-      constraints remain in force"
+      download fallback supply the Node.js runtime in the workflow's governed jobs, and the premise
+      that the bundled npm CLI is authenticated as part of the Node.js artifact through the pinned
+      setup mechanism's checksum verification; the Node.js 24 major selection, the exact-patch pin
+      requirement, the pair assertion as an observational guard, the npm floor check, and the runner
+      and OS image constraints remain in force"
   - type: see-also
     target: ADR-0084
   - type: see-also
     target: ADR-0082
-  - type: see-also
+  - type: partially-supersedes
     target: ADR-0070
+    scope:
+      "the clauses that treat the GitHub-hosted runner image as the supplier of the Node.js runtime;
+      the runner-image descriptor and its resolvedDependencies recording remain in force"
 ---
 
 # Provision the Build-Stage Node.js Runtime from a Digest-Verified Release Tarball
@@ -223,9 +226,9 @@ provisioned runtime with the runbook phases passing.
 - Bad, because digest identity is not provenance: no primary source establishes Sigstore attestation
   of the official Node.js images, and the digest must still be obtained from a trusted channel at
   pin time.
-- Bad, because ADR 0085 already declined container jobs, a container job constrains the reusable
-  workflow's caller environments, and the runner image capture contract would be replaced rather
-  than refined.
+- Bad, because container jobs are already excluded from the production profile by ADR 0027 (a scope
+  ADR 0085 inherits), a container job constrains the reusable workflow's caller environments, and
+  the runner image capture contract would be replaced rather than refined.
 
 ## More Information
 
