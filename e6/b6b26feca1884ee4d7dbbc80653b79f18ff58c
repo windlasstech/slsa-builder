@@ -1,0 +1,20 @@
+internal/workflowcheck/node_provision_cli_test.go
+  s_eae5e711d5f72b::t_c6741a5380e8fa 41
+  s_eae5e711d5f72b::t_77550714a928a7 8,13-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6b6b26feca1884ee4d7dbbc80653b79f18ff58c",
+  "prompts": {},
+  "sessions": {
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
