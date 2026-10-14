@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"regexp"
 	"strings"
@@ -59,8 +60,14 @@ func PublishPin() (PublishNPM, error) {
 }
 
 // NodeRuntimePair returns the validated, embedded build-stage Node.js/npm pair.
+// The artifact map is cloned per call so callers cannot mutate the cached pin.
 func NodeRuntimePair() (NodeRuntime, error) {
-	return loadRuntime()
+	pair, err := loadRuntime()
+	if err != nil {
+		return NodeRuntime{}, err
+	}
+	pair.Artifacts = maps.Clone(pair.Artifacts)
+	return pair, nil
 }
 
 func decodePublishPin(data []byte) (PublishNPM, error) {

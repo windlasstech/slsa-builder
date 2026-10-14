@@ -1,12 +1,14 @@
 package npmprofile
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
@@ -34,7 +36,9 @@ func TestProvisionNodeLive(t *testing.T) {
 	for _, check := range []struct{ name, version string }{{"node", "v" + pin.NodeVersion}, {"npm", pin.NPMVersion}} {
 		t.Run(check.name, func(t *testing.T) {
 			t.Parallel()
-			command := exec.CommandContext(t.Context(), filepath.Join(bin, check.name), "--version")
+			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+			defer cancel()
+			command := exec.CommandContext(ctx, filepath.Join(bin, check.name), "--version")
 			command.Dir = t.TempDir()
 			command.Env = []string{"PATH=" + bin, "HOME=" + command.Dir}
 			output, err := command.CombinedOutput()

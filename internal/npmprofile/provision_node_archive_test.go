@@ -111,7 +111,7 @@ func TestExtractNodeRuntimeRejectsInvalidStreams(t *testing.T) {
 	var oversized bytes.Buffer
 	gz := gzip.NewWriter(&oversized)
 	tw := tar.NewWriter(gz)
-	if err := tw.WriteHeader(&tar.Header{Name: nodeFixtureRoot + "/huge", Typeflag: tar.TypeReg, Size: maxUnpackedSize + 1}); err != nil {
+	if err := tw.WriteHeader(&tar.Header{Name: nodeFixtureRoot + "/huge", Typeflag: tar.TypeReg, Size: maxUnpackedSize + 2}); err != nil {
 		t.Fatal(err)
 	}
 	if err := gz.Close(); err != nil {

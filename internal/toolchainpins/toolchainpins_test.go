@@ -46,6 +46,27 @@ func TestNodeRuntimePairReturnsEmbeddedRecord(t *testing.T) {
 	}
 }
 
+func TestNodeRuntimePairIsolatesCallerMutation(t *testing.T) {
+	t.Parallel()
+
+	first, err := NodeRuntimePair()
+	if err != nil {
+		t.Fatalf("load Node.js runtime pair: %v", err)
+	}
+	// When a caller corrupts its returned artifact map.
+	first.Artifacts["linux-x64"] = NodeArtifact{URL: "https://tampered.example.com/node.tgz", SHA256: "f" + wantNodeSHA256[1:]}
+	first.Artifacts["darwin-arm64"] = NodeArtifact{}
+	// Then a later caller still receives the intact cached pin.
+	second, err := NodeRuntimePair()
+	if err != nil {
+		t.Fatalf("reload Node.js runtime pair: %v", err)
+	}
+	artifact, ok := second.Artifacts["linux-x64"]
+	if len(second.Artifacts) != 1 || !ok || artifact.URL != wantNodeURL || artifact.SHA256 != wantNodeSHA256 {
+		t.Fatalf("artifacts after caller mutation = %+v, want the intact linux-x64 pin", second.Artifacts)
+	}
+}
+
 func TestDecodePublishPinRejectsInvalidRecords(t *testing.T) {
 	t.Parallel()
 

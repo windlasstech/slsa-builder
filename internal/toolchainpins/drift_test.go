@@ -20,8 +20,8 @@ func TestCheckDrift(t *testing.T) {
 	artifactURL := "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.gz"
 	artifactSHA := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	pairRow := "| `24.20.0` | `11.18.0` |\n"
-	artifactTable := "| Platform | Tarball URL | SHA-256 (hex) |\n| --- | --- | --- |\n" +
-		"| `linux-x64` | `" + artifactURL + "` | `" + artifactSHA + "` |\n"
+	artifactRow := "| `linux-x64` | `" + artifactURL + "` | `" + artifactSHA + "` |\n"
+	artifactTable := "| Platform | Tarball URL | SHA-256 (hex) |\n| --- | --- | --- |\n" + artifactRow
 	build := "## Node.js and npm toolchain pair\n\n### Pinned runtime table\n\n" +
 		"| Node.js version | Bundled npm version |\n| --- | --- |\n" + pairRow + "\n" + artifactTable
 	pin := fmt.Sprintf(`{"version":"11.20.0","tarball_url":"https://registry.npmjs.org/npm/-/npm-11.20.0.tgz","integrity":%q}`, integrity)
@@ -44,7 +44,7 @@ func TestCheckDrift(t *testing.T) {
 		{name: "artifact SHA drift", build: strings.Replace(build, artifactSHA, "f"+artifactSHA[1:], 1)},
 		{name: "artifact platform drift", build: strings.Replace(build, "`linux-x64`", "`linux-arm64`", 1)},
 		{name: "missing artifact table", build: strings.Replace(build, "\n"+artifactTable, "\n", 1)},
-		{name: "extra artifact row", build: build + "| `darwin-arm64` | `" + artifactURL + "` | `" + artifactSHA + "` |\n"},
+		{name: "extra artifact row", build: strings.Replace(build, artifactRow, artifactRow+artifactRow, 1)},
 		{name: "missing publish section", publish: strings.Replace(publish, "## Publish-stage npm CLI allowlist", "## Other", 1)},
 		{name: "missing build section", build: strings.Replace(build, "## Node.js and npm toolchain pair", "## Other", 1)},
 		{name: "missing publish table", publish: "## Publish-stage npm CLI allowlist\n"},

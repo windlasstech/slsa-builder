@@ -14,26 +14,43 @@ import (
 
 func TestProvisionNodeCommandOutputs(t *testing.T) {
 	t.Parallel()
-	directory := t.TempDir()
-	binDir := filepath.Join(directory, "node", "bin")
-	githubOutput := filepath.Join(directory, "outputs")
-	adapter := npmProfileProvisionNodeCommand{provision: func(ctx context.Context, got string) (string, error) {
-		if err := ctx.Err(); err != nil {
-			t.Fatal(err)
-		}
-		if got != directory {
-			t.Fatalf("output directory = %q", got)
-		}
-		return binDir, nil
-	}}
-	var out bytes.Buffer
-	result := NewDispatcher(adapter).Dispatch(t.Context(), []string{adapter.Name(), "--output-directory", directory, "--github-output", githubOutput}, &out)
-	if result.ExitCode != 0 || out.String() != binDir+"\n" {
-		t.Fatalf("result = %+v, output = %q", result, out.String())
-	}
-	got, err := os.ReadFile(githubOutput)
-	if err != nil || string(got) != "node-bin="+binDir+"\n" {
-		t.Fatalf("github output = %q, %v", got, err)
+	for _, github := range []bool{false, true} {
+		t.Run(map[bool]string{false: "stdout", true: "github output append"}[github], func(t *testing.T) {
+			t.Parallel()
+			// Given a successful domain operation and optional existing GitHub output.
+			directory := t.TempDir()
+			binDir := filepath.Join(directory, "node", "bin")
+			githubOutput := filepath.Join(directory, "outputs")
+			args := []string{"npm-profile-provision-node", "--output-directory", directory}
+			if github {
+				if err := os.WriteFile(githubOutput, []byte("existing=value\n"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				args = append(args, "--github-output", githubOutput)
+			}
+			adapter := npmProfileProvisionNodeCommand{provision: func(ctx context.Context, got string) (string, error) {
+				if err := ctx.Err(); err != nil {
+					t.Fatal(err)
+				}
+				if got != directory {
+					t.Fatalf("output directory = %q", got)
+				}
+				return binDir, nil
+			}}
+			var out bytes.Buffer
+			// When dispatched through the real command boundary.
+			result := NewDispatcher(adapter).Dispatch(t.Context(), args, &out)
+			// Then success emits only the bin directory and preserves existing outputs.
+			if result.ExitCode != 0 || out.String() != binDir+"\n" {
+				t.Fatalf("result = %+v, output = %q", result, out.String())
+			}
+			if github {
+				got, err := os.ReadFile(githubOutput)
+				if err != nil || string(got) != "existing=value\nnode-bin="+binDir+"\n" {
+					t.Fatalf("github output = %q, %v", got, err)
+				}
+			}
+		})
 	}
 }
 
@@ -84,6 +101,26 @@ func TestProvisionNodeCommandFailureReportAndPersistence(t *testing.T) {
 	}
 	if !bytes.Equal(persisted, bytes.TrimSpace(out.Bytes())) {
 		t.Fatalf("persisted report differs from stdout: %q != %q", persisted, out.Bytes())
+	}
+}
+
+func TestProvisionNodeCommandReportPathSuccess(t *testing.T) {
+	t.Parallel()
+	// Given a successful provisioning and a requested report path.
+	directory := t.TempDir()
+	reportPath := filepath.Join(directory, "outcome.json")
+	adapter := npmProfileProvisionNodeCommand{provision: func(context.Context, string) (string, error) {
+		return filepath.Join(directory, "node", "bin"), nil
+	}}
+	var out bytes.Buffer
+	// When dispatched with --report-path.
+	result := NewDispatcher(adapter).Dispatch(t.Context(), []string{adapter.Name(), "--output-directory", directory, "--report-path", reportPath}, &out)
+	// Then success persists no report file.
+	if result.ExitCode != 0 {
+		t.Fatalf("exit = %d, output = %s", result.ExitCode, out.Bytes())
+	}
+	if _, err := os.Stat(reportPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("report path exists after success: %v", err)
 	}
 }
 

@@ -29,6 +29,7 @@ func TestRegisteredAdapterNames(t *testing.T) {
 		{NewFixtureCheckCommand(), "fixture-check"},
 		{NewNPMProfileBuildCommand(), "npm-profile-build"},
 		{NewNPMProfileProvisionNPMCommand(), "npm-profile-provision-npm"},
+		{NewNPMProfileProvisionNodeCommand(), "npm-profile-provision-node"},
 		{NewNPMProfilePublishCommand(), "npm-profile-publish"},
 		{NewNPMProfileReportCommand(), "npm-profile-report"},
 		{NewNPMProfileSelectCommand(), "npm-profile-select"},
