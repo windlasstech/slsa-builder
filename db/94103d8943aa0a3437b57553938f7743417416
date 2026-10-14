@@ -1,0 +1,42 @@
+docs/architecture/js-ts-npm-build-pack.md
+  s_d665aac9705ac8::t_616e1fb9fcdfa5 691-692
+internal/workflowcheck/node_provision.go
+  s_ef9ea93b16fd34::t_dd3ba391358e2a 14,41-43,46,52,67,74-76
+  s_ef9ea93b16fd34::t_02b44af6bc24d0 93
+internal/workflowcheck/check.go
+  s_ef9ea93b16fd34::t_02b44af6bc24d0 68,325-332
+internal/workflowcheck/runtime_scanning_test.go
+  s_ef9ea93b16fd34::t_9a44adf5a8ccd0 1-26,30-135,137-149
+  s_ef9ea93b16fd34::t_e2bacac6e72bd3 136
+  s_ef9ea93b16fd34::t_99d1c579587744 27-29
+internal/workflowcheck/toolchain.go
+  s_ef9ea93b16fd34::t_dd3ba391358e2a 27-29,32-33,47,62-63,66,68,74,87,93,107,130,160,164,169,181-182,185-186
+  s_ef9ea93b16fd34::t_02b44af6bc24d0 75-77
+  s_ef9ea93b16fd34::t_76a6f69a5bb478 173
+internal/workflowcheck/shell_invocation.go
+  s_ef9ea93b16fd34::t_dd3ba391358e2a 1-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "db94103d8943aa0a3437b57553938f7743417416",
+  "prompts": {},
+  "sessions": {
+    "s_d665aac9705ac8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec559efacffeCvTdELe5Tlvjbv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_ef9ea93b16fd34": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ec559efacffeCvTdELe5Tlvjbv",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
