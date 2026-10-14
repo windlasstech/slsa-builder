@@ -1,0 +1,25 @@
+internal/workflowcheck/toolchain.go
+  s_eae5e711d5f72b::t_b13b493b289cf2 159,181-193
+  s_eae5e711d5f72b::t_58a28e8362a26c 154-155
+internal/workflowcheck/runtime_scanning_test.go
+  s_eae5e711d5f72b::t_258c671b629546 41-44
+  s_eae5e711d5f72b::t_f13649069cbc94 12
+  s_eae5e711d5f72b::t_32f9874b28dbab 142
+  s_eae5e711d5f72b::t_feffc8e9e67ba2 141,143-144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3da7422c6393f7cb258d54a81a9bf6160cdf3332",
+  "prompts": {},
+  "sessions": {
+    "s_eae5e711d5f72b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ecede49ccffebXYfz4cyZEzNxc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
