@@ -11,6 +11,7 @@ const (
 	toolchainAssertCommand = "go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert"
 	provisionNPMCommand    = "go run ./cmd/slsa-builder-internal npm-profile-provision-npm"
 	outcomeReportPath      = "${{ runner.temp }}/windlass-npm-outcome-report.json"
+	publishToolchainGate   = "needs.build.result == 'success' && needs.provenance-sign.result == 'success'"
 )
 
 // Exclude npm-profile subcommands, npm-executable flags, and diagnostic labels (npm:).
@@ -19,78 +20,77 @@ var npmReferencePattern = regexp.MustCompile(`(^|[^a-zA-Z0-9_.-])npm($|[^a-zA-Z0
 // Capture the whole shell word, including concatenated quoted/unquoted fragments.
 var npmExecutableArgumentPattern = regexp.MustCompile(`(?:^|[\s;|&])--npm-executable(?:[ \t]+|=)((?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s"';|&])+)`)
 
-func checkPairAssertion(steps []workflowStep, job string) error {
-	if err := checkToolchainConditions(steps); err != nil {
-		return fmt.Errorf("%s: %w", job, err)
-	}
-	asserted := false
-	nodeReady := false
-	for _, current := range steps {
-		current.Run = toolchainShellText(current.Run)
-		if strings.HasPrefix(current.Uses, "actions/setup-node@") {
-			nodeReady = true
-			asserted = false
+func checkPairAssertion(steps []workflowStep, policy toolchainPolicy, spine toolchainSpine) error {
+	firstAssertIndex := len(steps)
+	for index, current := range steps {
+		run := toolchainShellText(current.Run)
+		scan := toolchainInvocationText(run)
+		if (npmReferencePattern.MatchString(scan) || strings.Contains(scan, "npm-profile-build") ||
+			strings.Contains(scan, "npm-profile-sign")) && index <= firstAssertIndex {
+			return fmt.Errorf("%s toolchain pair assertion must precede every npm invocation", policy.job)
 		}
-		if (npmReferencePattern.MatchString(current.Run) || strings.Contains(current.Run, "npm-profile-build") ||
-			strings.Contains(current.Run, "npm-profile-sign")) && !asserted {
-			return fmt.Errorf("%s toolchain pair assertion must precede every npm invocation", job)
-		}
-		if strings.Contains(current.Run, "npm-profile-toolchain-assert") {
-			if !nodeReady || current.WorkingDirectory != ".slsa-builder" ||
-				strings.TrimSpace(current.Run) != toolchainAssertCommand {
-				return fmt.Errorf("%s job must invoke npm-profile-toolchain-assert from the trusted checkout after Node.js setup", job)
+		if strings.Contains(scan, "npm-profile-toolchain-assert") {
+			if index <= spine.bindIndex || current.WorkingDirectory != ".slsa-builder" || exactToolchainCommand(run) != toolchainAssertCommand {
+				return fmt.Errorf("%s job must invoke npm-profile-toolchain-assert from the trusted checkout after Node.js setup", policy.job)
 			}
-			asserted = true
+			firstAssertIndex = min(firstAssertIndex, index)
 		}
 	}
-	if !asserted {
-		return fmt.Errorf("%s job must invoke npm-profile-toolchain-assert before npm", job)
+	if firstAssertIndex == len(steps) {
+		return fmt.Errorf("%s job must invoke npm-profile-toolchain-assert before npm", policy.job)
 	}
 	return nil
 }
 
-func checkPublishToolchain(job workflowJob) error {
-	steps := job.Steps
-	if err := checkToolchainConditions(steps); err != nil {
-		return err
-	}
-	nodeReady := false
-	asserted := false
-	provisionID := ""
-	for _, current := range steps {
-		if strings.HasPrefix(current.Uses, "actions/setup-node@") {
-			nodeReady = true
-			asserted = false
-			provisionID = ""
+func checkPublishToolchain(job workflowJob, spine toolchainSpine) error {
+	for _, step := range job.Steps {
+		run := toolchainInvocationText(toolchainShellText(step.Run))
+		if (runtimeReferencePattern.MatchString(run) || strings.Contains(run, "npm-profile-provision-node") ||
+			strings.Contains(run, "GITHUB_PATH") || strings.Contains(run, "npm-profile-toolchain-assert") ||
+			strings.Contains(run, "npm-profile-provision-npm") || strings.Contains(run, "npm-profile-build") ||
+			strings.Contains(run, "npm-profile-sign") || strings.Contains(run, "npm-profile-publish") ||
+			strings.Contains(run, "npm-executable") || strings.Contains(run, "NPM_EXECUTABLE")) &&
+			normalizeExpression(strings.Join(strings.Fields(normalizeExpression(step.If)), " ")) != publishToolchainGate {
+			return fmt.Errorf("publish toolchain step conditions must use the upstream-success gate")
 		}
+	}
+	firstAssertIndex := len(job.Steps)
+	npmProvisionIndex := len(job.Steps)
+	npmProvisionID := ""
+	for index, current := range job.Steps {
 		run := toolchainShellText(current.Run)
-		if npmReferencePattern.MatchString(run) {
+		scan := toolchainInvocationText(run)
+		if npmReferencePattern.MatchString(scan) {
 			return fmt.Errorf("publish job must use the provisioning output instead of ambient npm")
 		}
-		if strings.Contains(run, "npm-profile-toolchain-assert") {
-			if !nodeReady || current.WorkingDirectory != ".slsa-builder" ||
-				strings.TrimSpace(run) != toolchainAssertCommand+` --node-only --report-path "$REPORT_PATH"` ||
+		if strings.Contains(scan, "npm-profile-toolchain-assert") {
+			if index <= spine.bindIndex || current.WorkingDirectory != ".slsa-builder" ||
+				exactToolchainCommand(run) != toolchainAssertCommand+` --node-only --report-path "$REPORT_PATH"` ||
 				current.Env["REPORT_PATH"] != outcomeReportPath {
 				return fmt.Errorf("publish job must invoke npm-profile-toolchain-assert --node-only --report-path after Node.js setup")
 			}
-			asserted = true
+			firstAssertIndex = min(firstAssertIndex, index)
 		}
-		if strings.Contains(run, "npm-profile-provision-npm") {
-			if !asserted || current.ID == "" || current.WorkingDirectory != ".slsa-builder" ||
+		if strings.Contains(scan, "npm-profile-provision-npm") {
+			if npmProvisionID != "" {
+				return fmt.Errorf("publish job must contain exactly one npm-profile-provision-npm step")
+			}
+			if index < firstAssertIndex || current.ID == "" || current.WorkingDirectory != ".slsa-builder" ||
 				!strings.HasPrefix(strings.TrimSpace(run), provisionNPMCommand+" ") ||
 				!containsAll(run, `--output-directory "${{ runner.temp }}/windlass-npm-cli"`, `--github-output "$GITHUB_OUTPUT"`, `--report-path "$REPORT_PATH"`) ||
 				current.Env["REPORT_PATH"] != outcomeReportPath {
 				return fmt.Errorf("publish npm provisioning must have an id, emit GitHub outputs, and persist a failure report after the node-only assertion")
 			}
-			provisionID = current.ID
+			npmProvisionID = current.ID
+			npmProvisionIndex = index
 		}
-		if strings.Contains(run, "npm-executable") || strings.Contains(run, "npm-profile-publish") || strings.Contains(run, "NPM_EXECUTABLE") {
-			if provisionID == "" {
+		if strings.Contains(scan, "npm-executable") || strings.Contains(scan, "npm-profile-publish") || strings.Contains(scan, "NPM_EXECUTABLE") {
+			if index < npmProvisionIndex {
 				return fmt.Errorf("npm provisioning must precede publish diagnostics and npm-profile-publish")
 			}
-			output := "${{ steps." + provisionID + ".outputs.npm-executable }}"
+			output := "${{ steps." + npmProvisionID + ".outputs.npm-executable }}"
 			argumentRun := run
-			if strings.Contains(run, "NPM_EXECUTABLE") {
+			if strings.Contains(scan, "NPM_EXECUTABLE") {
 				binding, present := current.Env["NPM_EXECUTABLE"]
 				if !present {
 					binding = job.Env["NPM_EXECUTABLE"]
@@ -104,7 +104,7 @@ func checkPublishToolchain(job workflowJob) error {
 			if !strings.Contains(run, output) || strings.Contains(strings.ReplaceAll(run, output, ""), ".outputs.npm-executable") {
 				return fmt.Errorf("publish npm references must use %s", output)
 			}
-			if strings.Contains(run, "npm-profile-publish") {
+			if strings.Contains(scan, "npm-profile-publish") {
 				arguments := npmExecutableArgumentPattern.FindAllStringSubmatch(argumentRun, -1)
 				if len(arguments) != 1 || strings.Count(argumentRun, "--npm-executable") != 1 ||
 					!slices.Contains([]string{`"` + output + `"`, "'" + output + "'",
@@ -115,7 +115,7 @@ func checkPublishToolchain(job workflowJob) error {
 			}
 		}
 	}
-	if !asserted || provisionID == "" {
+	if firstAssertIndex == len(job.Steps) || npmProvisionID == "" {
 		return fmt.Errorf("publish job must invoke npm-profile-toolchain-assert --node-only and npm-profile-provision-npm")
 	}
 	return nil
@@ -127,9 +127,10 @@ func checkToolchainConditions(steps []workflowStep) error {
 	gate := ""
 	seen := false
 	for _, step := range steps {
-		step.Run = toolchainShellText(step.Run)
-		if !strings.HasPrefix(step.Uses, "actions/setup-node@") &&
-			!npmReferencePattern.MatchString(step.Run) &&
+		step.Run = toolchainInvocationText(toolchainShellText(step.Run))
+		if !runtimeReferencePattern.MatchString(step.Run) &&
+			!strings.Contains(step.Run, "npm-profile-provision-node") &&
+			!strings.Contains(step.Run, "GITHUB_PATH") &&
 			!strings.Contains(step.Run, "npm-profile-toolchain-assert") &&
 			!strings.Contains(step.Run, "npm-profile-provision-npm") &&
 			!strings.Contains(step.Run, "npm-profile-build") &&
@@ -139,7 +140,7 @@ func checkToolchainConditions(steps []workflowStep) error {
 			!strings.Contains(step.Run, "NPM_EXECUTABLE") {
 			continue
 		}
-		condition := strings.Join(strings.Fields(step.If), " ")
+		condition := strings.Join(strings.Fields(normalizeExpression(step.If)), " ")
 		if normalizeExpression(condition) == "false" || (seen && condition != gate) {
 			return fmt.Errorf("toolchain step conditions must be identical and not constant false")
 		}
@@ -149,13 +150,56 @@ func checkToolchainConditions(steps []workflowStep) error {
 	return nil
 }
 
-// This conservative line-based strip treats every # as a comment delimiter,
-// including inside quotes. It is not a shell evaluator; ambiguous syntax fails
-// closed. Strip before joining continuations so comments cannot supply evidence.
+// Strip shell comments before joining continuations so comments cannot supply
+// evidence, while preserving quoted, escaped, or parameter-expansion-internal
+// hashes in executable shell text.
 func toolchainShellText(run string) string {
 	lines := strings.Split(run, "\n")
+	var quote rune
+	expansion := 0
 	for index, line := range lines {
-		lines[index], _, _ = strings.Cut(line, "#")
+		escaped := false
+		wordStart := true
+		for offset, char := range line {
+			if escaped {
+				escaped = false
+				wordStart = false
+				continue
+			}
+			if char == '\\' && quote != '\'' {
+				escaped = true
+				wordStart = false
+				continue
+			}
+			if quote != 0 {
+				wordStart = false
+				if char == quote {
+					quote = 0
+				}
+				continue
+			}
+			if expansion > 0 {
+				wordStart = false
+				if char == '$' && offset+1 < len(line) && line[offset+1] == '{' {
+					expansion++
+				} else if char == '}' {
+					expansion--
+				}
+				continue
+			}
+			if char == '$' && offset+1 < len(line) && line[offset+1] == '{' {
+				expansion++
+				wordStart = false
+			} else if char == '\'' || char == '"' {
+				quote = char
+				wordStart = false
+			} else if char == '#' && wordStart {
+				lines[index] = line[:offset]
+				break
+			} else {
+				wordStart = strings.ContainsRune(" \t\r\v\f;|&()<>", char)
+			}
+		}
 	}
 	return strings.ReplaceAll(strings.Join(lines, "\n"), "\\\n", " ")
 }

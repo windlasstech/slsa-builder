@@ -64,12 +64,12 @@ func resolverAfterCheckout(t *testing.T, workflow string) string {
 	t.Helper()
 	resolverStart := strings.Index(workflow, "      - id: source-ref\n")
 	checkoutStart := strings.Index(workflow[resolverStart:], "      - uses: actions/checkout@") + resolverStart
-	setupNodeStart := strings.Index(workflow[checkoutStart:], "      - uses: actions/setup-node@") + checkoutStart
-	if resolverStart < 0 || checkoutStart < resolverStart || setupNodeStart < checkoutStart {
+	provisionNodeStart := strings.Index(workflow[checkoutStart:], "      - id: node-provision") + checkoutStart
+	if resolverStart < 0 || checkoutStart < resolverStart || provisionNodeStart < checkoutStart {
 		t.Fatal("source-ref fixture does not contain the expected resolver and checkout sequence")
 	}
 	resolver := workflow[resolverStart:checkoutStart]
-	return workflow[:resolverStart] + workflow[checkoutStart:setupNodeStart] + resolver + workflow[setupNodeStart:]
+	return workflow[:resolverStart] + workflow[checkoutStart:provisionNodeStart] + resolver + workflow[provisionNodeStart:]
 }
 
 const sourceResolverSteps = `      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0

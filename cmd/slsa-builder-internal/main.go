@@ -12,6 +12,7 @@ func main() {
 		command.NewFixtureCheckCommand(),
 		command.NewNPMProfileBuildCommand(),
 		command.NewNPMProfileProvisionNPMCommand(),
+		command.NewNPMProfileProvisionNodeCommand(),
 		command.NewNPMProfilePublishCommand(),
 		command.NewNPMProfileReportCommand(),
 		command.NewNPMProfileSignCommand(),

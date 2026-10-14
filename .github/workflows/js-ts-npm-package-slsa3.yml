@@ -124,10 +124,15 @@ jobs:
           path: source
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "24.21.0"
+      - name: Provision pinned Node.js runtime
+        id: node-provision
+        working-directory: .slsa-builder
+        run: >-
+          go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{
+          runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT"
+
+      - name: Bind provisioned Node.js runtime
+        run: echo "${{ steps.node-provision.outputs.node-bin }}" >> "$GITHUB_PATH"
 
       - name: Assert pinned toolchain pair
         working-directory: .slsa-builder
@@ -301,10 +306,15 @@ jobs:
           go-version: "1.27.1"
           cache: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "24.21.0"
+      - name: Provision pinned Node.js runtime
+        id: node-provision
+        working-directory: .slsa-builder
+        run: >-
+          go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{
+          runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT"
+
+      - name: Bind provisioned Node.js runtime
+        run: echo "${{ steps.node-provision.outputs.node-bin }}" >> "$GITHUB_PATH"
 
       - name: Assert pinned toolchain pair
         working-directory: .slsa-builder
@@ -415,11 +425,20 @@ jobs:
           go-version: "1.27.1"
           cache: false
 
-      - name: Set up Node.js
+      - name: Provision pinned Node.js runtime
+        id: node-provision
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "24.21.0"
+        working-directory: .slsa-builder
+        env:
+          REPORT_PATH: ${{ runner.temp }}/windlass-npm-outcome-report.json
+        run: >-
+          go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{
+          runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT" --report-path
+          "$REPORT_PATH"
+
+      - name: Bind provisioned Node.js runtime
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        run: echo "${{ steps.node-provision.outputs.node-bin }}" >> "$GITHUB_PATH"
 
       - name: Assert pinned Node.js runtime
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'

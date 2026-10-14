@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -147,6 +148,9 @@ func validateExecutableContainment(executable, shimDirectory string) (string, er
 	return "", &commandBoundaryError{cause: fmt.Errorf("executable %q resolves outside all trusted toolchain roots", executable)}
 }
 
+// Unlike archive admission's linux-x64 restriction, execution recognizes official platform names.
+var nodeRuntimeRootPattern = regexp.MustCompile(`^node-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-[a-z0-9]+-[a-z0-9]+$`)
+
 func trustedToolchainRoots(shimDirectory string) []string {
 	// Root order is deliberate: prefer the per-build Corepack shim we create,
 	// then the GitHub runner cache, then mise's managed installs for local
@@ -162,7 +166,14 @@ func trustedToolchainRoots(shimDirectory string) []string {
 	candidates = append(candidates, miseRoot)
 	if nodePath, err := exec.LookPath("node"); err == nil {
 		if resolvedNode, resolveErr := filepath.EvalSymlinks(nodePath); resolveErr == nil {
-			candidates = append(candidates, filepath.Dir(resolvedNode))
+			binDir := filepath.Dir(resolvedNode)
+			candidates = append(candidates, binDir)
+			runtimeRoot := filepath.Dir(binDir)
+			if filepath.Base(binDir) == "bin" && nodeRuntimeRootPattern.MatchString(filepath.Base(runtimeRoot)) {
+				// Provisioning digest-authenticates the runtime root's contents; the
+				// executable-basename allowlist still constrains what may run.
+				candidates = append(candidates, runtimeRoot)
+			}
 		}
 	}
 

@@ -576,54 +576,152 @@ hash. That condition must stop before predicate construction with
 ## Node.js and npm toolchain pair
 
 This section is normative under
-[ADR 0085](../decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md)
+[ADR 0098](../decisions/0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md),
+[ADR 0085](../decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md),
 and [ADR 0027](../decisions/0027-use-github-hosted-ubuntu-2404-and-node-24-runtime.md).
 
 ### Pinned runtime table
 
 The single shared definition of the build toolchain is the builder-owned machine-readable record
-`internal/toolchainpins/node-runtime.json`, which holds the pair: the exact Node.js 24 patch version
-and the npm version that exact patch bundles. The record is cross-checked against the Node.js
-release metadata (<https://nodejs.org/dist/index.json>) whenever the pair changes. The
-human-readable runtime table below mirrors the record, and a CI check fails on any drift between the
-record and the table with `windlass.verify.error.toolchain-pin-drift` (check
+`internal/toolchainpins/node-runtime.json`, which holds the pair — the exact Node.js 24 patch
+version and the npm version that exact patch bundles — and, per supported platform, the runtime
+artifact pin: the exact official release tarball URL and the SHA-256 digest of the compressed
+tarball in lowercase hexadecimal, byte-identical to the artifact's line in the release's
+`SHASUMS256.txt`. Platforms are keyed `<os>-<arch>`; the supported platform set is initially exactly
+`linux-x64`, the ADR 0027 production runner platform. Wider platform coverage extends the record and
+its decoding in the same change; it is not a contract change. The pair is cross-checked against the
+Node.js release metadata (<https://nodejs.org/dist/index.json>) whenever the pair changes, and the
+artifact digest is obtained at review time by verifying the release's signed `SHASUMS256.txt`
+against the Node.js release-team keyring (ADR 0098); no release metadata is consulted at run time.
+The human-readable runtime tables below mirror the record, and a CI check fails on any drift between
+the record and the tables with `windlass.verify.error.toolchain-pin-drift` (check
 `toolchain.pins.drift`).
 
 | Node.js version | Bundled npm version |
 | --------------- | ------------------- |
 | `24.21.0`       | `11.19.0`           |
 
-The reusable workflow's Node.js setup uses the exact recorded patch, never a floating major. The two
-values change only together, in one commit, through the ADR 0085 bump procedure: the npm changelog
-delta is reviewed for build-affecting changes (install and Arborist resolution, workspace behavior,
-lifecycle-script policy, and pack, packlist, and pack output behavior), the compatibility fixtures
-are added or refreshed for the new pair, and the full CI gate passes on the new pair. The pair
-record and the publish npm pin record (`internal/toolchainpins/publish-npm.json`, see the
+| Platform    | Tarball URL                                                       | SHA-256 (hex)                                                      |
+| ----------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `linux-x64` | `https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz` | `6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff` |
+
+The pair and the artifact pin change only together, in one commit, through the ADR 0085 bump
+procedure extended by the ADR 0098 review ceremony: the npm changelog delta is reviewed for
+build-affecting changes (install and Arborist resolution, workspace behavior, lifecycle-script
+policy, and pack, packlist, and pack output behavior), the new release's signed `SHASUMS256.txt` is
+verified against the Node.js release-team keyring and the resulting artifact digest is recorded, the
+compatibility fixtures are added or refreshed for the new pair, and the full CI gate passes on the
+new pair and artifact pin. The pair record and the publish npm pin record
+(`internal/toolchainpins/publish-npm.json`, see the
 [provenance and publish specification](js-ts-npm-provenance-publish.md#publish-stage-npm-cli-allowlist))
 are independent records with independent review cadences; neither selects the other.
 
-The bundled npm arrives as part of the Node.js artifact provided by the pinned setup mechanism and
-is not authenticated independently as an npm distribution. The pinned setup mechanism performs no
-checksum verification of the Node.js artifact: the executed toolchain's version identity is pinned
-observationally by the pair assertion below, and artifact integrity rests on the GitHub-hosted
-runner image and the setup mechanism's TLS download. This contract introduces no
-`resolvedDependencies` schema change and does not pin the runner image.
+The bundled npm arrives as part of the digest-verified Node.js release artifact and is authenticated
+with it (ADR 0098); it is not authenticated independently as an npm distribution. The pinned setup
+mechanism no longer supplies the runtime: the workflow provisions exactly the recorded patch, never
+a floating major, from the pinned, digest-verified artifact per the runtime provisioning section
+below, and the pair assertion below re-checks the provisioned toolchain's version identity
+observationally. This contract introduces no `resolvedDependencies` schema change and does not pin
+the runner image.
+
+### Digest-verified runtime provisioning
+
+Every job that uses the Node.js runtime must provision the pinned runtime before any `node`, `npm`,
+`npx`, or Corepack invocation in the job, including diagnostic invocations. Per
+[ADR 0004](../decisions/0004-use-go-as-primary-implementation-language.md), the
+fetch-verify-extract-emit logic lives in the trusted Go boundary; the workflow step only invokes it.
+Provisioning performs exactly these steps, in this order:
+
+1. Download the exact tarball URL recorded for the job's platform in
+   `internal/toolchainpins/node-runtime.json` over HTTPS. No URL, version, platform set, or digest
+   value is derived from nodejs.org metadata at run time. A download failure fails the job with
+   `windlass.verify.error.node-runtime-provision-download` (check `npm.toolchain.provision`).
+2. Hash the compressed bytes and require equality with the recorded SHA-256 digest. A mismatch fails
+   the job before extraction with `windlass.verify.error.node-runtime-provision-digest-mismatch`
+   (check `npm.toolchain.provision`).
+3. Extract into a fresh private directory with archive-safety checks: a single
+   `node-v<version>-<platform>/` root, and no absolute, parent-traversing, hardlink, device, or FIFO
+   entries. A violation fails the job with
+   `windlass.verify.error.node-runtime-provision-archive-unsafe` (check `npm.toolchain.provision`).
+4. Require the exact official layout of the extracted root: the top-level entry set is exactly
+   `bin/`, `include/`, `lib/`, `share/`, `CHANGELOG.md`, `LICENSE`, and `README.md`; `bin/` contains
+   exactly the regular executable `node` and the symlinks `npm` →
+   `../lib/node_modules/npm/bin/npm-cli.js`, `npx` → `../lib/node_modules/npm/bin/npx-cli.js`, and
+   `corepack` → `../lib/node_modules/corepack/dist/corepack.js`. Any missing or unexpected entry,
+   any entry that is neither a regular file nor a directory outside this symlink set, any link
+   target unequal to these documented values, any link target that does not resolve to a regular
+   file, and any link target escaping the root fails the job with
+   `windlass.verify.error.node-runtime-provision-layout-violation` (check
+   `npm.toolchain.provision`). ADR 0098 admits these three symlinks: the official archive's own
+   documented in-root symlinks are part of the exact layout rather than a violation of the
+   publish-stage no-symlink discipline (ADR 0084), they are verified against the real artifact at
+   pin-review time, and every other link remains prohibited.
+5. Require the extracted tree to identify the recorded pair without executing it: the root directory
+   name must be `node-v<recorded-version>-<platform>`, and the bundled npm's package manifest
+   version (`lib/node_modules/npm/package.json`) must equal the recorded npm version. A mismatch
+   fails the job before any use with `windlass.verify.error.node-runtime-provision-version-mismatch`
+   (check `npm.toolchain.provision`).
+6. Emit the absolute path of the provisioned runtime's `bin` directory. Subsequent steps of the job
+   resolve `node`, `npx`, and Corepack only from that directory, and no global installation is
+   performed. The `npm` resolution is stage-specific: a job that uses the bundled npm (the build
+   path) resolves `npm` from that directory; the publish job never resolves `npm` from that
+   directory and invokes npm exclusively through the separately provisioned launcher of the
+   [publish-stage npm provisioning](js-ts-npm-provenance-publish.md#publish-stage-npm-provisioning).
+
+Every provisioning failure occurs before any build, pack, provenance, or publish operation in the
+job. No download cache is introduced at adoption time. If a cache is added later, only the original
+compressed tarball may be cached, and the recorded SHA-256 digest must be re-verified after every
+restore: a cache-key match does not authenticate cached bytes.
+
+### Workflow conformance
+
+The reusable workflow is statically checked for this contract by the `workflow-check` CI gate, and a
+workflow that violates any rule fails the gate before any run. Conformance violations are invocation
+failures of the check, not registered verification diagnostics.
+
+In every job that uses the runtime (build, provenance-sign, and publish):
+
+1. **Provisioning step.** Exactly one step runs
+   `go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{ runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT"`
+   from the trusted checkout (`working-directory: .slsa-builder`) and carries an `id`. In the
+   publish job the step additionally passes `--report-path "$REPORT_PATH"`, with `REPORT_PATH` set
+   to the outcome report path `${{ runner.temp }}/windlass-npm-outcome-report.json`.
+2. **Binding step.** Exactly one step binds subsequent runtime resolution to the provisioning output
+   with `echo "${{ steps.<id>.outputs.node-bin }}" >> "$GITHUB_PATH"`, referencing the provisioning
+   step's `id`. No step, job, or workflow environment may set `PATH` or reference the runner
+   toolcache (`RUNNER_TOOL_CACHE`, `runner.tool_cache`, or `/opt/hostedtoolcache`).
+3. **Ordering.** No step before the binding step may invoke `node`, `npm`, `npx`, or Corepack, run
+   the pair assertion, provision npm, or run an npm-profile build, sign, or publish subcommand. The
+   pair assertion follows the binding step: `npm-profile-toolchain-assert` from `.slsa-builder`, and
+   in the publish job exactly
+   `npm-profile-toolchain-assert --node-only --report-path "$REPORT_PATH"` with the same
+   `REPORT_PATH` binding. The publish job orders its toolchain as runtime provisioning, PATH
+   binding, the node-only pair assertion, npm CLI provisioning, and then npm consumers, per the
+   [provenance and publish specification](js-ts-npm-provenance-publish.md#publish-stage-npm-provisioning).
+4. **Conditions.** Toolchain steps carry identical conditions: none in the build and provenance-sign
+   jobs, and exactly the upstream-success gate
+   `needs.build.result == 'success' && needs.provenance-sign.result == 'success'` in the publish
+   job. A constant-false condition is a conformance failure.
+5. **Prohibited sources.** No step may obtain the runtime from a setup action (for example
+   `actions/setup-node`) or from the runner toolcache.
 
 ### Pre-install pair assertion
 
-In each job that uses the bundled npm, the pair assertion first observes `node --version` and
-`npm --version` and requires exact equality with the recorded pair: the Node.js comparison strips
-the single leading `v` from the observed output (`node --version` prints `v24.21.0` for the recorded
-`24.21.0`), and the npm comparison is verbatim. The pair assertion is the exempt preflight that
-observes the versions; it must complete before any subsequent npm invocation that performs a package
-operation. A mismatch fails the job before any install, build, or pack step with
-`windlass.verify.error.toolchain-pair-mismatch` (check `npm.build.toolchain`). An npm invocation is
-an invocation of the npm CLI by a step of the job's workflow (for example, a diagnostics, install,
-build, or pack command); the pair assertion's own version observation and the pinned setup
-mechanism's internal, read-only environment logging, such as the version reporting that
-`actions/setup-node` performs after installing Node.js, are part of the authenticated toolchain
-setup, touch no package operation, and are not npm invocations for the purposes of this
-specification. The observed npm version continues to be recorded in
+In each job that uses the runtime, the pair assertion observes the provisioned runtime's
+`node --version` and `npm --version` and requires exact equality with the recorded pair: the Node.js
+comparison strips the single leading `v` from the observed output (`node --version` prints
+`v24.21.0` for the recorded `24.21.0`), and the npm comparison is verbatim. Under ADR 0098 the pair
+assertion is the observational guard that detects provisioning drift; the artifact's integrity
+control is the digest verification in the provisioning step, not this assertion. The pair assertion
+is the exempt preflight that observes the versions; it must complete before any subsequent npm
+invocation that performs a package operation, and the [workflow conformance](#workflow-conformance)
+gate statically enforces this ordering. A mismatch fails the job before any install, build, or pack
+step with `windlass.verify.error.toolchain-pair-mismatch` (check `npm.build.toolchain`). An npm
+invocation is an invocation of the npm CLI by a step of the job's workflow (for example, a
+diagnostics, install, build, or pack command); the pair assertion's own version observation and the
+runtime provisioning step's internal, read-only verification and reporting are part of the
+authenticated toolchain setup, touch no package operation, and are not npm invocations for the
+purposes of this specification. The observed npm version continues to be recorded in
 `externalParameters.runtime.npm_version` exactly as before: the recording semantics of ADR 0027, ADR
 0070, and ADR 0071 are unchanged, and the value is now validated against the pin rather than merely
 observed. The `>= 11.5.1` floor on `runtime.npm_version` is retained unchanged as defense in depth
@@ -634,32 +732,38 @@ The publish job is governed by
 and
 [ADR 0084](../decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md)
 unchanged: it provisions its own pinned, digest-verified npm before any npm invocation, and the
-bundled npm is never invoked there. The pair assertion covers the publish job's Node.js runtime only
-(node-only mode).
+bundled npm is never invoked there. The publish job provisions its Node.js runtime per the
+digest-verified runtime provisioning section above (ADR 0098) before that npm provisioning, and the
+pair assertion covers the publish job's Node.js runtime only (node-only mode).
 
-An independently provisioned build-stage npm (the ADR 0084 mechanism with a separate build pin
-record, never the publish pin's record) is future work only, revisited under the ADR 0085 escalation
-trigger.
+Under ADR 0098, an independently provisioned build-stage npm (the ADR 0084 mechanism with a separate
+build pin record, never the publish pin's record) no longer requires an architectural decision: it
+is a specification-level option. This revision keeps the bundled npm, which is authenticated as part
+of the digest-verified Node.js artifact; adopting the independent provisioning later revises this
+section only.
 
 ## Runner image capture
 
-ADR 0070 records the GitHub-hosted runner image that supplied the Node.js runtime. At build time,
-the profile must observe `ImageOS`, `ImageVersion`, and the exact output of `node --version`. It
-must read `/imagegeneration/imagedata.json` verbatim as a JSON array and select the entry whose
-`group` is `Runner Image`. That entry's `detail` must contain `Image: <label>`,
-`Version: <full-version>`, `Included Software: <url>`, and `Image Release: <url>` lines. If the file
-is unavailable or malformed, the group or detail lines are unavailable or malformed, the image label
-is inconsistent with `$ImageOS`, `Version` differs from `$ImageVersion`, or the Included Software
-URL is absent or empty, the profile must stop before predicate construction with
+ADR 0070 records the GitHub-hosted runner image that hosts the build; under ADR 0098 the image no
+longer supplies the Node.js runtime, which is provisioned per the digest-verified runtime
+provisioning section above. At build time, the profile must observe `ImageOS`, `ImageVersion`, and
+the exact output of the provisioned runtime's `node --version`. It must read
+`/imagegeneration/imagedata.json` verbatim as a JSON array and select the entry whose `group` is
+`Runner Image`. That entry's `detail` must contain `Image: <label>`, `Version: <full-version>`,
+`Included Software: <url>`, and `Image Release: <url>` lines. If the file is unavailable or
+malformed, the group or detail lines are unavailable or malformed, the image label is inconsistent
+with `$ImageOS`, `Version` differs from `$ImageVersion`, or the Included Software URL is absent or
+empty, the profile must stop before predicate construction with
 `windlass.verify.error.input-unavailable` and exit code `2`.
 
 The canonical name-keyed `runner-image` descriptor `uri` must be the non-empty Included Software URL
 read verbatim from that file. Its annotations must be `image_os: $ImageOS`,
 `image_version: $ImageVersion`, and `node_version` equal to the exact observed `node --version`
-output. The profile must not derive, reconstruct, or rewrite an undocumented runner URL from
-`ImageOS`, `ImageVersion`, or another source. A captured malformed runner descriptor, including a
-digest member or a mismatch with these observations, must stop before predicate construction with
-`windlass.verify.error.resolved-dependencies-runner-image` and exit code `1`.
+output of the provisioned runtime. The profile must not derive, reconstruct, or rewrite an
+undocumented runner URL from `ImageOS`, `ImageVersion`, or another source. A captured malformed
+runner descriptor, including a digest member or a mismatch with these observations, must stop before
+predicate construction with `windlass.verify.error.resolved-dependencies-runner-image` and exit code
+`1`.
 
 No network validation of the Included Software URL is required. If GitHub removes or reshapes the
 file, producers fail closed before signing with `windlass.verify.error.input-unavailable` and exit

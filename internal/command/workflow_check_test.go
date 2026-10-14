@@ -61,8 +61,10 @@ jobs:
           ref: ${{ steps.source-ref.outputs.built-revision }}
           path: source
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with: {node-version: "24.21.0"}
+      - id: node-provision
+        working-directory: .slsa-builder
+        run: go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{ runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT"
+      - run: echo "${{ steps.node-provision.outputs.node-bin }}" >> "$GITHUB_PATH"
       - working-directory: .slsa-builder
         run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert
       - run: corepack enable
@@ -87,8 +89,10 @@ jobs:
           ref: ${{ job.workflow_sha }}
           path: .slsa-builder
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with: {node-version: "24.21.0"}
+      - id: node-provision
+        working-directory: .slsa-builder
+        run: go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{ runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT"
+      - run: echo "${{ steps.node-provision.outputs.node-bin }}" >> "$GITHUB_PATH"
       - working-directory: .slsa-builder
         run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -115,21 +119,30 @@ jobs:
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411
         with: {egress-policy: audit}
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with: {node-version: "24.21.0"}
+      - id: node-provision
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        working-directory: .slsa-builder
+        env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
+        run: go run ./cmd/slsa-builder-internal npm-profile-provision-node --output-directory "${{ runner.temp }}/windlass-node-runtime" --github-output "$GITHUB_OUTPUT" --report-path "$REPORT_PATH"
+      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        run: echo "${{ steps.node-provision.outputs.node-bin }}" >> "$GITHUB_PATH"
       - working-directory: .slsa-builder
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
         run: go run ./cmd/slsa-builder-internal npm-profile-toolchain-assert --node-only --report-path "$REPORT_PATH"
       - id: npm-provision
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         working-directory: .slsa-builder
         env: {REPORT_PATH: "${{ runner.temp }}/windlass-npm-outcome-report.json"}
         run: go run ./cmd/slsa-builder-internal npm-profile-provision-npm --output-directory "${{ runner.temp }}/windlass-npm-cli" --github-output "$GITHUB_OUTPUT" --report-path "$REPORT_PATH"
-      - run: '"${{ steps.npm-provision.outputs.npm-executable }}" --version'
+      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        run: '"${{ steps.npm-provision.outputs.npm-executable }}" --version'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with: {name: "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with: {name: "js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}"}
-      - run: go run ./cmd/slsa-builder-internal npm-profile-publish --npm-executable "${{ steps.npm-provision.outputs.npm-executable }}"
+      - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        run: go run ./cmd/slsa-builder-internal npm-profile-publish --npm-executable "${{ steps.npm-provision.outputs.npm-executable }}"
       - if: always()
         run: go run ./cmd/slsa-builder-internal npm-profile-report
       - if: always()

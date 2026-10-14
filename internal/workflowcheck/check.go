@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"github.com/goccy/go-yaml"
-
-	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 const (
@@ -67,6 +65,7 @@ type NPMOnlyProfileResult struct {
 }
 
 type workflowDocument struct {
+	Env         map[string]string      `yaml:"env"`
 	Permissions map[string]string      `yaml:"permissions"`
 	On          workflowTriggers       `yaml:"on"`
 	Jobs        map[string]workflowJob `yaml:"jobs"`
@@ -151,6 +150,9 @@ func CheckBuildJob(path string) (BuildJobResult, error) {
 	if build.Concurrency.Group != buildConcurrencyGroup || !build.Concurrency.CancelInProgress || build.Concurrency.Queue != "" {
 		return BuildJobResult{}, fmt.Errorf("build job must use the pre-mutation concurrency contract")
 	}
+	if err := checkNodeEnvironment(build.Env); err != nil {
+		return BuildJobResult{}, err
+	}
 	if err := checkSteps(build.Steps, &result); err != nil {
 		return BuildJobResult{}, err
 	}
@@ -197,6 +199,9 @@ func CheckProvenanceSignJob(path string) (ProvenanceSignJobResult, error) {
 	if build.Outputs["built-ref"] != "${{ steps.source-ref.outputs.built-ref }}" ||
 		build.Outputs["built-revision"] != "${{ steps.source-ref.outputs.built-revision }}" {
 		return ProvenanceSignJobResult{}, fmt.Errorf("build job must expose resolver built-source outputs to provenance-sign")
+	}
+	if err := checkNodeEnvironment(job.Env); err != nil {
+		return ProvenanceSignJobResult{}, err
 	}
 	if err := checkProvenanceSignSteps(job.Steps, &result); err != nil {
 		return ProvenanceSignJobResult{}, err
@@ -317,7 +322,14 @@ func readWorkflow(path string) (workflowDocument, error) {
 	if err != nil {
 		return workflowDocument{}, fmt.Errorf("read workflow: %w", err)
 	}
-	return decodeWorkflow(contents)
+	document, err := decodeWorkflow(contents)
+	if err != nil {
+		return workflowDocument{}, err
+	}
+	if err := checkNodeEnvironment(document.Env); err != nil {
+		return workflowDocument{}, fmt.Errorf("workflow environment: %w", err)
+	}
+	return document, nil
 }
 
 func checkNPMWorkflowCall(call workflowCall) error {
@@ -404,10 +416,11 @@ func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
 	if !result.AlwaysRunReport {
 		return fmt.Errorf("publish job must always generate and upload the outcome report")
 	}
-	if err := checkPinnedNode(steps, "publish"); err != nil {
+	spine, err := checkNodeProvisioning(job, toolchainPolicy{job: "publish", publish: true})
+	if err != nil {
 		return err
 	}
-	return checkPublishToolchain(job)
+	return checkPublishToolchain(job, spine)
 }
 
 func sortedNeeds(value any) []string {
@@ -480,10 +493,12 @@ func checkProvenanceSignSteps(steps []workflowStep, result *ProvenanceSignJobRes
 	if result.BundleArtifactName != provenanceBundleArtifactName {
 		return fmt.Errorf("provenance bundle artifact name is %q, want %q", result.BundleArtifactName, provenanceBundleArtifactName)
 	}
-	if err := checkPinnedNode(steps, "provenance-sign"); err != nil {
+	policy := toolchainPolicy{job: "provenance-sign"}
+	spine, err := checkNodeProvisioning(workflowJob{Steps: steps}, policy)
+	if err != nil {
 		return err
 	}
-	return checkPairAssertion(steps, "provenance-sign")
+	return checkPairAssertion(steps, policy, spine)
 }
 
 func checkSteps(steps []workflowStep, result *BuildJobResult) error {
@@ -540,7 +555,9 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if resolverIndex < 0 || packageCheckoutIndex < 0 || resolverIndex >= packageCheckoutIndex {
 		return fmt.Errorf("source-ref resolver must precede the package source checkout")
 	}
-	if err := checkPinnedNode(steps, "build"); err != nil {
+	policy := toolchainPolicy{job: "build"}
+	spine, err := checkNodeProvisioning(workflowJob{Steps: steps}, policy)
+	if err != nil {
 		return err
 	}
 	if !hasCorepack {
@@ -549,27 +566,7 @@ func checkSteps(steps []workflowStep, result *BuildJobResult) error {
 	if !hasBuild {
 		return fmt.Errorf("build job must invoke npm-profile-build")
 	}
-	return checkPairAssertion(steps, "build")
-}
-
-func checkPinnedNode(steps []workflowStep, job string) error {
-	pair, err := toolchainpins.NodeRuntimePair()
-	if err != nil {
-		return fmt.Errorf("load Node.js runtime pair: %w", err)
-	}
-	hasNode := false
-	for _, current := range steps {
-		if strings.HasPrefix(current.Uses, "actions/setup-node@") {
-			if scalar(current.With["node-version"]) != pair.NodeVersion {
-				return fmt.Errorf("%s job must set up Node.js %s exactly", job, pair.NodeVersion)
-			}
-			hasNode = true
-		}
-	}
-	if !hasNode {
-		return fmt.Errorf("%s job must set up Node.js %s exactly", job, pair.NodeVersion)
-	}
-	return nil
+	return checkPairAssertion(steps, policy, spine)
 }
 
 func containsAll(value string, required ...string) bool {

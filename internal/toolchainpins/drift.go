@@ -41,6 +41,11 @@ func CheckDrift(inputs DriftInputs) error {
 	if err != nil {
 		return &DriftError{message: "invalid runtime pair record"}
 	}
+	var platform string
+	var artifact NodeArtifact
+	for key, value := range pair.Artifacts {
+		platform, artifact = key, value
+	}
 	checks := []struct {
 		path, heading   string
 		headers, values []string
@@ -51,6 +56,9 @@ func CheckDrift(inputs DriftInputs) error {
 		{inputs.BuildSpec, "## Node.js and npm toolchain pair",
 			[]string{"Node.js version", "Bundled npm version"},
 			[]string{pair.NodeVersion, pair.NPMVersion}},
+		{inputs.BuildSpec, "## Node.js and npm toolchain pair",
+			[]string{"Platform", "Tarball URL", "SHA-256 (hex)"},
+			[]string{platform, artifact.URL, artifact.SHA256}},
 	}
 	for _, check := range checks {
 		data, err := os.ReadFile(check.path)

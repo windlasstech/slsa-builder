@@ -11,7 +11,7 @@ import (
 
 func TestAdapterInvocationGuards(t *testing.T) {
 	t.Parallel()
-	for _, command := range []Command{NewFixtureCheckCommand(), NewNPMProfileBuildCommand(), NewNPMProfileProvisionNPMCommand(), NewNPMProfilePublishCommand(), NewNPMProfileReportCommand(), NewNPMProfileSelectCommand(), NewNPMProfileSignCommand(), NewNPMProfileSourceRefCommand(), NewNPMProfileToolchainAssertCommand(), NewPinCheckCommand(), NewVerifyAttestationCommand(), NewVerifyHandoffCommand(), NewWorkflowCheckCommand()} {
+	for _, command := range []Command{NewFixtureCheckCommand(), NewNPMProfileBuildCommand(), NewNPMProfileProvisionNPMCommand(), NewNPMProfileProvisionNodeCommand(), NewNPMProfilePublishCommand(), NewNPMProfileReportCommand(), NewNPMProfileSelectCommand(), NewNPMProfileSignCommand(), NewNPMProfileSourceRefCommand(), NewNPMProfileToolchainAssertCommand(), NewPinCheckCommand(), NewVerifyAttestationCommand(), NewVerifyHandoffCommand(), NewWorkflowCheckCommand()} {
 		t.Run(command.Name(), func(t *testing.T) {
 			t.Parallel()
 			invalid := []struct {

@@ -46,6 +46,8 @@ relations:
       narrows the open choice to the digest-verified npm registry tarball mechanism"
   - type: see-also
     target: ADR-0085
+  - type: see-also
+    target: ADR-0098
 ---
 
 # Pin the Publish-Stage npm CLI Version with Integrity-Verified Provisioning and a Reviewed Allowlist

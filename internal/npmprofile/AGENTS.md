@@ -17,6 +17,8 @@ internal/npmprofile/
 │     Entry: BuildPack(ctx, BuildPackConfig)
 ├── Pre-install pair assertion: toolchain_assert.go
 │     Entry: AssertToolchainPair(ctx, nodeOnly)
+├── Node runtime provisioning: provision_node.go, provision_node_archive.go
+│     Entry: ProvisionNode(ctx, outputDirectory)
 ├── Provenance inputs:         provenance_input.go, provenance_types.go, provenance_validate.go, workflow_metadata.go
 │     Entries: NewProvenanceSigningInput, ValidateNPMStatement,
 │     EncodeExternalParameters/DecodeExternalParameters, NPMPackagePURL,
@@ -34,7 +36,7 @@ internal/npmprofile/
 ```
 
 Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.go`,
-`npm_purl_live_test.go`, and `provision_npm_fetch_test.go`.
+`npm_purl_live_test.go`, `provision_npm_fetch_test.go`, and `provision_node_live_test.go`.
 
 ## WHERE TO LOOK
 
@@ -64,8 +66,8 @@ Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.
   ambient npm token and env config are stripped first; same-run retry converges; foreign evidence is
   never adopted.
 - **Hermetic tests**: inject fake toolchains and fetchers. Real-tool tests live only in
-  `build_pack_live_test.go`, `npm_purl_live_test.go`, and `provision_npm_fetch_test.go` behind
-  `-short` plus `SLSA_BUILDER_LIVE_TOOLCHAIN=1`.
+  `build_pack_live_test.go`, `npm_purl_live_test.go`, `provision_npm_fetch_test.go`, and
+  `provision_node_live_test.go` behind `-short` plus `SLSA_BUILDER_LIVE_TOOLCHAIN=1`.
 - **Publish npm provisioning**: `npm-profile-provision-npm` downloads only the embedded pin URL,
   verifies compressed SHA-512 bytes before creating directories, and extracts into a private
   `<output-directory>/npm-provision-*/` directory. Its `npm` launcher uses the resolved absolute
@@ -74,6 +76,13 @@ Tests sit beside sources; live-tool tests are confined to `build_pack_live_test.
   failures. Extraction uses the existing no-links policy, rejects duplicate entries, and bounds
   decompressed bytes and entry count. The caller retains the successful directory for the job;
   failed partial extractions are removed. Only the opt-in live test executes the completed launcher.
+- **Node runtime provisioning** (ADR 0098): `ProvisionNode` verifies compressed SHA-256 bytes before
+  creating a private `<output-directory>/node-provision-*/` directory. Its dedicated bounded
+  extractor admits exactly the three documented in-root `bin/npm`, `bin/npx`, and `bin/corepack`
+  symlinks; the npm extractor and its no-links policy remain untouched. Exact layout and pair
+  identity are checked without execution before returning the absolute runtime `bin` directory. The
+  caller retains successful output; failures remove partial output. Only the gated live test
+  executes the provisioned runtime, on linux/amd64.
 - **Pre-install pair assertion**: `npm-profile-toolchain-assert` observes `node --version` and,
   except with `--node-only`, `npm --version` through the allowlisted execution boundary in a
   stripped environment. It compares against `toolchainpins.NodeRuntimePair()` exactly and fails with

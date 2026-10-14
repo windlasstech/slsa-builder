@@ -40,6 +40,11 @@ relations:
     target: ADR-0093
   - type: see-also
     target: ADR-0096
+  - type: partially-superseded-by
+    target: ADR-0098
+    scope:
+      "the clauses that treat the GitHub-hosted runner image as the supplier of the Node.js runtime;
+      the runner-image descriptor and its resolvedDependencies recording remain in force"
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies

@@ -28,6 +28,8 @@ relations:
     target: ADR-0085
   - type: see-also
     target: ADR-0088
+  - type: see-also
+    target: ADR-0098
 ---
 
 # Provision the Publish-Stage npm CLI from a Digest-Verified Registry Tarball

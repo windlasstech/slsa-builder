@@ -10,25 +10,29 @@ auto-generated provenance; that publication remains on the registry and serves a
 foreign-conflict target. For this retry the publish stage provisions the pinned npm CLI (currently
 11.21.0) per ADR 0082/0084 instead of running the toolchain-bundled npm. The pinned CLI carries the
 upstream npm/cli#9882 fix, so the Windlass-signed bundle attaches as-is under trusted publishing
-through `npm publish --provenance-file`.
+through `npm publish --provenance-file`. Every governed job of that workflow also provisions the
+pinned Node.js 24.21.0 runtime from the official release tarball through the trusted core's
+`npm-profile-provision-node` step (ADR 0098), verifying the recorded SHA-256 digest before any
+runtime invocation; no setup action supplies the runtime, and the toolchain pair assertion observes
+the provisioned runtime.
 
 The caller workflow is `.github/workflows/publish.yml`. Earlier planning material called it
 `release.yml`; that filename is obsolete for this runbook.
 
 ## Fixed target
 
-| Item                              | Value                                                                                |
-| --------------------------------- | ------------------------------------------------------------------------------------ |
-| Caller repository                 | `windlasstech/vers-js`                                                               |
-| Caller workflow                   | `.github/workflows/publish.yml`                                                      |
-| Reusable workflow pin             | a main SHA carrying the ADR 0082/0084/0085 pinned-toolchain implementation (Phase 0) |
-| Package                           | `@windlass/vers-js@0.1.3`                                                            |
-| Built source ref                  | `refs/tags/v0.1.3`                                                                   |
-| Annotated tag object              | recorded in Phase 0                                                                  |
-| Peeled source revision            | recorded in Phase 0                                                                  |
-| Invocation ref                    | `refs/heads/main`                                                                    |
-| Windlass predicate type           | `https://slsa.dev/provenance/v1`                                                     |
-| npm publish-attestation predicate | `https://github.com/npm/attestation/tree/main/specs/publish/v0.1`                    |
+| Item                              | Value                                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------------------------- |
+| Caller repository                 | `windlasstech/vers-js`                                                                        |
+| Caller workflow                   | `.github/workflows/publish.yml`                                                               |
+| Reusable workflow pin             | a main SHA carrying the ADR 0082/0084/0085 and 0098 pinned-toolchain implementation (Phase 0) |
+| Package                           | `@windlass/vers-js@0.1.3`                                                                     |
+| Built source ref                  | `refs/tags/v0.1.3`                                                                            |
+| Annotated tag object              | recorded in Phase 0                                                                           |
+| Peeled source revision            | recorded in Phase 0                                                                           |
+| Invocation ref                    | `refs/heads/main`                                                                             |
+| Windlass predicate type           | `https://slsa.dev/provenance/v1`                                                              |
+| npm publish-attestation predicate | `https://github.com/npm/attestation/tree/main/specs/publish/v0.1`                             |
 
 The tag's `package.json` declares version `0.1.3`. Its settings-only `pnpm-workspace.yaml` has no
 `packages` member, exercising issue #22 root-package resolution. The npm Trusted Publisher binding
@@ -68,14 +72,17 @@ to the caller workflow is already confirmed working.
    they become the expected annotated tag object and peeled source revision for the rest of this
    procedure.
 
-3. Pin the caller workflow to a main SHA carrying the ADR 0082/0084/0085 pinned-toolchain
-   implementation. The publish stage of that SHA provisions the pinned npm CLI (currently 11.21.0)
-   before any npm invocation, and the build stage asserts the pinned Node.js 24 / npm pair
-   (currently 24.21.0 / 11.19.0) before first use. Update
-   `windlasstech/vers-js/.github/workflows/publish.yml` so that its reusable-workflow `uses:`
-   reference ends with the full 40-hex SHA of the merged `windlasstech/slsa-builder` commit carrying
-   that implementation. Record the selected SHA; it replaces the reusable-workflow pin used by
-   attempts 1-4.
+3. Pin the caller workflow to a main SHA carrying the ADR 0082/0084/0085 and 0098 pinned-toolchain
+   implementation. In every governed job of that SHA, the `npm-profile-provision-node` step
+   provisions the pinned Node.js 24.21.0 runtime digest-verified from the official release tarball
+   before any `node`, `npm`, `npx`, or Corepack invocation, and no setup action supplies the
+   runtime. The build and provenance-sign jobs assert the pinned Node.js 24 / bundled npm pair
+   (currently 24.21.0 / 11.19.0) before first use. The publish job asserts the provisioned Node.js
+   runtime only (`--node-only`), then separately provisions the pinned npm CLI (currently 11.21.0)
+   before any npm invocation. Update `windlasstech/vers-js/.github/workflows/publish.yml` so that
+   its reusable-workflow `uses:` reference ends with the full 40-hex SHA of the merged
+   `windlasstech/slsa-builder` commit carrying that implementation. Record the selected SHA; it
+   replaces the reusable-workflow pin used by attempts 1-4.
 
 4. Verify that the caller workflow pin equals the selected builder SHA.
 
@@ -128,9 +135,10 @@ to the caller workflow is already confirmed working.
    gh run view <RUN_ID> -R windlasstech/vers-js --log
    ```
 
-   Expected success: the publish job provisions the pinned npm CLI (currently 11.21.0) from its
-   digest-verified registry tarball before any npm invocation in the job, and the provisioned
-   version matches the allowlist pin. The pinned CLI carries the upstream npm/cli#9882 fix, so the
+   Expected success: the publish job first provisions the pinned Node.js runtime (currently 24.21.0)
+   through the `npm-profile-provision-node` step, then provisions the pinned npm CLI (currently
+   11.21.0) from its digest-verified registry tarball before any npm invocation in the job, and each
+   provisioned version matches its pin. The pinned CLI carries the upstream npm/cli#9882 fix, so the
    Windlass-signed bundle attaches as-is under trusted publishing; no npm auto-generated provenance
    is expected. The preflight succeeds before the first `npm publish` mutation, with no token
    fallback. A `trusted-publisher-mismatch` diagnostic means npm rejected the configured caller
