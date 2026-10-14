@@ -688,8 +688,8 @@ In every job that uses the runtime (build, provenance-sign, and publish):
    to the outcome report path `${{ runner.temp }}/windlass-npm-outcome-report.json`.
 2. **Binding step.** Exactly one step binds subsequent runtime resolution to the provisioning output
    with `echo "${{ steps.<id>.outputs.node-bin }}" >> "$GITHUB_PATH"`, referencing the provisioning
-   step's `id`. No step or job environment may set `PATH` or reference the runner toolcache
-   (`RUNNER_TOOL_CACHE`, `runner.tool_cache`, or `/opt/hostedtoolcache`).
+   step's `id`. No step, job, or workflow environment may set `PATH` or reference the runner
+   toolcache (`RUNNER_TOOL_CACHE`, `runner.tool_cache`, or `/opt/hostedtoolcache`).
 3. **Ordering.** No step before the binding step may invoke `node`, `npm`, `npx`, or Corepack, run
    the pair assertion, provision npm, or run an npm-profile build, sign, or publish subcommand. The
    pair assertion follows the binding step: `npm-profile-toolchain-assert` from `.slsa-builder`, and

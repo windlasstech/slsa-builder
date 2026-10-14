@@ -65,6 +65,7 @@ type NPMOnlyProfileResult struct {
 }
 
 type workflowDocument struct {
+	Env         map[string]string      `yaml:"env"`
 	Permissions map[string]string      `yaml:"permissions"`
 	On          workflowTriggers       `yaml:"on"`
 	Jobs        map[string]workflowJob `yaml:"jobs"`
@@ -321,7 +322,14 @@ func readWorkflow(path string) (workflowDocument, error) {
 	if err != nil {
 		return workflowDocument{}, fmt.Errorf("read workflow: %w", err)
 	}
-	return decodeWorkflow(contents)
+	document, err := decodeWorkflow(contents)
+	if err != nil {
+		return workflowDocument{}, err
+	}
+	if err := checkNodeEnvironment(document.Env); err != nil {
+		return workflowDocument{}, fmt.Errorf("workflow environment: %w", err)
+	}
+	return document, nil
 }
 
 func checkNPMWorkflowCall(call workflowCall) error {
