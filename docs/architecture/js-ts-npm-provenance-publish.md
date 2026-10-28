@@ -1707,11 +1707,16 @@ Its successful response has this shape:
         "dsseEnvelope": {},
         "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
         "verificationMaterial": {}
-      }
+      },
+      "signedAccessSignatureUrl": "https://registry.npmjs.org/-/npm/v1/attestations/example/signature"
     }
   ]
 }
 ```
+
+npm may include a `signedAccessSignatureUrl` member in each attestation element; consumers must
+ignore its value, and any other unknown element member remains rejected. The top-level response
+object carries only the `attestations` member.
 
 The `publish` job must select attestation elements by `predicateType`, never by array position. npm
 automatic GitHub Actions provenance uses `https://slsa.dev/provenance/v1`; the registry's own
