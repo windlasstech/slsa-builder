@@ -1,0 +1,19 @@
+testdata/npm/provenance/npm-resolved-dependencies-reordered-valid.json
+  s_5ea2264247d69d::t_d9eb28998332d2 1-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "809c817b3fca688d996a4d103c18f312f7063569",
+  "prompts": {},
+  "sessions": {
+    "s_5ea2264247d69d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b95460bffdsoFnusQUjAzm9m",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
