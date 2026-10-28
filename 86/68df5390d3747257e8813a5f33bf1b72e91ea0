@@ -1,0 +1,37 @@
+internal/npmprofile/node_runtime_fixture_test.go
+  s_5ea2264247d69d::t_a40e4867954612 1-35,37-72,75-81,88-117
+  s_647953b916b1db::t_8d884969536904 36,74,82-87
+  s_025cdc30f7df7f::t_85c8bfc04025ef 73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8668df5390d3747257e8813a5f33bf1b72e91ea0",
+  "prompts": {},
+  "sessions": {
+    "s_025cdc30f7df7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b449ee3ffempreatnYGzq6XP",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_5ea2264247d69d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b95460bffdsoFnusQUjAzm9m",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_647953b916b1db": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b449ee3ffempreatnYGzq6XP",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
