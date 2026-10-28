@@ -1,0 +1,104 @@
+internal/diagnostic/registry.go
+  s_f901489d34e92b::t_4f7b256dbea1aa 242
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_78b6c67ec1740e::t_a1d18bc3b735fa 1136-1140,1146-1147
+  s_0030666dbbabae::t_81418a29e02364 2219,2222,2226-2234,2236
+  s_78b6c67ec1740e::t_fa167693328921 2223-2225
+  s_0030666dbbabae::t_48bccbc295cf07 1419
+  s_0030666dbbabae::t_87dcdebd0ba4de 38,1079-1081,1100-1101,1111-1112,1420-1423,2220-2221,2237
+  s_0030666dbbabae::t_5ac2c7bce0de6c 37
+  s_0030666dbbabae::t_b7ab0409ae0e6c 1077-1078,1082-1099,1102-1110,1113-1135,1148
+  s_0030666dbbabae::t_00b1c8351072f4 2057-2058
+  s_78b6c67ec1740e::t_004dc7c04f1568 2093-2094
+  s_0030666dbbabae::t_e17fd95e48548d 2183-2187
+  s_78b6c67ec1740e::t_da543b4a10cb63 1141-1145
+  s_0030666dbbabae::t_e0ed200eb055e6 2090-2092,2095-2098,2113-2116
+  s_0030666dbbabae::t_5f28159023119c 982-986,988-990,992-997
+docs/architecture/slsa-provenance-v1.md
+  s_0030666dbbabae::t_ab5ba78bd31518 228-230
+  s_0030666dbbabae::t_87dcdebd0ba4de 21
+  s_0030666dbbabae::t_3279faa808935f 77-86
+  s_0030666dbbabae::t_fb514603025719 20
+  s_0030666dbbabae::t_e56d4414f1188d 543
+  s_8c37ad92d0964b::t_0762bd8faeb316 76
+docs/architecture/verification-policy-and-fixtures.md
+  s_78b6c67ec1740e::t_72cdc728e4bf0b 1488
+  s_0030666dbbabae::t_ac265b3e20779b 37
+  s_78b6c67ec1740e::t_86b1f68fb5d6b5 1531-1533
+  s_0030666dbbabae::t_20d9b04ff299eb 1350
+  s_78b6c67ec1740e::t_5e289076c7f5cb 567-577
+  s_78b6c67ec1740e::t_9bf40da78f07e4 1547
+  s_0030666dbbabae::t_87dcdebd0ba4de 38,1325-1349,1351-1363,1811-1814
+  s_78b6c67ec1740e::t_da543b4a10cb63 1065,1367-1487,1489-1511,1535-1546,1548-1549,1612-1613,1615-1635,2103-2105,2107-2123
+  s_0030666dbbabae::t_03a65fffd8350a 1529-1530,1534,1550-1555
+  s_0030666dbbabae::t_1be7962dceefa5 1807-1810
+  s_78b6c67ec1740e::t_c900ed7706a43d 2106
+  s_0030666dbbabae::t_7c53bfe63e434c 614-623
+  s_0030666dbbabae::t_433eb0273eddd7 545-548,556-566
+  s_78b6c67ec1740e::t_32d5a1f3079620 1614
+  s_823848493b3e13::t_00996bb1172265 578,613
+docs/architecture/js-ts-npm-build-pack.md
+  s_0030666dbbabae::t_5237d08ca899c7 20
+  s_78b6c67ec1740e::t_2413c6dde799a2 1126-1128
+  s_0030666dbbabae::t_15b2cc683030f8 625-626,629,633-643
+  s_78b6c67ec1740e::t_52fd501ab9acb2 489-490
+  s_0030666dbbabae::t_87dcdebd0ba4de 21,627-628,630-632
+internal/diagnostic/diagnostic_test.go
+  s_3fd5dd59c5b67d::t_a68cddf263db98 162-163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9668894cf291807bd835dd92c4319ce3595321c6",
+  "prompts": {},
+  "sessions": {
+    "s_0030666dbbabae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7baf3667ffe6SpiQW5r20jR2j",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_3fd5dd59c5b67d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b95ad19ffdoRfOzW1EdpPToQ",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_78b6c67ec1740e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b450144ffe3oTGRPsiD1Vf3E",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_823848493b3e13": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b450144ffe3oTGRPsiD1Vf3E",
+        "model": "k3.1-pro"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_8c37ad92d0964b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7baf3667ffe6SpiQW5r20jR2j",
+        "model": "k3.1-pro"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f901489d34e92b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b855fa0ffeDdr7tnuggYWoID",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
