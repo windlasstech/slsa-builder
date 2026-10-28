@@ -105,16 +105,15 @@ type Metadata struct {
 	FinishedOn   string `json:"finishedOn"`
 }
 
-// DecodeStatement strictly decodes one duplicate-free Statement and rejects unknown common fields.
+// DecodeStatement decodes one duplicate-free Statement, ignoring unrecognized fields per in-toto.
 func DecodeStatement(data []byte) (Statement, error) {
 	if err := canonicaljson.Validate(data); err != nil {
 		return Statement{}, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
 	var statement Statement
 	if err := decoder.Decode(&statement); err != nil {
-		return Statement{}, fmt.Errorf("decode closed SLSA Statement: %w", err)
+		return Statement{}, fmt.Errorf("decode SLSA Statement: %w", err)
 	}
 	return statement, nil
 }

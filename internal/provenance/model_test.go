@@ -145,15 +145,15 @@ func TestSubjectSHA256Branches(t *testing.T) {
 	})
 }
 
-func TestDecodeStatementRejectsUnknownField(t *testing.T) {
+func TestDecodeStatementIgnoresUnknownField(t *testing.T) {
 	t.Parallel()
 
-	_, err := provenance.DecodeStatement([]byte(`{"_type":"https://in-toto.io/Statement/v1","surprise":1}`))
-	if err == nil {
-		t.Fatal("DecodeStatement() unexpectedly succeeded")
+	statement, err := provenance.DecodeStatement([]byte(`{"_type":"https://in-toto.io/Statement/v1","surprise":1}`))
+	if err != nil {
+		t.Fatalf("DecodeStatement() error = %v", err)
 	}
-	if !strings.HasPrefix(err.Error(), "decode closed SLSA Statement: ") {
-		t.Fatalf("DecodeStatement() error = %q, want decode closed SLSA Statement wrap", err)
+	if statement.Type != provenance.StatementType {
+		t.Fatalf("Statement.Type = %q, want %q", statement.Type, provenance.StatementType)
 	}
 }
 
@@ -183,13 +183,27 @@ func TestValidateProfileErrorPropagation(t *testing.T) {
 	}
 }
 
-func TestValidateRejectsEmptyInternalParameters(t *testing.T) {
+func TestValidateAcceptsEmptyInternalParameters(t *testing.T) {
 	t.Parallel()
 
-	statement := loadStatement(t, "valid-statement.json")
-	statement.Predicate.BuildDefinition.InternalParameters = nil
-	_, err := statement.Validate(expectations(nil), nil)
-	requireDiagnosticID(t, err, "windlass.verify.error.unexpected-internal-parameters")
+	for _, test := range []struct{ name, parameters string }{
+		{"absent", ""},
+		{"null", "null"},
+		{"empty object", "{}"},
+		{"whitespace null", " \nnull\t"},
+		{"whitespace object", " { } "},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			statement := loadStatement(t, "valid-statement.json")
+			statement.Predicate.BuildDefinition.InternalParameters = json.RawMessage(test.parameters)
+			_, err := statement.Validate(expectations(nil), nil)
+			if err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+		})
+	}
 }
 
 type failingProfileValidator struct {

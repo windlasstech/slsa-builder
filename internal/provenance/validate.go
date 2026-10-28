@@ -139,11 +139,11 @@ func cloneStringMap(values map[string]string) map[string]string {
 
 func validateInternalParameters(parameters json.RawMessage) error {
 	if len(parameters) == 0 {
-		return validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must be exactly the empty object")
+		return nil
 	}
-	equal, err := canonicaljson.Equal(parameters, []byte(`{}`))
-	if err != nil || !equal {
-		return validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must be exactly the empty object")
+	canonical, err := canonicaljson.Canonicalize(parameters)
+	if err != nil || (string(canonical) != "{}" && string(canonical) != "null") {
+		return validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must be absent, null, or the empty object")
 	}
 	return nil
 }

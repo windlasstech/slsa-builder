@@ -35,7 +35,7 @@ func TestBindOIDCSignerIdentityWorkflowBinding(t *testing.T) {
 		{"partial job claims cannot fall back", `{"job_workflow_ref":"` + path + `@` + sha + `","workflow_ref":"` + path + `@main","workflow_sha":"` + sha + `"}`, "", "", "GitHub Actions OIDC workflow revision differs from trusted runtime"},
 		{"different workflow path", `{"job_workflow_ref":"` + path + `@` + sha + `","job_workflow_sha":"` + sha + `"}`, "https://github.com/other/builder/.github/workflows/build.yml@" + sha, "", "OIDC signer workflow differs from the Statement builder identity"},
 		{"missing ref separator", `{"job_workflow_ref":"` + path + `","job_workflow_sha":"` + sha + `"}`, "", "", "called workflow reference is not pinned by its full commit SHA"},
-		{"invalid statement", `{"job_workflow_ref":"` + path + `@` + sha + `","job_workflow_sha":"` + sha + `"}`, "", `{"extra":true}`, `decode signed Statement identity: decode closed SLSA Statement: json: unknown field "extra"`},
+		{"invalid statement", `{"job_workflow_ref":"` + path + `@` + sha + `","job_workflow_sha":"` + sha + `"}`, "", `{"_type":1}`, `decode signed Statement identity: decode SLSA Statement: json: cannot unmarshal number into Go struct field Statement._type of type string`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
