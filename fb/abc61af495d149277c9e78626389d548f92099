@@ -1,0 +1,19 @@
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-unknown-member.json
+  s_647953b916b1db::t_8d884969536904 1-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fbabc61af495d149277c9e78626389d548f92099",
+  "prompts": {},
+  "sessions": {
+    "s_647953b916b1db": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b449ee3ffempreatnYGzq6XP",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
