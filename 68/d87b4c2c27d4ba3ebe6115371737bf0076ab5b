@@ -1,0 +1,21 @@
+internal/npmprofile/build_metadata_json_test.go
+  s_83f04d3a83f8a4::t_da1dd7fa576f99 32-55
+internal/npmprofile/build_metadata_json.go
+  s_83f04d3a83f8a4::t_4a958055334127 17-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "68d87b4c2c27d4ba3ebe6115371737bf0076ab5b",
+  "prompts": {},
+  "sessions": {
+    "s_83f04d3a83f8a4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b145db1ffddCrfakHJH1hf45",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
