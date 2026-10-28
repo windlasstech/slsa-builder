@@ -1,0 +1,25 @@
+internal/npmprofile/fuzz_registry_test.go
+  s_23443f411d6e86::t_78fdb482fe4568 127-130
+internal/npmprofile/registry_client_test.go
+  s_23443f411d6e86::t_296ea71d1f626a 71
+internal/npmprofile/registry_oidc_extra_test.go
+  s_23443f411d6e86::t_61d3be14c9a7f3 135-154
+internal/npmprofile/registry_client.go
+  s_23443f411d6e86::t_3b04f6e87b3c9f 180-184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8114acd8a075ca87be3f9f25c7ffeb8ccf79c4ed",
+  "prompts": {},
+  "sessions": {
+    "s_23443f411d6e86": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec468ad5effeXOHlhsTLaeVPRz",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
