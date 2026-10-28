@@ -38,7 +38,20 @@ func TestNPMProfileBuildCommandSourceRefDispatchRetry(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	t.Cleanup(cancel)
 	var output bytes.Buffer
-	err := npmProfileBuildCommand{httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
+	clockCalls := 0
+	clock := func() time.Time {
+		clockCalls++
+		switch clockCalls {
+		case 1:
+			return time.Date(2026, 8, 14, 20, 59, 58, 999999999, time.FixedZone("UTC+9", 9*60*60))
+		case 2:
+			return time.Date(2026, 8, 14, 21, 0, 3, 123456789, time.FixedZone("UTC+9", 9*60*60))
+		default:
+			t.Fatal("clock read outside the build window")
+			return time.Time{}
+		}
+	}
+	err := npmProfileBuildCommand{now: clock, httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
 		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
 	}}.Execute(ctx, npmBuildSourceRefArguments(repository, outputDirectory, githubOutput, registry.URL,
 		"refs/tags/v1.0.0", "refs/heads/main", invocationRevision), &output)
@@ -57,6 +70,9 @@ func TestNPMProfileBuildCommandSourceRefDispatchRetry(t *testing.T) {
 	var metadata npmprofile.BuildMetadata
 	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 		t.Fatal(err)
+	}
+	if metadata.StartedOn != "2026-08-14T11:59:58Z" || metadata.FinishedOn != "2026-08-14T12:00:03Z" || clockCalls != 2 {
+		t.Fatalf("build timestamps = %q / %q, clock calls = %d", metadata.StartedOn, metadata.FinishedOn, clockCalls)
 	}
 	parameters, err := npmprofile.DecodeExternalParameters(metadata.ExternalParameters)
 	if err != nil {

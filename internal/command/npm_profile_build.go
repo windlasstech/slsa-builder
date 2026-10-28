@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
@@ -34,6 +35,7 @@ var npmProfileBuildOutputs = NewOutputAllowlist(
 )
 
 type npmProfileBuildCommand struct {
+	now            func() time.Time
 	httpClient     *http.Client
 	runnerOverride *npmprofile.RunnerCapture
 }
@@ -88,6 +90,11 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		return fmt.Errorf("invalid build metadata artifact name: %w", err)
 	}
 
+	now := time.Now
+	if command.now != nil {
+		now = command.now
+	}
+	startedOn := now().UTC().Truncate(time.Second).Format(time.RFC3339)
 	selection, err := npmprofile.Analyze(npmprofile.Config{
 		RepositoryRoot:     *repositoryRoot,
 		PackageDirectory:   *packageDirectory,
@@ -141,10 +148,12 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		}
 		return err
 	}
+	finishedOn := now().UTC().Truncate(time.Second).Format(time.RFC3339)
 	if command.runnerOverride != nil {
 		result.Toolchain.Runner = *command.runnerOverride
 	}
 	metadata, err := npmprofile.FinalizeWorkflowBuildMetadata(selection, result, npmprofile.WorkflowBuildMetadataConfig{
+		StartedOn: startedOn, FinishedOn: finishedOn,
 		ArtifactName: *artifactName, RegistryURLInput: *registryURL, DistTagInput: *distTag, AccessInput: *access,
 		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, SourceRefInput: normalizedSourceRef,
 		InvocationRef: conditionalSourceIdentity(normalizedSourceRef, *invocationRef), InvocationRevision: conditionalSourceIdentity(normalizedSourceRef, *invocationRevision), WorkflowSHA: *workflowSHA,
