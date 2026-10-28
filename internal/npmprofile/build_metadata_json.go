@@ -14,6 +14,17 @@ func (metadata *BuildMetadata) UnmarshalJSON(encoded []byte) error {
 	if err := canonicaljson.Validate(encoded); err != nil {
 		return fmt.Errorf("validate build metadata JSON: %w", err)
 	}
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &members); err != nil {
+		return fmt.Errorf("decode build metadata JSON: %w", err)
+	}
+	for key := range members {
+		switch key {
+		case "schema_version", "started_on", "finished_on", "primary_artifact", "external_parameters", "resolved_dependencies":
+		default:
+			return fmt.Errorf("decode build metadata JSON: json: unknown field %q", key)
+		}
+	}
 	type metadataJSON BuildMetadata
 	var decoded struct {
 		metadataJSON
