@@ -124,6 +124,10 @@ func FuzzDecodeRegistryPackumentResponse(f *testing.F) {
 func FuzzDecodeRegistryAttestationResponse(f *testing.F) {
 	// Valid response (registry_client_test.go TestRegistryAttestations).
 	f.Add([]byte(`{"attestations":[{"predicateType":"https://slsa.dev/provenance/v1","bundle":{"exact":"bytes"}},{"predicateType":"https://github.com/npm/attestation/tree/main/specs/publish/v0.1","bundle":{"ignored":true}}]}`))
+	// Observed live-registry element shape (testdata/platform/contracts/
+	// npm-attestation-readback.json): elements also carry a
+	// signedAccessSignatureUrl member, which consumers ignore.
+	f.Add([]byte(`{"attestations":[{"predicateType":"https://slsa.dev/provenance/v1","bundle":{"exact":"bytes"},"signedAccessSignatureUrl":"https://example.invalid/signature"}]}`))
 	// Empty attestations array: an observed version with no attestations.
 	f.Add([]byte(`{"attestations":[]}`))
 	// Missing attestations member.
