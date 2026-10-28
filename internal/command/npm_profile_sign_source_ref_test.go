@@ -289,6 +289,15 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 			},
 		},
 		{
+			Name:   "node-runtime",
+			URI:    "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz",
+			Digest: map[string]string{"sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"},
+			Annotations: map[string]json.RawMessage{
+				"digest_authority": mustMarshalSignJSON(t, "builder-pinned-record"),
+				"platform":         mustMarshalSignJSON(t, "linux-x64"),
+			},
+		},
+		{
 			Name: "runner-image", URI: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
 			Annotations: map[string]json.RawMessage{
 				"image_os":      mustMarshalSignJSON(t, "ubuntu24"),
