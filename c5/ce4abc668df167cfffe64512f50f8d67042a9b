@@ -1,0 +1,21 @@
+internal/npmprofile/provenance_validate.go
+  s_add0715b25014d::t_edc32d66892624 374-376
+internal/npmprofile/publish_verifier_statement_test.go
+  s_add0715b25014d::t_ad3d2dd7a48663 166-202
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c5ce4abc668df167cfffe64512f50f8d67042a9b",
+  "prompts": {},
+  "sessions": {
+    "s_add0715b25014d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b14396fffeUMwC95dKB4mNJm",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
