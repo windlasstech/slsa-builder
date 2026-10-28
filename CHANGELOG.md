@@ -110,6 +110,11 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   safety, exact layout, and version identity. The runtime artifact pin (tarball URL and SHA-256 per
   platform) is recorded in `internal/toolchainpins/node-runtime.json`; `actions/setup-node` no
   longer supplies the runtime, and the toolchain pair assertion observes the provisioned runtime.
+- Added the digest-verified build-stage Node.js runtime as a closed `node-runtime`
+  `resolvedDependencies` descriptor in JS/TS npm provenance (ADR 0099), with the exact embedded
+  `linux-x64` tarball URL and SHA-256 plus `builder-pinned-record` and `platform` annotations. npm
+  now records three dependency descriptors, pnpm and Yarn record four, and no separate `npm-cli`
+  descriptor is introduced.
 
 ### Security
 
