@@ -1,0 +1,56 @@
+internal/npmprofile/provenance_validate_matrix_test.go
+  s_3fd5dd59c5b67d::t_65c868dc2bf9d9 107-120,124,140
+  s_3fd5dd59c5b67d::t_ae9ba9db657356 121-123
+internal/npmprofile/workflow_metadata.go
+  s_f901489d34e92b::t_4f7b256dbea1aa 13,256-260,278-295
+  s_f901489d34e92b::t_e7dd79f5d1b6c7 296
+internal/npmprofile/workflow_metadata_intent_test.go
+  s_3fd5dd59c5b67d::t_65c868dc2bf9d9 178-200
+internal/npmprofile/provenance_types.go
+  s_f901489d34e92b::t_4f7b256dbea1aa 23
+internal/npmprofile/provenance_input.go
+  s_44ace88869750b::t_4c061fdd7b2b2b 239-241
+internal/npmprofile/provenance_input_test.go
+  s_3fd5dd59c5b67d::t_c601a2a15e03ca 9,14,280,282,288-298,307-320,339-344,505-514,518-548
+  s_3fd5dd59c5b67d::t_f51f59e45dd1fc 549
+internal/npmprofile/provenance_validate.go
+  s_44ace88869750b::t_4c061fdd7b2b2b 431-433
+  s_f901489d34e92b::t_4f7b256dbea1aa 373,389-391,395-397,430,434-444,587-588
+internal/npmprofile/errors_helpers_test.go
+  s_3fd5dd59c5b67d::t_c601a2a15e03ca 32
+internal/npmprofile/workflow_metadata_test.go
+  s_3fd5dd59c5b67d::t_65c868dc2bf9d9 10-11,57-62,165-176,181-199
+  s_3fd5dd59c5b67d::t_d60815398e86ef 200-201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "da6f657039d7b193b4c44c1117911e47b3c06db7",
+  "prompts": {},
+  "sessions": {
+    "s_3fd5dd59c5b67d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b95ad19ffdoRfOzW1EdpPToQ",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_44ace88869750b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b36bdffffenhbKBLCXs0iwx8",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f901489d34e92b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b855fa0ffeDdr7tnuggYWoID",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
