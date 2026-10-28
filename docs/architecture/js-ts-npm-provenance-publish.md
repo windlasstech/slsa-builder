@@ -1025,9 +1025,11 @@ The selected lockfile that constrained the release install has this unchanged cl
   separate source descriptor.
 - The URI fragment must be the RFC 3986 percent-encoded form of the repository-root-relative
   selected lockfile path. Producers must encode each `/`-separated segment and rejoin the encoded
-  segments with `/`. Consumers must percent-decode the fragment before comparing it to the selected
-  lockfile path. It must not be empty, absolute, contain path traversal, contain backslashes, point
-  outside the repository, or name a non-selected lockfile.
+  segments with `/`. Consumers must independently reconstruct the expected URI with that escaped
+  fragment and compare the raw `uri` value byte-for-byte against it. Percent-decoding the fragment
+  is an optional part of an equivalent consumer implementation, not a requirement; the canonical raw
+  comparison still applies. The selected lockfile path must not be empty, absolute, contain path
+  traversal, contain backslashes, point outside the repository, or name a non-selected lockfile.
 - `digest.sha256` must be the SHA-256 digest of the selected lockfile bytes as 64 lowercase
   hexadecimal characters.
 - `annotations.package_manager` must equal `externalParameters.package_manager.name`.
