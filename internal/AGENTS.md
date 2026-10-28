@@ -46,7 +46,9 @@ internal/
 - **Canonical reports**: Reports are RFC 8785 JCS canonical bytes. The first ordered error
   determines result, exit code, and primary ID. Evidence values are secret-safe scalars only.
 - **Strict JSON everywhere**: Duplicate object members are rejected at every depth BEFORE semantic
-  validation (`internal/canonicaljson`). Typed decoders reject unknown fields.
+  validation (`internal/canonicaljson`). Typed decoders reject unknown fields, with one exception:
+  the in-toto Statement envelope decoder ignores unrecognized fields per the in-toto parsing rules.
+  All project-owned closed schemas keep rejecting unknown fields.
 - **Offline means offline**: Offline verification makes zero network calls; tests replace
   `http.DefaultTransport` to prove it. Online mode never falls back to pinned roots.
 - **Hermetic tests**: Fake servers via `httptest`, fake toolchains on a private PATH. Live tests are
