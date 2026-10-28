@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/digest"
+	"github.com/windlasstech/slsa-builder/internal/provenance"
+	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
@@ -52,8 +54,12 @@ func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
 		parameters.Caller.WorkflowFilename != "release.yml" || parameters.Release.VersionTag != "v1.2.3" {
 		t.Fatalf("unexpected external parameters: %#v", parameters)
 	}
-	if len(metadata.ResolvedDependencies) != 2 {
-		t.Fatalf("resolved dependencies = %d, want lockfile and runner image", len(metadata.ResolvedDependencies))
+	if len(metadata.ResolvedDependencies) != 3 {
+		t.Fatalf("resolved dependencies = %d, want 3 (lockfile, node-runtime, runner-image)", len(metadata.ResolvedDependencies))
+	}
+	requireRuntimeDescriptor(t, metadata.ResolvedDependencies[1])
+	if metadata.ResolvedDependencies[0].Name != "lockfile" || metadata.ResolvedDependencies[2].Name != "runner-image" {
+		t.Fatalf("producer dependency order = %#v", metadata.ResolvedDependencies)
 	}
 }
 
@@ -156,7 +162,40 @@ func TestFinalizeWorkflowBuildMetadataDescriptorRendering(t *testing.T) {
 			if annotated != descriptor {
 				t.Fatalf("package_manager_version annotation = %q, want %q", annotated, descriptor)
 			}
+			if len(metadata.ResolvedDependencies) != 4 {
+				t.Fatalf("resolved dependencies = %d, want 4 (lockfile, node-runtime, distribution, runner-image)", len(metadata.ResolvedDependencies))
+			}
+			requireRuntimeDescriptor(t, metadata.ResolvedDependencies[1])
+			for index, name := range []string{"lockfile", "node-runtime", "package-manager-distribution", "runner-image"} {
+				if metadata.ResolvedDependencies[index].Name != name {
+					t.Fatalf("dependency[%d] = %q, want %q", index, metadata.ResolvedDependencies[index].Name, name)
+				}
+			}
+			if metadata.ResolvedDependencies[2].URI != test.distribution || metadata.ResolvedDependencies[2].Digest["sha512"] != testSHA512 {
+				t.Fatalf("distribution = %#v", metadata.ResolvedDependencies[2])
+			}
 		})
+	}
+}
+
+func requireRuntimeDescriptor(t *testing.T, descriptor provenance.ResourceDescriptor) {
+	t.Helper()
+	pair, err := toolchainpins.NodeRuntimePair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifact := pair.Artifacts["linux-x64"]
+	if descriptor.Name != "node-runtime" || descriptor.URI != artifact.URL || len(descriptor.Digest) != 1 || descriptor.Digest["sha256"] != artifact.SHA256 {
+		t.Fatalf("node-runtime identity/digest = %#v, want embedded linux-x64 URL and only sha256", descriptor)
+	}
+	if len(descriptor.Annotations) != 2 {
+		t.Fatalf("node-runtime annotations = %#v, want exactly digest_authority and platform", descriptor.Annotations)
+	}
+	for key, want := range map[string]string{"digest_authority": "builder-pinned-record", "platform": "linux-x64"} {
+		var got string
+		if err := json.Unmarshal(descriptor.Annotations[key], &got); err != nil || got != want {
+			t.Fatalf("node-runtime annotation %s = %s (%v), want %q", key, descriptor.Annotations[key], err, want)
+		}
 	}
 }
 

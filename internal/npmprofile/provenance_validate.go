@@ -370,7 +370,7 @@ func validateResolvedDependencies(values []provenance.ResourceDescriptor, parame
 	byName := make(map[string][]provenance.ResourceDescriptor, len(values))
 	for _, value := range values {
 		switch value.Name {
-		case "lockfile", "package-manager-distribution", "runner-image":
+		case "lockfile", "node-runtime", "package-manager-distribution", "runner-image":
 			byName[value.Name] = append(byName[value.Name], value)
 		default:
 			return npmValidationError(IDResolvedDependenciesUnexpectedEntry, "resolvedDependencies", "dependency name is not enumerated")
@@ -386,7 +386,13 @@ func validateResolvedDependencies(values []provenance.ResourceDescriptor, parame
 	if len(byName["package-manager-distribution"]) != boolCount(wantDistribution) {
 		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution", "distribution descriptor cardinality must match the selected manager")
 	}
+	if len(byName["node-runtime"]) != 1 {
+		return npmValidationError(IDResolvedDependenciesNodeRuntime, "resolvedDependencies.node-runtime", "exactly one node-runtime descriptor is required")
+	}
 	if err := validateLockfileDescriptor(byName["lockfile"][0], parameters); err != nil {
+		return err
+	}
+	if err := validateNodeRuntimeDescriptor(byName["node-runtime"][0]); err != nil {
 		return err
 	}
 	if wantDistribution {
@@ -417,6 +423,21 @@ func validateLockfileDescriptor(value provenance.ResourceDescriptor, parameters 
 	}
 	if !annotationsEqual(value.Annotations, wants) {
 		return npmValidationError(IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile.annotations", "lockfile annotations differ from external parameters")
+	}
+	return nil
+}
+
+func validateNodeRuntimeDescriptor(value provenance.ResourceDescriptor) error {
+	if value.HasUnexpectedFields() {
+		return npmValidationError(IDResolvedDependenciesNodeRuntime, "resolvedDependencies.node-runtime", "runtime descriptor contains unrecognized members")
+	}
+	want, err := nodeRuntimeDescriptor()
+	if err != nil {
+		return err
+	}
+	equal, err := equalJSONValues(value, want)
+	if err != nil || !equal {
+		return npmValidationError(IDResolvedDependenciesNodeRuntime, "resolvedDependencies.node-runtime", "runtime descriptor must match the embedded linux-x64 pin and closed annotations")
 	}
 	return nil
 }
@@ -563,6 +584,8 @@ func dependencyMismatch(name string) error {
 	switch name {
 	case "lockfile":
 		return npmValidationError(IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile", "lockfile differs from verified build metadata")
+	case "node-runtime":
+		return npmValidationError(IDResolvedDependenciesNodeRuntime, "resolvedDependencies.node-runtime", "runtime differs from verified build metadata")
 	case "package-manager-distribution":
 		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution", "distribution differs from verified build metadata")
 	case "runner-image":

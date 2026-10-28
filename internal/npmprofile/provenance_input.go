@@ -236,7 +236,9 @@ func npmPURL(name, version string) string {
 func cloneNPMDependencies(values []provenance.ResourceDescriptor) []provenance.ResourceDescriptor {
 	cloned := make([]provenance.ResourceDescriptor, len(values))
 	for index, value := range values {
-		cloned[index] = provenance.ResourceDescriptor{Name: value.Name, URI: value.URI, Digest: cloneNPMStringMap(value.Digest), Annotations: make(map[string]json.RawMessage, len(value.Annotations))}
+		cloned[index] = value
+		cloned[index].Digest = cloneNPMStringMap(value.Digest)
+		cloned[index].Annotations = make(map[string]json.RawMessage, len(value.Annotations))
 		for name, annotation := range value.Annotations {
 			cloned[index].Annotations[name] = append(json.RawMessage(nil), annotation...)
 		}
