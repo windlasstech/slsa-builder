@@ -1,0 +1,20 @@
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_a193295ecc43ba::t_c8e810dbe1b9fa 1029-1030
+  s_a193295ecc43ba::t_055a23594ea135 1028,1031-1032
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f773f3a17116d0a540c6e622f09377bca146543b",
+  "prompts": {},
+  "sessions": {
+    "s_a193295ecc43ba": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b149002ffeLE7PyqDgHfnT1m",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
