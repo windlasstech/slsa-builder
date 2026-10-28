@@ -1,0 +1,39 @@
+docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md
+  s_78b6c67ec1740e::t_6f2e068e05ea90 41-47
+docs/decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
+  s_78b6c67ec1740e::t_9eab5d05de1a18 19-25
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_78b6c67ec1740e::t_da543b4a10cb63 29-31
+  s_78b6c67ec1740e::t_0e0e4371d5ef3a 26-28
+docs/decisions/README.ko.md
+  s_0030666dbbabae::t_87dcdebd0ba4de 240
+docs/decisions/README.md
+  s_0030666dbbabae::t_87dcdebd0ba4de 243
+docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+  s_78b6c67ec1740e::t_6755e932f50218 33-35
+  s_78b6c67ec1740e::t_da543b4a10cb63 36-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "798aca5baa76ca3a6d0ebdf0c69a043233e45a3a",
+  "prompts": {},
+  "sessions": {
+    "s_0030666dbbabae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7baf3667ffe6SpiQW5r20jR2j",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_78b6c67ec1740e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b450144ffe3oTGRPsiD1Vf3E",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
