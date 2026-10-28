@@ -237,6 +237,8 @@ workflow outputs.
 ```json
 {
   "schema_version": "1",
+  "started_on": "2026-08-14T11:59:58Z",
+  "finished_on": "2026-08-14T12:00:03Z",
   "primary_artifact": {
     "artifact_name": "js-ts-npm-package-tarball-123456789-1",
     "payload_file_name": "windlass-slsa-builder-1.2.3.tgz",
@@ -248,7 +250,12 @@ workflow outputs.
 }
 ```
 
-All four top-level members are required. `schema_version` is the string `"1"`.
+All six top-level members are required. `schema_version` is the string `"1"`. `started_on` and
+`finished_on` are the observed build start and completion times, recorded by the build job in
+whole-second UTC RFC 3339 form (`YYYY-MM-DDTHH:MM:SSZ`). The signing job carries these values
+verbatim into `predicate.runDetails.metadata.startedOn` and `finishedOn`, respectively, rather than
+recording signing time. Missing timestamp members fail closed-schema decoding; timestamp format and
+ordering follow the [common metadata contract](slsa-provenance-v1.md#metadata).
 `primary_artifact.artifact_name` is the deterministic tarball artifact name, and
 `primary_artifact.payload_file_name` is the tarball basename. `primary_artifact.sha256` and
 `primary_artifact.sha512` are respectively 64 and 128 lowercase hexadecimal digests of that one

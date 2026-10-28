@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/windlasstech/slsa-builder/internal/attestation"
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
@@ -23,7 +22,6 @@ var npmProfileSignOutputs = NewOutputAllowlist("bundle-path", "bundle-sha256", "
 type npmProfileSignCommand struct {
 	preflight func(context.Context, string, string) npmprofile.OIDCExchangeResult
 	sign      func(context.Context, signing.Request) (signing.Result, error)
-	now       func() time.Time
 }
 
 // NewNPMProfileSignCommand creates the digest-bound Go-native npm provenance signer.
@@ -145,11 +143,6 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 		}
 		observedCorepack = corepackVersion
 	}
-	now := time.Now
-	if command.now != nil {
-		now = command.now
-	}
-	timestamp := now().UTC().Truncate(time.Second).Format(time.RFC3339)
 	runInvocation := githubRunInvocationURI()
 	signingInput, err := npmprofile.NewProvenanceSigningInput(npmprofile.NPMProvenanceInput{
 		BuildMetadata:         metadata,
@@ -157,8 +150,8 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 		NodeJSVersion:         *nodeVersion,
 		CorepackVersion:       observedCorepack,
 		InvocationID:          runInvocation,
-		StartedOn:             timestamp,
-		FinishedOn:            timestamp,
+		StartedOn:             metadata.StartedOn,
+		FinishedOn:            metadata.FinishedOn,
 		RuntimeReleaseRef:     normalizedBuiltRef,
 		PeeledReleaseRevision: *builtRevision,
 	})

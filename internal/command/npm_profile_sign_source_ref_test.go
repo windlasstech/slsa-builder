@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/identity"
@@ -61,6 +60,9 @@ func TestNPMProfileSignCommandSourceRefDispatchRetry(t *testing.T) {
 			if err != nil {
 				t.Fatalf("decode signing request: %v", err)
 			}
+			if got := statement.Predicate.RunDetails.Metadata; got.StartedOn != metadata.StartedOn || got.FinishedOn != metadata.FinishedOn {
+				t.Fatalf("signed build timestamps = %#v", got)
+			}
 			parameters, err := npmprofile.DecodeExternalParameters(statement.Predicate.BuildDefinition.ExternalParameters)
 			if err != nil {
 				t.Fatalf("decode signed external parameters: %v", err)
@@ -88,7 +90,6 @@ func TestNPMProfileSignCommandSourceRefDispatchRetry(t *testing.T) {
 			}
 			return signing.Result{Statement: append([]byte(nil), request.Statement...), Bundle: []byte(`{"bundle":"fixture"}`)}, nil
 		},
-		now: func() time.Time { return time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC) },
 	}
 
 	var output bytes.Buffer
@@ -298,6 +299,7 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 	}
 	return npmprofile.BuildMetadata{
 		SchemaVersion: "1",
+		StartedOn:     "2026-08-14T11:59:58Z", FinishedOn: "2026-08-14T12:00:03Z",
 		PrimaryArtifact: npmprofile.PrimaryArtifact{
 			ArtifactName: signTarballArtifactName, PayloadFileName: signTarballName,
 			SHA256: sha256Value, SHA512: sha512Value,
