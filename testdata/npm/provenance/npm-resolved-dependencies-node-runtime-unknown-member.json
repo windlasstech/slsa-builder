@@ -1,0 +1,41 @@
+{
+  "package_manager": "npm",
+  "resolved_dependencies": [
+    {
+      "name": "lockfile",
+      "uri": "git+https://github.com/example/project@0123456789abcdef0123456789abcdef01234567#package-lock.json",
+      "digest": {
+        "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      },
+      "annotations": {
+        "package_manager": "npm",
+        "package_manager_root": ".",
+        "selection_source": "packageManager",
+        "selection_manifest_path": "package.json",
+        "selection_lockfile_path": "package-lock.json",
+        "stale_non_selected_lockfiles": []
+      }
+    },
+    {
+      "name": "node-runtime",
+      "mediaType": "application/gzip",
+      "uri": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz",
+      "digest": {
+        "sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
+      },
+      "annotations": {
+        "digest_authority": "builder-pinned-record",
+        "platform": "linux-x64"
+      }
+    },
+    {
+      "name": "runner-image",
+      "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+      "annotations": {
+        "image_os": "ubuntu24",
+        "image_version": "20260801.1.0",
+        "node_version": "v24.0.0"
+      }
+    }
+  ]
+}
