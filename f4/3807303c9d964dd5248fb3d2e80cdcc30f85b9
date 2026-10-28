@@ -1,0 +1,28 @@
+docs/architecture/slsa-provenance-v1.md
+  s_d368dad792248f::t_fcb2111a4338e7 189-191,530,570-574
+  s_761fcd746edb31::t_862b6229b98d7b 48-52,508-512
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f43807303c9d964dd5248fb3d2e80cdcc30f85b9",
+  "prompts": {},
+  "sessions": {
+    "s_761fcd746edb31": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ec46906e3ffeVt4NmnJ3Wp6GIO",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d368dad792248f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec46906e3ffeVt4NmnJ3Wp6GIO",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
