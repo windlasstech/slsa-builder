@@ -23,6 +23,8 @@ relations:
     scope:
       "the clauses that treat the GitHub-hosted runner image as the supplier of the Node.js runtime;
       the runner-image descriptor and its resolvedDependencies recording remain in force"
+  - type: see-also
+    target: ADR-0099
 ---
 
 # Provision the Build-Stage Node.js Runtime from a Digest-Verified Release Tarball

@@ -45,6 +45,17 @@ relations:
     scope:
       "the clauses that treat the GitHub-hosted runner image as the supplier of the Node.js runtime;
       the runner-image descriptor and its resolvedDependencies recording remain in force"
+  - type: partially-superseded-by
+    target: ADR-0099
+    scope:
+      "the clause recording no Node.js distribution descriptor ('A Node.js distribution descriptor
+      is likewise not recorded') together with its stated rationale that the runner-provided Node.js
+      runtime had no published distribution digest: under ADR-0098's digest-verified provisioning an
+      exact release URL and a committed SHA-256 exist, so the runtime is recorded. The separate
+      clause giving the npm CLI no descriptor of its own remains in force and is now transitively
+      covered by the runtime descriptor, as do the closed-descriptor-set discipline, the lockfile,
+      package-manager-distribution, and runner-image descriptors, and the source-native
+      digest-authority discipline"
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies
