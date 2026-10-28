@@ -1,0 +1,29 @@
+internal/provenance/validate.go
+  s_761fcd746edb31::t_a050f405703978 142,144-146
+internal/provenance/parsing_test.go
+  s_761fcd746edb31::t_a64bd8dcf1ef0d 1-4,6-27,51
+  s_761fcd746edb31::t_d366a19be0be14 5,28-50
+internal/provenance/model_test.go
+  s_761fcd746edb31::t_e5fd0406f9973b 148,151-153,155-156
+  s_761fcd746edb31::t_c238d8a30bf95b 186,189-206
+internal/signing/identity_edges_test.go
+  s_761fcd746edb31::t_e5fd0406f9973b 38
+internal/provenance/model.go
+  s_761fcd746edb31::t_a050f405703978 108,116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b305542d4099cc5fd4e7e12cf83da3be037ae457",
+  "prompts": {},
+  "sessions": {
+    "s_761fcd746edb31": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ec46906e3ffeVt4NmnJ3Wp6GIO",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
