@@ -1,0 +1,63 @@
+internal/npmprofile/build_metadata_json.go
+  s_26d1dfef9039e9::t_79ddb3defbd21f 1-37
+internal/npmprofile/workflow_metadata_intent_test.go
+  s_26d1dfef9039e9::t_5adb1898937ada 131
+internal/npmprofile/workflow_metadata_test.go
+  s_26d1dfef9039e9::t_5adb1898937ada 35,44-45
+  s_26d1dfef9039e9::t_30aa74bf6a3995 46
+internal/npmprofile/provenance_validate.go
+  s_d1485c235ee6d8::t_284664b366d8b9 402
+internal/npmprofile/lockfile_uri_test.go
+  s_ae2f5d7c1058ed::t_fbb74629f65a85 52
+  s_d1485c235ee6d8::t_fa9279534c5eda 4,9-39
+  s_d1485c235ee6d8::t_5fc7ee54081f5b 1-3,5-8,40-51,53-104
+internal/npmprofile/lockfile_uri.go
+  s_d1485c235ee6d8::t_284664b366d8b9 1-14
+internal/npmprofile/workflow_metadata.go
+  s_26d1dfef9039e9::t_9813d3441d3792 17-18,91
+  s_d1485c235ee6d8::t_284664b366d8b9 247
+internal/npmprofile/build_pack_types.go
+  s_26d1dfef9039e9::t_9813d3441d3792 73-74
+internal/npmprofile/provenance_input_test.go
+  s_f662bde33734a6::t_a00860e495b088 386
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bfe2ab141633d878bfd868eeaf408073dcfc20b0",
+  "prompts": {},
+  "sessions": {
+    "s_26d1dfef9039e9": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ec45332dbffeUM3itOgp5d3d83",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_ae2f5d7c1058ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec45db520ffew2Pr3xDFL9YBrI",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d1485c235ee6d8": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ec45db520ffew2Pr3xDFL9YBrI",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f662bde33734a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec45332dbffeUM3itOgp5d3d83",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
