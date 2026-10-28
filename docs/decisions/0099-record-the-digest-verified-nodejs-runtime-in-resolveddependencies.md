@@ -16,6 +16,13 @@ relations:
       covered by the runtime descriptor, as do the closed-descriptor-set discipline, the lockfile,
       package-manager-distribution, and runner-image descriptors, and the source-native
       digest-authority discipline"
+  - type: partially-supersedes
+    target: ADR-0085
+    scope:
+      "only the Scope and non-goals clause stating that the `resolvedDependencies` v1 schema is
+      untouched; the separate conclusion that the npm CLI receives no package-manager-distribution
+      descriptor remains in force, with the bundled npm CLI covered transitively by the node-runtime
+      descriptor"
   - type: see-also
     target: ADR-0098
 ---

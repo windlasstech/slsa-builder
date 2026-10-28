@@ -240,7 +240,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0096 | Neutralize the project .corepack.env with a pinned COREPACK_ENV_FILE=0 and warn on its presence     | JS/TS npm build and pack (credential-configuration preflight), verification policy and fixtures                                                                                                    |
 | 0097 | Reject a packed .corepack.env at the post-pack artifact gate                                        | JS/TS npm build and pack (post-pack artifact gate), verification policy and fixtures                                                                                                               |
 | 0098 | Provision the build-stage Node.js runtime from a digest-verified release tarball                    | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures (decision accepted; the specification revision follows on the same branch) |
-| 0099 | Record the digest-verified Node.js runtime in resolvedDependencies                                  | JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures (decision accepted; the specification revision follows in the specification phase)                    |
+| 0099 | Record the digest-verified Node.js runtime in resolvedDependencies                                  | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                                   |
 
 ### Superseded or deprecated ADRs (historical only)
 
