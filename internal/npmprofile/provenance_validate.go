@@ -371,6 +371,9 @@ func validateResolvedDependencies(values []provenance.ResourceDescriptor, parame
 	for _, value := range values {
 		switch value.Name {
 		case "lockfile", "node-runtime", "package-manager-distribution", "runner-image":
+			if value.HasUnexpectedFields() {
+				return dependencyMismatch(value.Name)
+			}
 			byName[value.Name] = append(byName[value.Name], value)
 		default:
 			return npmValidationError(IDResolvedDependenciesUnexpectedEntry, "resolvedDependencies", "dependency name is not enumerated")

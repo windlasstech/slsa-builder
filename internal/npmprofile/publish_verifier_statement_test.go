@@ -163,6 +163,43 @@ func TestRawStatementNodeRuntimeUnknownMember(t *testing.T) {
 	}
 }
 
+func TestRawStatementClosedDependencyUnknownMember(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"lockfile", "package-manager-distribution", "runner-image"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			// Given valid pnpm Statement bytes with an extra top-level descriptor member.
+			input := validProvenanceInput(t, ManagerPNPM)
+			raw := string(mustJSON(runtimeTestStatement(t, input)))
+			original := `"name":"` + name + `"`
+			if strings.Count(raw, original) != 1 {
+				t.Fatal("expected exactly one named descriptor in raw Statement")
+			}
+			raw = strings.Replace(raw, original, original+`,"unexpected":null`, 1)
+			statement, err := provenance.DecodeStatement([]byte(raw))
+			if err != nil {
+				t.Fatalf("DecodeStatement() must defer descriptor policy to the profile: %v", err)
+			}
+			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA)}}
+			for _, consumer := range []struct {
+				name     string
+				validate func() error
+			}{
+				{"profile", func() error { return ValidateNPMStatement(statement, input) }},
+				{"publish", func() error { return verifier.validateStatement(statement) }},
+			} {
+				t.Run(consumer.name, func(t *testing.T) {
+					t.Parallel()
+					// When the real semantic consumer validates the decoded Statement.
+					err := consumer.validate()
+					// Then the closed descriptor rejects the member with its narrow diagnostic.
+					requireProvenanceDiagnostic(t, err, [2]string{"windlass.verify.error.resolved-dependencies-" + name, "resolvedDependencies." + name})
+				})
+			}
+		})
+	}
+}
+
 func TestCloneNPMDependenciesPreservesUnknownMember(t *testing.T) {
 	t.Parallel()
 	// Given a decoded runtime descriptor carrying an unknown member.
