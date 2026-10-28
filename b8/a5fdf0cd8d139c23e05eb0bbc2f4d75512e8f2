@@ -1,0 +1,30 @@
+docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+  s_a193295ecc43ba::t_179a3bda7d48d2 48-49
+docs/decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
+  s_a193295ecc43ba::t_4ca70ea44ac511 27
+  s_add0715b25014d::t_1b150120926ec4 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b8a5fdf0cd8d139c23e05eb0bbc2f4d75512e8f2",
+  "prompts": {},
+  "sessions": {
+    "s_a193295ecc43ba": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b149002ffeLE7PyqDgHfnT1m",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_add0715b25014d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b14396fffeUMwC95dKB4mNJm",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
