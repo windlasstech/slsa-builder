@@ -239,6 +239,7 @@ release-target-immutable
 release-version-semver-mismatch
 required-lockfile-missing
 resolved-dependencies-lockfile
+resolved-dependencies-node-runtime
 resolved-dependencies-package-manager-distribution
 resolved-dependencies-runner-image
 resolved-dependencies-unexpected-entry

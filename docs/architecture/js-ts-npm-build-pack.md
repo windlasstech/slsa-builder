@@ -17,8 +17,8 @@ installs dependencies, runs build scripts, packs the artifact, and validates pac
   [0063](../decisions/0063-limit-yarn-support-to-berry-v4-with-corepack-package-manager.md),
   [0064](../decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md),
   [0070](../decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md),
-  and
-  [0078](../decisions/0078-treat-settings-only-pnpm-workspace-yaml-as-standalone-root-package-mode.md)
+  [0078](../decisions/0078-treat-settings-only-pnpm-workspace-yaml-as-standalone-root-package-mode.md),
+  and [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md)
 - Related specs: [JS/TS npm package profile](js-ts-npm-package-profile.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Core profile contract](core-profile-contract.md)
@@ -486,7 +486,8 @@ The selected lockfile path and digest feed the name-keyed `lockfile` descriptor 
 [provenance and publish specification](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema).
 `externalParameters.package_manager` records how the package manager was selected. The selected
 manager name and exact effective version select the unordered dependency set by descriptor `name`:
-npm emits `lockfile` and `runner-image`, while pnpm and Yarn each additionally emit exactly one
+every selection emits exactly one `node-runtime`; npm emits exactly three descriptors (`lockfile`,
+`node-runtime`, and `runner-image`), while pnpm and Yarn each emit exactly four, adding exactly one
 `package-manager-distribution`. The profile must not select, create, or validate a descriptor by
 array position. A missing, duplicate, unexpected, or manager-incompatible descriptor must stop
 before signing with the descriptor diagnostic defined in the provenance and publish specification.
@@ -621,8 +622,25 @@ with it (ADR 0098); it is not authenticated independently as an npm distribution
 mechanism no longer supplies the runtime: the workflow provisions exactly the recorded patch, never
 a floating major, from the pinned, digest-verified artifact per the runtime provisioning section
 below, and the pair assertion below re-checks the provisioned toolchain's version identity
-observationally. This contract introduces no `resolvedDependencies` schema change and does not pin
-the runner image.
+observationally. This contract does not pin the runner image.
+
+Under
+[ADR 0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md),
+the build's signed provenance records exactly one `node-runtime` entry in `resolvedDependencies` for
+the actual build platform. Its `uri` and sole lowercase `digest.sha256` are the embedded `linux-x64`
+artifact URL and compressed-tarball SHA-256 from the same pin record, and its annotations are
+exactly `digest_authority: "builder-pinned-record"` and `platform: "linux-x64"`. The resulting
+closed set has exactly three entries for npm and four for pnpm or Yarn. The
+[provenance and publish specification](js-ts-npm-provenance-publish.md#nodejs-runtime-descriptor)
+defines the complete descriptor shape, deterministic producer order, unordered consumer semantics,
+and validation failures.
+
+The runtime descriptor transitively covers the build-stage bundled npm bytes. It adds no separate
+`npm-cli` descriptor, does not record the separately provisioned publish-stage npm CLI, and does not
+open dependency recording to unenumerated entries. Recording reuses the existing provisioning
+evidence without changing acquisition, trust, or provisioning behavior. `builder.version`,
+`builderDependencies`, the selected lockfile and runner-image descriptors, and the handoff schema
+remain unchanged.
 
 ### Digest-verified runtime provisioning
 
@@ -1105,9 +1123,9 @@ signing or publishing. Exit code `2` identifies unusable locally required captur
   sources.
 - Yarn 6 pins rejected before install with `windlass.verify.error.yarn-version-unsupported` from
   both manifest sources; Yarn Berry v4 and v5 pins remain accepted from both manifest sources.
-- Successful npm capture emits only name-keyed `lockfile` and `runner-image` descriptors; successful
-  pnpm capture emits its registry-integrity package-manager distribution; successful Yarn capture
-  emits its download-hash package-manager distribution.
+- Successful npm capture emits exactly three name-keyed descriptors: `lockfile`, `node-runtime`, and
+  `runner-image`; successful pnpm and Yarn captures each emit exactly four, adding their respective
+  registry-integrity or download-hash `package-manager-distribution`.
 - Unavailable package-manager distribution capture, unavailable runner-image file or Included
   Software URL, and unavailable required runner observations each emit
   `windlass.verify.error.input-unavailable`, exit `2`, and stop before signing.
