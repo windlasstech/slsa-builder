@@ -1,0 +1,20 @@
+AGENTS.md
+  s_bef494316562d6::t_6c5872929492df 44
+  s_bef494316562d6::t_fadcf28971741c 25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1034af3fd122860767bf682c57fe434af60c3ff1",
+  "prompts": {},
+  "sessions": {
+    "s_bef494316562d6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec4ac1e7affeydg7tAkVi88bM6",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
