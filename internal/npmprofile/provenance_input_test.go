@@ -383,6 +383,7 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 	return NPMProvenanceInput{
 		BuildMetadata: BuildMetadata{
 			SchemaVersion: "1",
+			StartedOn:     "2026-08-06T12:00:00Z", FinishedOn: "2026-08-06T12:00:03Z",
 			PrimaryArtifact: PrimaryArtifact{
 				ArtifactName:    "js-ts-npm-package-tarball-123456789-1",
 				PayloadFileName: "windlass-slsa-builder-1.2.3.tgz",

@@ -128,6 +128,7 @@ func TestWorkflowIntentFinalizeRejections(t *testing.T) {
 			t.Parallel()
 			// Given valid build metadata with one changed boundary value.
 			selection, build, config := workflowIntentInputs(t)
+			config.StartedOn, config.FinishedOn = "2026-08-14T11:59:58Z", "2026-08-14T12:00:03Z"
 			test.change(&selection, &build, &config)
 			// When finalizing, then no partial metadata escapes a rejected gate.
 			got, err := FinalizeWorkflowBuildMetadata(selection, build, config)

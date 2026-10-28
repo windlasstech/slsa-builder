@@ -399,7 +399,7 @@ func validateResolvedDependencies(values []provenance.ResourceDescriptor, parame
 
 func validateLockfileDescriptor(value provenance.ResourceDescriptor, parameters ExternalParameters) error {
 	lockfilePath := selectedLockfilePath(parameters.PackageManager)
-	wantURI := "git+" + parameters.Source.Repository + "@" + parameters.Source.Revision + "#" + lockfilePath
+	wantURI := "git+" + parameters.Source.Repository + "@" + parameters.Source.Revision + "#" + escapeLockfileFragment(lockfilePath)
 	if value.URI != wantURI || len(value.Digest) != 1 || digestEncodingInvalid(value.Digest["sha256"], 64) || len(value.Annotations) != 6 {
 		return npmValidationError(IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile", "lockfile URI, digest, or annotation shape is invalid")
 	}

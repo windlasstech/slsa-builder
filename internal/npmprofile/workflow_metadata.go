@@ -14,6 +14,8 @@ import (
 
 // WorkflowBuildMetadataConfig contains the public npm-only inputs and trusted runtime observations.
 type WorkflowBuildMetadataConfig struct {
+	StartedOn              string
+	FinishedOn             string
 	ArtifactName           string
 	RegistryURLInput       string
 	DistTagInput           string
@@ -86,6 +88,7 @@ func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, conf
 		return BuildMetadata{}, err
 	}
 	return BuildMetadata{
+		StartedOn: config.StartedOn, FinishedOn: config.FinishedOn,
 		SchemaVersion:      "1",
 		PrimaryArtifact:    PrimaryArtifact{ArtifactName: config.ArtifactName, PayloadFileName: filepath.Base(build.TarballPath), SHA256: build.SHA256.String(), SHA512: build.SHA512.String()},
 		ExternalParameters: encoded, ResolvedDependencies: dependencies,
@@ -241,7 +244,7 @@ func workflowResolvedDependencies(selection Result, build BuildPackResult, param
 		return nil, fmt.Errorf("read selected lockfile: %w", err)
 	}
 	dependencies := []provenance.ResourceDescriptor{{
-		Name: "lockfile", URI: "git+" + parameters.Source.Repository + "@" + parameters.Source.Revision + "#" + lockfilePath,
+		Name: "lockfile", URI: "git+" + parameters.Source.Repository + "@" + parameters.Source.Revision + "#" + escapeLockfileFragment(lockfilePath),
 		Digest: map[string]string{"sha256": digest.SumSHA256(lockfileBytes).String()},
 		Annotations: annotations(map[string]any{
 			"package_manager": selection.Manager.Name, "package_manager_root": selection.Package.ManagerRoot,

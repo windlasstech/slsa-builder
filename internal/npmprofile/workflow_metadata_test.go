@@ -32,6 +32,7 @@ func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
 		Toolchain:   ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
 	}
 	metadata, err := FinalizeWorkflowBuildMetadata(selection, build, WorkflowBuildMetadataConfig{
+		StartedOn: "2026-08-14T11:59:58Z", FinishedOn: "2026-08-14T12:00:03Z",
 		ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",
 		EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA,
 		WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml",
@@ -39,6 +40,9 @@ func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if metadata.StartedOn != "2026-08-14T11:59:58Z" || metadata.FinishedOn != "2026-08-14T12:00:03Z" {
+		t.Fatalf("build timestamps = %q / %q", metadata.StartedOn, metadata.FinishedOn)
 	}
 	parameters, err := DecodeExternalParameters(metadata.ExternalParameters)
 	if err != nil {

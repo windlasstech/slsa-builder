@@ -70,6 +70,8 @@ type PrimaryArtifact struct {
 // BuildMetadata is the closed same-run build metadata envelope.
 type BuildMetadata struct {
 	SchemaVersion        string                          `json:"schema_version"`
+	StartedOn            string                          `json:"started_on"`
+	FinishedOn           string                          `json:"finished_on"`
 	PrimaryArtifact      PrimaryArtifact                 `json:"primary_artifact"`
 	ExternalParameters   json.RawMessage                 `json:"external_parameters"`
 	ResolvedDependencies []provenance.ResourceDescriptor `json:"resolved_dependencies"`
