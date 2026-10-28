@@ -45,6 +45,8 @@ relations:
     target: ADR-0085
   - type: see-also
     target: ADR-0086
+  - type: see-also
+    target: ADR-0099
   - type: partially-superseded-by
     target: ADR-0090
     scope:

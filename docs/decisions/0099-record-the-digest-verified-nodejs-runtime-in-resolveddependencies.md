@@ -24,6 +24,8 @@ relations:
       descriptor remains in force, with the bundled npm CLI covered transitively by the node-runtime
       descriptor"
   - type: see-also
+    target: ADR-0088
+  - type: see-also
     target: ADR-0098
 ---
 
