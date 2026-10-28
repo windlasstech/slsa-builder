@@ -1,0 +1,39 @@
+docs/decisions/README.md
+  s_bef494316562d6::t_af5ee3336716a6 244-245,248
+  s_bef494316562d6::t_a1f0d11ffa3e95 83,246-247
+  s_bef494316562d6::t_7aa71838eee236 32
+  s_27051ced1d080c::t_074fce37756c64 249
+docs/decisions/README.ko.md
+  s_bef494316562d6::t_23e5b519ec624d 31
+  s_bef494316562d6::t_a1f0d11ffa3e95 33-82,243-245
+  s_bef494316562d6::t_5e1ac20032feb4 241-242
+  s_27051ced1d080c::t_ca20ac715b9091 32,246
+docs/decisions/AGENTS.md
+  s_bef494316562d6::t_a1f0d11ffa3e95 87
+  s_bef494316562d6::t_a0c64b67805222 7
+  s_bef494316562d6::t_9ee8ebbb0ee5b9 33,38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a2490c9abe278ada2f78e0e9e03b8fcb90658e77",
+  "prompts": {},
+  "sessions": {
+    "s_27051ced1d080c": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ec4ac1e7affeydg7tAkVi88bM6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bef494316562d6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec4ac1e7affeydg7tAkVi88bM6",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
