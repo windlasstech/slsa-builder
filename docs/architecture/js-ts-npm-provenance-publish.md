@@ -1011,9 +1011,11 @@ The selected lockfile that constrained the release install has this unchanged cl
   The `@<externalParameters.source.revision>` component records the built ref's resolved commit, so
   the descriptor carries the immutable built-source resolution required by ADR 0079 without a
   separate source descriptor.
-- The URI fragment must be the repository-root-relative selected lockfile path. It must not be
-  empty, absolute, contain path traversal, contain backslashes, point outside the repository, or
-  name a non-selected lockfile.
+- The URI fragment must be the RFC 3986 percent-encoded form of the repository-root-relative
+  selected lockfile path. Producers must encode each `/`-separated segment and rejoin the encoded
+  segments with `/`. Consumers must percent-decode the fragment before comparing it to the selected
+  lockfile path. It must not be empty, absolute, contain path traversal, contain backslashes, point
+  outside the repository, or name a non-selected lockfile.
 - `digest.sha256` must be the SHA-256 digest of the selected lockfile bytes as 64 lowercase
   hexadecimal characters.
 - `annotations.package_manager` must equal `externalParameters.package_manager.name`.
