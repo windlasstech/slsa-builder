@@ -1,0 +1,29 @@
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-duplicate.json
+  s_5ea2264247d69d::t_392e3ae2ab003b 1-51
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-wrong-uri.json
+  s_5ea2264247d69d::t_5a7b615cedda32 1-40
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-annotations.json
+  s_5ea2264247d69d::t_f66c59a035de78 1-40
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-missing.json
+  s_5ea2264247d69d::t_0554330bd928a1 1-29
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-wrong-digest.json
+  s_5ea2264247d69d::t_ed12ceac3f7b83 1-40
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-malformed-digest.json
+  s_5ea2264247d69d::t_e18acb3b12ac45 1-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "69003ce813b961f105d800b62d5e88df3eaba572",
+  "prompts": {},
+  "sessions": {
+    "s_5ea2264247d69d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b95460bffdsoFnusQUjAzm9m",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
