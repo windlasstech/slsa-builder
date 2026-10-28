@@ -1,0 +1,25 @@
+docs/decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
+  s_bef494316562d6::t_d42aed0e789523 1-36,40-54,57-129,177-179,215-217,247-249,279-299
+  s_bef494316562d6::t_69b871990ec040 130-176,180-214,218-246,250-278
+  s_bef494316562d6::t_a1f0d11ffa3e95 37-39,55-56
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_bef494316562d6::t_ac36f035d85d63 48-58
+docs/decisions/0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md
+  s_bef494316562d6::t_b67f4a76ee21bb 26-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "27eb4d865a570161bdcacbfff1d77a4253dcdfbd",
+  "prompts": {},
+  "sessions": {
+    "s_bef494316562d6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec4ac1e7affeydg7tAkVi88bM6",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
