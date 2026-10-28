@@ -80,7 +80,7 @@ sequence currently runs from `0000` through `0099`.
 | 0096      | Project .corepack.env: neutralize and warn                 | The builder pins COREPACK_ENV_FILE=0 so the project file is never loaded; its presence yields a non-fatal warning.                                               |
 | 0097      | Packed .corepack.env: reject at the post-pack gate         | A .corepack.env that would ship inside the packed tarball is rejected post-pack with no parser; the 0096 pin and warning are unchanged.                          |
 | 0098      | Build-stage Node.js runtime provisioning                   | Digest-verified release tarball with a committed SHA-256 replaces setup-action and toolcache selection; bundled vs provisioned build npm is a spec-level choice. |
-| 0099      | Node.js runtime recording in resolvedDependencies          | Record the digest-verified runtime tarball as a provenance dependency (proposed).                                                                                |
+| 0099      | Node.js runtime recording in resolvedDependencies          | Record the digest-verified runtime tarball as a provenance dependency.                                                                                           |
 
 ## ADR status and relations
 
@@ -240,12 +240,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0096 | Neutralize the project .corepack.env with a pinned COREPACK_ENV_FILE=0 and warn on its presence     | JS/TS npm build and pack (credential-configuration preflight), verification policy and fixtures                                                                                                    |
 | 0097 | Reject a packed .corepack.env at the post-pack artifact gate                                        | JS/TS npm build and pack (post-pack artifact gate), verification policy and fixtures                                                                                                               |
 | 0098 | Provision the build-stage Node.js runtime from a digest-verified release tarball                    | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures (decision accepted; the specification revision follows on the same branch) |
-
-### Proposed ADRs
-
-| ADR  | Decision                                                           | Spec mapping if accepted                                                                                      |
-| ---- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| 0099 | Record the digest-verified Node.js runtime in resolvedDependencies | JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures (pending review) |
+| 0099 | Record the digest-verified Node.js runtime in resolvedDependencies                                  | JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures (decision accepted; the specification revision follows in the specification phase)                    |
 
 ### Superseded or deprecated ADRs (historical only)
 

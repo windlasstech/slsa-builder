@@ -84,7 +84,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | npm descriptor semantics       | `0095`                                                     | Declared npm versions warn on mismatch; npm digest suffixes are rejected.                                                                                        |
 | Project .corepack.env policy   | `0096`–`0097`                                              | Neutralized by a pinned COREPACK_ENV_FILE=0; presence warns. A packed file is rejected at the post-pack gate (0097).                                             |
 | Build-stage Node.js runtime    | `0098`                                                     | Digest-verified release tarball with a committed SHA-256 replaces setup-action and toolcache selection; bundled vs provisioned build npm is a spec-level choice. |
-| Node.js runtime recording      | `0099`                                                     | Digest-verified runtime tarball as a `resolvedDependencies` descriptor (proposed).                                                                               |
+| Node.js runtime recording      | `0099`                                                     | Digest-verified runtime tarball as a `resolvedDependencies` descriptor (accepted).                                                                               |
 
 ## CONVENTIONS
 

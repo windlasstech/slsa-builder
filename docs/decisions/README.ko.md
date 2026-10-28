@@ -79,7 +79,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0096      | 프로젝트 .corepack.env 무력화와 경고       | 빌더가 COREPACK_ENV_FILE=0을 핀하여 프로젝트 파일을 로드하지 않음. 존재 시 비치명적 경고.                                                   |
 | 0097      | 패킹된 .corepack.env의 post-pack 거부      | tarball에 포함될 .corepack.env를 파서 없이 post-pack에서 거부. 0096의 핀과 경고는 변경 없음.                                                |
 | 0098      | 빌드 스테이지 Node.js 런타임 프로비저닝    | 커밋된 SHA-256으로 다이제스트를 검증한 릴리스 tarball이 setup 액션과 툴캐시 선택을 대체. 번들 대 독립 프로비저닝 빌드 npm은 명세 레벨 선택. |
-| 0099      | resolvedDependencies의 Node.js 런타임 기록 | 다이제스트를 검증한 런타임 tarball을 provenance 의존성으로 기록(제안됨).                                                                    |
+| 0099      | resolvedDependencies의 Node.js 런타임 기록 | 다이제스트를 검증한 런타임 tarball을 provenance 의존성으로 기록.                                                                            |
 
 ## ADR status와 relations
 
@@ -237,12 +237,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0096 | Neutralize the project .corepack.env with a pinned COREPACK_ENV_FILE=0 and warn on its presence     | JS/TS npm build and pack(credential-configuration preflight), verification policy and fixtures                                                                                      |
 | 0097 | Reject a packed .corepack.env at the post-pack artifact gate                                        | JS/TS npm build and pack(post-pack artifact gate), verification policy and fixtures                                                                                                 |
 | 0098 | Provision the build-stage Node.js runtime from a digest-verified release tarball                    | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures(결정 수용. 명세 개정은 같은 브랜치에서 후속)                |
-
-### 제안된 ADR
-
-| ADR  | 결정(제안)                                                         | 수용 시 명세 매핑                                                                                       |
-| ---- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| 0099 | Record the digest-verified Node.js runtime in resolvedDependencies | JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures(검토 대기) |
+| 0099 | Record the digest-verified Node.js runtime in resolvedDependencies                                  | JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures(결정 수용. 명세 개정은 명세 단계에서 후속)                                             |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 
