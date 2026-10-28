@@ -1,0 +1,31 @@
+internal/fixture/registry.go
+  s_bef494316562d6::t_c89d79f95369e6 57-62
+  s_5ea2264247d69d::t_5e709006b7a8fe 53-55
+  s_5ea2264247d69d::t_2fa054702b9a20 31-32
+  s_5ea2264247d69d::t_ed2babef65becd 52,56
+  s_5ea2264247d69d::t_fe1a0d47e67c81 91-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9245f6072259955396e833a35f3091615de98bfe",
+  "prompts": {},
+  "sessions": {
+    "s_5ea2264247d69d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e7b95460bffdsoFnusQUjAzm9m",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bef494316562d6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec4ac1e7affeydg7tAkVi88bM6",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
