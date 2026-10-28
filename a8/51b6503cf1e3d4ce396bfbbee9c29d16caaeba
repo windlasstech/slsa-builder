@@ -1,0 +1,38 @@
+internal/command/npm_profile_sign.go
+  s_26d1dfef9039e9::t_5adb1898937ada 153-154
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_26d1dfef9039e9::t_fd5bc39a293080 240-241
+  s_f662bde33734a6::t_587c8b8b742bab 253-258
+internal/command/npm_profile_sign_source_ref_test.go
+  s_f662bde33734a6::t_a00860e495b088 302
+  s_26d1dfef9039e9::t_5adb1898937ada 63-65
+internal/command/npm_profile_timestamps_test.go
+  s_26d1dfef9039e9::t_83f5dae52f5129 96-100,102-127
+  s_26d1dfef9039e9::t_96b6050c588271 1-43,48-95
+  s_26d1dfef9039e9::t_3c8d7d3d079885 44-47
+  s_f662bde33734a6::t_a00860e495b088 101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a851b6503cf1e3d4ce396bfbbee9c29d16caaeba",
+  "prompts": {},
+  "sessions": {
+    "s_26d1dfef9039e9": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ec45332dbffeUM3itOgp5d3d83",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f662bde33734a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_ec45332dbffeUM3itOgp5d3d83",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
