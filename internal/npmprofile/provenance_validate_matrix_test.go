@@ -104,6 +104,24 @@ func TestProvenanceMatrixDependencyRejections(t *testing.T) {
 		mutate                   func(*provenance.ResourceDescriptor)
 	}{
 		{"lockfile URI", "lockfile", "", func(d *provenance.ResourceDescriptor) { d.URI += "-other" }},
+		{"runtime URI", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.URI += ".other" }},
+		{"runtime wrong digest", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Digest["sha256"] = strings.Repeat("0", 64) }},
+		{"runtime uppercase digest", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Digest["sha256"] = strings.ToUpper(d.Digest["sha256"]) }},
+		{"runtime short digest", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Digest["sha256"] = d.Digest["sha256"][:63] }},
+		{"runtime nonhex digest", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Digest["sha256"] = strings.Repeat("g", 64) }},
+		{"runtime missing digest", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Digest = nil }},
+		{"runtime missing sha256", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Digest = map[string]string{"sha512": testSHA512} }},
+		{"runtime extra digest", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Digest["sha512"] = testSHA512 }},
+		{"runtime missing annotations", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Annotations = nil }},
+		{"runtime missing authority", "node-runtime", "", func(d *provenance.ResourceDescriptor) { delete(d.Annotations, "digest_authority") }},
+		{"runtime missing platform", "node-runtime", "", func(d *provenance.ResourceDescriptor) { delete(d.Annotations, "platform") }},
+		{"runtime unknown annotation", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Annotations["role"] = mustJSON("runtime") }},
+		{"runtime authority type", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Annotations["digest_authority"] = mustJSON(42) }},
+		{"runtime platform type", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Annotations["platform"] = mustJSON([]string{"linux-x64"}) }},
+		{"runtime authority value", "node-runtime", "", func(d *provenance.ResourceDescriptor) {
+			d.Annotations["digest_authority"] = mustJSON("registry-integrity")
+		}},
+		{"runtime platform value", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Annotations["platform"] = mustJSON("linux-arm64") }},
 		{"lockfile digest length", "lockfile", "", func(d *provenance.ResourceDescriptor) { d.Digest["sha256"] = "00" }},
 		{"lockfile annotations", "lockfile", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["package_manager"] = json.RawMessage(`"npm"`) }},
 		{"lockfile malformed annotation", "lockfile", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["package_manager"] = json.RawMessage(`{`) }},
@@ -119,7 +137,7 @@ func TestProvenanceMatrixDependencyRejections(t *testing.T) {
 		{"runner annotation type", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["image_version"] = json.RawMessage(`123`) }},
 		{"runner node mismatch", "runner-image", ".annotations.node_version", func(d *provenance.ResourceDescriptor) { d.Annotations["node_version"] = json.RawMessage(`"v24.1.0"`) }},
 	}
-	ids := map[string]string{"lockfile": IDResolvedDependenciesLockfile, "package-manager-distribution": IDResolvedDependenciesDistribution, "runner-image": IDResolvedDependenciesRunnerImage}
+	ids := map[string]string{"lockfile": IDResolvedDependenciesLockfile, "node-runtime": "windlass.verify.error.resolved-dependencies-node-runtime", "package-manager-distribution": IDResolvedDependenciesDistribution, "runner-image": IDResolvedDependenciesRunnerImage}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()

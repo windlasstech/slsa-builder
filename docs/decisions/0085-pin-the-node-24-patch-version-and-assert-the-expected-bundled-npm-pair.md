@@ -38,6 +38,13 @@ relations:
       setup mechanism's checksum verification; the Node.js 24 major selection, the exact-patch pin
       requirement, the pair assertion as an observational guard, the npm floor check, and the runner
       and OS image constraints remain in force"
+  - type: partially-superseded-by
+    target: ADR-0099
+    scope:
+      "only the Scope and non-goals clause stating that the `resolvedDependencies` v1 schema is
+      untouched; the separate conclusion that the npm CLI receives no package-manager-distribution
+      descriptor remains in force, with the bundled npm CLI covered transitively by the node-runtime
+      descriptor"
 ---
 
 # Pin the Node.js 24 Patch Version and Assert the Expected Bundled npm Pair

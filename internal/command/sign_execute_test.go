@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
@@ -85,7 +84,6 @@ func TestSignExecutionFailureBoundaries(t *testing.T) {
 				preflight: func(context.Context, string, string) npmprofile.OIDCExchangeResult {
 					return npmprofile.OIDCExchangeResult{WorkflowFilename: "release.yml"}
 				},
-				now: func() time.Time { return time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC) },
 			}
 			signed := false
 			command.sign = func(ctx context.Context, request signing.Request) (signing.Result, error) {

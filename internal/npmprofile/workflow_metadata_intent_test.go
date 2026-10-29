@@ -128,6 +128,7 @@ func TestWorkflowIntentFinalizeRejections(t *testing.T) {
 			t.Parallel()
 			// Given valid build metadata with one changed boundary value.
 			selection, build, config := workflowIntentInputs(t)
+			config.StartedOn, config.FinishedOn = "2026-08-14T11:59:58Z", "2026-08-14T12:00:03Z"
 			test.change(&selection, &build, &config)
 			// When finalizing, then no partial metadata escapes a rejected gate.
 			got, err := FinalizeWorkflowBuildMetadata(selection, build, config)
@@ -173,4 +174,27 @@ func workflowIntentInputs(t *testing.T) (Result, BuildPackResult, WorkflowBuildM
 	}
 	config := WorkflowBuildMetadataConfig{ArtifactName: "tarball", EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml", RegistryState: RegistryPreflightState{PackageExists: true}}
 	return selection, build, config
+}
+
+func TestFinalizeWorkflowBuildMetadataRuntimeIsolation(t *testing.T) {
+	t.Parallel()
+	selection, build, config := workflowIntentInputs(t)
+	first, err := FinalizeWorkflowBuildMetadata(selection, build, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first.ResolvedDependencies) != 3 {
+		t.Fatalf("resolved dependencies = %d, want 3", len(first.ResolvedDependencies))
+	}
+	requireRuntimeDescriptor(t, first.ResolvedDependencies[1])
+	first.ResolvedDependencies[1].Digest["sha256"] = "mutated"
+	first.ResolvedDependencies[1].Annotations["platform"][1] = 'X'
+	second, err := FinalizeWorkflowBuildMetadata(selection, build, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(second.ResolvedDependencies) != 3 {
+		t.Fatalf("resolved dependencies = %d, want 3", len(second.ResolvedDependencies))
+	}
+	requireRuntimeDescriptor(t, second.ResolvedDependencies[1])
 }

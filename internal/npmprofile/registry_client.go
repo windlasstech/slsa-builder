@@ -177,6 +177,11 @@ func decodeRegistryAttestationResponse(body []byte) (RegistryAttestationState, e
 		Attestations []struct {
 			PredicateType string          `json:"predicateType"`
 			Bundle        json.RawMessage `json:"bundle"`
+			// npm may attach a signedAccessSignatureUrl member to each
+			// element (testdata/platform/contracts/npm-attestation-readback.json);
+			// the value is ignored, but the member is declared so
+			// DisallowUnknownFields keeps rejecting every other unknown key.
+			SignedAccessSignatureURL json.RawMessage `json:"signedAccessSignatureUrl"`
 		} `json:"attestations"`
 	}
 	if err := decoder.Decode(&document); err != nil || document.Attestations == nil {

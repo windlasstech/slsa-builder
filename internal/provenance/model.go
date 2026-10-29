@@ -72,10 +72,39 @@ type BuildDefinition struct {
 
 // ResourceDescriptor is the closed descriptor envelope whose semantics are defined by a profile.
 type ResourceDescriptor struct {
-	Name        string                     `json:"name"`
-	URI         string                     `json:"uri,omitempty"`
-	Digest      map[string]string          `json:"digest,omitempty"`
-	Annotations map[string]json.RawMessage `json:"annotations,omitempty"`
+	Name                string                     `json:"name"`
+	URI                 string                     `json:"uri,omitempty"`
+	Digest              map[string]string          `json:"digest,omitempty"`
+	Annotations         map[string]json.RawMessage `json:"annotations,omitempty"`
+	hasUnexpectedFields bool
+}
+
+// UnmarshalJSON captures unrecognized members for profile-owned validation without rejecting them.
+// Duplicate-member rejection belongs to the earlier canonicaljson boundary.
+func (descriptor *ResourceDescriptor) UnmarshalJSON(encoded []byte) error {
+	type descriptorJSON ResourceDescriptor
+	var decoded descriptorJSON
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		return fmt.Errorf("decode resource descriptor: %w", err)
+	}
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &members); err != nil {
+		return fmt.Errorf("decode resource descriptor members: %w", err)
+	}
+	for name := range members {
+		switch name {
+		case "name", "uri", "digest", "annotations":
+		default:
+			decoded.hasUnexpectedFields = true
+		}
+	}
+	*descriptor = ResourceDescriptor(decoded)
+	return nil
+}
+
+// HasUnexpectedFields reports whether the decoded descriptor contained unrecognized members.
+func (descriptor ResourceDescriptor) HasUnexpectedFields() bool {
+	return descriptor.hasUnexpectedFields
 }
 
 // RunDetails contains the builder and invocation metadata.
@@ -105,16 +134,15 @@ type Metadata struct {
 	FinishedOn   string `json:"finishedOn"`
 }
 
-// DecodeStatement strictly decodes one duplicate-free Statement and rejects unknown common fields.
+// DecodeStatement decodes one duplicate-free Statement, ignoring unrecognized fields per in-toto.
 func DecodeStatement(data []byte) (Statement, error) {
 	if err := canonicaljson.Validate(data); err != nil {
 		return Statement{}, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
 	var statement Statement
 	if err := decoder.Decode(&statement); err != nil {
-		return Statement{}, fmt.Errorf("decode closed SLSA Statement: %w", err)
+		return Statement{}, fmt.Errorf("decode SLSA Statement: %w", err)
 	}
 	return statement, nil
 }

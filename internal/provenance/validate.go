@@ -117,16 +117,13 @@ func cloneSubject(subject Subject) Subject {
 func cloneResourceDescriptors(descriptors []ResourceDescriptor) []ResourceDescriptor {
 	cloned := make([]ResourceDescriptor, len(descriptors))
 	for index, descriptor := range descriptors {
+		cloned[index] = descriptor
 		annotations := make(map[string]json.RawMessage, len(descriptor.Annotations))
 		for key, value := range descriptor.Annotations {
 			annotations[key] = append(json.RawMessage(nil), value...)
 		}
-		cloned[index] = ResourceDescriptor{
-			Name:        descriptor.Name,
-			URI:         descriptor.URI,
-			Digest:      cloneStringMap(descriptor.Digest),
-			Annotations: annotations,
-		}
+		cloned[index].Digest = cloneStringMap(descriptor.Digest)
+		cloned[index].Annotations = annotations
 	}
 	return cloned
 }
@@ -139,11 +136,11 @@ func cloneStringMap(values map[string]string) map[string]string {
 
 func validateInternalParameters(parameters json.RawMessage) error {
 	if len(parameters) == 0 {
-		return validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must be exactly the empty object")
+		return nil
 	}
-	equal, err := canonicaljson.Equal(parameters, []byte(`{}`))
-	if err != nil || !equal {
-		return validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must be exactly the empty object")
+	canonical, err := canonicaljson.Canonicalize(parameters)
+	if err != nil || (string(canonical) != "{}" && string(canonical) != "null") {
+		return validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must be absent, null, or the empty object")
 	}
 	return nil
 }

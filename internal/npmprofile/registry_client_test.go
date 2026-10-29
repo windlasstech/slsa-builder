@@ -68,7 +68,7 @@ func TestRegistryAttestations(t *testing.T) {
 			t.Errorf("request = %s %s", request.Method, request.URL.EscapedPath())
 		}
 		writer.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(writer, `{"attestations":[{"predicateType":"https://slsa.dev/provenance/v1","bundle":{"exact":"bytes"}},{"predicateType":"https://github.com/npm/attestation/tree/main/specs/publish/v0.1","bundle":{"ignored":true}}]}`)
+		fmt.Fprint(writer, `{"attestations":[{"predicateType":"https://slsa.dev/provenance/v1","bundle":{"exact":"bytes"},"signedAccessSignatureUrl":"https://example.invalid/signature"},{"predicateType":"https://github.com/npm/attestation/tree/main/specs/publish/v0.1","bundle":{"ignored":true},"signedAccessSignatureUrl":"https://example.invalid/signature"}]}`)
 	}))
 	defer server.Close()
 

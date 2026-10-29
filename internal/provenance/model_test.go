@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -145,15 +146,110 @@ func TestSubjectSHA256Branches(t *testing.T) {
 	})
 }
 
-func TestDecodeStatementRejectsUnknownField(t *testing.T) {
+func TestDecodeStatementIgnoresUnknownField(t *testing.T) {
 	t.Parallel()
 
-	_, err := provenance.DecodeStatement([]byte(`{"_type":"https://in-toto.io/Statement/v1","surprise":1}`))
-	if err == nil {
-		t.Fatal("DecodeStatement() unexpectedly succeeded")
+	statement, err := provenance.DecodeStatement([]byte(`{"_type":"https://in-toto.io/Statement/v1","surprise":1}`))
+	if err != nil {
+		t.Fatalf("DecodeStatement() error = %v", err)
 	}
-	if !strings.HasPrefix(err.Error(), "decode closed SLSA Statement: ") {
-		t.Fatalf("DecodeStatement() error = %q, want decode closed SLSA Statement wrap", err)
+	if statement.Type != provenance.StatementType {
+		t.Fatalf("Statement.Type = %q, want %q", statement.Type, provenance.StatementType)
+	}
+}
+
+func TestResourceDescriptorJSONContract(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                 string
+		encoded              string
+		wantUnexpectedFields bool
+	}{
+		{
+			name:    "known members",
+			encoded: `{"name":"lockfile","uri":"file:///package.json","digest":{"sha256":"` + sha256Hex + `"},"annotations":{"authority":"registry"}}`,
+		},
+		{
+			name:                 "unknown member",
+			encoded:              `{"name":"lockfile","uri":"file:///package.json","digest":{"sha256":"` + sha256Hex + `"},"annotations":{"authority":"registry"},"mediaType":"application/gzip"}`,
+			wantUnexpectedFields: true,
+		},
+		{
+			name:                 "case-variant member",
+			encoded:              `{"Name":"lockfile","uri":"file:///package.json","digest":{"sha256":"` + sha256Hex + `"},"annotations":{"authority":"registry"}}`,
+			wantUnexpectedFields: true,
+		},
+	}
+	wantDigest := map[string]string{"sha256": sha256Hex}
+	wantAnnotations := map[string]json.RawMessage{"authority": json.RawMessage(`"registry"`)}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			var descriptor provenance.ResourceDescriptor
+			if err := json.Unmarshal([]byte(test.encoded), &descriptor); err != nil {
+				t.Fatalf("json.Unmarshal() error = %v", err)
+			}
+			if descriptor.Name != "lockfile" {
+				t.Fatalf("ResourceDescriptor.Name = %q, want %q", descriptor.Name, "lockfile")
+			}
+			if descriptor.URI != "file:///package.json" {
+				t.Fatalf("ResourceDescriptor.URI = %q, want %q", descriptor.URI, "file:///package.json")
+			}
+			if !reflect.DeepEqual(descriptor.Digest, wantDigest) {
+				t.Fatalf("ResourceDescriptor.Digest = %#v, want %#v", descriptor.Digest, wantDigest)
+			}
+			if !reflect.DeepEqual(descriptor.Annotations, wantAnnotations) {
+				t.Fatalf("ResourceDescriptor.Annotations = %#v, want %#v", descriptor.Annotations, wantAnnotations)
+			}
+			if descriptor.HasUnexpectedFields() != test.wantUnexpectedFields {
+				t.Fatalf(
+					"ResourceDescriptor.HasUnexpectedFields() = %t, want %t",
+					descriptor.HasUnexpectedFields(),
+					test.wantUnexpectedFields,
+				)
+			}
+		})
+	}
+}
+
+func TestResourceDescriptorJSONRejectsWrongFieldType(t *testing.T) {
+	t.Parallel()
+
+	descriptor := provenance.ResourceDescriptor{
+		Name:        "lockfile",
+		URI:         "file:///package.json",
+		Digest:      map[string]string{"sha256": sha256Hex},
+		Annotations: map[string]json.RawMessage{"authority": json.RawMessage(`"registry"`)},
+	}
+	original := descriptor
+	original.Digest = make(map[string]string, len(descriptor.Digest))
+	for algorithm, value := range descriptor.Digest {
+		original.Digest[algorithm] = value
+	}
+	original.Annotations = make(map[string]json.RawMessage, len(descriptor.Annotations))
+	for name, value := range descriptor.Annotations {
+		original.Annotations[name] = append(json.RawMessage(nil), value...)
+	}
+
+	err := json.Unmarshal([]byte(`{"name":1,"uri":"file:///changed.json"}`), &descriptor)
+	if err == nil {
+		t.Fatal("json.Unmarshal() unexpectedly succeeded")
+	}
+	if !strings.HasPrefix(err.Error(), "decode resource descriptor: ") {
+		t.Fatalf("json.Unmarshal() error = %q, want decode resource descriptor wrap", err)
+	}
+	var typeError *json.UnmarshalTypeError
+	if !errors.As(err, &typeError) {
+		t.Fatalf("json.Unmarshal() error = %v, want *json.UnmarshalTypeError", err)
+	}
+	if typeError.Value != "number" {
+		t.Fatalf("json.UnmarshalTypeError.Value = %q, want %q", typeError.Value, "number")
+	}
+	if !reflect.DeepEqual(descriptor, original) {
+		t.Fatalf("ResourceDescriptor after failed decode = %#v, want original %#v", descriptor, original)
 	}
 }
 
@@ -183,13 +279,27 @@ func TestValidateProfileErrorPropagation(t *testing.T) {
 	}
 }
 
-func TestValidateRejectsEmptyInternalParameters(t *testing.T) {
+func TestValidateAcceptsEmptyInternalParameters(t *testing.T) {
 	t.Parallel()
 
-	statement := loadStatement(t, "valid-statement.json")
-	statement.Predicate.BuildDefinition.InternalParameters = nil
-	_, err := statement.Validate(expectations(nil), nil)
-	requireDiagnosticID(t, err, "windlass.verify.error.unexpected-internal-parameters")
+	for _, test := range []struct{ name, parameters string }{
+		{"absent", ""},
+		{"null", "null"},
+		{"empty object", "{}"},
+		{"whitespace null", " \nnull\t"},
+		{"whitespace object", " { } "},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			statement := loadStatement(t, "valid-statement.json")
+			statement.Predicate.BuildDefinition.InternalParameters = json.RawMessage(test.parameters)
+			_, err := statement.Validate(expectations(nil), nil)
+			if err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+		})
+	}
 }
 
 type failingProfileValidator struct {

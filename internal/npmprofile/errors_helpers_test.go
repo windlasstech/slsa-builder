@@ -29,6 +29,7 @@ func TestDependencyMismatch(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct{ name, id, field string }{
 		{"lockfile", IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile"},
+		{"node-runtime", "windlass.verify.error.resolved-dependencies-node-runtime", "resolvedDependencies.node-runtime"},
 		{"package-manager-distribution", IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution"},
 		{"runner-image", IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image"},
 		{"unknown", IDResolvedDependenciesUnexpectedEntry, "resolvedDependencies"},

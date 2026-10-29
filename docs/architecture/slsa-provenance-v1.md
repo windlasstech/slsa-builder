@@ -17,8 +17,8 @@ common contract.
   [0071](../decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md),
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
   [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
-  and
-  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
+  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
+  and [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
@@ -45,6 +45,11 @@ common contract.
 
 ## in-toto Statement shape
 
+Consumers must ignore unrecognized fields in the common in-toto Statement envelope, as required by
+the in-toto parsing rules. This does not relax the project-owned closed schemas and strict-matching
+rules for `externalParameters`, `resolvedDependencies` entries, `builder.version`, or
+`builderDependencies`. Duplicate-member rejection still applies before semantic validation.
+
 Every SLSA provenance emitted by a producer profile must be wrapped in an in-toto Statement with the
 following shape:
 
@@ -68,6 +73,17 @@ following shape:
       "internalParameters": {},
       "resolvedDependencies": [
         { "name": "lockfile" },
+        {
+          "name": "node-runtime",
+          "uri": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz",
+          "digest": {
+            "sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
+          },
+          "annotations": {
+            "digest_authority": "builder-pinned-record",
+            "platform": "linux-x64"
+          }
+        },
         {
           "name": "runner-image",
           "uri": "<platform-provided Included Software URL>",
@@ -181,8 +197,9 @@ fallback schema and must not be used to accept fields omitted by the profile sch
 
 ## `internalParameters`
 
-`internalParameters` must be exactly the empty object `{}`. It must not be absent, non-object, or
-contain a member. A violation is rejected with
+The producer must emit `internalParameters` as exactly the empty object `{}`. Verification treats an
+absent field, explicit JSON `null`, and `{}` as equivalent empty values per the SLSA parsing rules.
+A non-empty object or any non-object, non-null value is rejected with
 `windlass.verify.error.unexpected-internal-parameters`.
 
 Valid:
@@ -208,9 +225,9 @@ matching policy. The common contract defines no fallback schema. A profile that 
 non-enumerated dependency is rejected with
 `windlass.verify.error.resolved-dependencies-unexpected-entry`.
 
-The initial JS/TS npm profile enumerates `lockfile` and `runner-image`; pnpm and Yarn additionally
-enumerate `package-manager-distribution`. Its descriptor shapes and conditional cardinalities are
-defined by
+The initial JS/TS npm profile enumerates `lockfile`, `node-runtime`, and `runner-image`; pnpm and
+Yarn additionally enumerate `package-manager-distribution`. Its exact descriptor shapes and
+conditional cardinalities of three entries for npm and four for pnpm or Yarn are defined by
 [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema).
 That profile does not enumerate every installed package as a separate `ResourceDescriptor`. The
 selected lockfile is the verifier-relevant dependency graph input, and package versions are
@@ -499,9 +516,11 @@ verifier may rely on a trusted Sigstore library for cryptographic validation, bu
 from which Windlass extracts policy fields must be parsed with duplicate-member detection before
 semantic policy checks. If the library exposes only normalized JSON for a security-relevant field
 and cannot prove duplicate-member rejection for that parsed value, Windlass verification must fail
-closed rather than accepting last-member-wins or first-member-wins behavior. Unknown fields remain
-governed by the closed schema or profile strict-matching rules that apply after duplicate detection
-succeeds.
+closed rather than accepting last-member-wins or first-member-wins behavior. After duplicate
+detection succeeds, the common in-toto Statement envelope decoder ignores unrecognized fields per
+the in-toto parsing rules. Project-owned closed schemas and profile strict-matching rules still
+apply to `externalParameters`, `resolvedDependencies` entries, `builder.version`, and
+`builderDependencies`.
 
 ## Common verifier rejection matrix
 
@@ -519,8 +538,9 @@ A verifier must reject provenance if any of the following are true:
 | `buildType` is not in the canonical namespace                                                     | `windlass.verify.error.build-type-not-canonical`                           | verification | `1`       | `false`           |
 | `externalParameters` is incomplete                                                                | `windlass.verify.error.external-parameters-incomplete`                     | verification | `1`       | `false`           |
 | `externalParameters` contains unexpected fields                                                   | `windlass.verify.error.external-parameters-unexpected`                     | verification | `1`       | `false`           |
-| `internalParameters` is absent, non-object, or nonempty                                           | `windlass.verify.error.unexpected-internal-parameters`                     | verification | `1`       | `false`           |
+| `internalParameters` is a nonempty object or a non-object, non-null value                         | `windlass.verify.error.unexpected-internal-parameters`                     | verification | `1`       | `false`           |
 | A profile emits an unknown or non-enumerated dependency                                           | `windlass.verify.error.resolved-dependencies-unexpected-entry`             | verification | `1`       | `false`           |
+| A node-runtime descriptor is missing, duplicated, malformed, or mismatched                        | `windlass.verify.error.resolved-dependencies-node-runtime`                 | verification | `1`       | `false`           |
 | A package-manager-distribution descriptor is missing, duplicated, forbidden, or malformed         | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | verification | `1`       | `false`           |
 | A runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched        | `windlass.verify.error.resolved-dependencies-runner-image`                 | verification | `1`       | `false`           |
 | `builder.version` has an invalid key, conditional shape, or observed version                      | `windlass.verify.error.builder-version-mismatch`                           | verification | `1`       | `false`           |
@@ -559,9 +579,11 @@ error category from the rejection matrix above.
   `npm-invocation-id-certificate-uri-valid` prove exactly empty `internalParameters`, both
   `builder.version` shapes, the one signing-adapter dependency, and the run-attempt invocation URI
   equal to Fulcio OID `.21`.
-- Rejected fixtures for nonempty or non-object `internalParameters`, missing or extra builder
-  version keys, invalid package-manager-distribution or runner-image descriptors, an invalid
-  signing-adapter descriptor, and malformed or certificate-unequal invocation IDs. They use
+- Acceptance tests for absent, `null`, and `{}` internal parameters, including JSON whitespace, and
+  for unrecognized Statement envelope members being ignored without changing recognized fields.
+- Rejected fixtures for nonempty objects or non-object, non-null `internalParameters`, missing or
+  extra builder version keys, invalid package-manager-distribution or runner-image descriptors, an
+  invalid signing-adapter descriptor, and malformed or certificate-unequal invocation IDs. They use
   `windlass.verify.error.unexpected-internal-parameters`,
   `windlass.verify.error.resolved-dependencies-package-manager-distribution`,
   `windlass.verify.error.resolved-dependencies-runner-image`,

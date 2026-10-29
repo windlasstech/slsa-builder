@@ -30,10 +30,11 @@ relations:
       registry tarballs directly, records the registry tarball URL and its SRI, and the acquisition
       source annotation takes a new value fixed in the specification phase. The recording
       obligation, the closed-descriptor-set discipline with strict producer-side verification, the
-      lockfile and runner-image descriptors, the absence of npm CLI and Node.js distribution
-      descriptors, and the source-native digest-authority discipline remain in force; the concrete
-      descriptor shape — the pnpm 12 dual-artifact record and the Yarn authority value — is
-      re-specified in the specification phase under that discipline"
+      lockfile and runner-image descriptors, the absence of a separate npm CLI descriptor, and the
+      source-native digest-authority discipline remain in force. The former absence of a Node.js
+      distribution descriptor is superseded by ADR-0099, which records exactly one node-runtime
+      descriptor; the concrete descriptor shape — the pnpm 12 dual-artifact record and the Yarn
+      authority value — is re-specified in the specification phase under that discipline"
   - type: see-also
     target: ADR-0017
   - type: see-also
@@ -44,6 +45,8 @@ relations:
     target: ADR-0085
   - type: see-also
     target: ADR-0086
+  - type: see-also
+    target: ADR-0099
   - type: partially-superseded-by
     target: ADR-0090
     scope:

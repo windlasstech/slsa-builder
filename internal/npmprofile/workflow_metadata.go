@@ -10,10 +10,13 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
+	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 // WorkflowBuildMetadataConfig contains the public npm-only inputs and trusted runtime observations.
 type WorkflowBuildMetadataConfig struct {
+	StartedOn              string
+	FinishedOn             string
 	ArtifactName           string
 	RegistryURLInput       string
 	DistTagInput           string
@@ -86,6 +89,7 @@ func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, conf
 		return BuildMetadata{}, err
 	}
 	return BuildMetadata{
+		StartedOn: config.StartedOn, FinishedOn: config.FinishedOn,
 		SchemaVersion:      "1",
 		PrimaryArtifact:    PrimaryArtifact{ArtifactName: config.ArtifactName, PayloadFileName: filepath.Base(build.TarballPath), SHA256: build.SHA256.String(), SHA512: build.SHA512.String()},
 		ExternalParameters: encoded, ResolvedDependencies: dependencies,
@@ -241,7 +245,7 @@ func workflowResolvedDependencies(selection Result, build BuildPackResult, param
 		return nil, fmt.Errorf("read selected lockfile: %w", err)
 	}
 	dependencies := []provenance.ResourceDescriptor{{
-		Name: "lockfile", URI: "git+" + parameters.Source.Repository + "@" + parameters.Source.Revision + "#" + lockfilePath,
+		Name: "lockfile", URI: "git+" + parameters.Source.Repository + "@" + parameters.Source.Revision + "#" + escapeLockfileFragment(lockfilePath),
 		Digest: map[string]string{"sha256": digest.SumSHA256(lockfileBytes).String()},
 		Annotations: annotations(map[string]any{
 			"package_manager": selection.Manager.Name, "package_manager_root": selection.Package.ManagerRoot,
@@ -249,6 +253,11 @@ func workflowResolvedDependencies(selection Result, build BuildPackResult, param
 			"selection_lockfile_path": lockfilePath, "stale_non_selected_lockfiles": nonNilStrings(selection.Manager.IgnoredLockfilePaths),
 		}),
 	}}
+	runtime, err := nodeRuntimeDescriptor()
+	if err != nil {
+		return nil, err
+	}
+	dependencies = append(dependencies, runtime)
 	if selection.Manager.Name != ManagerNPM {
 		distribution := build.Toolchain.Distribution
 		if distribution == nil {
@@ -265,6 +274,25 @@ func workflowResolvedDependencies(selection Result, build BuildPackResult, param
 		Annotations: annotations(map[string]any{"image_os": runner.ImageOS, "image_version": runner.ImageVersion, "node_version": build.Toolchain.NodeVersion}),
 	})
 	return dependencies, nil
+}
+
+func nodeRuntimeDescriptor() (provenance.ResourceDescriptor, error) {
+	pair, err := toolchainpins.NodeRuntimePair()
+	if err != nil {
+		return provenance.ResourceDescriptor{}, npmValidationError("windlass.verify.error.input-unavailable", "resolvedDependencies.node-runtime", "embedded Node.js runtime pin is unavailable")
+	}
+	artifact, present := pair.Artifacts["linux-x64"]
+	if !present {
+		return provenance.ResourceDescriptor{}, npmValidationError("windlass.verify.error.input-unavailable", "resolvedDependencies.node-runtime", "embedded linux-x64 runtime artifact is unavailable")
+	}
+	return provenance.ResourceDescriptor{
+		Name: "node-runtime", URI: artifact.URL,
+		Digest: map[string]string{"sha256": artifact.SHA256},
+		Annotations: map[string]json.RawMessage{
+			"digest_authority": json.RawMessage(`"builder-pinned-record"`),
+			"platform":         json.RawMessage(`"linux-x64"`),
+		},
+	}, nil
 }
 
 func packageManagerParameters(selection Result, build BuildPackResult) PackageManagerParameters {

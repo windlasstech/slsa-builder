@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0098`.
+`0099`.
 
 ## STRUCTURE
 
@@ -30,11 +30,12 @@ docs/decisions/
 ├── 0096-neutralize-project-corepack-env-via-kill-switch-pin-and-warn-on-presence.md
 ├── 0097-reject-a-packed-corepack-env-at-the-post-pack-artifact-gate.md
 ├── 0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md
+├── 0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0098`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0099`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -83,6 +84,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | npm descriptor semantics       | `0095`                                                     | Declared npm versions warn on mismatch; npm digest suffixes are rejected.                                                                                        |
 | Project .corepack.env policy   | `0096`–`0097`                                              | Neutralized by a pinned COREPACK_ENV_FILE=0; presence warns. A packed file is rejected at the post-pack gate (0097).                                             |
 | Build-stage Node.js runtime    | `0098`                                                     | Digest-verified release tarball with a committed SHA-256 replaces setup-action and toolcache selection; bundled vs provisioned build npm is a spec-level choice. |
+| Node.js runtime recording      | `0099`                                                     | Digest-verified runtime tarball as a `resolvedDependencies` descriptor (accepted).                                                                               |
 
 ## CONVENTIONS
 

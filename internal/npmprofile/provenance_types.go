@@ -20,6 +20,7 @@ const (
 	IDMissingSubjectSHA256                = "windlass.verify.error.missing-subject-sha256"
 	IDMissingSubjectSHA512                = "windlass.verify.error.missing-subject-sha512"
 	IDResolvedDependenciesLockfile        = "windlass.verify.error.resolved-dependencies-lockfile"
+	IDResolvedDependenciesNodeRuntime     = "windlass.verify.error.resolved-dependencies-node-runtime"
 	IDResolvedDependenciesDistribution    = "windlass.verify.error.resolved-dependencies-package-manager-distribution"
 	IDResolvedDependenciesRunnerImage     = "windlass.verify.error.resolved-dependencies-runner-image"
 	IDResolvedDependenciesUnexpectedEntry = "windlass.verify.error.resolved-dependencies-unexpected-entry"

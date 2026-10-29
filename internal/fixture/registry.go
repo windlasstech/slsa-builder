@@ -28,6 +28,8 @@ var requirementRegistry = map[string]string{
 	"ADR-0092.descriptor-digest-rejections":                         "malformed descriptor digest suffixes and npm digest suffixes are rejected",
 	"ADR-0095.npm-declared-version":                                 "npm version declarations are non-authoritative with a mismatch warning",
 	"ADR-0096.corepack-env-neutralization":                          "a project .corepack.env is never loaded under the COREPACK_ENV_FILE=0 pin, and its presence warns",
+	"ADR-0099.node-runtime-descriptor":                              "the digest-verified Node.js runtime is recorded as an exact closed resolvedDependencies descriptor",
+	"ADR-0099.node-runtime-rejections":                              "missing, duplicate, malformed, forbidden, and unknown resolvedDependencies entries fail with narrow diagnostics",
 	"ADR-0064.npm-purl-subject-digests":                             "npm PURL subjects require SHA-512 and SHA-256",
 	"ARCH-js-ts-npm-provenance-publish.signing-inputs":              "npm provenance signing inputs use the closed profile predicate contract",
 	"ARCH-slsa-provenance-v1.subject-cardinality":                   "SLSA provenance statements contain exactly one subject",
@@ -47,12 +49,17 @@ var failureCategoryRegistry = map[string]struct{}{
 	"policy-schema-invalid":            {},
 	"pnpm-version-unsupported":         {},
 	"required-lockfile-missing":        {},
-	"source-digest-mismatch":           {},
-	"source-ref-mismatch":              {},
-	"source-ref-invalid":               {},
-	"unexpected-external-parameters":   {},
-	"yarn-selection-invalid":           {},
-	"yarn-version-unsupported":         {},
+
+	"resolved-dependencies-node-runtime":                 {},
+	"resolved-dependencies-package-manager-distribution": {},
+	"resolved-dependencies-unexpected-entry":             {},
+
+	"source-digest-mismatch":         {},
+	"source-ref-mismatch":            {},
+	"source-ref-invalid":             {},
+	"unexpected-external-parameters": {},
+	"yarn-selection-invalid":         {},
+	"yarn-version-unsupported":       {},
 }
 
 var fixturePhaseRequirements = map[string]map[string]struct{}{
@@ -81,6 +88,8 @@ var fixturePhaseRequirements = map[string]map[string]struct{}{
 		"ADR-0079.source-ref-dispatch-retry":               {},
 		"ADR-0079.source-ref-rejections":                   {},
 		"ADR-0080.invocation-record-binding":               {},
+		"ADR-0099.node-runtime-descriptor":                 {},
+		"ADR-0099.node-runtime-rejections":                 {},
 	},
 }
 

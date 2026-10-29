@@ -23,10 +23,12 @@ relations:
       digest-verified npm registry tarballs directly, records the registry tarball URL and its SRI,
       and the acquisition source annotation takes a new value fixed in the specification phase. The
       recording obligation, the closed-descriptor-set discipline with strict producer-side
-      verification, the lockfile and runner-image descriptors, the absence of npm CLI and Node.js
-      distribution descriptors, and the source-native digest-authority discipline remain in force;
-      the concrete descriptor shape — the pnpm 12 dual-artifact record and the Yarn authority value
-      — is re-specified in the specification phase under that discipline"
+      verification, the lockfile and runner-image descriptors, the absence of a separate npm CLI
+      descriptor, and the source-native digest-authority discipline remain in force. The former
+      absence of a Node.js distribution descriptor is superseded by ADR-0099, which records exactly
+      one node-runtime descriptor; the concrete descriptor shape — the pnpm 12 dual-artifact record
+      and the Yarn authority value — is re-specified in the specification phase under that
+      discipline"
   - type: amended-by
     target: ADR-0092
     scope:
@@ -45,6 +47,17 @@ relations:
     scope:
       "the clauses that treat the GitHub-hosted runner image as the supplier of the Node.js runtime;
       the runner-image descriptor and its resolvedDependencies recording remain in force"
+  - type: partially-superseded-by
+    target: ADR-0099
+    scope:
+      "the clause recording no Node.js distribution descriptor ('A Node.js distribution descriptor
+      is likewise not recorded') together with its stated rationale that the runner-provided Node.js
+      runtime had no published distribution digest: under ADR-0098's digest-verified provisioning an
+      exact release URL and a committed SHA-256 exist, so the runtime is recorded. The separate
+      clause giving the npm CLI no descriptor of its own remains in force and is now transitively
+      covered by the runtime descriptor, as do the closed-descriptor-set discipline, the lockfile,
+      package-manager-distribution, and runner-image descriptors, and the source-native
+      digest-authority discipline"
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies

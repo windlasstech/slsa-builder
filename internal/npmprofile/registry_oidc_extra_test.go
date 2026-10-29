@@ -132,6 +132,26 @@ func TestRegistryAttestationsRejections(t *testing.T) {
 		}
 	})
 
+	t.Run("unknown element member", func(t *testing.T) {
+		t.Parallel()
+		server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			if request.Method != http.MethodGet {
+				t.Errorf("method = %s, want GET", request.Method)
+			}
+			writer.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(writer, `{"attestations":[{"predicateType":"https://slsa.dev/provenance/v1","bundle":{"exact":"bytes"},"unexpectedMember":1}]}`)
+		}))
+		defer server.Close()
+		client, err := NewRegistryClient(RegistryClientConfig{HTTPClient: server.Client(), RegistryURL: server.URL + "/"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := client.Attestations(t.Context(), "safe-package", "1.0.0"); err == nil ||
+			!strings.Contains(err.Error(), "registry attestation response has an invalid shape") {
+			t.Fatalf("Attestations() error = %v, want the invalid-shape rejection", err)
+		}
+	})
+
 	t.Run("unclassifiable status", func(t *testing.T) {
 		t.Parallel()
 		server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

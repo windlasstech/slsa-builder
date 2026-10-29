@@ -6,10 +6,12 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/provenance"
+	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 const (
@@ -275,12 +277,23 @@ func TestResolvedDependencies(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewProvenanceSigningInput() error = %v", err)
 			}
-			want := 2
+			want := 3
 			if manager != ManagerNPM {
-				want = 3
+				want = 4
 			}
 			if len(signing.Predicate.BuildDefinition.ResolvedDependencies) != want {
 				t.Fatalf("dependency count = %d, want %d", len(signing.Predicate.BuildDefinition.ResolvedDependencies), want)
+			}
+		})
+		t.Run(string(manager)+"/reordered", func(t *testing.T) {
+			t.Parallel()
+			// Given independent expected metadata and a differently ordered Statement.
+			input := validProvenanceInput(t, manager)
+			statement := runtimeTestStatement(t, input)
+			slices.Reverse(statement.Predicate.BuildDefinition.ResolvedDependencies)
+			// When validating the received Statement, then array order is irrelevant.
+			if err := ValidateNPMStatement(statement, input); err != nil {
+				t.Fatalf("reordered %s dependencies rejected: %v", manager, err)
 			}
 		})
 	}
@@ -291,6 +304,20 @@ func TestResolvedDependencies(t *testing.T) {
 		mutate func([]provenance.ResourceDescriptor) []provenance.ResourceDescriptor
 		wantID string
 	}{
+		{name: "npm-cli", wantID: IDResolvedDependenciesUnexpectedEntry, mutate: func(values []provenance.ResourceDescriptor) []provenance.ResourceDescriptor {
+			return append(values, provenance.ResourceDescriptor{Name: "npm-cli"})
+		}},
+		{name: "missing runtime", wantID: "windlass.verify.error.resolved-dependencies-node-runtime", mutate: func(values []provenance.ResourceDescriptor) []provenance.ResourceDescriptor {
+			return slices.DeleteFunc(values, func(d provenance.ResourceDescriptor) bool { return d.Name == "node-runtime" })
+		}},
+		{name: "duplicate runtime", wantID: "windlass.verify.error.resolved-dependencies-node-runtime", mutate: func(values []provenance.ResourceDescriptor) []provenance.ResourceDescriptor {
+			for _, d := range values {
+				if d.Name == "node-runtime" {
+					return append(values, d)
+				}
+			}
+			return values
+		}},
 		{name: "unknown", wantID: IDResolvedDependenciesUnexpectedEntry, mutate: func(values []provenance.ResourceDescriptor) []provenance.ResourceDescriptor {
 			return append(values, provenance.ResourceDescriptor{Name: "transitive-package"})
 		}},
@@ -309,6 +336,12 @@ func TestResolvedDependencies(t *testing.T) {
 			requireNPMDiagnostic(t, newProvenanceInputError(mutated), test.wantID)
 		})
 	}
+	t.Run("npm distribution forbidden", func(t *testing.T) {
+		input := validProvenanceInput(t, ManagerNPM)
+		input.BuildMetadata.ResolvedDependencies = append(input.BuildMetadata.ResolvedDependencies,
+			validDependencies(ManagerPNPM, validExternalParameters(ManagerPNPM))[1])
+		requireNPMDiagnostic(t, newProvenanceInputError(input), IDResolvedDependenciesDistribution)
+	})
 }
 
 func TestBuilderFields(t *testing.T) {
@@ -383,6 +416,7 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 	return NPMProvenanceInput{
 		BuildMetadata: BuildMetadata{
 			SchemaVersion: "1",
+			StartedOn:     "2026-08-06T12:00:00Z", FinishedOn: "2026-08-06T12:00:03Z",
 			PrimaryArtifact: PrimaryArtifact{
 				ArtifactName:    "js-ts-npm-package-tarball-123456789-1",
 				PayloadFileName: "windlass-slsa-builder-1.2.3.tgz",
@@ -468,7 +502,49 @@ func validDependencies(manager Manager, parameters ExternalParameters) []provena
 		Name: "runner-image", URI: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
 		Annotations: map[string]json.RawMessage{"image_os": mustJSON("ubuntu24"), "image_version": mustJSON("20260801.1.0"), "node_version": mustJSON("v24.0.0")},
 	})
+	// Consumer fixtures deliberately retain the old entries' positions. Array order is not semantic.
+	pair, err := toolchainpins.NodeRuntimePair()
+	if err != nil {
+		panic(err)
+	}
+	artifact := pair.Artifacts["linux-x64"]
+	dependencies = append(dependencies, provenance.ResourceDescriptor{
+		Name: "node-runtime", URI: artifact.URL, Digest: map[string]string{"sha256": artifact.SHA256},
+		Annotations: map[string]json.RawMessage{"digest_authority": mustJSON("builder-pinned-record"), "platform": mustJSON("linux-x64")},
+	})
 	return dependencies
+}
+
+func TestNPMProvenanceInputNodeRuntime(t *testing.T) {
+	t.Parallel()
+	// Given a valid independent Statement and unchanged accompanying metadata.
+	input := validProvenanceInput(t, ManagerPNPM)
+	statement := runtimeTestStatement(t, input)
+	for index := range statement.Predicate.BuildDefinition.ResolvedDependencies {
+		if statement.Predicate.BuildDefinition.ResolvedDependencies[index].Name == "node-runtime" {
+			statement.Predicate.BuildDefinition.ResolvedDependencies[index].URI += ".substituted"
+		}
+	}
+	// When validating the mutation, then the runtime-specific diagnostic is returned.
+	requireNPMDiagnostic(t, ValidateNPMStatement(statement, input), "windlass.verify.error.resolved-dependencies-node-runtime")
+}
+
+// runtimeTestStatement supplies a consumer input without passing through the producer under test.
+func runtimeTestStatement(t *testing.T, input NPMProvenanceInput) provenance.Statement {
+	t.Helper()
+	var predicate provenance.Predicate
+	if err := json.Unmarshal(readPublishVerifyFixture(t, "npm/provenance/npm-predicate.jcs.json"), &predicate); err != nil {
+		t.Fatal(err)
+	}
+	predicate.BuildDefinition.ExternalParameters = input.BuildMetadata.ExternalParameters
+	predicate.BuildDefinition.ResolvedDependencies = cloneDependencies(input.BuildMetadata.ResolvedDependencies)
+	if input.CorepackVersion == nil {
+		delete(predicate.RunDetails.Builder.Version, "corepack")
+	}
+	return provenance.Statement{
+		Type: provenance.StatementType, PredicateType: provenance.PredicateType, Predicate: predicate,
+		Subject: []provenance.Subject{{Name: "pkg:npm/%40windlass/slsa-builder@1.2.3", Digest: map[string]string{"sha256": testSHA256, "sha512": testSHA512}}},
+	}
 }
 
 func newProvenanceInputError(input NPMProvenanceInput) error {

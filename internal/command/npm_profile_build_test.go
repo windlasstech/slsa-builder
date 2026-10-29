@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,9 +15,31 @@ import (
 	"time"
 
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
+	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 func TestNPMProfileBuildCommand(t *testing.T) {
+	// Given a hermetic toolchain that returns the existing packed artifact, never downloading tools.
+	pair, err := toolchainpins.NodeRuntimePair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	packed, err := filepath.Abs(filepath.Join("..", "..", "testdata", "npm", "buildpack", "npm-root-valid-1.0.0.tgz"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tools := t.TempDir()
+	for name, script := range map[string]string{
+		"node": "#!/bin/sh\nprintf 'v" + pair.NodeVersion + "\\n'\n",
+		"npm":  fmt.Sprintf("#!/bin/sh\ncase \"$1\" in\n--version) printf '%s\\n' ;;\nci|run) exit 0 ;;\npack) /bin/cp %q \"$3/windlass-fixture-unscoped-1.0.0.tgz\" ;;\n*) exit 1 ;;\nesac\n", pair.NPMVersion, packed),
+	} {
+		if err := os.WriteFile(filepath.Join(tools, name), []byte(script), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", tools)
+	t.Setenv("ImageOS", "")
+	t.Setenv("ImageVersion", "")
 	repository := filepath.Join(t.TempDir(), "repository")
 	source := filepath.Join("..", "..", "testdata", "npm", "packages", "npm-root-valid")
 	if err := os.CopyFS(repository, os.DirFS(source)); err != nil {
@@ -43,7 +66,7 @@ func TestNPMProfileBuildCommand(t *testing.T) {
 		}
 	}))
 	t.Cleanup(registry.Close)
-	err := npmProfileBuildCommand{httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
+	err = npmProfileBuildCommand{httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
 		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
 	}}.Execute(ctx, []string{
 		"--repository-root", repository,
@@ -81,6 +104,35 @@ func TestNPMProfileBuildCommand(t *testing.T) {
 	}
 	if !strings.HasSuffix(outputs["tarball-name"], ".tgz") || len(outputs["tarball-sha256"]) != 64 || len(outputs["tarball-sha512"]) != 128 {
 		t.Fatalf("tarball outputs = %#v", outputs)
+	}
+	// Then the real command artifact contains exactly one exact runtime descriptor.
+	metadataBytes, err := os.ReadFile(outputs["build-metadata-path"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var metadata npmprofile.BuildMetadata
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		t.Fatal(err)
+	}
+	runtimeCount := 0
+	for _, descriptor := range metadata.ResolvedDependencies {
+		if descriptor.Name != "node-runtime" {
+			continue
+		}
+		runtimeCount++
+		artifact := pair.Artifacts["linux-x64"]
+		if descriptor.URI != artifact.URL || len(descriptor.Digest) != 1 || descriptor.Digest["sha256"] != artifact.SHA256 || len(descriptor.Annotations) != 2 {
+			t.Fatalf("emitted node-runtime = %#v, want exact embedded pin and two annotations", descriptor)
+		}
+		for key, want := range map[string]string{"digest_authority": "builder-pinned-record", "platform": "linux-x64"} {
+			var got string
+			if err := json.Unmarshal(descriptor.Annotations[key], &got); err != nil || got != want {
+				t.Fatalf("emitted node-runtime annotation %s = %s (%v), want %q", key, descriptor.Annotations[key], err, want)
+			}
+		}
+	}
+	if runtimeCount != 1 {
+		t.Fatalf("build-metadata.json node-runtime count = %d, want exactly 1", runtimeCount)
 	}
 }
 
