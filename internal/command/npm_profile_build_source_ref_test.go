@@ -157,11 +157,51 @@ func (transport *countingRejectTransport) RoundTrip(*http.Request) (*http.Respon
 
 func copyNPMBuildFixture(t *testing.T) string {
 	t.Helper()
+	imageOS, hadImageOS := os.LookupEnv("ImageOS")
+	imageVersion, hadImageVersion := os.LookupEnv("ImageVersion")
+	t.Cleanup(func() {
+		for name, state := range map[string]struct {
+			value   string
+			present bool
+		}{
+			"ImageOS":      {value: imageOS, present: hadImageOS},
+			"ImageVersion": {value: imageVersion, present: hadImageVersion},
+		} {
+			var err error
+			if state.present {
+				err = os.Setenv(name, state.value)
+			} else {
+				err = os.Unsetenv(name)
+			}
+			if err != nil {
+				t.Errorf("restore %s environment: %v", name, err)
+			}
+		}
+	})
+	if err := os.Setenv("ImageOS", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Setenv("ImageVersion", ""); err != nil {
+		t.Fatal(err)
+	}
 	repository := filepath.Join(t.TempDir(), "repository")
 	if err := os.CopyFS(repository, os.DirFS(filepath.Join("..", "..", "testdata", "npm", "packages", "npm-root-valid"))); err != nil {
 		t.Fatal(err)
 	}
 	return repository
+}
+
+func TestCopyNPMBuildFixtureDisablesRunnerCapture(t *testing.T) {
+	t.Setenv("ImageOS", "sentinel-image-os")
+	t.Setenv("ImageVersion", "sentinel-image-version")
+
+	copyNPMBuildFixture(t)
+
+	for _, name := range []string{"ImageOS", "ImageVersion"} {
+		if value := os.Getenv(name); value != "" {
+			t.Errorf("%s = %q, want empty", name, value)
+		}
+	}
 }
 
 func emptyNPMBuildOutput(t *testing.T) string {

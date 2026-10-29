@@ -434,7 +434,22 @@ func clearToolchainRootEnvironment(t *testing.T) {
 	t.Helper()
 	t.Setenv("RUNNER_TOOL_CACHE", "")
 	t.Setenv("MISE_DATA_DIR", "")
+	t.Setenv("ImageOS", "")
+	t.Setenv("ImageVersion", "")
 	t.Setenv("HOME", t.TempDir())
+}
+
+func TestClearToolchainRootEnvironmentDisablesRunnerCapture(t *testing.T) {
+	t.Setenv("ImageOS", "sentinel-image-os")
+	t.Setenv("ImageVersion", "sentinel-image-version")
+
+	clearToolchainRootEnvironment(t)
+
+	for _, name := range []string{"ImageOS", "ImageVersion"} {
+		if value := os.Getenv(name); value != "" {
+			t.Errorf("%s = %q, want empty", name, value)
+		}
+	}
 }
 
 func writeFakeTool(t *testing.T, directory, name string) string {
