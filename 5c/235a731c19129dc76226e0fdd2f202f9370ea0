@@ -1,0 +1,24 @@
+internal/npmprofile/build_pack_test.go
+  s_857042e8174f2b::t_8fe2d719c4eee6 437-438
+  s_857042e8174f2b::t_4fc003df3bd827 442-454
+internal/command/npm_profile_build_source_ref_test.go
+  s_857042e8174f2b::t_716bf6f5d2ea85 181-186
+  s_857042e8174f2b::t_01346da2f6bbe9 194-206
+  s_857042e8174f2b::t_16b5f0d4dc1f67 160-180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5c235a731c19129dc76226e0fdd2f202f9370ea0",
+  "prompts": {},
+  "sessions": {
+    "s_857042e8174f2b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7b041127ffetnmT5RyXhMmocn",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
