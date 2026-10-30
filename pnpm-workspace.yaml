@@ -8,8 +8,8 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Install-time dependency cooldown.
-# Windlass dependency-security policy requires a minimum of 1440 minutes (1 day).
-minimumReleaseAge: 1440
+# Windlass dependency-security policy requires a minimum of 10080 minutes (7 days).
+minimumReleaseAge: 10080
 
 # Require registry publish-time metadata for age-gate enforcement.
 # When a package's registry metadata lacks the time field, fail resolution
