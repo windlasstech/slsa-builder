@@ -1,0 +1,21 @@
+testdata/npm/provenance/npm-predicate-source-ref-dispatch-retry.jcs.json
+  s_78fe7e7b326164::t_1380401c38d6e1 1
+testdata/npm/provenance/npm-predicate.jcs.json
+  s_78fe7e7b326164::t_1380401c38d6e1 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38888ba6dbe24532530c27f8ecd87d791f202985",
+  "prompts": {},
+  "sessions": {
+    "s_78fe7e7b326164": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
