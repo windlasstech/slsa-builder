@@ -42,6 +42,8 @@ blockExoticSubdeps: true
 overrides:
   smol-toml: ^1.9.1
   katex: ^0.19.0
+  # GHSA-gg6h-894w-4m9c / CVE-2026-116795: fix quadratic-time lookbehind DoS.
+  markdownlint@0.42.0>re2js: 2.8.7
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Store Integrity
