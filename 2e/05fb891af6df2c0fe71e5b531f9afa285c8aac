@@ -1,0 +1,39 @@
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-wrong-uri.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 23
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-malformed-digest.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21,23
+internal/command/npm_profile_sign_source_ref_test.go
+  s_dc12b1a23fff1e::t_79150dd7ebb9a1 293-294
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-unknown-member.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 22,24
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-duplicate.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21,23,32,34
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-annotations.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21,23
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-wrong-digest.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2e05fb891af6df2c0fe71e5b531f9afa285c8aac",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_dc12b1a23fff1e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76c63df7ffeHns21LoBnDdvGZ",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
