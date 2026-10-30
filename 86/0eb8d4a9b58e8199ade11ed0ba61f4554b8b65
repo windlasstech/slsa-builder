@@ -1,0 +1,18 @@
+.github/workflows/autofix.yml
+  h_495200fbbeca45 21,23-37,40
+.github/workflows/dependency-review.yml
+  h_495200fbbeca45 21-24
+.github/workflows/osv-scanner.yml
+  h_495200fbbeca45 22-30,39-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "860eb8d4a9b58e8199ade11ed0ba61f4554b8b65",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
