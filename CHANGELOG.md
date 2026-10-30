@@ -104,7 +104,7 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   toolchain pin records (`internal/toolchainpins/publish-npm.json` and
   `internal/toolchainpins/node-runtime.json`) and their human-readable specification tables.
 - Added digest-verified Node.js runtime provisioning for governed jobs (ADR 0098): the JS/TS npm
-  reusable workflow provisions the pinned Node.js 24.22.1 runtime from the official xz release
+  reusable workflow provisions the pinned Node.js 24.22.1 runtime from the official gzip release
   tarball through the trusted core's new `npm-profile-provision-node` step before any `node`, `npm`,
   `npx`, or Corepack invocation in the job, verifying the artifact's recorded SHA-256 digest,
   archive safety, exact layout, and version identity. The runtime artifact pin (tarball URL and
