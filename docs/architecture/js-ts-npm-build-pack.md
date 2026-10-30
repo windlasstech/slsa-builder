@@ -608,7 +608,11 @@ the record and the tables with `windlass.verify.error.toolchain-pin-drift` (chec
 
 The 12026-10-30 pin review verified this gzip artifact against the release's signed `SHASUMS256.txt`
 using the Node.js release-team keyring. The archive's bundled npm manifest identifies version
-`11.19.1`. Live PURL compatibility verification for the new pair remains pending.
+`11.19.1`. Live PURL CLI compatibility verification for the new pair passed on 12026-10-29 UTC with
+Go 1.27.3 and Node.js 24.22.1 on darwin/arm64. `TestNPMPURLCLICompatibilityLive` compared the npm
+CLI's bundled `npm-package-arg`, `NPMPackagePURL`, and the scoped and unscoped fixture subjects
+byte-for-byte. No publish or OIDC exchange was performed; this is not live-publish or dogfood
+evidence.
 
 The pair and the artifact pin change only together, in one commit, through the ADR 0085 bump
 procedure extended by the ADR 0098 review ceremony: the npm changelog delta is reviewed for

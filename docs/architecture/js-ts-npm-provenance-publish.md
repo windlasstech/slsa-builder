@@ -1554,9 +1554,12 @@ tarball's SHA-512 matches the SRI above. The publish-path internals review confi
 of the `oidc.js` early-return and auto-enable guards, libnpmpublish's `buildMetadata()` branches and
 supplied-provenance verification path, `@npmcli/config` exclusive enforcement including its env/CLI
 carve-out, and `publishConfig` flatten timing. The bundled sigstore-js remains `4.1.1`. The upstream
-`--provenance-file` fix remains present. New scoped and unscoped fixtures target npm `11.21.1`;
-their live PURL verification remains pending, and this review is not live publish or dogfood
-evidence.
+`--provenance-file` fix remains present. New scoped and unscoped fixtures target npm `11.21.1`.
+Their live PURL CLI compatibility verification passed on 12026-10-29 UTC with Go 1.27.3 and Node.js
+24.22.1 on darwin/arm64. `TestNPMPURLCLICompatibilityLive` compared the npm CLI's bundled
+`npm-package-arg`, `NPMPackagePURL`, and the fixture subjects byte-for-byte. No publish or OIDC
+exchange was performed; neither this review nor the CLI compatibility result is live-publish or
+dogfood evidence.
 
 The initial entry was npm `11.21.0`: at selection time, the latest npm 11-line release containing
 the upstream npm/cli#9882 fix (shipped in npm 12.1.0 and backported to the 11 line as npm/cli#9947),

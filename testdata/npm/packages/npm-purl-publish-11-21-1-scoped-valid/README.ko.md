@@ -11,8 +11,8 @@
 픽스처 주체가 바이트 단위로 일치함을 확인했습니다.
 
 실행 명령: `SLSA_BUILDER_LIVE_TOOLCHAIN=1 go test -count=1 ./internal/npmprofile -run 'Live$'`
-(`-short` 없이 `GOFLAGS='-mod=readonly -v'`와 명령 범위의 루프백 `HTTPS_PROXY` 사용). 증거:
-baseline의 `live-toolchain.log`. 게시나 OIDC 교환은 수행하지 않았습니다.
+(`-short` 없이 `GOFLAGS='-mod=readonly -v'`와 명령 범위의 루프백 `HTTPS_PROXY` 사용). 게시나 OIDC
+교환은 수행하지 않았습니다.
 
 기록일: 12026-10-30.
 

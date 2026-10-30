@@ -952,9 +952,12 @@ pinned npm pair (currently npm `11.19.1` bundled with Node.js `24.22.1`). The bu
 specified with the build-side runtime table.
 
 The current scoped and unscoped cases are `npm-purl-build-11-19-1-{scoped,unscoped}-valid` and
-`npm-purl-publish-11-21-1-{scoped,unscoped}-valid`. Their live CLI verification remains pending. The
-npm 11.19.0 and 11.21.0 fixtures and verification notes remain historical evidence, not verification
-of the new versions.
+`npm-purl-publish-11-21-1-{scoped,unscoped}-valid`. Their live PURL CLI compatibility verification
+passed on 12026-10-29 UTC with Go 1.27.3 and Node.js 24.22.1 on darwin/arm64.
+`TestNPMPURLCLICompatibilityLive` compared each npm CLI's bundled `npm-package-arg`,
+`NPMPackagePURL`, and the fixture subjects byte-for-byte. No publish or OIDC exchange was performed;
+this is not live-publish or dogfood evidence. The npm 11.19.0 and 11.21.0 fixtures and verification
+notes remain historical evidence, not verification of the new versions.
 
 ## Diagnostics contract
 

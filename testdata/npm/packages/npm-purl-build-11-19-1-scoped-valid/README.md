@@ -11,8 +11,8 @@ Verification: passed on 12026-10-29 UTC with Go 1.27.3 and Node.js 24.22.1 on da
 `NPMPackagePURL`, and the fixture subject agree byte-for-byte.
 
 Command: `SLSA_BUILDER_LIVE_TOOLCHAIN=1 go test -count=1 ./internal/npmprofile -run 'Live$'` (no
-`-short`, `GOFLAGS='-mod=readonly -v'`, command-scoped loopback `HTTPS_PROXY`). Evidence: baseline
-`live-toolchain.log`. No publish or OIDC exchange was performed.
+`-short`, `GOFLAGS='-mod=readonly -v'`, command-scoped loopback `HTTPS_PROXY`). No publish or OIDC
+exchange was performed.
 
 Recorded: 12026-10-30.
 
