@@ -118,19 +118,6 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Security
 
-- [CVE-2026-105481](https://osv.dev/vulnerability/CVE-2026-105481),
-  [CVE-2026-105482](https://osv.dev/vulnerability/CVE-2026-105482),
-  [CVE-2026-105483](https://osv.dev/vulnerability/CVE-2026-105483),
-  [CVE-2026-106069](https://osv.dev/vulnerability/CVE-2026-106069),
-  [CVE-2026-106072](https://osv.dev/vulnerability/CVE-2026-106072),
-  [CVE-2026-106073](https://osv.dev/vulnerability/CVE-2026-106073),
-  [CVE-2026-106074](https://osv.dev/vulnerability/CVE-2026-106074), and
-  [CVE-2026-111497](https://osv.dev/vulnerability/CVE-2026-111497): Pin the production and
-  development Node.js runtime at 24.22.1 or newer so that builds and releases are not exposed to
-  keep-alive socket response confusion, DNS hostname truncation on NUL characters, three TLS
-  certificate hostname-validation bypasses involving non-canonical IPv4 forms, a permission-model
-  bypass in `fs.realpathSync()`, reused cryptographic entropy caches in startup snapshots and single
-  executable applications, and an out-of-bounds write in the Brotli decoder.
 - [CVE-2026-33818](https://osv.dev/vulnerability/CVE-2026-33818),
   [CVE-2026-39821](https://osv.dev/vulnerability/CVE-2026-39821),
   [CVE-2026-39822](https://osv.dev/vulnerability/CVE-2026-39822),
@@ -173,3 +160,23 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   v1.83.2 or newer so that builds are not exposed to an xDS server panic on requests missing the
   authority or Host header; the fix also shipped in the v1.84.0 stable release, which the module now
   carries (with `grpc-ecosystem/grpc-gateway/v2` at v2.31.0).
+- [CVE-2026-78661](https://osv.dev/vulnerability/CVE-2026-78661) and
+  [CVE-2026-97045](https://osv.dev/vulnerability/CVE-2026-97045): Pin `golang.org/x/net` at v0.62.0
+  or newer so that builds are not exposed to quadratic complexity when coalescing HTML text nodes or
+  incomplete ancestor namespace checks when rendering raw text in `html`.
+- [CVE-2026-116587](https://osv.dev/vulnerability/CVE-2026-116587): Pin
+  `github.com/go-jose/go-jose/v4` at v4.1.6 or newer so that builds are not exposed to excessive CPU
+  consumption from crafted RSA JWKs.
+- [CVE-2026-105481](https://osv.dev/vulnerability/CVE-2026-105481),
+  [CVE-2026-105482](https://osv.dev/vulnerability/CVE-2026-105482),
+  [CVE-2026-105483](https://osv.dev/vulnerability/CVE-2026-105483),
+  [CVE-2026-106069](https://osv.dev/vulnerability/CVE-2026-106069),
+  [CVE-2026-106072](https://osv.dev/vulnerability/CVE-2026-106072),
+  [CVE-2026-106073](https://osv.dev/vulnerability/CVE-2026-106073),
+  [CVE-2026-106074](https://osv.dev/vulnerability/CVE-2026-106074), and
+  [CVE-2026-111497](https://osv.dev/vulnerability/CVE-2026-111497): Pin the production and
+  development Node.js runtime at 24.22.1 or newer so that builds and releases are not exposed to
+  keep-alive socket response confusion, DNS hostname truncation on NUL characters, three TLS
+  certificate hostname-validation bypasses involving non-canonical IPv4 forms, a permission-model
+  bypass in `fs.realpathSync()`, reused cryptographic entropy caches in startup snapshots and single
+  executable applications, and an out-of-bounds write in the Brotli decoder.
