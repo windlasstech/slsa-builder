@@ -8,10 +8,10 @@ record until the run begins.
 Attempt 4 (run 31840088262) published `@windlass/vers-js@0.1.2`, but read-back rejected npm's
 auto-generated provenance; that publication remains on the registry and serves as the Phase 6
 foreign-conflict target. For this retry the publish stage provisions the pinned npm CLI (currently
-11.21.0) per ADR 0082/0084 instead of running the toolchain-bundled npm. The pinned CLI carries the
+11.21.1) per ADR 0082/0084 instead of running the toolchain-bundled npm. The pinned CLI carries the
 upstream npm/cli#9882 fix, so the Windlass-signed bundle attaches as-is under trusted publishing
 through `npm publish --provenance-file`. Every governed job of that workflow also provisions the
-pinned Node.js 24.21.0 runtime from the official release tarball through the trusted core's
+pinned Node.js 24.22.1 runtime from the official xz release tarball through the trusted core's
 `npm-profile-provision-node` step (ADR 0098), verifying the recorded SHA-256 digest before any
 runtime invocation; no setup action supplies the runtime, and the toolchain pair assertion observes
 the provisioned runtime.
@@ -72,13 +72,18 @@ to the caller workflow is already confirmed working.
    they become the expected annotated tag object and peeled source revision for the rest of this
    procedure.
 
+   The two calls are not redundant. For an annotated tag, the Git ref names the tag object, the
+   signed object carrying the tag message and GPG signature, so the first call returns the tag
+   object SHA, and the second call dereferences that tag object to the commit it points to. A
+   lightweight tag has no tag object and its ref names the commit directly.
+
 3. Pin the caller workflow to a main SHA carrying the ADR 0082/0084/0085 and 0098 pinned-toolchain
    implementation. In every governed job of that SHA, the `npm-profile-provision-node` step
-   provisions the pinned Node.js 24.21.0 runtime digest-verified from the official release tarball
-   before any `node`, `npm`, `npx`, or Corepack invocation, and no setup action supplies the
+   provisions the pinned Node.js 24.22.1 runtime digest-verified from the official xz release
+   tarball before any `node`, `npm`, `npx`, or Corepack invocation, and no setup action supplies the
    runtime. The build and provenance-sign jobs assert the pinned Node.js 24 / bundled npm pair
-   (currently 24.21.0 / 11.19.0) before first use. The publish job asserts the provisioned Node.js
-   runtime only (`--node-only`), then separately provisions the pinned npm CLI (currently 11.21.0)
+   (currently 24.22.1 / 11.19.1) before first use. The publish job asserts the provisioned Node.js
+   runtime only (`--node-only`), then separately provisions the pinned npm CLI (currently 11.21.1)
    before any npm invocation. Update `windlasstech/vers-js/.github/workflows/publish.yml` so that
    its reusable-workflow `uses:` reference ends with the full 40-hex SHA of the merged
    `windlasstech/slsa-builder` commit carrying that implementation. Record the selected SHA; it
@@ -135,9 +140,9 @@ to the caller workflow is already confirmed working.
    gh run view <RUN_ID> -R windlasstech/vers-js --log
    ```
 
-   Expected success: the publish job first provisions the pinned Node.js runtime (currently 24.21.0)
+   Expected success: the publish job first provisions the pinned Node.js runtime (currently 24.22.1)
    through the `npm-profile-provision-node` step, then provisions the pinned npm CLI (currently
-   11.21.0) from its digest-verified registry tarball before any npm invocation in the job, and each
+   11.21.1) from its digest-verified registry tarball before any npm invocation in the job, and each
    provisioned version matches its pin. The pinned CLI carries the upstream npm/cli#9882 fix, so the
    Windlass-signed bundle attaches as-is under trusted publishing; no npm auto-generated provenance
    is expected. The preflight succeeds before the first `npm publish` mutation, with no token
