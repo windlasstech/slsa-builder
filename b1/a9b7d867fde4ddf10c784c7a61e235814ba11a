@@ -1,0 +1,23 @@
+docs/dependency-selection.md
+  s_6f18fb1012fe1a::t_bebecb88770b6d 57-65
+  s_6f18fb1012fe1a::t_41196fad5f278d 11,44-56,66-72,74-77,94-95,103-104,109-110
+  s_6f18fb1012fe1a::t_343926841ea27a 88-93,96-102,105-108,113,118-120
+  s_6f18fb1012fe1a::t_9293d084c9cf5c 9,78-87,111-112,114-117,121-129
+  s_6f18fb1012fe1a::t_1970c685c1a7c4 8,10,12-43,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b1a9b7d867fde4ddf10c784c7a61e235814ba11a",
+  "prompts": {},
+  "sessions": {
+    "s_6f18fb1012fe1a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76bbc682ffeCt73JydhXDhXMS",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
