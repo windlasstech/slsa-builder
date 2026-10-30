@@ -18,3 +18,7 @@ jobs:
     uses: windlasstech/.github/.github/workflows/dependency-review-reusable.yml@main
     with:
       config-file: "windlasstech/.github/.github/dependency-review-config.yml@main"
+      egress-policy: block
+      allowed-endpoints: >
+        api.deps.dev:443 api.github.com:443 api.scorecard.dev:443 api.securityscorecards.dev:443
+        github.com:443
