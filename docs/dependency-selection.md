@@ -20,8 +20,7 @@ The Linux x64 Node.js runtime archive is pinned to the official Node.js distribu
 - SHA-256: `eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c`
 
 Go's standard-library `compress/gzip` package decodes the `.tar.gz` runtime archive.
-`github.com/ulikunitz/xz` is not selected. Its direct requirement and two `go.sum` entries are
-removed.
+`github.com/ulikunitz/xz` is not selected and is absent from `go.mod` and `go.sum`.
 
 ### Direct Go Modules
 
@@ -133,7 +132,8 @@ Relevant upstream APIs and implementation evidence:
 
 #### Rationale
 
-- **License:** Apache-2.0.
+- **License:**
+  [Apache-2.0](https://github.com/cyberphone/json-canonicalization/blob/32a48195b9b2/LICENSE).
 - **Maintainer and reputation:** this is the reference implementation repository maintained by RFC
   8785 editor Anders Rundgren and linked from RFC 8785 Appendix G. The selected pseudo-version pins
   commit `32a48195b9b2` exactly rather than following a branch.
