@@ -1,0 +1,19 @@
+CHANGELOG.md
+  s_c3446b082ccd10::t_1c7741858a7c93 107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "62b73dbaa2b53df50dbaa5355bc290e16d13b8e5",
+  "prompts": {},
+  "sessions": {
+    "s_c3446b082ccd10": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e73957c0effepxj1624qGlVEZO",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
