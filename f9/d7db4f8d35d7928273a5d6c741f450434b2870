@@ -1,0 +1,19 @@
+pnpm-workspace.yaml
+  s_c46a9b7f4c6552::t_ef5f934bee601c 11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f9d7db4f8d35d7928273a5d6c741f450434b2870",
+  "prompts": {},
+  "sessions": {
+    "s_c46a9b7f4c6552": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7741f8f0ffeymmMI79JENEe9A",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
