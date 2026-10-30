@@ -1,0 +1,30 @@
+docs/architecture/js-ts-npm-build-pack.md
+  s_bc9dd93e46d8c0::t_25ea92248cc86a 668-670
+  s_bc9dd93e46d8c0::t_8b6639a75bed05 664-666,671-676
+  s_11680ac6a4fecd::t_7b9eedc795dd7b 257,282,319,419
+  s_11680ac6a4fecd::t_9fdcfe493ff79b 603,607-611,744,828
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "92a3e6cf2888dbe6f35db9921955781d9bd88749",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bc9dd93e46d8c0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e744053e9ffeZmZwHqMW73cDnX",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
