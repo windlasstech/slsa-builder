@@ -11,7 +11,7 @@ foreign-conflict target. For this retry the publish stage provisions the pinned 
 11.21.1) per ADR 0082/0084 instead of running the toolchain-bundled npm. The pinned CLI carries the
 upstream npm/cli#9882 fix, so the Windlass-signed bundle attaches as-is under trusted publishing
 through `npm publish --provenance-file`. Every governed job of that workflow also provisions the
-pinned Node.js 24.22.1 runtime from the official xz release tarball through the trusted core's
+pinned Node.js 24.22.1 runtime from the official gzip release tarball through the trusted core's
 `npm-profile-provision-node` step (ADR 0098), verifying the recorded SHA-256 digest before any
 runtime invocation; no setup action supplies the runtime, and the toolchain pair assertion observes
 the provisioned runtime.
@@ -79,7 +79,7 @@ to the caller workflow is already confirmed working.
 
 3. Pin the caller workflow to a main SHA carrying the ADR 0082/0084/0085 and 0098 pinned-toolchain
    implementation. In every governed job of that SHA, the `npm-profile-provision-node` step
-   provisions the pinned Node.js 24.22.1 runtime digest-verified from the official xz release
+   provisions the pinned Node.js 24.22.1 runtime digest-verified from the official gzip release
    tarball before any `node`, `npm`, `npx`, or Corepack invocation, and no setup action supplies the
    runtime. The build and provenance-sign jobs assert the pinned Node.js 24 / bundled npm pair
    (currently 24.22.1 / 11.19.1) before first use. The publish job asserts the provisioned Node.js
