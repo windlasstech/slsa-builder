@@ -254,7 +254,7 @@ Yarn, the profile supports only a bounded set of package-manager versions:
   unreleased and its acquisition and integrity semantics are unknown, so it must not silently enter
   the fail-closed release pipeline.
 - npm is unaffected by these bounds; the profile uses the npm CLI bundled with the pinned Node.js 24
-  toolchain pair (npm `11.19.0` bundled with Node.js `24.21.0`; see
+  toolchain pair (npm `11.19.1` bundled with Node.js `24.22.1`; see
   [Node.js and npm toolchain pair](#nodejs-and-npm-toolchain-pair)).
 
 Both bounds are enforced from both manifest selection sources, the top-level `packageManager` field
@@ -279,7 +279,7 @@ supported version set in this section before release builds may use it.
   versions are rejected before install; Yarn 6 or newer is rejected with
   `windlass.verify.error.yarn-version-unsupported`.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the pinned
-  Node.js 24 toolchain pair (npm `11.19.0` bundled with Node.js `24.21.0`); the manifest npm version
+  Node.js 24 toolchain pair (npm `11.19.1` bundled with Node.js `24.22.1`); the manifest npm version
   must not override the builder-owned npm runtime. A declared npm version is accepted but
   non-authoritative: the profile compares it with the toolchain npm's actual version and emits a
   `windlass.verify.warning.npm-version-mismatch` warning when they do not match, never failing on
@@ -316,7 +316,7 @@ supported version set in this section before release builds may use it.
   `windlass.verify.error.yarn-version-unsupported`. Only `yarn.lock` inference without manifest
   metadata remains excluded as a Yarn selection path.
 - If the field selects npm, the profile selects npm but uses the npm CLI bundled with the pinned
-  Node.js 24 toolchain pair (npm `11.19.0` bundled with Node.js `24.21.0`);
+  Node.js 24 toolchain pair (npm `11.19.1` bundled with Node.js `24.22.1`);
   `devEngines.packageManager.version` must not override the builder-owned npm runtime. A declared
   npm version is accepted but non-authoritative, with the same mismatch-warning behavior as the
   top-level field (ADR 0095). An npm descriptor must not carry an integrity digest suffix (ADR
@@ -416,7 +416,7 @@ selected-package and workspace-root package-manager manifest fields are absent:
 Lockfile inference has different outcomes by package manager:
 
 - `package-lock.json` may select `npm`; the actual npm version is the npm CLI bundled with the
-  pinned Node.js 24 toolchain pair (npm `11.19.0` bundled with Node.js `24.21.0`).
+  pinned Node.js 24 toolchain pair (npm `11.19.1` bundled with Node.js `24.22.1`).
 - `pnpm-lock.yaml` may identify `pnpm`, but the release build must fail because ADR 0017 requires an
   exact pnpm version from selected manifest metadata.
 - `yarn.lock` may identify Yarn, but the release build must fail because stable Yarn support
@@ -600,11 +600,15 @@ the record and the tables with `windlass.verify.error.toolchain-pin-drift` (chec
 
 | Node.js version | Bundled npm version |
 | --------------- | ------------------- |
-| `24.21.0`       | `11.19.0`           |
+| `24.22.1`       | `11.19.1`           |
 
 | Platform    | Tarball URL                                                       | SHA-256 (hex)                                                      |
 | ----------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `linux-x64` | `https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz` | `6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff` |
+| `linux-x64` | `https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz` | `6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6` |
+
+The 12026-10-30 pin review verified this xz artifact against the release's signed `SHASUMS256.txt`
+using the Node.js release-team keyring. The archive's bundled npm manifest identifies version
+`11.19.1`. Live PURL compatibility verification for the new pair remains pending.
 
 The pair and the artifact pin change only together, in one commit, through the ADR 0085 bump
 procedure extended by the ADR 0098 review ceremony: the npm changelog delta is reviewed for
@@ -657,10 +661,19 @@ Provisioning performs exactly these steps, in this order:
 2. Hash the compressed bytes and require equality with the recorded SHA-256 digest. A mismatch fails
    the job before extraction with `windlass.verify.error.node-runtime-provision-digest-mismatch`
    (check `npm.toolchain.provision`).
-3. Extract into a fresh private directory with archive-safety checks: a single
-   `node-v<version>-<platform>/` root, and no absolute, parent-traversing, hardlink, device, or FIFO
-   entries. A violation fails the job with
+3. Decode the pinned xz archive and extract into a fresh private directory with archive-safety
+   checks: a single `node-v<version>-<platform>/` root, and no absolute, parent-traversing,
+   hardlink, device, or FIFO entries. A violation fails the job with
    `windlass.verify.error.node-runtime-provision-archive-unsafe` (check `npm.toolchain.provision`).
+   The xz envelope must contain exactly one stream and one block, with exactly one LZMA2 filter
+   declaring a dictionary no larger than 64 MiB. Additional streams, blocks, filters, stream
+   padding, and trailing data are rejected. Validate the complete envelope, metadata CRCs, index,
+   block span, and dictionary declaration before decoder allocation. None, CRC32, CRC64, and SHA256
+   block checks are supported. Tar EOF does not complete validation: drain the decoded stream within
+   the existing aggregate decompressed-size bound, require the LZMA2 end marker and full payload
+   consumption, and verify the indexed uncompressed size, any declared block sizes, and block check.
+   Corrupt or truncated headers, padding, indexes, and trailers fail with the same archive-unsafe
+   diagnostic. Existing entry-count and tar/layout restrictions remain in force.
 4. Require the exact official layout of the extracted root: the top-level entry set is exactly
    `bin/`, `include/`, `lib/`, `share/`, `CHANGELOG.md`, `LICENSE`, and `README.md`; `bin/` contains
    exactly the regular executable `node` and the symlinks `npm` →
@@ -728,7 +741,7 @@ In every job that uses the runtime (build, provenance-sign, and publish):
 In each job that uses the runtime, the pair assertion observes the provisioned runtime's
 `node --version` and `npm --version` and requires exact equality with the recorded pair: the Node.js
 comparison strips the single leading `v` from the observed output (`node --version` prints
-`v24.21.0` for the recorded `24.21.0`), and the npm comparison is verbatim. Under ADR 0098 the pair
+`v24.22.1` for the recorded `24.22.1`), and the npm comparison is verbatim. Under ADR 0098 the pair
 assertion is the observational guard that detects provisioning drift; the artifact's integrity
 control is the digest verification in the provisioning step, not this assertion. The pair assertion
 is the exempt preflight that observes the versions; it must complete before any subsequent npm
@@ -812,7 +825,7 @@ Yarn invocation.
 
 - npm is the package manager bundled with the pinned Node.js 24 toolchain pair (see
   [Node.js and npm toolchain pair](#nodejs-and-npm-toolchain-pair)).
-- The profile uses npm `11.19.0`, the version bundled with the pinned Node.js `24.21.0` toolchain.
+- The profile uses npm `11.19.1`, the version bundled with the pinned Node.js `24.22.1` toolchain.
 - No separate npm version override is supported.
 
 ## Command matrix
