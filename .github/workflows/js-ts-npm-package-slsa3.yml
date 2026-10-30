@@ -324,13 +324,13 @@ jobs:
         run: corepack enable
 
       - name: Download package tarball handoff
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/windlass-sign-input/tarball
 
       - name: Download build metadata handoff
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/windlass-sign-input/metadata
@@ -473,14 +473,14 @@ jobs:
 
       - name: Download package tarball handoff
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/windlass-publish-input/tarball
 
       - name: Download provenance bundle handoff
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/windlass-publish-input/provenance
