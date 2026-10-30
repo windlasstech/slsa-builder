@@ -387,8 +387,8 @@ fields must be rejected by producer-side verification and by strict consumer pol
   },
   "runtime": {
     "runner": "ubuntu-24.04",
-    "node_version": "24.21.0",
-    "npm_version": "11.19.0"
+    "node_version": "24.22.1",
+    "npm_version": "11.19.1"
   },
   "package": {
     "directory": ".",
@@ -829,7 +829,7 @@ Valid complete-schema repository identity example:
     "sha": "0123456789abcdef0123456789abcdef01234567",
     "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@0123456789abcdef0123456789abcdef01234567"
   },
-  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.21.0", "npm_version": "11.19.0" },
+  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.22.1", "npm_version": "11.19.1" },
   "package": {
     "directory": ".",
     "workspace_root": null,
@@ -896,7 +896,7 @@ from the normalized source and observed caller identity:
     "sha": "0123456789abcdef0123456789abcdef01234567",
     "builder_id": "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@0123456789abcdef0123456789abcdef01234567"
   },
-  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.21.0", "npm_version": "11.19.0" },
+  "runtime": { "runner": "ubuntu-24.04", "node_version": "24.22.1", "npm_version": "11.19.1" },
   "package": {
     "directory": ".",
     "workspace_root": null,
@@ -1085,9 +1085,9 @@ supported `linux-x64` platform, its closed shape and exact values are:
 ```json
 {
   "name": "node-runtime",
-  "uri": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz",
+  "uri": "https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz",
   "digest": {
-    "sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
+    "sha256": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6"
   },
   "annotations": {
     "digest_authority": "builder-pinned-record",
@@ -1126,7 +1126,7 @@ The following descriptor is invalid because its URI differs from the embedded pi
   "name": "node-runtime",
   "uri": "https://nodejs.org/dist/v24.0.0/node-v24.0.0-linux-x64.tar.gz",
   "digest": {
-    "sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
+    "sha256": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6"
   },
   "annotations": {
     "digest_authority": "builder-pinned-record",
@@ -1266,7 +1266,7 @@ output. A valid descriptor is:
   "annotations": {
     "image_os": "ubuntu24",
     "image_version": "20260801.1.0",
-    "node_version": "v24.21.0"
+    "node_version": "v24.22.1"
   }
 }
 ```
@@ -1290,7 +1290,7 @@ This invalid descriptor carries a prohibited digest:
   "annotations": {
     "image_os": "ubuntu24",
     "image_version": "20260801.1.0",
-    "node_version": "v24.21.0"
+    "node_version": "v24.22.1"
   }
 }
 ```
@@ -1545,11 +1545,20 @@ allowlist table below mirrors it, and a CI check fails on any drift between the 
 
 | Version   | Tarball URL                                        | SHA-512 (SRI)                                                                                     |
 | --------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `11.21.0` | `https://registry.npmjs.org/npm/-/npm-11.21.0.tgz` | `sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg==` |
+| `11.21.1` | `https://registry.npmjs.org/npm/-/npm-11.21.1.tgz` | `sha512-YTzL6QBEJXyHcTu0JiUc7RKMp+mzlJtl7rGLmERaXUQeFHIMc9atdr6G9M9C8vDWbv40epoTQAzNL2/PtZVDhQ==` |
 
-The initial entry is npm `11.21.0`: the latest npm 11-line release containing the upstream
-npm/cli#9882 fix (shipped in npm 12.1.0 and backported to the 11 line as npm/cli#9947), selected per
-ADR 0083's 11-line preference.
+The current entry is npm `11.21.1`. Review note for this entry (12026-10-30): the downloaded
+tarball's SHA-512 matches the SRI above. The publish-path internals review confirmed compatibility
+of the `oidc.js` early-return and auto-enable guards, libnpmpublish's `buildMetadata()` branches and
+supplied-provenance verification path, `@npmcli/config` exclusive enforcement including its env/CLI
+carve-out, and `publishConfig` flatten timing. The bundled sigstore-js remains `4.1.1`. The upstream
+`--provenance-file` fix remains present. New scoped and unscoped fixtures target npm `11.21.1`;
+their live PURL verification remains pending, and this review is not live publish or dogfood
+evidence.
+
+The initial entry was npm `11.21.0`: at selection time, the latest npm 11-line release containing
+the upstream npm/cli#9882 fix (shipped in npm 12.1.0 and backported to the 11 line as npm/cli#9947),
+selected per ADR 0083's 11-line preference.
 
 Review note for the initial entry (the ADR 0082 internals checklist plus the ADR 0084 cross-checks,
 verified 12026-10-13 against the real tarball and npm/cli):
