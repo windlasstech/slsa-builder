@@ -1,0 +1,19 @@
+docs/architecture/slsa-provenance-v1.md
+  s_961b3da4d435f5::t_9c403e77fc2141 78,80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ccff214e23129a8988b0a4ec1ad19ca5390581e6",
+  "prompts": {},
+  "sessions": {
+    "s_961b3da4d435f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e78096421ffeZHS34hSfnOlQKa",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
