@@ -1,0 +1,23 @@
+README.md
+  s_11680ac6a4fecd::t_9fdcfe493ff79b 384,387
+  s_11680ac6a4fecd::t_88a4499692f35c 22-24,32-33
+README.ko.md
+  s_11680ac6a4fecd::t_9fdcfe493ff79b 373,376
+  s_11680ac6a4fecd::t_8974a4eedf1e9f 22-24,32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e3d5ce5e706d079e4246beaa1bc2b3c934ced478",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
