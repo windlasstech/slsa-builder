@@ -1,0 +1,20 @@
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_11680ac6a4fecd::t_9fdcfe493ff79b 390-391,832,899,1088,1090,1129,1269,1293,1548-1557
+  s_11680ac6a4fecd::t_7b9eedc795dd7b 1559-1561
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d0152521e491aeaf273fb3d8b7afa87972497798",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
