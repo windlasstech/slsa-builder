@@ -1,0 +1,48 @@
+testdata/npm/packages/npm-purl-build-11-19-1-scoped-valid/README.md
+  s_b754ba6e54e6b8::t_c6b6dd39470879 14-15
+testdata/npm/packages/npm-purl-build-11-19-1-unscoped-valid/README.ko.md
+  s_c7f3994f452557::t_08147bc1d18b98 14-15
+testdata/npm/packages/npm-purl-publish-11-21-1-scoped-valid/README.ko.md
+  s_c7f3994f452557::t_08147bc1d18b98 14-15
+docs/architecture/js-ts-npm-build-pack.md
+  s_c7f3994f452557::t_08147bc1d18b98 611-615
+testdata/npm/packages/npm-purl-build-11-19-1-scoped-valid/README.ko.md
+  s_c7f3994f452557::t_08147bc1d18b98 14-15
+testdata/npm/packages/npm-purl-publish-11-21-1-scoped-valid/README.md
+  s_b754ba6e54e6b8::t_c6b6dd39470879 14-15
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_c7f3994f452557::t_08147bc1d18b98 1558-1559
+  s_b754ba6e54e6b8::t_c6b6dd39470879 1557,1560-1562
+testdata/npm/packages/npm-purl-build-11-19-1-unscoped-valid/README.md
+  s_b754ba6e54e6b8::t_c6b6dd39470879 14-15
+testdata/npm/packages/npm-purl-publish-11-21-1-unscoped-valid/README.md
+  s_b754ba6e54e6b8::t_c6b6dd39470879 14-15
+testdata/npm/packages/npm-purl-publish-11-21-1-unscoped-valid/README.ko.md
+  s_c7f3994f452557::t_08147bc1d18b98 14-15
+docs/architecture/verification-policy-and-fixtures.md
+  s_b754ba6e54e6b8::t_c6b6dd39470879 955-960
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a0b34f3f1d8b39ea75a9e0523e0fdb2ed973fe6f",
+  "prompts": {},
+  "sessions": {
+    "s_b754ba6e54e6b8": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e72fb6de6ffeHZKBJhCUtuv1HD",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_c7f3994f452557": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e72fb6de6ffeHZKBJhCUtuv1HD",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
