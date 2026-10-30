@@ -110,6 +110,16 @@ object cycle, an annotated tag chain whose terminal object is not a commit, or a
 that differs from `release_commit_sha`. Lightweight tags are already terminal commit refs and are
 accepted only when all other protected tag and release checks pass.
 
+The peeling rule above depends on a Git object-model distinction that is easy to miss. An annotated
+tag is a first-class Git object of type `tag` that carries the tag name, tagger, message, and any
+GPG signature, and the ref `refs/tags/<name>` names that tag object rather than the commit. Reading
+the ref directly, for example with `git rev-parse refs/tags/<name>` or the GitHub REST API
+`GET /repos/{owner}/{repo}/git/ref/tags/{tag}`, returns the tag object SHA. The `<tag>^{}` suffix
+peels recursively to a non-tag object, and `<tag>^{commit}` peels to a commit. A lightweight tag has
+no tag object, so its ref names the target object directly, normally a commit. Because a tag object
+may also point to a tree or blob, peeling to a non-tag object does not by itself prove a commit; the
+terminal-object-is-a-commit check above is the required proof.
+
 ### Manifest entry ordering
 
 Because the signed manifest digest is computed over the manifest JSON value and JSON arrays preserve
