@@ -1,0 +1,29 @@
+testdata/npm/provenance/npm-resolved-dependencies-reordered-valid.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 15,17
+testdata/npm/provenance/npm-resolved-dependencies-pnpm-valid.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21,23
+testdata/npm/provenance/npm-resolved-dependencies-npm-manager-distribution.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21,23
+testdata/npm/provenance/npm-resolved-dependencies-yarn-valid.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21,23
+testdata/npm/provenance/npm-resolved-dependencies-unknown-entry.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21,23
+testdata/npm/provenance/npm-resolved-dependencies-npm-valid.json
+  s_11680ac6a4fecd::t_e325e49a18a1b2 21,23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "057b9d8ffbaa1864fd98fd3ab31551314f4c894c",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
