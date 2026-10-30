@@ -1,0 +1,16 @@
+.github/workflows/fuzz.yml
+  h_495200fbbeca45 98,103,126
+.github/workflows/lint.yml
+  h_495200fbbeca45 20,22-24,27,45,47-49,52,71,73-90,93,124,222,224-234,237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0b002bd93642dbcbb56a29721343d9d2011c6124",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
