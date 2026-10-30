@@ -1,0 +1,32 @@
+CHANGELOG.md
+  s_11680ac6a4fecd::t_9fdcfe493ff79b 74,95
+  s_961b3da4d435f5::t_a9bcd2f9ce1ac0 111-112
+  s_961b3da4d435f5::t_61637edd72894e 89-90,107-110
+  s_11680ac6a4fecd::t_05a6bf814bbda1 75
+  s_961b3da4d435f5::t_6c4ac9615e411d 88
+  s_961b3da4d435f5::t_d46e8f92bbf868 121-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fe7e8228b6687ea0e746daaf038e0d0b52eaf5ee",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_961b3da4d435f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e78096421ffeZHS34hSfnOlQKa",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
