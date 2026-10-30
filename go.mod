@@ -6,7 +6,6 @@ require (
 	github.com/cyberphone/json-canonicalization v0.0.0-20261011152517-32a48195b9b2
 	github.com/goccy/go-yaml v1.19.3-0.20260407131736-edee2f91616c
 	github.com/sigstore/sigstore-go v1.3.0
-	github.com/ulikunitz/xz v0.5.17
 	golang.org/x/mod v0.42.0
 )
 

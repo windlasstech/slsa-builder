@@ -2,6 +2,8 @@ package npmprofile
 
 import (
 	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"io"
@@ -30,11 +32,12 @@ func nodeRuntimeLink(name string) string {
 
 // Extraction checks root syntax; recorded-version equality belongs to pair verification.
 func extractNodeRuntime(ctx context.Context, encoded []byte, directory string) (string, error) {
-	decoded, err := newNodeXZReader(encoded)
+	gz, err := gzip.NewReader(bytes.NewReader(encoded))
 	if err != nil {
 		return "", err
 	}
-	limited := &io.LimitedReader{R: decoded, N: maxUnpackedSize + 1}
+	defer gz.Close()
+	limited := &io.LimitedReader{R: gz, N: maxUnpackedSize + 1}
 	archive := tar.NewReader(limited)
 	root, err := os.OpenRoot(directory)
 	if err != nil {
@@ -118,15 +121,12 @@ func extractNodeRuntime(ctx context.Context, encoded []byte, directory string) (
 			return "", nodeProvisionFailure("archive-unsafe")
 		}
 	}
-	// Tar EOF alone does not validate the xz trailer or bound trailing decompressed bytes.
+	// Tar EOF alone does not authenticate the gzip trailer or bound trailing decompressed bytes.
 	if _, err := io.CopyN(io.Discard, limited, limited.N); err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
 	if limited.N == 0 || len(seen) == 0 {
 		return "", nodeProvisionFailure("archive-unsafe")
-	}
-	if err := decoded.verify(); err != nil {
-		return "", err
 	}
 	return rootName, nil
 }

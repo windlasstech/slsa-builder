@@ -3,13 +3,12 @@ package npmprofile
 import (
 	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/ulikunitz/xz"
 )
 
 const nodeFixtureRoot = "node-v24.22.1-linux-x64"
@@ -41,11 +40,8 @@ func nodeRuntimeEntries() []nodeArchiveEntry {
 func nodeRuntimeArchive(t testing.TB, entries []nodeArchiveEntry) []byte {
 	t.Helper()
 	var buffer bytes.Buffer
-	xzw, err := xz.NewWriter(&buffer)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tw := tar.NewWriter(xzw)
+	gz := gzip.NewWriter(&buffer)
+	tw := tar.NewWriter(gz)
 	for _, entry := range entries {
 		header := entry.header
 		header.Size = int64(len(entry.body))
@@ -59,7 +55,7 @@ func nodeRuntimeArchive(t testing.TB, entries []nodeArchiveEntry) []byte {
 	if err := tw.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if err := xzw.Close(); err != nil {
+	if err := gz.Close(); err != nil {
 		t.Fatal(err)
 	}
 	return buffer.Bytes()
@@ -113,18 +109,15 @@ func TestExtractNodeRuntimeRejectsInvalidStreams(t *testing.T) {
 	badTrailer := bytes.Clone(valid)
 	badTrailer[len(badTrailer)-8] ^= 1
 	var oversized bytes.Buffer
-	xzw, err := xz.NewWriter(&oversized)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tw := tar.NewWriter(xzw)
+	gz := gzip.NewWriter(&oversized)
+	tw := tar.NewWriter(gz)
 	if err := tw.WriteHeader(&tar.Header{Name: nodeFixtureRoot + "/huge", Typeflag: tar.TypeReg, Size: maxUnpackedSize + 2}); err != nil {
 		t.Fatal(err)
 	}
-	if err := xzw.Close(); err != nil {
+	if err := gz.Close(); err != nil {
 		t.Fatal(err)
 	}
-	for name, data := range map[string][]byte{"not xz": []byte("invalid"), "empty tar": nodeRuntimeArchive(t, nil), "oversize": oversized.Bytes(), "xz footer": badTrailer, "truncated": valid[:len(valid)-4]} {
+	for name, data := range map[string][]byte{"not gzip": []byte("invalid"), "empty tar": nodeRuntimeArchive(t, nil), "oversize": oversized.Bytes(), "gzip trailer": badTrailer, "truncated": valid[:len(valid)-4]} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			// Given an authenticated but invalid compressed stream.
@@ -173,11 +166,7 @@ func TestProvisionNodeRejectsSymlinkLayout(t *testing.T) {
 }
 
 func FuzzExtractNodeRuntime(f *testing.F) {
-	for _, data := range nodeXZInvalidEnvelopes(f) {
-		f.Add(data)
-	}
-	f.Add(newNodeXZFixture(f, 4).encode())
-	f.Add([]byte("not xz"))
+	f.Add([]byte("not gzip"))
 	f.Add([]byte{})
 	f.Add(nodeRuntimeArchive(f, nodeRuntimeEntries()))
 	for _, header := range []tar.Header{
@@ -235,11 +224,8 @@ func TestExtractNodeRuntimeAggregateBounds(t *testing.T) {
 			t.Parallel()
 			// Given a stream exceeding the shared entry or decompressed-byte budget.
 			var buffer bytes.Buffer
-			xzw, err := xz.NewWriter(&buffer)
-			if err != nil {
-				t.Fatal(err)
-			}
-			tw := tar.NewWriter(xzw)
+			gz := gzip.NewWriter(&buffer)
+			tw := tar.NewWriter(gz)
 			if name == "entry count" {
 				for i := 0; i <= maxPackedFileCount; i++ {
 					if err := tw.WriteHeader(&tar.Header{Name: fmt.Sprintf("%s/file-%d", nodeFixtureRoot, i), Typeflag: tar.TypeReg}); err != nil {
@@ -257,16 +243,16 @@ func TestExtractNodeRuntimeAggregateBounds(t *testing.T) {
 			if name == "trailing unpacked bytes" {
 				block := make([]byte, 1<<20)
 				for i := int64(0); i < maxUnpackedSize; i += int64(len(block)) {
-					if _, err := xzw.Write(block); err != nil {
+					if _, err := gz.Write(block); err != nil {
 						t.Fatal(err)
 					}
 				}
 			}
-			if err := xzw.Close(); err != nil {
+			if err := gz.Close(); err != nil {
 				t.Fatal(err)
 			}
 			// When extraction consumes the stream, including bytes after tar EOF.
-			_, err = extractNodeRuntime(t.Context(), buffer.Bytes(), t.TempDir())
+			_, err := extractNodeRuntime(t.Context(), buffer.Bytes(), t.TempDir())
 			// Then neither budget can be bypassed by individually small entries.
 			if err == nil {
 				t.Fatal("accepted archive exceeding aggregate bound")

@@ -602,11 +602,11 @@ the record and the tables with `windlass.verify.error.toolchain-pin-drift` (chec
 | --------------- | ------------------- |
 | `24.22.1`       | `11.19.1`           |
 
-| Platform    | Tarball URL                                                       | SHA-256 (hex)                                                      |
-| ----------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `linux-x64` | `https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz` | `6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6` |
+| Platform    | Tarball URL                                                                   | SHA-256 (hex)                                                      |
+| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `linux-x64` | `https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz` | `eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c` |
 
-The 12026-10-30 pin review verified this xz artifact against the release's signed `SHASUMS256.txt`
+The 12026-10-30 pin review verified this gzip artifact against the release's signed `SHASUMS256.txt`
 using the Node.js release-team keyring. The archive's bundled npm manifest identifies version
 `11.19.1`. Live PURL compatibility verification for the new pair remains pending.
 
@@ -661,19 +661,14 @@ Provisioning performs exactly these steps, in this order:
 2. Hash the compressed bytes and require equality with the recorded SHA-256 digest. A mismatch fails
    the job before extraction with `windlass.verify.error.node-runtime-provision-digest-mismatch`
    (check `npm.toolchain.provision`).
-3. Decode the pinned xz archive and extract into a fresh private directory with archive-safety
+3. Decode the pinned gzip archive and extract into a fresh private directory with archive-safety
    checks: a single `node-v<version>-<platform>/` root, and no absolute, parent-traversing,
    hardlink, device, or FIFO entries. A violation fails the job with
    `windlass.verify.error.node-runtime-provision-archive-unsafe` (check `npm.toolchain.provision`).
-   The xz envelope must contain exactly one stream and one block, with exactly one LZMA2 filter
-   declaring a dictionary no larger than 64 MiB. Additional streams, blocks, filters, stream
-   padding, and trailing data are rejected. Validate the complete envelope, metadata CRCs, index,
-   block span, and dictionary declaration before decoder allocation. None, CRC32, CRC64, and SHA256
-   block checks are supported. Tar EOF does not complete validation: drain the decoded stream within
-   the existing aggregate decompressed-size bound, require the LZMA2 end marker and full payload
-   consumption, and verify the indexed uncompressed size, any declared block sizes, and block check.
-   Corrupt or truncated headers, padding, indexes, and trailers fail with the same archive-unsafe
-   diagnostic. Existing entry-count and tar/layout restrictions remain in force.
+   Tar EOF does not complete validation: drain the decoded stream within the existing aggregate
+   decompressed-size bound to validate the gzip trailer and bound trailing decompressed bytes.
+   Corrupt or truncated gzip streams fail with the same archive-unsafe diagnostic. Existing
+   entry-count and tar/layout restrictions remain in force.
 4. Require the exact official layout of the extracted root: the top-level entry set is exactly
    `bin/`, `include/`, `lib/`, `share/`, `CHANGELOG.md`, `LICENSE`, and `README.md`; `bin/` contains
    exactly the regular executable `node` and the symlinks `npm` →

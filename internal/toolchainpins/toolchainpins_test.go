@@ -11,8 +11,8 @@ import (
 const (
 	wantTarballURL = "https://registry.npmjs.org/npm/-/npm-11.21.1.tgz"
 	wantIntegrity  = "sha512-YTzL6QBEJXyHcTu0JiUc7RKMp+mzlJtl7rGLmERaXUQeFHIMc9atdr6G9M9C8vDWbv40epoTQAzNL2/PtZVDhQ=="
-	wantNodeURL    = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz"
-	wantNodeSHA256 = "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6"
+	wantNodeURL    = "https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz"
+	wantNodeSHA256 = "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"
 )
 
 func TestPublishPinReturnsEmbeddedRecord(t *testing.T) {
@@ -148,7 +148,7 @@ func TestDecodeNodeRuntimePairAcceptsNonNodeJSHost(t *testing.T) {
 	t.Parallel()
 
 	// The artifact pin binds the digest, not the host: a mirror URL is valid.
-	mirrorURL := "https://mirror.example.com/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz"
+	mirrorURL := "https://mirror.example.com/dist/v24.22.1/node-v24.22.1-linux-x64.tar.gz"
 	input := `{"node_version":"24.22.1","npm_version":"11.19.1","artifacts":{"linux-x64":{"url":"` + mirrorURL + `","sha256":"` + wantNodeSHA256 + `"}}}`
 	pair, err := decodeNodeRuntimePair([]byte(input))
 	if err != nil {
