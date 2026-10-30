@@ -40,7 +40,9 @@ Also: `.github/actionlint.yaml` — scoped suppressions, see below.
 
 - **SHA-pinning**: every third-party action is pinned to a full SHA with a comment tag. The
   sanctioned exception is `windlasstech/.github` org reusable workflows referenced at `@main`.
-- **Hardened runner**: every locally stepped job starts with `step-security/harden-runner` in
+- **Hardened runner**: every locally stepped job starts with `step-security/harden-runner`. Jobs in
+  `lint.yml` and `autofix.yml` intentionally use `egress-policy: block` with non-empty, job-specific
+  `allowed-endpoints` allowlists. Jobs in `fuzz.yml` and the production reusable workflow remain on
   `egress-policy: audit`. Org reusable-workflow jobs cannot carry local steps; their hardening is
   delegated to `windlasstech/.github`.
 - **Minimal permissions**: top-level `permissions: {}` with job-level elevation only where required
