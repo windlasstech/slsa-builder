@@ -1,0 +1,19 @@
+.github/dependabot.yml
+  s_9c21e252da5804::t_9cab17d7ca68be 1-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7abebc8b9dbfd9ce123cee4939ff46aaa29a83f",
+  "prompts": {},
+  "sessions": {
+    "s_9c21e252da5804": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e771ea358ffe25acdU5cP3n9ua",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
