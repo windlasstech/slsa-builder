@@ -5,7 +5,128 @@ was performed on 12026-08-05 against ADRs 0004, 0061, and 0069 and the
 [verification policy](architecture/verification-policy-and-fixtures.md). It selects dependencies; it
 does not implement production verification, canonicalization, or workflow checks.
 
-## Approved direct modules
+## Wave 2 review on 12026-10-30
+
+### Current scoped result
+
+After clearing the orphaned download-lock owner, the proxy-backed scoped transaction and
+`go mod tidy -go=1.27.3` succeeded. Eleven selected versions were upgraded; the twelfth target, xz
+v0.5.17, was already retained. No parent upgrade was deferred. Scope is the exact module paths
+explicitly required by baseline `HEAD:go.mod`, plus xz; upstream-test-only update hints were not
+independent upgrade arguments. The 12-line selection has SHA-256
+`f576576a3740f4bbf8dc5fcfc770de0d491f820e105b638bf46c1e6da92a89ca`.
+
+The final graph contains 393 entries including this module (392 dependencies). Compared with the
+recovered graph, 67 dependency versions changed, none were added, and
+`github.com/hashicorp/go-hclog v1.6.3` left the graph. Tidy retained no new explicit requirement
+paths, so no additional in-scope upgrade targets were introduced. All 12 exact scoped targets match.
+Every dependency has a recorded timestamp at or before `2026-10-22T18:42:13Z`; the graph contains no
+loading errors or replacements. This audit checks the selected graph, not every available
+upstream-test-only update.
+
+Current JCS is `v0.0.0-20261011152517-32a48195b9b2`. The goccy pin remains
+`v1.19.3-0.20260407131736-edee2f91616c`, and xz remains `v0.5.17`. Go 1.27.3 was selected through
+both PATH and GOROOT with automatic toolchain switching disabled. After tidy, read-only graph
+loading, unchanged `go mod tidy -diff`, `go mod verify`, and `go build -mod=readonly ./...` passed.
+`go test ./...` remains RED with exactly the same top-level failing test names as the
+recovered-state run, covering staged production Node/npm, xz decoder, and fixture work. No source or
+fixture changes were used to hide those failures.
+
+The separate `go list -m -retracted -json all` query stopped with
+`updates to go.sum needed, disabled by -mod=readonly`. Therefore, fresh full-graph retraction review
+remains incomplete, despite the complete timestamp audit. Full license, API, vector, Dependency
+Review, and OSV review also remain merge gates; successful build and package tests are not
+substitutes for them. Proxy cleanup confirmed process exit, no loopback listener, and no owners of
+the four previously blocked module cache locks.
+
+### Historical recovery and scoped retry attempts
+
+The failed broad upgrade described below was recovered before the scoped retry. Current initial
+upgrade scope is the exact module paths explicitly required by `HEAD:go.mod`, plus
+`github.com/ulikunitz/xz`. Upstream-test-only modules are not independent upgrade targets. New
+requirements or package providers retained by a successful tidy require their own eligibility review
+before becoming additional targets. Full-graph update hints are not upgrade arguments.
+
+Filtering the reviewed selection by this scope produced 12 targets (including the already-retained
+xz pin), with SHA-256 `f576576a3740f4bbf8dc5fcfc770de0d491f820e105b638bf46c1e6da92a89ca`. Websocket
+was outside the explicit baseline requirements and was not independently targeted. The single-array
+scoped `go get` attempts timed out during downloads at 200 and 600 seconds, without applying the
+scoped versions. No parent upgrade was deferred without dependency evidence. The last retry logged
+downloads for AWS KMS, enterprise-certificate-proxy, gax-go, and Google API.
+
+A subsequent loopback CONNECT-proxy attempt completed the read-only JCS metadata probe, but did not
+complete the scoped transaction. Runtime inspection found an orphaned earlier `go get` holding the
+download lock files for those four modules. The orphan remained alive after SIGTERM; the later
+attempt therefore also waited without completing. SIGKILL was issued to that task-owned orphan after
+the second inspection. This is evidence of a local cache-lock blocker, not proof that the proxy
+cannot fetch those module archives. Both temporary proxies were stopped and waited for, and their
+cleanup logs confirm that their loopback listeners were absent. No scoped upgrade or final
+upgraded-graph validation is claimed from these attempts.
+
+The recovered graph has 394 entries including the main module. Recovery validation passed
+`go mod tidy -go=1.27.3`, a subsequent unchanged `go mod tidy -diff`, `go mod verify`, and
+`go build -mod=readonly ./...`. Build required both PATH and GOROOT to select the installed Go
+1.27.3 toolchain; the inherited GOROOT still pointed to 1.27.2. Tests remain RED. These checks
+validate the recovered graph, not completion of the scoped upgrades. Scoped target GREEN, full-graph
+cutoff review, and upgrade compatibility review remain pending.
+
+At that recovered stage, JCS remained `v0.0.0-20241213102144-19d51d7fe467`; goccy remained
+`v1.19.3-0.20260407131736-edee2f91616c`, and xz remains `v0.5.17`.
+
+### Historical all-module attempts (not the current graph)
+
+The historical selection and rationale below remain unchanged. The attempted update uses the fixed
+cutoff `2026-10-22T18:42:13Z` and the approved 175-line selection with SHA-256
+`769d70c7b03610652f4f522db9627492191259ef8e8c44292a9d5836d2386395`. The combined `go get`
+transaction failed before applying the selected upgrades:
+
+- The selection requests `github.com/gorilla/websocket v1.5.3`.
+- `github.com/google/trillian v1.8.0` and `github.com/prometheus/prometheus v0.315.1` require
+  `github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674`.
+- `github.com/sigstore/rekor v1.5.5` also requires that newer pseudo-version indirectly.
+
+These exact pins cannot coexist under minimal version selection. The reviewed remedy replaced only
+websocket with the required pseudo-version. Its official proxy timestamp is `2025-03-19T13:29:07Z`,
+before the cutoff, and `go list -m -retracted` reported no retraction. It remains in semantic major
+v1 and orders above `v1.5.3`. The revised 175-line selection has SHA-256
+`b8d0fbcc50a648ea43de772e8690fca806f20e7566563506c864a189d00a08e2`.
+
+The revised `go get` succeeded, and all 175 selected versions matched that attempt's captured graph.
+However, the first `go mod tidy` failed, so that combined upgrade was **not resolved**:
+
+- `github.com/ysmood/got v0.43.0` lacks `lib/lcs`, imported by `github.com/go-rod/rod` through the
+  Sigstore OAuth-flow tests.
+- `go.etcd.io/etcd/tests/v3 v3.7.2` requires `go.etcd.io/etcd/cache/v3 v3.7.2`, but the official
+  proxy returns 404 (unknown revision) for that cache version. The dependency's local replacement is
+  not inherited by this module; no replacement was added here.
+
+That attempt's error-tolerant graph capture contained 846 entries including the main module and one
+module resolution error. A normal full-graph query failed on that error. The fixed-cutoff analyzer
+attempt timed out. Zero eligible updates, zero unresolved modules, a stable tidied graph, and a
+GREEN target helper have not been established. The four history-derived pprof/genproto pins, the
+goccy pin, and xz v0.5.17 are retained. No cutoff or major boundary was widened.
+
+That attempt installed JCS `v0.0.0-20261011152517-32a48195b9b2` before recovery. The goccy
+pseudo-version remained `v1.19.3-0.20260407131736-edee2f91616c`. License, API, offline-network,
+vector, and full transitive review of the proposed combined graph remain pending, as do Dependency
+Review and OSV gates. The successful package tests do not establish full transitive graph
+compatibility.
+
+The module Go directive and the three production workflow Go pins are now `1.27.3`. `go test ./...`
+compiled the packages on Go 1.27.3, but remains RED for the intentionally staged Node/npm pin
+changes, xz decoder implementation, and missing npm compatibility fixtures. Attestation, canonical
+JSON, dependency proof, and workflow-check packages passed. The top-level failing test names match
+the pre-remedy run; the tidy and graph-loading failures above are new dependency blockers, not
+intentional production RED tests. No production source, tests, or fixtures were changed in this wave
+to hide those failures.
+
+`github.com/ulikunitz/xz v0.5.17` is retained for the staged behavioral tests. Its module declares
+Go 1.20 and no third-party requirements; its downloaded license is BSD-3-Clause. Its documented
+Go-native `NewReader` and `NewWriter` APIs avoid a C-library dependency. `go mod tidy` classifies
+the existing test import as direct, which does **not** mean the Wave 3 production decoder import is
+complete. Decoder integration and its acceptance vectors remain pending.
+
+## Approved direct modules (historical selection)
 
 | Capability            | Module and exact version                                                         | License    |
 | --------------------- | -------------------------------------------------------------------------------- | ---------- |
