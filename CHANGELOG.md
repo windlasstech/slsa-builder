@@ -71,8 +71,8 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   validators, and workflow decoding), with seed corpora ported from existing negative tests, a
   30-second per-target fuzz smoke job on pull requests, and a scheduled weekly long-run fuzz
   workflow that uploads the fuzz corpus as an artifact.
-- Added mise packageManager-field provisioning for the development Node.js runtime (24.21.0) and
-  pnpm (12.10.1), with both versions declared solely in `package.json` (`devEngines.runtime` and
+- Added mise packageManager-field provisioning for the development Node.js runtime (24.22.1) and
+  pnpm (12.15.0), with both versions declared solely in `package.json` (`devEngines.runtime` and
   `devEngines.packageManager`) and Corepack removed from the bootstrap; requires mise v2026.8.7 or
   newer.
 - Added the credential-configuration preflight to the JS/TS npm build stage (ADR 0034): before
@@ -85,14 +85,14 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   that would ship inside the packed tarball is rejected post-pack with
   `windlass.verify.error.packed-corepack-env-prohibited` (ADR 0097).
 - Added the publish-stage npm CLI pin (ADRs 0082-0084): the publish job provisions a pinned npm CLI
-  (initially npm 11.21.0, the latest 11-line release carrying the upstream npm/cli#9882
-  `--provenance-file` fix) from a digest-verified npm registry tarball before any npm invocation in
-  the job, selected from a reviewed allowlist whose single shared pin-data source is
+  (currently npm 11.21.1, carrying the upstream npm/cli#9882 `--provenance-file` fix) from a
+  digest-verified npm registry tarball before any npm invocation in the job, selected from a
+  reviewed allowlist whose single shared pin-data source is
   `internal/toolchainpins/publish-npm.json`; provisioning failures (download, digest mismatch,
   unsafe archive, post-extraction version mismatch) fail closed before any npm execution and before
   any registry mutation.
 - Added the build-stage Node.js and npm toolchain pair pin (ADR 0085): the exact Node.js 24 patch
-  and its expected bundled npm (currently Node.js 24.21.0 and npm 11.19.0) are recorded in
+  and its expected bundled npm (currently Node.js 24.22.1 and npm 11.19.1) are recorded in
   `internal/toolchainpins/node-runtime.json` and asserted before the first npm invocation, with a
   mismatch failing closed with `windlass.verify.error.toolchain-pair-mismatch`.
 - Added publish-side npm pin validation replacing the prior build/publish npm exact-equality check:
@@ -104,12 +104,12 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   toolchain pin records (`internal/toolchainpins/publish-npm.json` and
   `internal/toolchainpins/node-runtime.json`) and their human-readable specification tables.
 - Added digest-verified Node.js runtime provisioning for governed jobs (ADR 0098): the JS/TS npm
-  reusable workflow provisions the pinned Node.js 24.21.0 runtime from the official release tarball
-  through the trusted core's new `npm-profile-provision-node` step before any `node`, `npm`, `npx`,
-  or Corepack invocation in the job, verifying the artifact's recorded SHA-256 digest, archive
-  safety, exact layout, and version identity. The runtime artifact pin (tarball URL and SHA-256 per
-  platform) is recorded in `internal/toolchainpins/node-runtime.json`; `actions/setup-node` no
-  longer supplies the runtime, and the toolchain pair assertion observes the provisioned runtime.
+  reusable workflow provisions the pinned Node.js 24.22.1 runtime from the official gzip release
+  tarball through the trusted core's new `npm-profile-provision-node` step before any `node`, `npm`,
+  `npx`, or Corepack invocation in the job, verifying the artifact's recorded SHA-256 digest,
+  archive safety, exact layout, and version identity. The runtime artifact pin (tarball URL and
+  SHA-256 per platform) is recorded in `internal/toolchainpins/node-runtime.json`, and the toolchain
+  pair assertion observes the provisioned runtime.
 - Added the digest-verified build-stage Node.js runtime as a closed `node-runtime`
   `resolvedDependencies` descriptor in JS/TS npm provenance (ADR 0099), with the exact embedded
   `linux-x64` tarball URL and SHA-256 plus `builder-pinned-record` and `platform` annotations. npm
@@ -160,3 +160,23 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   v1.83.2 or newer so that builds are not exposed to an xDS server panic on requests missing the
   authority or Host header; the fix also shipped in the v1.84.0 stable release, which the module now
   carries (with `grpc-ecosystem/grpc-gateway/v2` at v2.31.0).
+- [CVE-2026-78661](https://osv.dev/vulnerability/CVE-2026-78661) and
+  [CVE-2026-97045](https://osv.dev/vulnerability/CVE-2026-97045): Pin `golang.org/x/net` at v0.62.0
+  or newer so that builds are not exposed to quadratic complexity when coalescing HTML text nodes or
+  incomplete ancestor namespace checks when rendering raw text in `html`.
+- [CVE-2026-116587](https://osv.dev/vulnerability/CVE-2026-116587): Pin
+  `github.com/go-jose/go-jose/v4` at v4.1.6 or newer so that builds are not exposed to excessive CPU
+  consumption from crafted RSA JWKs.
+- [CVE-2026-105481](https://osv.dev/vulnerability/CVE-2026-105481),
+  [CVE-2026-105482](https://osv.dev/vulnerability/CVE-2026-105482),
+  [CVE-2026-105483](https://osv.dev/vulnerability/CVE-2026-105483),
+  [CVE-2026-106069](https://osv.dev/vulnerability/CVE-2026-106069),
+  [CVE-2026-106072](https://osv.dev/vulnerability/CVE-2026-106072),
+  [CVE-2026-106073](https://osv.dev/vulnerability/CVE-2026-106073),
+  [CVE-2026-106074](https://osv.dev/vulnerability/CVE-2026-106074), and
+  [CVE-2026-111497](https://osv.dev/vulnerability/CVE-2026-111497): Pin the production and
+  development Node.js runtime at 24.22.1 or newer so that builds and releases are not exposed to
+  keep-alive socket response confusion, DNS hostname truncation on NUL characters, three TLS
+  certificate hostname-validation bypasses involving non-canonical IPv4 forms, a permission-model
+  bypass in `fs.realpathSync()`, reused cryptographic entropy caches in startup snapshots and single
+  executable applications, and an out-of-bounds write in the Brotli decoder.

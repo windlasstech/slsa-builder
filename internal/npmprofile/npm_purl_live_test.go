@@ -33,14 +33,14 @@ func TestNPMPURLCLICompatibilityLive(t *testing.T) {
 	if err != nil || strings.TrimSpace(string(versionOutput)) != "v"+pair.NodeVersion {
 		t.Fatalf("node version = %q, %v; want v%s", versionOutput, err, pair.NodeVersion)
 	}
-	if pair.NodeVersion != "24.21.0" || pair.NPMVersion != "11.19.0" {
+	if pair.NodeVersion != "24.22.1" || pair.NPMVersion != "11.19.1" {
 		t.Fatalf("build-stage pair = %#v; update live compatibility fixtures for the new pin", pair)
 	}
 	publishPin, err := toolchainpins.PublishPin()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if publishPin.Version != "11.21.0" {
+	if publishPin.Version != "11.21.1" {
 		t.Fatalf("publish npm pin = %q; update live compatibility fixtures for the new pin", publishPin.Version)
 	}
 	repositoryRoot, err := filepath.Abs(filepath.Join("..", ".."))
@@ -59,8 +59,8 @@ func TestNPMPURLCLICompatibilityLive(t *testing.T) {
 		version  string
 		fixtures [2]string
 	}{
-		{"build", buildRoot, pair.NPMVersion, [2]string{"npm-purl-build-11-19-0-scoped-valid", "npm-purl-build-11-19-0-unscoped-valid"}},
-		{"publish", publishRoot, publishPin.Version, [2]string{"npm-purl-publish-11-21-0-scoped-valid", "npm-purl-publish-11-21-0-unscoped-valid"}},
+		{"build", buildRoot, pair.NPMVersion, [2]string{"npm-purl-build-11-19-1-scoped-valid", "npm-purl-build-11-19-1-unscoped-valid"}},
+		{"publish", publishRoot, publishPin.Version, [2]string{"npm-purl-publish-11-21-1-scoped-valid", "npm-purl-publish-11-21-1-unscoped-valid"}},
 	} {
 		t.Run(cli.name+"/npm-"+cli.version, func(t *testing.T) {
 			cliVersion, err := exec.CommandContext(ctx, node, filepath.Join(cli.root, "bin", "npm-cli.js"), "--version").Output()

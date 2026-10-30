@@ -26,16 +26,21 @@ type step struct {
 }
 
 func TestLintWorkflowHardening(t *testing.T) {
+	t.Parallel()
+
+	// Given the checked-in lint workflow.
 	contents, err := os.ReadFile("../../.github/workflows/lint.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// When its job configuration is decoded.
 	var lint workflow
 	if err := yaml.Unmarshal(contents, &lint); err != nil {
 		t.Fatal(err)
 	}
 
+	// Then every job enforces block-mode hardening alongside the quality gates.
 	if lint.Permissions == nil || len(lint.Permissions) != 0 {
 		t.Errorf("top-level permissions must be an explicit empty mapping, got %#v", lint.Permissions)
 	}
@@ -43,9 +48,7 @@ func TestLintWorkflowHardening(t *testing.T) {
 	hasGoTest := false
 	hasCodecovUpload := false
 	for name, job := range lint.Jobs {
-		if len(job.Steps) == 0 || !strings.HasPrefix(job.Steps[0].Uses, "step-security/harden-runner@") {
-			t.Errorf("job %q must use harden-runner as its first step", name)
-		}
+		assertBlockHardening(t, name, job)
 
 		for _, step := range job.Steps {
 			if strings.Contains(step.If, "hashFiles") && strings.Contains(step.If, ".go") {
@@ -77,5 +80,45 @@ func TestLintWorkflowHardening(t *testing.T) {
 	}
 	if !hasCodecovUpload {
 		t.Error("lint workflow must upload the coverage profile with step-security/codecov-action")
+	}
+}
+
+func TestAutofixWorkflowHardening(t *testing.T) {
+	t.Parallel()
+
+	// Given the checked-in autofix workflow.
+	contents, err := os.ReadFile("../../.github/workflows/autofix.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// When its job configuration is decoded.
+	var autofix workflow
+	if err := yaml.Unmarshal(contents, &autofix); err != nil {
+		t.Fatal(err)
+	}
+
+	// Then every job starts with block-mode hardening and an explicit allowlist.
+	if len(autofix.Jobs) == 0 {
+		t.Fatal("autofix workflow must contain jobs")
+	}
+	for name, job := range autofix.Jobs {
+		assertBlockHardening(t, name, job)
+	}
+}
+
+func assertBlockHardening(t *testing.T, name string, job job) {
+	t.Helper()
+	if len(job.Steps) == 0 || !strings.HasPrefix(job.Steps[0].Uses, "step-security/harden-runner@") {
+		t.Errorf("job %q must use harden-runner as its first step", name)
+		return
+	}
+	hardening := job.Steps[0]
+	if got := hardening.With["egress-policy"]; got != "block" {
+		t.Errorf("job %q must set egress-policy: block, got %v", name, got)
+	}
+	endpoints, ok := hardening.With["allowed-endpoints"].(string)
+	if !ok || strings.TrimSpace(endpoints) == "" {
+		t.Errorf("job %q must set a non-empty allowed-endpoints string", name)
 	}
 }

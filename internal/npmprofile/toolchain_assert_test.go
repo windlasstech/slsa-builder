@@ -18,16 +18,16 @@ func TestAssertToolchainPair_whenObservationsDiffer(t *testing.T) {
 		nodeOnly bool
 		wantFail bool
 	}{
-		{name: "matching pair", node: "v24.21.0", npm: "11.19.0"},
-		{name: "older node", node: "v24.20.0", npm: "11.19.0", wantFail: true},
-		{name: "older npm", node: "v24.21.0", npm: "11.18.0", wantFail: true},
-		{name: "node-only without npm", node: "v24.21.0", nodeOnly: true},
-		{name: "node-only ignores installed npm", node: "v24.21.0", npm: "11.18.0", nodeOnly: true},
+		{name: "matching pair", node: "v24.22.1", npm: "11.19.1"},
+		{name: "older node", node: "v24.20.0", npm: "11.19.1", wantFail: true},
+		{name: "older npm", node: "v24.22.1", npm: "11.18.0", wantFail: true},
+		{name: "node-only without npm", node: "v24.22.1", nodeOnly: true},
+		{name: "node-only ignores installed npm", node: "v24.22.1", npm: "11.18.0", nodeOnly: true},
 		{name: "node-only wrong node", node: "v24.20.0", nodeOnly: true, wantFail: true},
-		{name: "unparseable node", node: "not a version", npm: "11.19.0", wantFail: true},
-		{name: "unparseable npm", node: "v24.21.0", npm: "not a version", wantFail: true},
-		{name: "missing npm", node: "v24.21.0", wantFail: true},
-		{name: "missing node", npm: "11.19.0", wantFail: true},
+		{name: "unparseable node", node: "not a version", npm: "11.19.1", wantFail: true},
+		{name: "unparseable npm", node: "v24.22.1", npm: "not a version", wantFail: true},
+		{name: "missing npm", node: "v24.22.1", wantFail: true},
+		{name: "missing node", npm: "11.19.1", wantFail: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			// Given a private PATH containing only the requested fake executables.
@@ -61,7 +61,7 @@ func TestAssertToolchainPair_whenObservationsDiffer(t *testing.T) {
 				if _, err := os.Stat(counter); !errors.Is(err, os.ErrNotExist) {
 					t.Fatalf("npm was executed in node-only mode: %v", err)
 				}
-			} else if test.npm != "" && test.node == "v24.21.0" {
+			} else if test.npm != "" && test.node == "v24.22.1" {
 				if _, err := os.Stat(counter); err != nil {
 					t.Fatalf("npm was not observed in full mode: %v", err)
 				}
@@ -74,7 +74,7 @@ func TestAssertToolchainPair_observesFirstNodeOnPath(t *testing.T) {
 	// Given two node executables on PATH, with only the first matching the pin.
 	first := t.TempDir()
 	second := t.TempDir()
-	writeVersionTool(t, first, "node", "v24.21.0", "")
+	writeVersionTool(t, first, "node", "v24.22.1", "")
 	writeVersionTool(t, second, "node", "v24.20.0", "")
 	t.Setenv("PATH", first+string(os.PathListSeparator)+second)
 	t.Setenv("RUNNER_TOOL_CACHE", "")
@@ -101,7 +101,7 @@ func TestAssertToolchainPair_whenRuntimeHasOfficialLayout(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			// Given an official-layout runtime on a private PATH with a bundled npm symlink.
-			root := filepath.Join(t.TempDir(), "node-v24.21.0-linux-x64")
+			root := filepath.Join(t.TempDir(), "node-v24.22.1-linux-x64")
 			bin := filepath.Join(root, "bin")
 			npmBin := filepath.Join(root, "lib", "node_modules", "npm", "bin")
 			if test.escape {
@@ -112,8 +112,8 @@ func TestAssertToolchainPair_whenRuntimeHasOfficialLayout(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			writeVersionTool(t, bin, "node", "v24.21.0", "")
-			writeVersionTool(t, npmBin, "npm-cli.js", "11.19.0", "")
+			writeVersionTool(t, bin, "node", "v24.22.1", "")
+			writeVersionTool(t, npmBin, "npm-cli.js", "11.19.1", "")
 			target, err := filepath.Rel(bin, filepath.Join(npmBin, "npm-cli.js"))
 			if err != nil {
 				t.Fatal(err)

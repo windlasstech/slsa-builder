@@ -623,7 +623,7 @@ dispatch that neither runs on the version tag nor names it through `source-ref`,
 - When `source-ref` is omitted, `github.ref_type` must be `tag`; when `source-ref` is supplied, the
   invocation ref is unconstrained and is recorded as invocation context.
 - The workflow must run on `ubuntu-24.04` GitHub-hosted runners.
-- The Node.js runtime must be exactly `24.21.0`, the pinned patch recorded in the build toolchain
+- The Node.js runtime must be exactly `24.22.1`, the pinned patch recorded in the build toolchain
   pair record (see the
   [build and pack specification's runtime table](js-ts-npm-build-pack.md#nodejs-and-npm-toolchain-pair);
   ADRs 0085 and 0098).
@@ -752,7 +752,7 @@ The workflow must fail before any registry mutation when:
   install with `windlass.verify.error.pnpm-version-unsupported` or
   `windlass.verify.error.yarn-version-unsupported`, respectively (see
   [JS/TS npm build and pack](js-ts-npm-build-pack.md)).
-- The runtime environment is not `ubuntu-24.04` with the pinned Node.js `24.21.0` toolchain.
+- The runtime environment is not `ubuntu-24.04` with the pinned Node.js `24.22.1` toolchain.
 - Private dependency credentials are required.
 - `ACTIONS_ID_TOKEN_REQUEST_TOKEN` is absent, or an id-token request fails. This must fail with
   `windlass.verify.error.oidc-capability-unavailable` before any mutation.

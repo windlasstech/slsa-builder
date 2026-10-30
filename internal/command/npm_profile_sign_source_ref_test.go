@@ -290,8 +290,8 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 		},
 		{
 			Name:   "node-runtime",
-			URI:    "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz",
-			Digest: map[string]string{"sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"},
+			URI:    "https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz",
+			Digest: map[string]string{"sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"},
 			Annotations: map[string]json.RawMessage{
 				"digest_authority": mustMarshalSignJSON(t, "builder-pinned-record"),
 				"platform":         mustMarshalSignJSON(t, "linux-x64"),

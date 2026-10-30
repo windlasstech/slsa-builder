@@ -85,12 +85,12 @@ jobs:
       build-metadata-sha256: ${{ steps.build.outputs.build-metadata-sha256 }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
 
       - name: Checkout trusted builder
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
@@ -98,9 +98,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.3"
           cache: false
 
       - name: Resolve built source ref
@@ -118,7 +118,7 @@ jobs:
           --observed-repository "$OBSERVED_REPOSITORY" --github-output "$GITHUB_OUTPUT"
 
       - name: Checkout package source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.source-ref.outputs.built-revision }}
           path: source
@@ -255,7 +255,7 @@ jobs:
           "${CALLER_WORKFLOW_REF%@*}")"
 
       - name: Upload package tarball handoff
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ steps.build.outputs.tarball-path }}
@@ -264,7 +264,7 @@ jobs:
           overwrite: false
 
       - name: Upload build metadata handoff
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ steps.build.outputs.build-metadata-path }}
@@ -288,12 +288,12 @@ jobs:
       bundle-sha256: ${{ steps.sign.outputs.bundle-sha256 }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
 
       - name: Checkout trusted builder
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
@@ -301,9 +301,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.3"
           cache: false
 
       - name: Provision pinned Node.js runtime
@@ -376,7 +376,7 @@ jobs:
           "$REGISTRY_URL" --package-name "$PACKAGE_NAME"
 
       - name: Upload verified provenance bundle
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/windlass-provenance/*.intoto.jsonl
@@ -407,12 +407,12 @@ jobs:
       package-tarball-sha512: ${{ steps.publish.outputs.package-tarball-sha512 }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
 
       - name: Checkout trusted builder
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
@@ -420,9 +420,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.3"
           cache: false
 
       - name: Provision pinned Node.js runtime
@@ -528,7 +528,7 @@ jobs:
 
       - name: Upload outcome report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: js-ts-npm-outcome-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/windlass-npm-outcome-report.json

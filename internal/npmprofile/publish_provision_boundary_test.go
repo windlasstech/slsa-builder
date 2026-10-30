@@ -9,7 +9,7 @@ import (
 func TestPublishCommandAcceptsProvisionedLauncher(t *testing.T) {
 	// Given the real provisioning layout outside every ambient toolchain root.
 	node, _ := provisionFakeNode(t)
-	if err := os.WriteFile(node, []byte("#!/bin/sh\nprintf 11.21.0\n"), 0o700); err != nil {
+	if err := os.WriteFile(node, []byte("#!/bin/sh\nprintf 11.21.1\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	runnerTemp, err := filepath.EvalSymlinks(t.TempDir())
@@ -19,7 +19,7 @@ func TestPublishCommandAcceptsProvisionedLauncher(t *testing.T) {
 	t.Setenv("RUNNER_TEMP", runnerTemp)
 	t.Setenv("RUNNER_TOOL_CACHE", "")
 	t.Setenv("MISE_DATA_DIR", t.TempDir())
-	data := provisionArchive(t, `{"version":"11.21.0"}`, nil)
+	data := provisionArchive(t, `{"version":"11.21.1"}`, nil)
 	launcher, err := provisionNPM(t.Context(), filepath.Join(runnerTemp, "windlass-npm-cli"), provisionSource(t, data))
 	if err != nil {
 		t.Fatal(err)

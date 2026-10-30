@@ -17,7 +17,7 @@ func TestProvisionNPMMissingCLIIsVersionMismatchWithoutExecution(t *testing.T) {
 	var buffer bytes.Buffer
 	gz := gzip.NewWriter(&buffer)
 	archive := tar.NewWriter(gz)
-	manifest := `{"version":"11.21.0"}`
+	manifest := `{"version":"11.21.1"}`
 	if err := archive.WriteHeader(&tar.Header{Name: "package/package.json", Mode: 0o600, Size: int64(len(manifest))}); err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestProvisionNPMQuotesShellMetacharactersWithoutExecution(t *testing.T) {
 	// Given an output path that contains shell expansion syntax and a single quote.
 	node, marker := provisionFakeNode(t)
 	output := filepath.Join(t.TempDir(), "space ' $(touch marker)")
-	data := provisionArchive(t, `{"version":"11.21.0"}`, nil)
+	data := provisionArchive(t, `{"version":"11.21.1"}`, nil)
 	// When writing the launcher.
 	launcher, err := provisionNPM(t.Context(), output, provisionSource(t, data))
 	// Then literal paths are quoted, not interpolated as shell syntax.
@@ -106,7 +106,7 @@ func TestExtractNPMRejectsOversizedEntry(t *testing.T) {
 func TestProvisionNPMRejectsDuplicateManifest(t *testing.T) {
 	t.Parallel()
 	// Given two entries named package/package.json.
-	data := provisionArchive(t, `{"version":"11.21.0"}`, &tar.Header{Name: "package/package.json", Typeflag: tar.TypeReg})
+	data := provisionArchive(t, `{"version":"11.21.1"}`, &tar.Header{Name: "package/package.json", Typeflag: tar.TypeReg})
 	// When provisioning the authenticated archive.
 	_, err := provisionNPM(t.Context(), t.TempDir(), provisionSource(t, data))
 	// Then duplicate entries fail with the registered archive diagnostic.
@@ -169,7 +169,7 @@ func TestProvisionNPMRejectsUnpackedBudgetOverflow(t *testing.T) {
 func FuzzExtractNPMDistribution(f *testing.F) {
 	f.Add([]byte("not gzip"))
 	f.Add([]byte{})
-	f.Add(provisionArchive(f, `{"version":"11.21.0"}`, nil))
+	f.Add(provisionArchive(f, `{"version":"11.21.1"}`, nil))
 	for _, header := range []tar.Header{
 		{Name: "../escape", Typeflag: tar.TypeReg},
 		{Name: "/absolute", Typeflag: tar.TypeReg},
@@ -177,7 +177,7 @@ func FuzzExtractNPMDistribution(f *testing.F) {
 		{Name: "package/link", Typeflag: tar.TypeLink, Linkname: "../escape"},
 		{Name: "other/file", Typeflag: tar.TypeReg},
 	} {
-		f.Add(provisionArchive(f, `{"version":"11.21.0"}`, &header))
+		f.Add(provisionArchive(f, `{"version":"11.21.1"}`, &header))
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		if len(data) > 1<<20 {

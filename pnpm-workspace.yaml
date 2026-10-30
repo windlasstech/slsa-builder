@@ -8,8 +8,8 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Install-time dependency cooldown.
-# Windlass dependency-security policy requires a minimum of 1440 minutes (1 day).
-minimumReleaseAge: 1440
+# Windlass dependency-security policy requires a minimum of 10080 minutes (7 days).
+minimumReleaseAge: 10080
 
 # Require registry publish-time metadata for age-gate enforcement.
 # When a package's registry metadata lacks the time field, fail resolution
@@ -33,15 +33,14 @@ blockExoticSubdeps: true
 
 # Forced transitive upgrades for security fixes whose parent ranges pin or
 # cap below the fixed version (OSV full scan, run 37989566055):
-# - smol-toml: markdownlint-cli2@0.23.3 pins exactly 1.8.0;
-#   GHSA-r4xh-jqrq-34v2 is fixed in 1.9.0.
 # - katex: micromark-extension-math@3.1.0 caps katex at ^0.16.0;
 #   GHSA-238p-pmpm-9mq7 is fixed in 0.18.2.
 # NOTE: braces@3.0.3 (GHSA-vfj7-8cjw-p6xm) has no fixed release as of
 # 12026-10-10, so no override can remediate it.
 overrides:
-  smol-toml: ^1.9.1
   katex: ^0.19.0
+  # GHSA-gg6h-894w-4m9c / CVE-2026-116795: fix quadratic-time lookbehind DoS.
+  markdownlint@0.42.0>re2js: 2.8.7
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Store Integrity

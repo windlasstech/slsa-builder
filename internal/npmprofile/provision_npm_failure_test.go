@@ -47,7 +47,7 @@ func TestProvisionNPMRejectsUnusableOutput(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			data := provisionArchive(t, `{"version":"11.21.0"}`, nil)
+			data := provisionArchive(t, `{"version":"11.21.1"}`, nil)
 			// When provisioning attempts to establish its private directory.
 			_, err := provisionNPM(t.Context(), output, provisionSource(t, data))
 			// Then directory setup fails with the archive diagnostic.
@@ -59,7 +59,7 @@ func TestProvisionNPMRejectsUnusableOutput(t *testing.T) {
 func TestProvisionNPMRejectsMissingNode(t *testing.T) {
 	// Given a valid distribution with no node on PATH.
 	t.Setenv("PATH", t.TempDir())
-	data := provisionArchive(t, `{"version":"11.21.0"}`, nil)
+	data := provisionArchive(t, `{"version":"11.21.1"}`, nil)
 	// When resolving the launcher runtime.
 	_, err := provisionNPM(t.Context(), t.TempDir(), provisionSource(t, data))
 	// Then provisioning cannot emit a usable launcher.
@@ -72,7 +72,7 @@ func TestProvisionNPMRejectsCorruptGzipTrailer(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			t.Parallel()
 			// Given a tar whose gzip trailer is truncated or has an invalid checksum.
-			data := provisionArchive(t, `{"version":"11.21.0"}`, nil)
+			data := provisionArchive(t, `{"version":"11.21.1"}`, nil)
 			if scenario == "truncated" {
 				data = data[:len(data)-1]
 			} else {

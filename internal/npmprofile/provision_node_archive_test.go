@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-const nodeFixtureRoot = "node-v24.21.0-linux-x64"
+const nodeFixtureRoot = "node-v24.22.1-linux-x64"
 
 type nodeArchiveEntry struct {
 	header tar.Header
@@ -26,7 +26,7 @@ func nodeRuntimeEntries() []nodeArchiveEntry {
 	for _, name := range []string{"CHANGELOG.md", "LICENSE", "README.md", "bin/node", "lib/node_modules/npm/bin/npm-cli.js", "lib/node_modules/npm/bin/npx-cli.js", "lib/node_modules/corepack/dist/corepack.js"} {
 		entries = append(entries, nodeArchiveEntry{header: tar.Header{Name: nodeFixtureRoot + "/" + name, Typeflag: tar.TypeReg, Mode: 0o755}, body: "not executable runtime bytes"})
 	}
-	entries = append(entries, nodeArchiveEntry{header: tar.Header{Name: nodeFixtureRoot + "/lib/node_modules/npm/package.json", Typeflag: tar.TypeReg, Mode: 0o644}, body: `{"version":"11.19.0"}`})
+	entries = append(entries, nodeArchiveEntry{header: tar.Header{Name: nodeFixtureRoot + "/lib/node_modules/npm/package.json", Typeflag: tar.TypeReg, Mode: 0o644}, body: `{"version":"11.19.1"}`})
 	for name, target := range map[string]string{
 		"npm":      "../lib/node_modules/npm/bin/npm-cli.js",
 		"npx":      "../lib/node_modules/npm/bin/npx-cli.js",

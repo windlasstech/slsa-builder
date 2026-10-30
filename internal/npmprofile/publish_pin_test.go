@@ -7,7 +7,7 @@ import (
 
 func TestPublishPinAllowsDifferentBuildVersion(t *testing.T) {
 	// Given independent build and publish npm versions.
-	fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, npmVersion: "11.21.0", buildNPMVersion: "11.19.0"})
+	fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, npmVersion: "11.21.1", buildNPMVersion: "11.19.1"})
 	before := bytes.Clone(fixture.verifier.statement.Predicate.BuildDefinition.ExternalParameters)
 	// When
 	result, err := Publish(t.Context(), fixture.request)
@@ -55,8 +55,8 @@ func TestPublishPinPreservesMetadataOnLaterFailure(t *testing.T) {
 		options publishFixtureOptions
 		wantID  string
 	}{
-		{"mutation", publishFixtureOptions{initialVersionAbsent: true, npmExitCode: 1, npmError: "npm error code E403"}, IDMutationPermissionDenied},
-		{"readback", publishFixtureOptions{initialVersionAbsent: true, readbackIndeterminate: true}, IDRegistryLinkageMismatch},
+		{"mutation", publishFixtureOptions{initialVersionAbsent: true, npmVersion: "11.21.1", npmExitCode: 1, npmError: "npm error code E403"}, IDMutationPermissionDenied},
+		{"readback", publishFixtureOptions{initialVersionAbsent: true, npmVersion: "11.21.1", readbackIndeterminate: true}, IDRegistryLinkageMismatch},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Given
@@ -65,7 +65,7 @@ func TestPublishPinPreservesMetadataOnLaterFailure(t *testing.T) {
 			result, err := Publish(t.Context(), fixture.request)
 			// Then
 			requireNPMDiagnostic(t, err, tc.wantID)
-			if result.Report.DiagnosticMetadata == nil || result.Report.DiagnosticMetadata.PublishNPMVersion == nil || *result.Report.DiagnosticMetadata.PublishNPMVersion != "11.21.0" {
+			if result.Report.DiagnosticMetadata == nil || result.Report.DiagnosticMetadata.PublishNPMVersion == nil || *result.Report.DiagnosticMetadata.PublishNPMVersion != "11.21.1" {
 				t.Fatalf("failure lost observed metadata: %#v", result.Report.DiagnosticMetadata)
 			}
 			fixture.requireInvocations(t, fixture.expectedMutationInvocations())
@@ -106,14 +106,14 @@ func TestPublishPinObservationFailurePreservesDiagnostic(t *testing.T) {
 
 func TestPublishPinRecordsObservedMetadataOnRetry(t *testing.T) {
 	// Given
-	fixture := newPublishFixture(t, publishFixtureOptions{})
+	fixture := newPublishFixture(t, publishFixtureOptions{npmVersion: "11.21.1"})
 	// When
 	result, err := Publish(t.Context(), fixture.request)
 	// Then
 	if err != nil || result.State != PublishCommittedAsExpected || result.MutationAttempted {
 		t.Fatalf("read-only retry = %#v, %v", result, err)
 	}
-	if result.Report.DiagnosticMetadata == nil || result.Report.DiagnosticMetadata.PublishNPMVersion == nil || *result.Report.DiagnosticMetadata.PublishNPMVersion != "11.21.0" {
+	if result.Report.DiagnosticMetadata == nil || result.Report.DiagnosticMetadata.PublishNPMVersion == nil || *result.Report.DiagnosticMetadata.PublishNPMVersion != "11.21.1" {
 		t.Fatalf("retry lost observed metadata: %#v", result.Report.DiagnosticMetadata)
 	}
 	fixture.requireInvocations(t, [][]string{{"--version"}})
@@ -140,7 +140,7 @@ func TestPublishPinRejectsUnpinnedVersionOnRetry(t *testing.T) {
 
 func TestPublishPinRecordsSuccessMetadata(t *testing.T) {
 	// Given a publish pin equal to the build record, isolating the evidence change.
-	fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, npmVersion: "11.21.0", buildNPMVersion: "11.21.0"})
+	fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, npmVersion: "11.21.1", buildNPMVersion: "11.21.1"})
 	// When
 	result, err := Publish(t.Context(), fixture.request)
 	// Then
@@ -151,7 +151,7 @@ func TestPublishPinRecordsSuccessMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(encoded, []byte(`"diagnostic_metadata":{"publish_npm_version":"11.21.0"}`)) {
+	if !bytes.Contains(encoded, []byte(`"diagnostic_metadata":{"publish_npm_version":"11.21.1"}`)) {
 		t.Fatalf("missing observed publish npm metadata: %s", encoded)
 	}
 }

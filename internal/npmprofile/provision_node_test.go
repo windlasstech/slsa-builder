@@ -174,7 +174,7 @@ func TestProvisionNodeVersionMismatch(t *testing.T) {
 			for i := range entries {
 				entry := &entries[i]
 				if name == "root version" {
-					entry.header.Name = strings.Replace(entry.header.Name, "24.21.0", "24.20.0", 1)
+					entry.header.Name = strings.Replace(entry.header.Name, "24.22.1", "24.20.0", 1)
 				}
 				if strings.HasSuffix(entry.header.Name, "/npm/package.json") {
 					switch name {

@@ -612,9 +612,9 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
     { "name": "lockfile" },
     {
       "name": "node-runtime",
-      "uri": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz",
+      "uri": "https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz",
       "digest": {
-        "sha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
+        "sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"
       },
       "annotations": {
         "digest_authority": "builder-pinned-record",
@@ -627,13 +627,13 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
       "annotations": {
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
-        "node_version": "v24.21.0"
+        "node_version": "v24.22.1"
       }
     }
   ],
   "runDetails": {
     "builder": {
-      "version": { "nodejs": "v24.21.0" },
+      "version": { "nodejs": "v24.22.1" },
       "builderDependencies": [
         {
           "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
@@ -662,7 +662,7 @@ because the runner image carries a digest:
       "annotations": {
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
-        "node_version": "v24.21.0"
+        "node_version": "v24.22.1"
       }
     }
   ]
@@ -948,8 +948,16 @@ include:
 The npm PURL-derivation compatibility fixture family required by the
 [JS/TS npm provenance and publish specification](js-ts-npm-provenance-publish.md#npm-package-subject-naming)
 is keyed per supported npm CLI version: one key per publish allowlist entry and one per build-stage
-pinned npm pair (currently npm `11.19.0` bundled with Node.js `24.21.0`). The build-side keying is
+pinned npm pair (currently npm `11.19.1` bundled with Node.js `24.22.1`). The build-side keying is
 specified with the build-side runtime table.
+
+The current scoped and unscoped cases are `npm-purl-build-11-19-1-{scoped,unscoped}-valid` and
+`npm-purl-publish-11-21-1-{scoped,unscoped}-valid`. Their live PURL CLI compatibility verification
+passed on 12026-10-29 UTC with Go 1.27.3 and Node.js 24.22.1 on darwin/arm64.
+`TestNPMPURLCLICompatibilityLive` compared each npm CLI's bundled `npm-package-arg`,
+`NPMPackagePURL`, and the fixture subjects byte-for-byte. No publish or OIDC exchange was performed;
+this is not live-publish or dogfood evidence. The npm 11.19.0 and 11.21.0 fixtures and verification
+notes remain historical evidence, not verification of the new versions.
 
 ## Diagnostics contract
 

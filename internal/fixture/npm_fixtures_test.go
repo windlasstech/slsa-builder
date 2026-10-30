@@ -26,6 +26,10 @@ func TestNPMFixturesNeverPublish(t *testing.T) {
 		"npm-purl-publish-11-21-0-unscoped-valid":                   "",
 		"npm-purl-build-11-19-0-scoped-valid":                       "",
 		"npm-purl-build-11-19-0-unscoped-valid":                     "",
+		"npm-purl-publish-11-21-1-scoped-valid":                     "",
+		"npm-purl-publish-11-21-1-unscoped-valid":                   "",
+		"npm-purl-build-11-19-1-scoped-valid":                       "",
+		"npm-purl-build-11-19-1-unscoped-valid":                     "",
 		"pnpm-root-valid":                                           "",
 		"pnpm-settings-only-root-valid":                             "",
 		"yarn-v4-root-valid":                                        "",
@@ -181,6 +185,10 @@ func TestNPMPURLCompatibilityFixtures(t *testing.T) {
 		"npm-purl-publish-11-21-0-unscoped-valid": {"purl-compat", "11.21.0", "pkg:npm/purl-compat@0.1.0", "ADR-0082.publish-npm-purl-compat"},
 		"npm-purl-build-11-19-0-scoped-valid":     {"@windlass/purl-compat", "11.19.0", "pkg:npm/%40windlass/purl-compat@0.1.0", "ADR-0085.build-npm-purl-compat"},
 		"npm-purl-build-11-19-0-unscoped-valid":   {"purl-compat", "11.19.0", "pkg:npm/purl-compat@0.1.0", "ADR-0085.build-npm-purl-compat"},
+		"npm-purl-publish-11-21-1-scoped-valid":   {"@windlass/purl-compat", "11.21.1", "pkg:npm/%40windlass/purl-compat@0.1.0", "ADR-0082.publish-npm-purl-compat"},
+		"npm-purl-publish-11-21-1-unscoped-valid": {"purl-compat", "11.21.1", "pkg:npm/purl-compat@0.1.0", "ADR-0082.publish-npm-purl-compat"},
+		"npm-purl-build-11-19-1-scoped-valid":     {"@windlass/purl-compat", "11.19.1", "pkg:npm/%40windlass/purl-compat@0.1.0", "ADR-0085.build-npm-purl-compat"},
+		"npm-purl-build-11-19-1-unscoped-valid":   {"purl-compat", "11.19.1", "pkg:npm/purl-compat@0.1.0", "ADR-0085.build-npm-purl-compat"},
 	}
 
 	root := filepath.Join("..", "..")

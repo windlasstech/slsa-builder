@@ -19,12 +19,17 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-3.0-4baaaa.svg)](https://github.com/windlasstech/.github/blob/main/CODE_OF_CONDUCT.md)
 [![GitHub issues](https://img.shields.io/badge/issue_tracking-GitHub-blue.svg)](https://github.com/windlasstech/slsa-builder/issues)
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/windlasstech/slsa-builder.svg)](https://pkg.go.dev/github.com/windlasstech/slsa-builder)
+[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/windlasstech/slsa-builder)](go.mod)
+
 [![Lint](https://github.com/windlasstech/slsa-builder/actions/workflows/lint.yml/badge.svg)](https://github.com/windlasstech/slsa-builder/actions/workflows/lint.yml)
 [![CodeQL](https://github.com/windlasstech/slsa-builder/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/windlasstech/slsa-builder/actions/workflows/github-code-scanning/codeql)
 [![OSV Scanner](https://github.com/windlasstech/slsa-builder/actions/workflows/osv-scanner.yml/badge.svg)](https://github.com/windlasstech/slsa-builder/actions/workflows/osv-scanner.yml)
 [![Dependency Review](https://github.com/windlasstech/slsa-builder/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/windlasstech/slsa-builder/actions/workflows/dependency-review.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/windlasstech/slsa-builder/badge)](https://scorecard.dev/viewer/?uri=github.com/windlasstech/slsa-builder)
 [![codecov](https://codecov.io/gh/windlasstech/slsa-builder/graph/badge.svg)](https://codecov.io/gh/windlasstech/slsa-builder)
+
+[![slsa-builder badge](assets/badges/slsa-builder-green-for-the-badge.svg)](#spread-the-word)
 
 English | [한국어](README.ko.md)
 
@@ -376,10 +381,10 @@ version set, enforced before install:
   range (6 or newer, or older than v4) is rejected before install; Yarn 6 or newer is rejected with
   `windlass.verify.error.yarn-version-unsupported`.
 - **npm** is unaffected by these bounds. The build stage uses the npm CLI bundled with the exactly
-  pinned Node.js 24 patch (currently Node.js 24.21.0, bundling npm 11.19.0), asserted against the
+  pinned Node.js 24 patch (currently Node.js 24.22.1, bundling npm 11.19.1), asserted against the
   pinned pair before first use
   ([ADR 0085](docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md));
-  the publish stage provisions a separately pinned, digest-verified npm CLI (currently npm 11.21.0)
+  the publish stage provisions a separately pinned, digest-verified npm CLI (currently npm 11.21.1)
   from its registry tarball
   ([ADR 0082](docs/decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md),
   [ADR 0084](docs/decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md)).

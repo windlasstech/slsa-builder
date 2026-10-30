@@ -1,0 +1,81 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
+    groups:
+      sigstore:
+        patterns:
+          - "github.com/sigstore/*"
+          - "github.com/in-toto/*"
+        update-types:
+          - "minor"
+          - "patch"
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Dependabot version updates remain configured below, but GitHub's dependency
+  # graph does not ingest this repository's pnpm 12 two-document pnpm-lock.yaml
+  # for Dependabot alerts/security updates. Existing OSV Scanner PR scans and
+  # push/scheduled full scans are therefore mandatory vulnerability coverage.
+  # https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories#pnpm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
+    groups:
+      lint-format:
+        patterns:
+          - "prettier*"
+          - "@prettier/*"
+          - "markdownlint-cli2"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+    groups:
+      github-official-actions:
+        patterns:
+          - "actions/*"
+        update-types:
+          - "minor"
+          - "patch"
+      step-security-actions:
+        patterns:
+          - "step-security/*"
+        update-types:
+          - "minor"
+          - "patch"
