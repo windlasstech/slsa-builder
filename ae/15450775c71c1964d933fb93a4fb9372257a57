@@ -1,0 +1,25 @@
+.github/workflows/osv-scanner.yml
+  s_17d1d4efbe3f02::t_e9cb13085a5396 25-26,38-39
+.github/workflows/lint.yml
+  s_17d1d4efbe3f02::t_e9cb13085a5396 75-79,215-217
+.github/workflows/scorecard.yml
+  s_17d1d4efbe3f02::t_e9cb13085a5396 26-28
+.github/workflows/autofix.yml
+  s_17d1d4efbe3f02::t_e9cb13085a5396 25-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ae15450775c71c1964d933fb93a4fb9372257a57",
+  "prompts": {},
+  "sessions": {
+    "s_17d1d4efbe3f02": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e733b89c9ffeHC56EWro95HLGB",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
