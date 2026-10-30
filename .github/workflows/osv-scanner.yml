@@ -22,12 +22,8 @@ jobs:
     with:
       egress-policy: block
       allowed-endpoints: >
-        api.github.com:443
-        api.osv.dev:443
-        github.com:443
-        proxy.golang.org:443
-        storage.googleapis.com:443
-        sum.golang.org:443
+        api.github.com:443 api.osv.dev:443 github.com:443 proxy.golang.org:443
+        storage.googleapis.com:443 sum.golang.org:443
 
   osv-scanner-full:
     if: github.event_name == 'push' || github.event_name == 'schedule'
@@ -39,9 +35,5 @@ jobs:
     with:
       egress-policy: block
       allowed-endpoints: >
-        api.github.com:443
-        api.osv.dev:443
-        github.com:443
-        proxy.golang.org:443
-        storage.googleapis.com:443
-        sum.golang.org:443
+        api.github.com:443 api.osv.dev:443 github.com:443 proxy.golang.org:443
+        storage.googleapis.com:443 sum.golang.org:443
