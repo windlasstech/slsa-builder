@@ -1,0 +1,42 @@
+internal/npmprofile/provision_node_test.go
+  s_dc12b1a23fff1e::t_877f406b664a9b 177
+internal/npmprofile/provision_node_archive_test.go
+  s_bc9dd93e46d8c0::t_24676038d1d354 176-179
+  s_dc12b1a23fff1e::t_877f406b664a9b 11-12,15,30,44-48,62,116-120,124,127,180,238-242,260,265,269
+internal/npmprofile/provision_node_archive.go
+  s_11680ac6a4fecd::t_34258929c0e340 37,121
+  s_bc9dd93e46d8c0::t_25ea92248cc86a 33,128-129
+  s_bc9dd93e46d8c0::t_4c457c87f9ad6c 130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4154aa64070e3efb91d92805aade64d77b8aebe7",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bc9dd93e46d8c0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e744053e9ffeZmZwHqMW73cDnX",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_dc12b1a23fff1e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76c63df7ffeHns21LoBnDdvGZ",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
