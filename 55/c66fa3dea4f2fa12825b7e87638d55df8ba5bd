@@ -1,0 +1,28 @@
+.github/workflows/js-ts-npm-package-slsa3.yml
+  s_6f18fb1012fe1a::t_7e1a747ce5f0bb 103,121,258,267,291,296,304,306,379,410,415,423,425
+  s_201d4cec54894e::t_036b194f5d7a43 88,93,101,531
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "55c66fa3dea4f2fa12825b7e87638d55df8ba5bd",
+  "prompts": {},
+  "sessions": {
+    "s_201d4cec54894e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76bc2537ffefrgP16FTyQsy08",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_6f18fb1012fe1a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76bbc682ffeCt73JydhXDhXMS",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
