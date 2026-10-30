@@ -1,0 +1,21 @@
+docs/architecture/verification-policy-and-fixtures.md
+  s_11680ac6a4fecd::t_9fdcfe493ff79b 615,617,630,951,954-957
+  s_11680ac6a4fecd::t_7b9eedc795dd7b 636,665
+  s_11680ac6a4fecd::t_facf0b7a02766a 958
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ea609b38aca12e1a4a7ecdfa4b8f697407e9a145",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
