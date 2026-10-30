@@ -1,0 +1,19 @@
+internal/fixture/npm_fixtures_test.go
+  s_527893de0a23b6::t_1ce80537c4add7 29-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "24817d0083936243080b6bf1082a2bf4fd17c48a",
+  "prompts": {},
+  "sessions": {
+    "s_527893de0a23b6": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e72fbe1abffd79Llwke4KHpeUl",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
