@@ -1,0 +1,21 @@
+pnpm-workspace.yaml
+  s_115e2512f770d1::t_406cf2120a9ed2 45-46
+pnpm-lock.yaml
+  s_115e2512f770d1::t_94793919330d95 168,598-600,804,1018
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "398567fce61dfee94d495f370239a778d1256528",
+  "prompts": {},
+  "sessions": {
+    "s_115e2512f770d1": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e72fc618bffeAcLJAt5DO8Vy9L",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
