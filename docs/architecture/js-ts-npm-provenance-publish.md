@@ -1085,9 +1085,9 @@ supported `linux-x64` platform, its closed shape and exact values are:
 ```json
 {
   "name": "node-runtime",
-  "uri": "https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz",
+  "uri": "https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz",
   "digest": {
-    "sha256": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6"
+    "sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"
   },
   "annotations": {
     "digest_authority": "builder-pinned-record",
@@ -1119,14 +1119,16 @@ does not record the separately provisioned publish-stage npm CLI. Future platfor
 emits exactly one descriptor for the actual build platform, not one descriptor per supported
 platform; it does not broaden the currently supported platform set.
 
-The following descriptor is invalid because its URI differs from the embedded pin:
+The following descriptor is invalid because its URI differs from the embedded pin. Its digest
+intentionally remains the expected pin value, so the URI is the only field that differs from that
+pin:
 
 ```json
 {
   "name": "node-runtime",
   "uri": "https://nodejs.org/dist/v24.0.0/node-v24.0.0-linux-x64.tar.gz",
   "digest": {
-    "sha256": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6"
+    "sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"
   },
   "annotations": {
     "digest_authority": "builder-pinned-record",
