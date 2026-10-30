@@ -1,0 +1,85 @@
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-wrong-uri.json
+  s_c3446b082ccd10::t_f48bcd97e66660 23
+testdata/npm/provenance/npm-resolved-dependencies-unknown-entry.json
+  s_c3446b082ccd10::t_f48bcd97e66660 21,23
+docs/architecture/js-ts-npm-build-pack.md
+  s_c3446b082ccd10::t_8707d5bdf8e6e2 607,609,664,668-671
+  s_3a69dccd715f7f::t_73cac64586becb 605-606
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-wrong-digest.json
+  s_c3446b082ccd10::t_f48bcd97e66660 21
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-annotations.json
+  s_c3446b082ccd10::t_f48bcd97e66660 21,23
+testdata/npm/provenance/npm-resolved-dependencies-npm-valid.json
+  s_c3446b082ccd10::t_f48bcd97e66660 21,23
+internal/command/npm_profile_sign_source_ref_test.go
+  s_c3446b082ccd10::t_e696da66eedac2 293-294
+testdata/npm/provenance/npm-predicate.jcs.json
+  s_9417fbb4bea399::t_c3ba375b2413de 1
+internal/npmprofile/provision_node_archive.go
+  s_c3446b082ccd10::t_5a2bf286f95307 5-6,35,39-40,124
+testdata/npm/provenance/npm-resolved-dependencies-pnpm-valid.json
+  s_c3446b082ccd10::t_f48bcd97e66660 21,23
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-malformed-digest.json
+  s_c3446b082ccd10::t_15c7003aecf552 23
+  s_c3446b082ccd10::t_f48bcd97e66660 21
+testdata/npm/provenance/npm-predicate-source-ref-dispatch-retry.jcs.json
+  s_9417fbb4bea399::t_c3ba375b2413de 1
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-unknown-member.json
+  s_c3446b082ccd10::t_f48bcd97e66660 22,24
+internal/npmprofile/provision_node_archive_test.go
+  s_9f833d3394922b::t_00dad852c7ff17 6,43-44,58,112-113,117,120,169,227-228,246,251
+  s_9f833d3394922b::t_b112dbf108fd01 255
+testdata/npm/provenance/npm-resolved-dependencies-reordered-valid.json
+  s_c3446b082ccd10::t_f48bcd97e66660 15,17
+testdata/npm/provenance/npm-resolved-dependencies-yarn-valid.json
+  s_c3446b082ccd10::t_f48bcd97e66660 21,23
+internal/toolchainpins/node-runtime.json
+  s_c3446b082ccd10::t_e696da66eedac2 6-7
+internal/toolchainpins/toolchainpins_test.go
+  s_c3446b082ccd10::t_e696da66eedac2 14-15
+  s_c3446b082ccd10::t_29ba9667135fe0 151
+testdata/npm/provenance/npm-resolved-dependencies-npm-manager-distribution.json
+  s_c3446b082ccd10::t_f48bcd97e66660 21,23
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-duplicate.json
+  s_c3446b082ccd10::t_f48bcd97e66660 21,23,32,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2e3f4622962a5820220c62e93a0b48f3f80cdd0d",
+  "prompts": {},
+  "sessions": {
+    "s_3a69dccd715f7f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e78096421ffeZHS34hSfnOlQKa",
+        "model": "k3.1-pro"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_9417fbb4bea399": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e73747b67ffeWQvgUBuzlIESDn",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_9f833d3394922b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e73957c0affepakRxlsvE2eDZB",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_c3446b082ccd10": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e73957c0effepxj1624qGlVEZO",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
