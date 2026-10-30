@@ -1,0 +1,14 @@
+docs/architecture/release-manifest.md
+  h_495200fbbeca45 113-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9db297149a17061b23f4b8370476bc34b3e705b5",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
