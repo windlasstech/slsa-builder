@@ -1,0 +1,19 @@
+docs/dependency-selection.md
+  s_295e2ebf29db11::t_035ec4e437e0f8 69-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5c547e233bec378efbc85f68d9d572cb62027328",
+  "prompts": {},
+  "sessions": {
+    "s_295e2ebf29db11": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e73277959ffe4t78Jnf3dvi2e0",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
