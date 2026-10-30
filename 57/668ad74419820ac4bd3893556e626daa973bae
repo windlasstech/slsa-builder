@@ -1,0 +1,19 @@
+.github/dependabot.yml
+  s_cf3ed78fde6bc7::t_59d28a90f1e62b 31-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "57668ad74419820ac4bd3893556e626daa973bae",
+  "prompts": {},
+  "sessions": {
+    "s_cf3ed78fde6bc7": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e72fc29c9ffesEQ48D40RrMZos",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
