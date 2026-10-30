@@ -28,6 +28,11 @@ updates:
           - "minor"
           - "patch"
 
+  # Dependabot version updates remain configured below, but GitHub's dependency
+  # graph does not ingest this repository's pnpm 12 two-document pnpm-lock.yaml
+  # for Dependabot alerts/security updates. Existing OSV Scanner PR scans and
+  # push/scheduled full scans are therefore mandatory vulnerability coverage.
+  # https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories#pnpm
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
