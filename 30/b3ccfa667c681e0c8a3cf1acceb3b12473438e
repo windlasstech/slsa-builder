@@ -1,0 +1,33 @@
+docs/architecture/slsa-provenance-v1.md
+  s_1df42e26c0c0bf::t_3e1e94b0227529 78,80
+docs/architecture/verification-policy-and-fixtures.md
+  s_1df42e26c0c0bf::t_3e1e94b0227529 615,617
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_88c6e076e03970::t_2e849e596357cb 1122-1124
+  s_1df42e26c0c0bf::t_e7b4179c9e64de 1090
+  s_1df42e26c0c0bf::t_3e1e94b0227529 1088,1131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "30b3ccfa667c681e0c8a3cf1acceb3b12473438e",
+  "prompts": {},
+  "sessions": {
+    "s_1df42e26c0c0bf": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e73957c0fffeIUlDHq990mGg7w",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_88c6e076e03970": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e734a74e8ffeQOV7duXNEUg1KO",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
