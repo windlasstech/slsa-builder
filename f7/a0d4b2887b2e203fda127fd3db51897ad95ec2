@@ -1,0 +1,14 @@
+.github/workflows/scorecard.yml
+  h_495200fbbeca45 24-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7a0d4b2887b2e203fda127fd3db51897ad95ec2",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
