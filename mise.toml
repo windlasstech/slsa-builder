@@ -31,10 +31,10 @@ locked_verify_provenance = true
 # Require a committed lockfile in CI; locally, prompt for updates when tools change.
 lockfile = true
 
-# Align with Windlass dependency-security cooldown policy: wait at least 1 day
+# Align with Windlass dependency-security cooldown policy: wait at least 7 days
 # after a release before allowing a fuzzy version match to resolve to it.
 # Explicitly pinned versions above are not affected.
-minimum_release_age = "1d"
+minimum_release_age = "7d"
 
 # Resolve the development Node.js runtime and pnpm from package.json
 # (devEngines.runtime and devEngines.packageManager) instead of [tools]
