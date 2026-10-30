@@ -18,7 +18,7 @@ import (
 func TestProvisionNPMCreatesPrivateLauncherWithoutExecution(t *testing.T) {
 	// Given a private fake node and an authenticated distribution.
 	node, marker := provisionFakeNode(t)
-	data := provisionArchive(t, `{"name":"npm","version":"11.21.0"}`, nil)
+	data := provisionArchive(t, `{"name":"npm","version":"11.21.1"}`, nil)
 	output := t.TempDir()
 	output, err := filepath.EvalSymlinks(output)
 	if err != nil {
@@ -54,7 +54,7 @@ func TestProvisionNPMCreatesPrivateLauncherWithoutExecution(t *testing.T) {
 func TestProvisionNPMDigestMismatchBeforeDirectoryCreation(t *testing.T) {
 	// Given corrupted compressed bytes and the original pin.
 	_, marker := provisionFakeNode(t)
-	data := provisionArchive(t, `{"name":"npm","version":"11.21.0"}`, nil)
+	data := provisionArchive(t, `{"name":"npm","version":"11.21.1"}`, nil)
 	source := provisionSource(t, data)
 	source.fetch = func(context.Context, string, int64, string) ([]byte, error) { return []byte("corrupted"), nil }
 	output := filepath.Join(t.TempDir(), "not-created")
@@ -80,7 +80,7 @@ func TestProvisionNPMRejectsUnsafeArchive(t *testing.T) {
 		t.Run(header.Name+string(header.Typeflag), func(t *testing.T) {
 			// Given a digest-matching but unsafe archive.
 			_, marker := provisionFakeNode(t)
-			data := provisionArchive(t, `{"name":"npm","version":"11.21.0"}`, &header)
+			data := provisionArchive(t, `{"name":"npm","version":"11.21.1"}`, &header)
 			output := t.TempDir()
 			// When provisioning checks the archive.
 			_, err := provisionNPM(t.Context(), output, provisionSource(t, data))

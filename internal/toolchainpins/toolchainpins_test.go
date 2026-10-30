@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	wantTarballURL = "https://registry.npmjs.org/npm/-/npm-11.21.0.tgz"
-	wantIntegrity  = "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
-	wantNodeURL    = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz"
-	wantNodeSHA256 = "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
+	wantTarballURL = "https://registry.npmjs.org/npm/-/npm-11.21.1.tgz"
+	wantIntegrity  = "sha512-YTzL6QBEJXyHcTu0JiUc7RKMp+mzlJtl7rGLmERaXUQeFHIMc9atdr6G9M9C8vDWbv40epoTQAzNL2/PtZVDhQ=="
+	wantNodeURL    = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz"
+	wantNodeSHA256 = "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6"
 )
 
 func TestPublishPinReturnsEmbeddedRecord(t *testing.T) {
@@ -22,8 +22,8 @@ func TestPublishPinReturnsEmbeddedRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load publish pin: %v", err)
 	}
-	if got.Version != "11.21.0" || got.TarballURL != wantTarballURL || got.Integrity != wantIntegrity {
-		t.Fatalf("publish pin = %+v, want version 11.21.0, URL %q, integrity %q", got, wantTarballURL, wantIntegrity)
+	if got.Version != "11.21.1" || got.TarballURL != wantTarballURL || got.Integrity != wantIntegrity {
+		t.Fatalf("publish pin = %+v, want version 11.21.1, URL %q, integrity %q", got, wantTarballURL, wantIntegrity)
 	}
 }
 
@@ -34,8 +34,8 @@ func TestNodeRuntimePairReturnsEmbeddedRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load Node.js runtime pair: %v", err)
 	}
-	if got.NodeVersion != "24.21.0" || got.NPMVersion != "11.19.0" {
-		t.Fatalf("runtime pair = %+v, want Node.js 24.21.0 / npm 11.19.0", got)
+	if got.NodeVersion != "24.22.1" || got.NPMVersion != "11.19.1" {
+		t.Fatalf("runtime pair = %+v, want Node.js 24.22.1 / npm 11.19.1", got)
 	}
 	if len(got.Artifacts) != 1 {
 		t.Fatalf("artifacts = %+v, want exactly the linux-x64 pin", got.Artifacts)
@@ -148,8 +148,8 @@ func TestDecodeNodeRuntimePairAcceptsNonNodeJSHost(t *testing.T) {
 	t.Parallel()
 
 	// The artifact pin binds the digest, not the host: a mirror URL is valid.
-	mirrorURL := "https://mirror.example.com/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz"
-	input := `{"node_version":"24.21.0","npm_version":"11.19.0","artifacts":{"linux-x64":{"url":"` + mirrorURL + `","sha256":"` + wantNodeSHA256 + `"}}}`
+	mirrorURL := "https://mirror.example.com/dist/v24.22.1/node-v24.22.1-linux-x64.tar.xz"
+	input := `{"node_version":"24.22.1","npm_version":"11.19.1","artifacts":{"linux-x64":{"url":"` + mirrorURL + `","sha256":"` + wantNodeSHA256 + `"}}}`
 	pair, err := decodeNodeRuntimePair([]byte(input))
 	if err != nil {
 		t.Fatalf("decode runtime pair: %v", err)
@@ -168,11 +168,11 @@ func TestEmbeddedLoadersAreConcurrent(t *testing.T) {
 			t.Parallel()
 
 			publish, err := PublishPin()
-			if err != nil || publish.Version != "11.21.0" {
+			if err != nil || publish.Version != "11.21.1" {
 				t.Fatalf("concurrent publish pin = %+v, error = %v", publish, err)
 			}
 			runtime, err := NodeRuntimePair()
-			if err != nil || runtime.NodeVersion != "24.21.0" {
+			if err != nil || runtime.NodeVersion != "24.22.1" {
 				t.Fatalf("concurrent runtime pair = %+v, error = %v", runtime, err)
 			}
 		})
