@@ -1,0 +1,43 @@
+internal/toolchainpins/node-runtime.json
+  s_11680ac6a4fecd::t_34258929c0e340 2-3,6-7
+internal/npmprofile/publish_pin_test.go
+  s_dc12b1a23fff1e::t_6a6a669caf9208 10,58-59,68,109,116,143,154
+internal/npmprofile/provision_npm_test.go
+  s_dc12b1a23fff1e::t_6a6a669caf9208 21,57,83
+internal/npmprofile/provision_npm_archive_test.go
+  s_dc12b1a23fff1e::t_6a6a669caf9208 20,47,109,172,180
+internal/toolchainpins/publish-npm.json
+  s_11680ac6a4fecd::t_34258929c0e340 2-4
+internal/npmprofile/toolchain_assert_test.go
+  s_dc12b1a23fff1e::t_877f406b664a9b 21-25,27-30,64,77,104,115-116
+internal/npmprofile/provision_npm_failure_test.go
+  s_dc12b1a23fff1e::t_6a6a669caf9208 50,62,75
+internal/npmprofile/publish_provision_boundary_test.go
+  s_dc12b1a23fff1e::t_6a6a669caf9208 12,22
+internal/toolchainpins/toolchainpins_test.go
+  s_dc12b1a23fff1e::t_79150dd7ebb9a1 12-15,25-26,37-38,151-152,171,175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "266cbe2e074483457575472ac238108d66e26e41",
+  "prompts": {},
+  "sessions": {
+    "s_11680ac6a4fecd": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76318de8ffd9pRo3x1gNHLKMs",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_dc12b1a23fff1e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e76c63df7ffeHns21LoBnDdvGZ",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
