@@ -1,0 +1,29 @@
+.github/workflows/AGENTS.md
+  s_7c56c12d9599b8::t_0cda71c9925190 43-45
+internal/workflowcheck/lint_workflow_test.go
+  s_5502818192fc9d::t_15202ecc4a071d 29-31,37,43,51,85-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a4922a75989d74ce2f672d68d4f5659cfcab0567",
+  "prompts": {},
+  "sessions": {
+    "s_5502818192fc9d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e72fc03e4ffe4JZaFnR1Epl1C2",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_7c56c12d9599b8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e72fc03e4ffe4JZaFnR1Epl1C2",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
