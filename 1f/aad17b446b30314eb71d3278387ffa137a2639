@@ -1,0 +1,28 @@
+docs/dogfood/npm-m1.md
+  s_940dc19ccea4fc::t_0b23958b209de9 2,7,15-17,20-23,27-98
+  s_f2a7ec4f903a33::t_b18ce735e724e7 99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1faad17b446b30314eb71d3278387ffa137a2639",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f2a7ec4f903a33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
