@@ -230,7 +230,7 @@ func writeNPMBuildDigestMismatch(out io.Writer, err error) (bool, error) {
 // report and reports whether err carried the input-unavailable diagnostic ID.
 func writeNPMBuildInputUnavailable(out io.Writer, err error) (bool, error) {
 	var identified interface{ DiagnosticID() string }
-	if !errors.As(err, &identified) || identified.DiagnosticID() != "windlass.verify.error.input-unavailable" {
+	if !errors.As(err, &identified) || identified.DiagnosticID() != diagnostic.IDInputUnavailable {
 		return false, nil
 	}
 	entry, buildErr := diagnostic.New(identified.DiagnosticID(), "resolvedDependencies.runner-image", err.Error())
