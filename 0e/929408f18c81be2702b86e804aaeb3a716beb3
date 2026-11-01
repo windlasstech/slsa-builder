@@ -1,0 +1,28 @@
+internal/npmprofile/toolchain.go
+  s_940dc19ccea4fc::t_f2d4f04dfde88c 369-371,374-376,379-381,384-386
+  s_940dc19ccea4fc::t_ad069696ad0dcc 39-43
+internal/npmprofile/provenance_validate_matrix_test.go
+  s_940dc19ccea4fc::t_2c8dc9e1ff9382 139-142
+internal/npmprofile/toolchain_capture_test.go
+  s_940dc19ccea4fc::t_d7de04e6cab97d 203-234
+  s_940dc19ccea4fc::t_38d332004f7082 50-61
+  s_940dc19ccea4fc::t_6b9f2465b4abbb 12-13
+  s_940dc19ccea4fc::t_c8ead0a7363a34 5-6
+  s_940dc19ccea4fc::t_2e2c887a6d03d0 62-72,75-89,91-92,94-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0e929408f18c81be2702b86e804aaeb3a716beb3",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
