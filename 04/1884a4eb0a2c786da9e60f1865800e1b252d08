@@ -1,0 +1,30 @@
+docs/architecture/verification-policy-and-fixtures.md
+  s_940dc19ccea4fc::t_b829e6242f038c 580-581
+  s_940dc19ccea4fc::t_c185152dfed652 582-588
+  s_940dc19ccea4fc::t_1309dda7a508fa 631,667
+docs/architecture/slsa-provenance-v1.md
+  s_940dc19ccea4fc::t_1309dda7a508fa 91,93
+docs/architecture/js-ts-npm-build-pack.md
+  s_940dc19ccea4fc::t_7de5ff06282a70 1163-1165
+  s_940dc19ccea4fc::t_9fba5ea2a6c11a 779-785,796-807,810-815
+  s_940dc19ccea4fc::t_c185152dfed652 786-793,808-809,1108,1166-1167
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_940dc19ccea4fc::t_c185152dfed652 1282-1284
+  s_940dc19ccea4fc::t_6ff3bf6bee82fa 1260-1265,1272,1281,1285-1286,1298
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "041884a4eb0a2c786da9e60f1865800e1b252d08",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
