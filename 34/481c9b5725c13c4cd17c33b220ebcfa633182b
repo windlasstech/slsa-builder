@@ -1,0 +1,33 @@
+internal/npmprofile/toolchain.go
+  s_940dc19ccea4fc::t_1fcd8385f1b139 324-326
+internal/npmprofile/toolchain_capture_test.go
+  s_940dc19ccea4fc::t_3d1011b098bdde 11,45-58
+docs/architecture/js-ts-npm-build-pack.md
+  s_940dc19ccea4fc::t_76d7795f0147a0 795-796,799-800
+  s_940dc19ccea4fc::t_86a5c06c9a2e27 797-798
+  s_f2a7ec4f903a33::t_f770b27e298fc0 801
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "34481c9b5725c13c4cd17c33b220ebcfa633182b",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f2a7ec4f903a33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
