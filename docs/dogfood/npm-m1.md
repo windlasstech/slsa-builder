@@ -26,11 +26,13 @@ date: 2026-11-01T20:51:04Z
 
 ## Outcome: fail-closed at build-and-pack — zero mutation (attempt 6, 12026-11-01)
 
-The run failed in the `Build npm package` job at the `Build and pack selected package` step, after
-the toolchain assertions and during Corepack acquisition capture. The `Sign npm provenance` job was
-skipped, the `Publish npm package` job reported success with every mutation step skipped (no bundle
-handoff), and the caller-side `Publish GitHub Release` job was skipped. Post-run registry state
-confirmed no mutation: `npm view @windlass/vers-js@0.1.3 version` returns `E404`.
+Run <https://github.com/windlasstech/vers-js/actions/runs/41348956569>, `Build npm package` job
+`124974970580`. The run failed in the `Build npm package` job at the
+`Build and pack selected package` step, after the toolchain assertions and during Corepack
+acquisition capture. The `Sign npm provenance` job was skipped, the `Publish npm package` job
+reported success with every mutation step skipped (no bundle handoff), and the caller-side
+`Publish GitHub Release` job was skipped. Post-run registry state confirmed no mutation:
+`npm view @windlass/vers-js@0.1.3 version` returns `E404`.
 
 Failure diagnostic (verbatim, `npm-profile-build`):
 
@@ -99,12 +101,14 @@ occurred, so no version conflict exists).
 
 ## Outcome: fail-closed at build-and-pack — zero mutation (attempt 5, 12026-11-01)
 
-The run failed in the `Build npm package` job at the `Build and pack selected package` step, before
-any install, build, or pack execution. The `Sign npm provenance` job was skipped, the
-`Publish npm package` job reported success with every mutation step skipped (no bundle handoff), and
-the caller-side `Publish GitHub Release` job was skipped. Post-run registry state confirmed no
-mutation: `npm view @windlass/vers-js@0.1.3 version` returns `E404`, and the registry attestations
-endpoint for `@windlass/vers-js@0.1.3` returns HTTP 404.
+Run <https://github.com/windlasstech/vers-js/actions/runs/41324911503>, `Build npm package` job
+`124902911522`. The run failed in the `Build npm package` job at the
+`Build and pack selected package` step, before any install, build, or pack execution. The
+`Sign npm provenance` job was skipped, the `Publish npm package` job reported success with every
+mutation step skipped (no bundle handoff), and the caller-side `Publish GitHub Release` job was
+skipped. Post-run registry state confirmed no mutation: `npm view @windlass/vers-js@0.1.3 version`
+returns `E404`, and the registry attestations endpoint for `@windlass/vers-js@0.1.3` returns
+HTTP 404.
 
 Failure diagnostic (verbatim, `npm-profile-build`):
 
@@ -210,9 +214,10 @@ attestation propagation to measure (ADR 0073).
 
 ## Command outputs and preserved evidence
 
-- Run URL: <https://github.com/windlasstech/vers-js/actions/runs/41324911503>
-- Build-job failure diagnostic: quoted verbatim in the Outcome section above; the full job log was
-  retrieved via the Actions API for job `124902911522` at review time
+- Run URL: <https://github.com/windlasstech/vers-js/actions/runs/41348956569>
+- Build-job failure diagnostic: quoted verbatim in the attempt-6 Outcome section above; the full job
+  log was retrieved via the Actions API for job `124974970580` at review time. Earlier attempts
+  carry their run URL and job ID inline in their own Outcome sections
 - Post-run registry responses: `E404` on `npm view @windlass/vers-js@0.1.3 version`; HTTP 404 on
   `https://registry.npmjs.org/-/npm/v1/attestations/@windlass%2fvers-js@0.1.3`
 - Preserved artifact name and digest: not applicable (no handoff artifacts were produced)
