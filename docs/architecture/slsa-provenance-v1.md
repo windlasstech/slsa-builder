@@ -88,8 +88,9 @@ following shape:
           "name": "runner-image",
           "uri": "<platform-provided Included Software URL>",
           "annotations": {
+            "deployment_version": "<ImageVersion>",
             "image_os": "<ImageOS>",
-            "image_version": "<ImageVersion>",
+            "image_version": "<on-disk imagedata.json Version>",
             "node_version": "<exact node --version output>"
           }
         }
