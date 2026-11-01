@@ -233,16 +233,17 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
       [ADR 0079](./docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
       [ADR 0080](./docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
       [osv-scanner#632](https://github.com/google/osv-scanner/issues/632)
-  - 러너 이미지 및 실행 환경 기록은 시도됐으나 신뢰 문제로 폐기됐습니다. slsa-github-generator는
-    `RUNNER_ARCH`, `ImageOS`, `ImageVersion` 환경변수 값과 러너 이미지 릴리스 머티리얼을 출처 증명에
-    기록했으나,
-    [slsa-github-generator#1817](https://github.com/slsa-framework/slsa-github-generator/issues/1817)에서
-    이 값들이 호출자로부터 전달된 것이라 실제 빌드를 수행한 러너를 나타내지 않을 수 있다는 문제가
-    제기됐고, [PR #2010](https://github.com/slsa-framework/slsa-github-generator/pull/2010)에서 해당
-    값들이 생성되는 predicate에서 제거됐습니다. 재도입은 빌드 잡의 값을 신뢰할 수 있게 가져올 방법이
-    마련될 때까지 유예됐으며
+  - 러너 이미지와 실행 환경을 기록하려는 시도는 신뢰성 문제로 중단됐습니다. slsa-github-generator는
+    `RUNNER_ARCH`, `ImageOS`, `ImageVersion` 환경변수 값을 출처 증명에 기록하고, SLSA v0.2의
+    `materials` 배열에 러너 이미지 릴리스를 가리키는 URL을 함께 기록했습니다. 그러나
+    [slsa-github-generator#1817](https://github.com/slsa-framework/slsa-github-generator/issues/1817)에서는
+    이 값들이 호출자로부터 전달돼 실제 빌드를 수행한 러너를 나타내지 않을 수 있다는 문제가 제기됐고,
+    [PR #2010](https://github.com/slsa-framework/slsa-github-generator/pull/2010)에서는
+    slsa-github-generator가 생성하는 predicate에서 해당 값들이 제거됐습니다. 재도입은 빌드 잡의 값을
+    신뢰할 수 있는 방법으로 가져올 수 있을 때까지 유예됐으며
     ([slsa-github-generator#2027](https://github.com/slsa-framework/slsa-github-generator/issues/2027),
-    미해결 종료), 이로써 러너 환경은 생성되는 출처 증명의 신뢰 가능한 구성 요소가 되지 못했습니다.
+    미해결 종료), 결국 생성되는 출처 증명에는 신뢰할 수 있는 러너 환경 정보가 포함되지 않게
+    됐습니다.
     - 참고:
       [ADR 0100](./docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)
 - **GitHub `actions/attest`:**
