@@ -1,0 +1,21 @@
+docs/testing-guide.md
+  s_940dc19ccea4fc::t_e871af9f4888c5 166-173
+docs/architecture/js-ts-npm-build-pack.md
+  s_940dc19ccea4fc::t_e871af9f4888c5 552-559,561-562
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9d468c10208a6340e43b669ca4e442d059e0608",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
