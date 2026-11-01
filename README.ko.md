@@ -334,6 +334,13 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
   명세: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
+- **롤아웃 중에도 실제 환경을 반영하는 러너 이미지 출처 증명:** slsa-builder는 서명된 출처 증명에서
+  `runner-image` descriptor의 `image_version`과 소프트웨어 보고서 `uri`를 VM 이미지에 내장된
+  `/imagegeneration/imagedata.json`에서 그대로 가져오고, 컨트롤 플레인의 `ImageVersion` 값은 권위를
+  갖지 않는 배포 증거로 `deployment_version`에 별도 기록하여 두 값의 불일치를 빌드 실패가 아니라
+  롤아웃 시그니처로 보존합니다. 증거가 실제로 누락됐거나 형식이 잘못된 경우에는 여전히 fail-closed로
+  빌드를 중단하며, 진단에는 관측된 두 값이 모두 담깁니다
+  ([ADR 0100](docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)).
 
 ## 기능
 

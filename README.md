@@ -343,6 +343,13 @@ alternatives have the following limitations.
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md);
   spec: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
+- **Truthful runner-image provenance through GitHub image rollouts:** In signed provenance,
+  slsa-builder takes the `runner-image` descriptor's `image_version` and software-report `uri`
+  verbatim from the VM's baked `/imagegeneration/imagedata.json`, and records the control-plane
+  `ImageVersion` separately as non-authoritative deployment evidence in `deployment_version`, so any
+  divergence is preserved as the rollout signature rather than treated as a build failure. Genuinely
+  missing or malformed evidence still fails closed, with diagnostics carrying both observed operands
+  ([ADR 0100](docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)).
 
 ## Features
 
