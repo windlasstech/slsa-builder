@@ -120,6 +120,18 @@ func validRunnerDetail() string {
 		"Image Release: " + runnerReleaseURL
 }
 
+func repeatedRunnerGroupDocument(t *testing.T) []byte {
+	t.Helper()
+	encoded, err := json.Marshal([]map[string]string{
+		{"group": "Runner Image", "detail": validRunnerDetail()},
+		{"group": "Runner Image", "detail": validRunnerDetail()},
+	})
+	if err != nil {
+		t.Fatalf("marshal repeated-group metadata document: %v", err)
+	}
+	return encoded
+}
+
 func TestParseRunnerMetadata(t *testing.T) {
 	t.Parallel()
 
@@ -231,6 +243,11 @@ func TestParseRunnerMetadata(t *testing.T) {
 				"Image Release: "+runnerReleaseURL+"\n"+
 				"Image Release: https://example.com/other"),
 			wantErr: "runner image metadata repeats the Image Release detail line",
+		},
+		{
+			name:    "repeated Runner Image group",
+			encoded: repeatedRunnerGroupDocument(t),
+			wantErr: "runner image metadata repeats the Runner Image group",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

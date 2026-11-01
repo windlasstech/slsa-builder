@@ -358,10 +358,15 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 	if err := json.Unmarshal(encoded, &groups); err != nil {
 		return RunnerCapture{}, runnerCaptureError(fmt.Sprintf("decode GitHub runner image metadata: %v", err), imageOS, deploymentVersion)
 	}
+	seen := false
 	for _, group := range groups {
 		if group.Group != "Runner Image" {
 			continue
 		}
+		if seen {
+			return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Runner Image group", imageOS, deploymentVersion)
+		}
+		seen = true
 		for _, line := range strings.Split(group.Detail, "\n") {
 			line = strings.TrimSpace(line)
 			switch {
@@ -390,7 +395,9 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 		if capture.ImageLabel == "" || capture.ImageVersion == "" || capture.IncludedSoftwareURL == "" || capture.ImageReleaseURL == "" {
 			return RunnerCapture{}, runnerCaptureError("runner image metadata lacks required detail lines", imageOS, deploymentVersion)
 		}
-		return capture, nil
 	}
-	return RunnerCapture{}, runnerCaptureError("runner image metadata lacks the Runner Image group", imageOS, deploymentVersion)
+	if !seen {
+		return RunnerCapture{}, runnerCaptureError("runner image metadata lacks the Runner Image group", imageOS, deploymentVersion)
+	}
+	return capture, nil
 }
