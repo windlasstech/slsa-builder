@@ -2,13 +2,15 @@ package npmprofile
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func TestCaptureRunnerEnvironment(t *testing.T) {
-	// Metadata decoding is seam-blocked by /imagegeneration/imagedata.json.
-	// These tests never depend on reading that fixed host path.
+	// These tests redirect runnerMetadataPath to hermetic fixtures and never
+	// read the real fixed host path (/imagegeneration/imagedata.json).
 	for _, test := range []struct {
 		name         string
 		imageOS      string
@@ -45,16 +47,54 @@ func TestCaptureRunnerEnvironment(t *testing.T) {
 
 	t.Run("ImageVersion absent is tolerated", func(t *testing.T) {
 		// ADR 0100: deployment_version may be null when the platform supplies no
-		// ImageVersion; only the file metadata and ImageOS are load-bearing. This
-		// run must not fail with the incomplete-observations diagnostic. Off a
-		// GitHub runner the fixed metadata path is absent, so a read failure is
-		// the expected outcome there; on a GitHub runner the capture succeeds.
+		// ImageVersion; only the file metadata and ImageOS are load-bearing. The
+		// null case is exercised hermetically through parseRunnerMetadata, never
+		// by reading the fixed host metadata path.
+		got, err := parseRunnerMetadata(runnerMetadataDocument(t, validRunnerDetail()), "ubuntu24", "")
+		if err != nil {
+			t.Fatalf("parseRunnerMetadata() error = %v; want nil (absent ImageVersion is tolerated)", err)
+		}
+		if got.DeploymentVersion != "" {
+			t.Fatalf("DeploymentVersion = %q; want empty for an absent ImageVersion", got.DeploymentVersion)
+		}
+		if got.ImageVersion != "20261025.353.1" {
+			t.Fatalf("ImageVersion = %q; want the file-side value %q", got.ImageVersion, "20261025.353.1")
+		}
+	})
+
+	t.Run("capture succeeds through a redirected metadata path", func(t *testing.T) {
+		fixture := filepath.Join(t.TempDir(), "imagedata.json")
+		if err := os.WriteFile(fixture, runnerMetadataDocument(t, validRunnerDetail()), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		original := runnerMetadataPath
+		t.Cleanup(func() { runnerMetadataPath = original })
+		runnerMetadataPath = fixture
 		t.Setenv("ImageOS", "ubuntu24")
 		t.Setenv("ImageVersion", "")
-		_, err := captureRunner()
-		if err != nil && strings.Contains(err.Error(), "runner image observations from GitHub are incomplete") {
-			t.Fatalf("captureRunner() error = %v; the null deployment_version case must be reachable", err)
+		got, err := captureRunner()
+		if err != nil {
+			t.Fatalf("captureRunner() error = %v; want nil", err)
 		}
+		if got.ImageVersion != "20261025.353.1" || got.DeploymentVersion != "" || got.ImageOS != "ubuntu24" {
+			t.Fatalf("captureRunner() = %#v; want the file-side image version with an empty deployment version", got)
+		}
+	})
+
+	t.Run("metadata read failure carries both operands", func(t *testing.T) {
+		original := runnerMetadataPath
+		t.Cleanup(func() { runnerMetadataPath = original })
+		runnerMetadataPath = filepath.Join(t.TempDir(), "absent.json")
+		t.Setenv("ImageOS", "ubuntu24")
+		t.Setenv("ImageVersion", "20261026.354.1")
+		_, err := captureRunner()
+		if err == nil || !strings.Contains(err.Error(), "read GitHub runner image metadata") {
+			t.Fatalf("captureRunner() error = %v; want a read failure", err)
+		}
+		if !strings.Contains(err.Error(), `ImageOS="ubuntu24"`) || !strings.Contains(err.Error(), `ImageVersion="20261026.354.1"`) {
+			t.Fatalf("captureRunner() error = %q; want both operands", err)
+		}
+		requireNPMDiagnostic(t, err, "windlass.verify.error.input-unavailable")
 	})
 }
 
@@ -159,6 +199,38 @@ func TestParseRunnerMetadata(t *testing.T) {
 				"Included Software: "+runnerSoftwareURL+"\n"+
 				"Image Release: "+runnerReleaseURL),
 			wantErr: "runner image metadata lacks required detail lines",
+		},
+		{
+			name: "repeated Image line",
+			encoded: runnerMetadataDocument(t, "Image: ubuntu-24.04\nImage: ubuntu-22.04\n"+
+				"Version: 20261025.353.1\n"+
+				"Included Software: "+runnerSoftwareURL+"\n"+
+				"Image Release: "+runnerReleaseURL),
+			wantErr: "runner image metadata repeats the Image detail line",
+		},
+		{
+			name: "repeated Version line",
+			encoded: runnerMetadataDocument(t, "Image: ubuntu-24.04\n"+
+				"Version: 20261025.353.1\nVersion: 20261026.354.1\n"+
+				"Included Software: "+runnerSoftwareURL+"\n"+
+				"Image Release: "+runnerReleaseURL),
+			wantErr: "runner image metadata repeats the Version detail line",
+		},
+		{
+			name: "repeated Included Software line",
+			encoded: runnerMetadataDocument(t, "Image: ubuntu-24.04\nVersion: 20261025.353.1\n"+
+				"Included Software: "+runnerSoftwareURL+"\n"+
+				"Included Software: https://example.com/other\n"+
+				"Image Release: "+runnerReleaseURL),
+			wantErr: "runner image metadata repeats the Included Software detail line",
+		},
+		{
+			name: "repeated Image Release line",
+			encoded: runnerMetadataDocument(t, "Image: ubuntu-24.04\nVersion: 20261025.353.1\n"+
+				"Included Software: "+runnerSoftwareURL+"\n"+
+				"Image Release: "+runnerReleaseURL+"\n"+
+				"Image Release: https://example.com/other"),
+			wantErr: "runner image metadata repeats the Image Release detail line",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

@@ -30,12 +30,16 @@ const (
 	distributionTimeout  = 2 * time.Minute
 	corepackHashPrefix   = "sha512."
 	corepackDebugMarker  = " corepack Installing "
-	runnerMetadataPath   = "/imagegeneration/imagedata.json"
 	maxRunnerMetadata    = 1 << 20
 	acquisitionSource    = "corepack"
 	registryDigestSource = "registry-integrity"
 	downloadDigestSource = "download-hash"
 )
+
+// runnerMetadataPath is the GitHub-hosted runner's fixed baked image metadata
+// path. It is a var so tests can redirect the read to a hermetic fixture;
+// production code never reassigns it.
+var runnerMetadataPath = "/imagegeneration/imagedata.json"
 
 func prepareToolchain(ctx context.Context, selection Result, root string, environment []string, fetcher distributionFetcher) (ToolchainCapture, string, error) {
 	nodePath, err := exec.LookPath("node")
@@ -362,12 +366,24 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 			line = strings.TrimSpace(line)
 			switch {
 			case strings.HasPrefix(line, "Image: "):
+				if capture.ImageLabel != "" {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Image detail line", imageOS, deploymentVersion)
+				}
 				capture.ImageLabel = strings.TrimSpace(strings.TrimPrefix(line, "Image: "))
 			case strings.HasPrefix(line, "Version: "):
+				if capture.ImageVersion != "" {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Version detail line", imageOS, deploymentVersion)
+				}
 				capture.ImageVersion = strings.TrimSpace(strings.TrimPrefix(line, "Version: "))
 			case strings.HasPrefix(line, "Included Software: "):
+				if capture.IncludedSoftwareURL != "" {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Included Software detail line", imageOS, deploymentVersion)
+				}
 				capture.IncludedSoftwareURL = strings.TrimSpace(strings.TrimPrefix(line, "Included Software: "))
 			case strings.HasPrefix(line, "Image Release: "):
+				if capture.ImageReleaseURL != "" {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Image Release detail line", imageOS, deploymentVersion)
+				}
 				capture.ImageReleaseURL = strings.TrimSpace(strings.TrimPrefix(line, "Image Release: "))
 			}
 		}
