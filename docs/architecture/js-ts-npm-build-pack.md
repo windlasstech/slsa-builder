@@ -787,10 +787,10 @@ provisioned runtime's `node --version`. It must read `/imagegeneration/imagedata
 JSON array and select the entry whose `group` is `Runner Image`. That entry's `detail` must contain
 `Image: <label>`, `Version: <full-version>`, `Included Software: <url>`, and `Image Release: <url>`
 lines. If the file is unavailable or malformed, the group or any of those detail lines is
-unavailable or malformed, or the Included Software URL is absent or empty, the profile must stop
-before predicate construction with `windlass.verify.error.input-unavailable` and exit code `2`;
-every such diagnostic carries both observed operands (the `ImageOS` and `ImageVersion` environment
-values) in its message.
+unavailable, malformed, or repeated, or the Included Software URL is absent or empty, the profile
+must stop before predicate construction with `windlass.verify.error.input-unavailable` and exit code
+`2`; every such diagnostic carries both observed operands (the `ImageOS` and `ImageVersion`
+environment values) in its message.
 
 The two environment values have asymmetric roles. `ImageOS` feeds the required `image_os`
 annotation, so an absent `ImageOS` alongside a present `ImageVersion` is an incomplete observation

@@ -112,13 +112,13 @@ Concretely, the runner-image capture clause of the build-and-pack specification 
   is confined to the version axis, and the environment and file OS labels denote the same image line
   under different surface forms.
 - Fail-closed behavior is retained where evidence is genuinely missing or malformed: an unavailable
-  or malformed file, a missing Runner Image group or detail line, or an absent or empty Included
-  Software URL still stops the build before predicate construction with
+  or malformed file, a missing or repeated Runner Image group detail line, or an absent or empty
+  Included Software URL still stops the build before predicate construction with
   `windlass.verify.error.input-unavailable` (exit code `2`), and a descriptor shape violation still
   stops with `windlass.verify.error.resolved-dependencies-runner-image` (exit code `1`). The exact
   equality cross-check between the file version and the environment variable is removed.
-- Every diagnostic on the surviving failure paths carries both observed operand values (the file
-  line and the environment value), so a failure no longer requires a probe round trip to diagnose.
+- Capture-unavailable diagnostics carry the observed `ImageOS` and `ImageVersion` environment
+  values, so a failure no longer requires a probe round trip to diagnose.
 
 The change rides the established observe → ADR → specification → TDD path: the specification
 amendment and conformance fixtures (including an accepted divergence fixture and the retained
