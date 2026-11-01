@@ -192,6 +192,26 @@ func (err inputUnavailableFailure) Error() string { return err.message }
 
 func (inputUnavailableFailure) DiagnosticID() string { return diagnostic.IDInputUnavailable }
 
+type distributionDisagreementFailure struct{ message string }
+
+func (err distributionDisagreementFailure) Error() string { return err.message }
+
+func (distributionDisagreementFailure) DiagnosticID() string {
+	return npmprofile.IDResolvedDependenciesDistribution
+}
+
+func (distributionDisagreementFailure) DiagnosticCheck() string {
+	return "resolvedDependencies.package-manager-distribution"
+}
+
+type inputUnavailableWithCheck struct{ message, check string }
+
+func (err inputUnavailableWithCheck) Error() string { return err.message }
+
+func (inputUnavailableWithCheck) DiagnosticID() string { return diagnostic.IDInputUnavailable }
+
+func (err inputUnavailableWithCheck) DiagnosticCheck() string { return err.check }
+
 type failingReportWriter struct{ cause error }
 
 func (writer failingReportWriter) Write([]byte) (int, error) { return 0, writer.cause }
@@ -251,6 +271,71 @@ func TestWriteNPMBuildInputUnavailable(t *testing.T) {
 	t.Run("report write failure propagates", func(t *testing.T) {
 		cause := errors.New("disk full")
 		classified, err := writeNPMBuildInputUnavailable(failingReportWriter{cause: cause}, inputUnavailableFailure{message: "runner image metadata lacks the Runner Image group"})
+		if !errors.Is(err, cause) || classified {
+			t.Fatalf("classified = %t, err = %v, want the write failure", classified, err)
+		}
+	})
+}
+
+func TestWriteNPMBuildInputUnavailableCheckOrigin(t *testing.T) {
+	t.Run("report check follows the error origin", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildInputUnavailable(&output, inputUnavailableWithCheck{
+			message: "read Corepack distribution metadata: path is not a bounded regular file",
+			check:   "resolvedDependencies.package-manager-distribution",
+		})
+		if err != nil || !classified {
+			t.Fatalf("classified = %t, err = %v, want classified", classified, err)
+		}
+		var report Report
+		if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+			t.Fatalf("decode report: %v", err)
+		}
+		if len(report.Diagnostics) != 1 || report.Diagnostics[0].Check != "resolvedDependencies.package-manager-distribution" {
+			t.Fatalf("report diagnostics = %#v, want the distribution check", report.Diagnostics)
+		}
+	})
+}
+
+func TestWriteNPMBuildDistributionDisagreement(t *testing.T) {
+	t.Run("classified disagreement emits a verification-failure report", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildDistributionDisagreement(&output, distributionDisagreementFailure{message: "corepack acquired pnpm@11.0.0 from unexpected URL"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !classified {
+			t.Fatal("classified distribution disagreement was not recognized")
+		}
+		var report Report
+		if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+			t.Fatalf("decode report: %v", err)
+		}
+		if report.Result != "fail" || report.ExitCode != ExitCodeVerificationFailure {
+			t.Fatalf("report = %#v, want fail with exit code 1", report)
+		}
+		if report.PrimaryID == nil || *report.PrimaryID != npmprofile.IDResolvedDependenciesDistribution {
+			t.Fatalf("primary ID = %#v, want %s", report.PrimaryID, npmprofile.IDResolvedDependenciesDistribution)
+		}
+		if len(report.Diagnostics) != 1 || report.Diagnostics[0].Check != "resolvedDependencies.package-manager-distribution" {
+			t.Fatalf("report diagnostics = %#v, want the distribution check", report.Diagnostics)
+		}
+	})
+
+	t.Run("other diagnostics pass through", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildDistributionDisagreement(&output, inputUnavailableFailure{message: "runner image metadata lacks the Runner Image group"})
+		if err != nil || classified {
+			t.Fatalf("classified = %t, err = %v, want pass-through", classified, err)
+		}
+		if output.Len() != 0 {
+			t.Fatalf("output = %q, want no report for a non-disagreement diagnostic", output.String())
+		}
+	})
+
+	t.Run("report write failure propagates", func(t *testing.T) {
+		cause := errors.New("disk full")
+		classified, err := writeNPMBuildDistributionDisagreement(failingReportWriter{cause: cause}, distributionDisagreementFailure{message: "corepack distribution hash disagrees with acquisition evidence"})
 		if !errors.Is(err, cause) || classified {
 			t.Fatalf("classified = %t, err = %v, want the write failure", classified, err)
 		}

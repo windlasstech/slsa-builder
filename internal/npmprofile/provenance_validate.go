@@ -637,6 +637,12 @@ func (validationError *npmProvenanceValidationError) DiagnosticID() string {
 	return validationError.diagnostic.ID
 }
 
+// DiagnosticCheck exposes the diagnostic's check path so adapters can emit it
+// without hardcoding a per-call-site constant.
+func (validationError *npmProvenanceValidationError) DiagnosticCheck() string {
+	return validationError.diagnostic.Check
+}
+
 func npmValidationError(id, field, message string) error {
 	entry, err := diagnostic.New(id, field, message)
 	if err != nil {

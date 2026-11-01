@@ -127,19 +127,19 @@ func captureDistribution(ctx context.Context, corepackHome string, selection Man
 	reference := selection.Descriptor()
 	distributionURL, err := corepackDistributionURL(commandOutput, manager, version)
 	if err != nil {
-		return nil, err
+		return nil, distributionEvidenceError(err.Error())
 	}
 	wantURL := expectedDistributionURL(manager, version)
 	if distributionURL != wantURL {
-		return nil, fmt.Errorf("corepack acquired %s@%s from unexpected URL %q", manager, version, distributionURL)
+		return nil, distributionDisagreementError(fmt.Sprintf("corepack acquired %s@%s from unexpected URL %q", manager, version, distributionURL))
 	}
 	metadataPath := filepath.Join(corepackHome, "v1", string(manager), version, ".corepack")
 	encoded, err := readBoundedRegularFile(metadataPath, maxCorepackMetadata)
 	if err != nil {
-		return nil, fmt.Errorf("read Corepack distribution metadata: %w", err)
+		return nil, distributionEvidenceError(fmt.Sprintf("read Corepack distribution metadata: %v", err))
 	}
 	if err := canonicaljson.Validate(encoded); err != nil {
-		return nil, fmt.Errorf("validate Corepack distribution metadata: %w", err)
+		return nil, distributionEvidenceError(fmt.Sprintf("validate Corepack distribution metadata: %v", err))
 	}
 	var metadata struct {
 		Locator struct {
@@ -148,13 +148,16 @@ func captureDistribution(ctx context.Context, corepackHome string, selection Man
 		} `json:"locator"`
 		Hash string `json:"hash"`
 	}
-	if err := json.Unmarshal(encoded, &metadata); err != nil || metadata.Locator.Name != string(manager) || metadata.Locator.Reference != reference {
-		return nil, errors.New("corepack distribution metadata disagrees with the executed manager")
+	if err := json.Unmarshal(encoded, &metadata); err != nil {
+		return nil, distributionEvidenceError(fmt.Sprintf("decode Corepack distribution metadata: %v", err))
+	}
+	if metadata.Locator.Name != string(manager) || metadata.Locator.Reference != reference {
+		return nil, distributionDisagreementError("corepack distribution metadata disagrees with the executed manager")
 	}
 	corepackHash := strings.TrimPrefix(metadata.Hash, corepackHashPrefix)
 	decodedHash, err := hex.DecodeString(corepackHash)
 	if err != nil || len(decodedHash) != 64 || metadata.Hash != corepackHashPrefix+corepackHash || strings.ToLower(corepackHash) != corepackHash {
-		return nil, errors.New("corepack distribution metadata lacks a canonical SHA-512 hash")
+		return nil, distributionEvidenceError("corepack distribution metadata lacks a canonical SHA-512 hash")
 	}
 
 	authority := registryDigestSource
@@ -173,10 +176,10 @@ func captureDistribution(ctx context.Context, corepackHome string, selection Man
 		err = errors.New("unsupported Corepack package manager")
 	}
 	if err != nil {
-		return nil, err
+		return nil, distributionEvidenceError(err.Error())
 	}
 	if authoritativeHash != corepackHash {
-		return nil, errors.New("corepack distribution hash disagrees with acquisition evidence")
+		return nil, distributionDisagreementError("corepack distribution hash disagrees with acquisition evidence")
 	}
 	if err := reconcileDeclaredDigest(ctx, selection, distributionURL, authoritativeHash, bundle, fetcher); err != nil {
 		return nil, err
@@ -341,6 +344,17 @@ func captureRunner() (RunnerCapture, error) {
 func runnerCaptureError(message, imageOS, deploymentVersion string) error {
 	return npmValidationError("windlass.verify.error.input-unavailable", "resolvedDependencies.runner-image",
 		fmt.Sprintf("%s (ImageOS=%q, ImageVersion=%q)", message, imageOS, deploymentVersion))
+}
+
+// distributionEvidenceError classifies missing or unreadable Corepack
+// acquisition evidence as input-unavailable (exit 2); a captured disagreement
+// is classified by distributionDisagreementError (exit 1).
+func distributionEvidenceError(message string) error {
+	return npmValidationError("windlass.verify.error.input-unavailable", "resolvedDependencies.package-manager-distribution", message)
+}
+
+func distributionDisagreementError(message string) error {
+	return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution", message)
 }
 
 // parseRunnerMetadata reads the on-disk runner image metadata as the authority
