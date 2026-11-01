@@ -112,7 +112,7 @@ Concretely, the runner-image capture clause of the build-and-pack specification 
   is confined to the version axis, and the environment and file OS labels denote the same image line
   under different surface forms.
 - Fail-closed behavior is retained where evidence is genuinely missing or malformed: an unavailable
-  or malformed file, a missing or repeated Runner Image group detail line, or an absent or empty
+  or malformed file, a missing or repeated Runner Image group or detail line, or an absent or empty
   Included Software URL still stops the build before predicate construction with
   `windlass.verify.error.input-unavailable` (exit code `2`), and a descriptor shape violation still
   stops with `windlass.verify.error.resolved-dependencies-runner-image` (exit code `1`). The exact

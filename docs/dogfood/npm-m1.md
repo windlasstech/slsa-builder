@@ -76,7 +76,9 @@ deleted afterwards) captured the real bytes on the same runner fleet and reprodu
 
 The probe captured one concrete divergence on one runner fleet: the control plane injected the newer
 deployment's version into `ImageVersion` while the VM's baked imagedata.json still carried the
-previous image's version. Read together with the upstream rollout-window reports and the tag absence
+previous image's version. Read together with the upstream rollout-window reports
+([runner-images#11574](https://github.com/actions/runner-images/issues/11574),
+[runner-images#12720](https://github.com/actions/runner-images/issues/12720)) and the tag absence
 below, the observation is consistent with an image rollout in flight; whatever the mechanism, the
 two sources demonstrably diverged, so strict equality between them cannot be assumed. The
 environment variable and the file also disagreed on the OS label form (`ubuntu24` vs
