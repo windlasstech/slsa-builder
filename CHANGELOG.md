@@ -116,6 +116,14 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   now records three dependency descriptors, pnpm and Yarn record four, and no separate `npm-cli`
   descriptor is introduced.
 
+### Changed
+
+- Changed the JS/TS npm profile's `runner-image` provenance descriptor authority (ADR 0100):
+  `image_version` now carries the runner's baked image metadata version verbatim, and the platform's
+  control-plane deployment version is recorded as a separate non-authoritative `deployment_version`
+  annotation. GitHub runner image rollout windows, where the two sources legitimately diverge, no
+  longer fail honest builds.
+
 ### Security
 
 - [CVE-2026-33818](https://osv.dev/vulnerability/CVE-2026-33818),
