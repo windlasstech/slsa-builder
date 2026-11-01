@@ -1,0 +1,26 @@
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_940dc19ccea4fc::t_6a7a4355554c87 1283-1284
+docs/dogfood/npm-m1.md
+  s_940dc19ccea4fc::t_b2940f8243c65b 77-84,98-99,102-104
+  s_940dc19ccea4fc::t_6a7a4355554c87 100-101
+docs/decisions/AGENTS.md
+  s_940dc19ccea4fc::t_6a7a4355554c87 89
+docs/architecture/slsa-provenance-v1.md
+  s_940dc19ccea4fc::t_6a7a4355554c87 21-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a83ab239e56f49d2e43d4b05c83cf7fadd3a6d34",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
