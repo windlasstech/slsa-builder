@@ -274,6 +274,32 @@ ADR 0081. Evidence:
 - Latency of the defect: the equality check entered with PR #68 and was byte-identical at the
   attempt-4 pin; attempts 2 through 4 passed because their runners were outside rollout windows.
 
+### Predecessor precedent: slsa-github-generator
+
+The predecessor project recorded runner image information from environment variables only and never
+cross-checked it against the on-disk image metadata. The Go builder recorded `RUNNER_ARCH` and
+`ImageOS` into the invocation environment and built a runner image release material URL from
+`ImageOS` and `ImageVersion` (`internal/builders/go/pkg/provenance.go`), with no read of
+`/imagegeneration/imagedata.json` and no equality or drift check.
+
+Its later history is directly relevant. Issue
+[slsa-github-generator#1817](https://github.com/slsa-framework/slsa-github-generator/issues/1817)
+("Don't record RUNNER_XXX") observed that these values came from the caller and might not represent
+the runner that actually executed the build, and
+[PR #2010](https://github.com/slsa-framework/slsa-github-generator/pull/2010) removed `IMAGE_OS`,
+`IMAGE_VERSION`, `RUNNER_ARCH`, `RUNNER_NAME`, and `RUNNER_OS` from the generated predicates.
+Reintroduction was deferred until a trustworthy way to retrieve the build job's values exists
+([slsa-github-generator#2027](https://github.com/slsa-framework/slsa-github-generator/issues/2027),
+closed unresolved).
+
+The predecessor therefore answered the "environment values may misrepresent the build runner"
+concern by removal. The probe evidence behind this ADR is a concrete instance of exactly that
+misrepresentation: during a rollout window the environment names an image the virtual machine does
+not contain. This ADR instead keeps the record and repairs its authority: the on-disk metadata is
+authoritative for the image identity, and the environment value is demoted to separate,
+non-authoritative evidence. No handling of per-deployment rollout-window drift exists in the
+predecessor; the file-authoritative mechanism is new ground relative to it.
+
 ### Rollout-window mechanics
 
 This section records why the two version sources diverge, separating what the probe pinned
