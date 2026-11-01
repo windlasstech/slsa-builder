@@ -1280,7 +1280,8 @@ between them (the rollout-window signature) is recorded, never rejected. A valid
 Before candidate predicate construction, the producer must prove that the file exists and parses as
 the documented JSON array, and that its `Runner Image` detail contains `Image`, `Version`, and a
 non-empty `Included Software` URL. The file's `Version:` line is recorded as `image_version` without
-any comparison against `$ImageVersion`. Unavailable capture evidence fails before signing with
+any comparison against `$ImageVersion`. An absent `$ImageVersion` is not a failure:
+`deployment_version` is then null. Unavailable capture evidence fails before signing with
 `windlass.verify.error.input-unavailable`, severity `error`, exit code `2`, with both observed
 environment operands in the diagnostic message; the producer must not guess a URI or validate it
 over the network.

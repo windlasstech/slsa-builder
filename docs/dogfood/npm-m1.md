@@ -74,11 +74,14 @@ deleted afterwards) captured the real bytes on the same runner fleet and reprodu
 - The job header's Runner Image group prints `Version: 20261025.353.1`, matching the file, not the
   environment variable.
 
-The probe pins the platform behavior precisely: during an image rollout window the control plane
-injects the newer deployment's version into `ImageVersion` while the VM's baked imagedata.json still
-carries the previous image's version, so strict equality between the two is not a platform
-invariant. The environment variable and the file also disagree on the OS label form (`ubuntu24` vs
-`ubuntu-24.04`); the current implementation only compares the version. Supporting upstream facts:
+The probe captured one concrete divergence on one runner fleet: the control plane injected the newer
+deployment's version into `ImageVersion` while the VM's baked imagedata.json still carried the
+previous image's version. Read together with the upstream rollout-window reports and the tag absence
+below, the observation is consistent with an image rollout in flight; whatever the mechanism, the
+two sources demonstrably diverged, so strict equality between them cannot be assumed. The
+environment variable and the file also disagreed on the OS label form (`ubuntu24` vs
+`ubuntu-24.04`); the implementation at that run compared only the version. Supporting upstream
+facts:
 
 - The public tag sequence around the deployment is `ubuntu24/20261023.334` →
   `ubuntu24/20261026.354`; no public `ubuntu24/20261025.353` tag exists, so the on-disk image
@@ -92,12 +95,13 @@ trip (compare the `statement-sha256` observability precedent of #95).
 
 ### Resolution path
 
-Same observe → ADR → spec → TDD path as the earlier attempts: pin the empirically observed
-relationship between `ImageVersion` and the imagedata.json Runner Image version (with a
-mutation-free probe capturing the file bytes if a live observation is wanted), amend
-`js-ts-npm-build-pack.md`'s runner-capture clause, fix with TDD, bump the vers-js caller pin, and
-retry. Per the runbook's safety rules no blind retry was attempted; the registry state is untouched
-and `v0.1.3` remains the retry target (no republication occurred, so no version conflict exists).
+The fix followed the same observe → ADR → spec → TDD path as the earlier attempts: the probe above
+pinned the observed relationship, ADR 0100 recorded the authority split, the
+`js-ts-npm-build-pack.md` runner-capture clause was amended, and the TDD implementation landed on
+the fix branch for PR #139. Remaining after that branch merges: bump the vers-js caller pin and
+retry `v0.1.3`. Per the runbook's safety rules no blind retry was attempted; the registry state is
+untouched and `v0.1.3` remains the retry target (no republication occurred, so no version conflict
+exists).
 
 ## P06/M1 acceptance checklist
 

@@ -18,7 +18,9 @@ common contract.
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
   [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
-  and [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md)
+  [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md),
+  and
+  [0100](../decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),

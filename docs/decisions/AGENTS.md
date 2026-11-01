@@ -86,6 +86,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | Project .corepack.env policy   | `0096`–`0097`                                              | Neutralized by a pinned COREPACK_ENV_FILE=0; presence warns. A packed file is rejected at the post-pack gate (0097).                                             |
 | Build-stage Node.js runtime    | `0098`                                                     | Digest-verified release tarball with a committed SHA-256 replaces setup-action and toolcache selection; bundled vs provisioned build npm is a spec-level choice. |
 | Node.js runtime recording      | `0099`                                                     | Digest-verified runtime tarball as a `resolvedDependencies` descriptor (accepted).                                                                               |
+| Runner image identity          | `0100`                                                     | On-disk image metadata is authoritative for `image_version`; the control-plane deployment version is recorded separately as `deployment_version` evidence.       |
 
 ## CONVENTIONS
 
