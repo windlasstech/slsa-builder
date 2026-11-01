@@ -792,6 +792,13 @@ before predicate construction with `windlass.verify.error.input-unavailable` and
 every such diagnostic carries both observed operands (the `ImageOS` and `ImageVersion` environment
 values) in its message.
 
+The two environment values have asymmetric roles. `ImageOS` feeds the required `image_os`
+annotation, so an absent `ImageOS` alongside a present `ImageVersion` is an incomplete observation
+and fails with `windlass.verify.error.input-unavailable`, exit code `2`. An absent `ImageVersion` is
+not a failure: `deployment_version` is then null. When both are absent (a non-GitHub-hosted
+environment), the profile emits no runner observations and the descriptor fails the closed-shape
+checks below.
+
 The canonical name-keyed `runner-image` descriptor `uri` must be the non-empty Included Software URL
 read verbatim from that file. Its annotations must be exactly:
 

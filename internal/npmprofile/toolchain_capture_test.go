@@ -8,7 +8,7 @@ import (
 
 func TestCaptureRunnerEnvironment(t *testing.T) {
 	// Metadata decoding is seam-blocked by /imagegeneration/imagedata.json.
-	// These tests never read or write that fixed host path.
+	// These tests never depend on reading that fixed host path.
 	for _, test := range []struct {
 		name         string
 		imageOS      string
@@ -16,7 +16,6 @@ func TestCaptureRunnerEnvironment(t *testing.T) {
 		wantErr      string
 	}{
 		{name: "no GitHub observations"},
-		{name: "only ImageOS", imageOS: "ubuntu24", wantErr: "runner image observations from GitHub are incomplete"},
 		{name: "only ImageVersion", imageVersion: "20260807.1.0", wantErr: "runner image observations from GitHub are incomplete"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -43,6 +42,20 @@ func TestCaptureRunnerEnvironment(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("ImageVersion absent is tolerated", func(t *testing.T) {
+		// ADR 0100: deployment_version may be null when the platform supplies no
+		// ImageVersion; only the file metadata and ImageOS are load-bearing. This
+		// run must not fail with the incomplete-observations diagnostic. Off a
+		// GitHub runner the fixed metadata path is absent, so a read failure is
+		// the expected outcome there; on a GitHub runner the capture succeeds.
+		t.Setenv("ImageOS", "ubuntu24")
+		t.Setenv("ImageVersion", "")
+		_, err := captureRunner()
+		if err != nil && strings.Contains(err.Error(), "runner image observations from GitHub are incomplete") {
+			t.Fatalf("captureRunner() error = %v; the null deployment_version case must be reachable", err)
+		}
+	})
 }
 
 const runnerSoftwareURL = "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md"

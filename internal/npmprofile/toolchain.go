@@ -321,7 +321,9 @@ func captureRunner() (RunnerCapture, error) {
 	if imageOS == "" && deploymentVersion == "" {
 		return RunnerCapture{}, nil
 	}
-	if imageOS == "" || deploymentVersion == "" {
+	// ADR 0100: only ImageOS is load-bearing (the image_os annotation); an
+	// absent ImageVersion is recorded as a null deployment_version, not failed.
+	if imageOS == "" {
 		return RunnerCapture{}, runnerCaptureError("runner image observations from GitHub are incomplete", imageOS, deploymentVersion)
 	}
 	encoded, err := readBoundedRegularFile(runnerMetadataPath, maxRunnerMetadata)
