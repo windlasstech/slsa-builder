@@ -27,6 +27,8 @@ relations:
     target: ADR-0088
   - type: see-also
     target: ADR-0098
+  - type: see-also
+    target: ADR-0100
 ---
 
 # Record the Digest-Verified Node.js Runtime in resolvedDependencies

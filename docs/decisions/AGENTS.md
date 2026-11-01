@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0099`.
+`0100`.
 
 ## STRUCTURE
 
@@ -31,11 +31,12 @@ docs/decisions/
 ├── 0097-reject-a-packed-corepack-env-at-the-post-pack-artifact-gate.md
 ├── 0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md
 ├── 0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
+├── 0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0099`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0100`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
