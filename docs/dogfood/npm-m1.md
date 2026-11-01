@@ -1,10 +1,10 @@
 ---
-run_id: 41324911503
+run_id: 41348956569
 attempt: 1
 tag: refs/tags/v0.1.3
 commit: ae5bb155d447bbaeeab2c40f79434d4760440546
 operator: yunseo-kim
-date: 2026-11-01T16:10:07Z
+date: 2026-11-01T20:51:04Z
 ---
 
 # npm M1 dogfood evidence
@@ -12,15 +12,90 @@ date: 2026-11-01T16:10:07Z
 ## Run identity
 
 - Caller: `windlasstech/vers-js/.github/workflows/publish.yml`
-- Reusable workflow pin: `e044243a5cffb8f2cd2bc1bdb685b28edb8c5cfd`
-- Invocation ref and revision: `refs/tags/v0.1.3`, `ae5bb155d447bbaeeab2c40f79434d4760440546`
+- Reusable workflow pin: `b2b0d7af1493035346168ae7fdc83f70672ac50e`
+- Invocation ref and revision: `refs/heads/main`, `790ec48f4f8c39ae662208a7e7b2b75278e4703d`
+- Built source ref and revision: `refs/tags/v0.1.3`, `ae5bb155d447bbaeeab2c40f79434d4760440546`
 - Tag object and peeled commit: `ede69038d5878dcc53e29396237537da0a7f7b75`,
   `ae5bb155d447bbaeeab2c40f79434d4760440546`
-- Caller workflow blob SHA (supporting evidence): `605fae9f1c5a58af30740f34fab1f0b748084861`
-- Run URL: <https://github.com/windlasstech/vers-js/actions/runs/41324911503>
-- Event: `push` (tag push of `v0.1.3`), attempt 1
+- Caller workflow blob SHA (supporting evidence): `8139850c75363d716f63faef33bcbaf75701690d`
+- Run URL: <https://github.com/windlasstech/vers-js/actions/runs/41348956569>
+- Event: `workflow_dispatch` (fixed-pipeline retry from `main` with `source-ref: refs/tags/v0.1.3`,
+  per ADR 0079), attempt 1
 - Pre-run registry state: `npm view @windlass/vers-js@0.1.3 version` returned `E404` (version
   absent)
+
+## Outcome: fail-closed at build-and-pack — zero mutation (attempt 6, 12026-11-01)
+
+The run failed in the `Build npm package` job at the `Build and pack selected package` step, after
+the toolchain assertions and during Corepack acquisition capture. The `Sign npm provenance` job was
+skipped, the `Publish npm package` job reported success with every mutation step skipped (no bundle
+handoff), and the caller-side `Publish GitHub Release` job was skipped. Post-run registry state
+confirmed no mutation: `npm view @windlass/vers-js@0.1.3 version` returns `E404`.
+
+Failure diagnostic (verbatim, `npm-profile-build`):
+
+```json
+{
+  "diagnostics": [
+    {
+      "category": "verifier-execution-failure",
+      "check": "command.dispatch",
+      "id": "windlass.verify.error.verifier-execution-failure",
+      "message": "subcommand \"npm-profile-build\" failed: corepack did not report the acquired distribution URL",
+      "severity": "error"
+    }
+  ],
+  "exit_code": 2,
+  "primary_id": "windlass.verify.error.verifier-execution-failure",
+  "result": "fail",
+  "run_invocation": null,
+  "schema_version": "1"
+}
+```
+
+### Newly exercised and passed before the failure
+
+- ADR 0100 runner-image capture (the attempt-5 failure point): the run progressed past
+  `captureRunner` with the on-disk metadata authoritative and the control-plane deployment version
+  recorded as separate evidence — first live pass of the fix.
+- `npm-profile-provision-node` (ADR 0098) and the pre-install toolchain pair assertion (ADR 0085)
+  passed again on the provisioned Node.js 24.22.1 runtime.
+- The Corepack acquisition path was reached for the first time since attempt 4, and the first live
+  exercise of an integrity-suffixed descriptor: `v0.1.3` declares `pnpm@11.28.8+sha512.f6988a32...`
+  (ADR 0092), whereas attempt 4's `v0.1.2` declared the plain `pnpm@11.17.0`. The executed-manager
+  version assertion passed: Corepack resolved and executed pnpm 11.28.8 correctly.
+
+### Root cause (reproduced locally with the provisioned Corepack)
+
+The descriptor carries an integrity suffix, and the acquisition parser keyed Corepack's `Installing`
+debug line on the full descriptor (`pnpm@11.28.8+sha512.f6988a32...`), while Corepack prints the
+plain version in that line. A local reproduction with a fresh `COREPACK_HOME` and `DEBUG=corepack`
+shows the exact line:
+
+```text
+corepack Installing pnpm@11.28.8 from https://registry.npmjs.org/pnpm/-/pnpm-11.28.8.tgz
+```
+
+The reproduction also shows the Corepack cache directory keys on the plain version
+(`v1/pnpm/11.28.8/`), while the `.corepack` metadata's `locator.reference` keeps the full descriptor
+including the hash. Two of the implementation's three keying assumptions therefore disagree with
+live Corepack behavior: the `Installing` line and the cache path are plain-version keyed, and only
+the locator reference is descriptor keyed. The version assertion and the descriptor's own integrity
+still hold, so the failure is a parser/lookup keying defect, not an acquisition or signing defect.
+
+Observability note: the failure diagnostic carries neither Corepack's acquisition output nor the
+expected key, so the root cause required a local reproduction; recording the observed output (or at
+least the expected prefix) in the diagnostic would remove that round trip.
+
+### Resolution path
+
+Same observe → ADR → spec → TDD path as the earlier attempts: record the live Corepack keying
+behavior, decide the parser/lookup correction (candidate: key the `Installing` line and the cache
+path on the plain version, keep the locator `reference` exact match on the full descriptor as the
+integrity binding, and keep the exact acquired-URL equality check), amend the specification, fix
+with TDD, bump the vers-js caller pin, and retry. Per the runbook's safety rules no blind retry was
+attempted; the registry state is untouched and `v0.1.3` remains the retry target (no republication
+occurred, so no version conflict exists).
 
 ## Outcome: fail-closed at build-and-pack — zero mutation (attempt 5, 12026-11-01)
 
