@@ -544,6 +544,22 @@ stops with `windlass.verify.error.input-unavailable` and exit code `2`; a hash o
 disagrees with the selected manager and exact version is a captured disagreement and stops with
 `windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`.
 
+Live Corepack keys the acquisition-time observation surfaces on different descriptor forms, a split
+verified against the Node.js 24.22.1 bundled Corepack during the sixth M1 dogfood and subject to the
+same undocumented-behavior watch as the metadata file itself. The acquisition command's debug output
+carries an `Installing <manager>@<version> from <url>` line keyed on the plain version, and the
+cache directory is likewise keyed on the plain version; a declared digest suffix never appears in
+either. Only the `.corepack` metadata's `locator.reference` carries the full descriptor, digest
+suffix included, and the profile must match it against the selected descriptor exactly. The profile
+must locate the `Installing` line for the selected manager and plain version and must require the
+reported URL to equal the locator-determined distribution URL; an absent or invalid line is missing
+capture evidence and stops with `windlass.verify.error.input-unavailable` and exit code `2`, and a
+URL disagreement is a captured disagreement and stops with
+`windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`.
+Implementations and their test doubles must preserve this keying split: keying the debug line or the
+cache path on the full descriptor misreads every digest-suffixed declaration as missing evidence,
+and a test double that keys every surface uniformly masks exactly that regression.
+
 - For pnpm, the profile must obtain the SHA-512 `dist.integrity` value from authenticated registry
   metadata for the actual Corepack distribution, decode the `sha512-<base64>` SRI value to bytes,
   and encode those bytes as exactly 128 lowercase hexadecimal characters in `digest.sha512`. Its
