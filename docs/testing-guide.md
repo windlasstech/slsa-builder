@@ -163,6 +163,14 @@ Use a helper such as `requireLiveToolchain(t)` that calls `t.Helper()` and then
 `t.Skip("live toolchain test: set SLSA_BUILDER_LIVE_TOOLCHAIN=1 to run")` when the variable is
 absent. These tests never run in CI; they are reserved for manual dogfood verification.
 
+Hermetic doubles for an external tool must reproduce that tool's observed behavior asymmetries, not
+an idealized uniform model. The sixth M1 dogfood is the reference case: the Corepack shim double
+keyed the cache directory and the `Installing` debug line on the full descriptor reference, while
+live Corepack keys both on the plain version, so the declared-digest tests passed against a behavior
+no platform exhibits. A double that smooths over such a split masks exactly the regression it exists
+to catch; when a live dogfood pins an external tool's real behavior, update the double first so the
+existing suite goes red before the production fix lands.
+
 ## Fuzzing
 
 Fuzzing is the centerpiece of testing on this repository's trust boundary. Go 1.18 made Go the first
