@@ -25,6 +25,8 @@ relations:
       the runner-image descriptor and its resolvedDependencies recording remain in force"
   - type: see-also
     target: ADR-0099
+  - type: see-also
+    target: ADR-0100
 ---
 
 # Provision the Build-Stage Node.js Runtime from a Digest-Verified Release Tarball

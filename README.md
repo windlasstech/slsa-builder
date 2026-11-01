@@ -238,6 +238,21 @@ alternatives have the following limitations.
       [ADR 0079](./docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
       [ADR 0080](./docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
       [osv-scanner#632](https://github.com/google/osv-scanner/issues/632)
+  - The attempt to record the runner image and environment was abandoned over trust concerns.
+    slsa-github-generator recorded the `RUNNER_ARCH`, `ImageOS`, and `ImageVersion` environment
+    variable values in its provenance and included a URL pointing to the runner-images release in
+    the SLSA v0.2 `materials` array. However,
+    [slsa-github-generator#1817](https://github.com/slsa-framework/slsa-github-generator/issues/1817)
+    observed that these values came from the caller and might not describe the runner that actually
+    executed the build, and
+    [PR #2010](https://github.com/slsa-framework/slsa-github-generator/pull/2010) removed them from
+    the predicates it generates. Reintroduction was deferred until a trustworthy way to retrieve the
+    build job's values exists
+    ([slsa-github-generator#2027](https://github.com/slsa-framework/slsa-github-generator/issues/2027),
+    closed without resolution), so the emitted provenance never included a dependable record of the
+    runner environment.
+    - See:
+      [ADR 0100](./docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)
 - **GitHub `actions/attest`:**
   - GitHub Artifact Attestations (the [`attest` action](https://github.com/actions/attest)) make it
     possible to build and distribute packages on the GitHub Actions platform while meeting SLSA
@@ -328,6 +343,13 @@ alternatives have the following limitations.
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md);
   spec: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
+- **Truthful runner-image provenance through GitHub image rollouts:** In signed provenance,
+  slsa-builder takes the `runner-image` descriptor's `image_version` and software-report `uri`
+  verbatim from the VM's baked `/imagegeneration/imagedata.json`, and records the control-plane
+  `ImageVersion` separately as non-authoritative deployment evidence in `deployment_version`, so any
+  divergence is preserved as the rollout signature rather than treated as a build failure. Genuinely
+  missing or malformed evidence still fails closed, with diagnostics carrying both observed operands
+  ([ADR 0100](docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)).
 
 ## Features
 

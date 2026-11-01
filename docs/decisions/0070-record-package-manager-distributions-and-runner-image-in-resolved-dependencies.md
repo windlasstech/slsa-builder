@@ -58,6 +58,18 @@ relations:
       covered by the runtime descriptor, as do the closed-descriptor-set discipline, the lockfile,
       package-manager-distribution, and runner-image descriptors, and the source-native
       digest-authority discipline"
+  - type: partially-superseded-by
+    target: ADR-0100
+    scope:
+      "the clause identifying the runner image's honest observable identity with the environment
+      observation ('the honest observable identity is the runner image version and its software
+      report, exposed at runtime through ImageOS and ImageVersion') and the matching Confirmation
+      clause ('the runtime observation of ImageOS/ImageVersion'): the runner-image descriptor's
+      version identity is recorded from the on-disk /imagegeneration/imagedata.json metadata, and
+      the ImageVersion environment value is recorded separately as non-authoritative control-plane
+      deployment evidence. The recording obligation, the runner-image descriptor's presence in the
+      closed descriptor set, the no-distribution-digest rationale, and the source-native
+      digest-authority discipline remain in force"
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies

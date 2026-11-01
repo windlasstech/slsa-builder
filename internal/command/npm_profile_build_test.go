@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
@@ -67,7 +68,7 @@ func TestNPMProfileBuildCommand(t *testing.T) {
 	}))
 	t.Cleanup(registry.Close)
 	err = npmProfileBuildCommand{httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
-		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", DeploymentVersion: "20260801.1.1", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
 	}}.Execute(ctx, []string{
 		"--repository-root", repository,
 		"--package-directory", ".",
@@ -181,6 +182,77 @@ func TestWriteNPMBuildDigestMismatch(t *testing.T) {
 		}
 		if output.Len() != 0 {
 			t.Fatalf("output = %q, want no report for an unclassified error", output.String())
+		}
+	})
+}
+
+type inputUnavailableFailure struct{ message string }
+
+func (err inputUnavailableFailure) Error() string { return err.message }
+
+func (inputUnavailableFailure) DiagnosticID() string { return diagnostic.IDInputUnavailable }
+
+type failingReportWriter struct{ cause error }
+
+func (writer failingReportWriter) Write([]byte) (int, error) { return 0, writer.cause }
+
+func TestWriteNPMBuildInputUnavailable(t *testing.T) {
+	t.Run("classified input-unavailable emits an invocation-failure report", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildInputUnavailable(&output, inputUnavailableFailure{message: "runner image metadata lacks the Runner Image group"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !classified {
+			t.Fatal("classified input-unavailable error was not recognized")
+		}
+		var report Report
+		if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+			t.Fatalf("decode report: %v", err)
+		}
+		if report.Result != "fail" || report.ExitCode != ExitCodeInvocationFailure {
+			t.Fatalf("report = %#v, want fail with exit code 2", report)
+		}
+		if report.PrimaryID == nil || *report.PrimaryID != diagnostic.IDInputUnavailable {
+			t.Fatalf("primary ID = %#v, want %s", report.PrimaryID, diagnostic.IDInputUnavailable)
+		}
+	})
+
+	t.Run("other diagnostics pass through", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildInputUnavailable(&output, digestMismatchFailure{message: "declared digest mismatch"})
+		if err != nil || classified {
+			t.Fatalf("classified = %t, err = %v, want pass-through", classified, err)
+		}
+		if output.Len() != 0 {
+			t.Fatalf("output = %q, want no report for a non-input-unavailable diagnostic", output.String())
+		}
+	})
+
+	t.Run("unclassified errors pass through", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildInputUnavailable(&output, errors.New("corepack did not report the acquired distribution URL"))
+		if err != nil || classified {
+			t.Fatalf("classified = %t, err = %v, want pass-through", classified, err)
+		}
+		if output.Len() != 0 {
+			t.Fatalf("output = %q, want no report for an unclassified error", output.String())
+		}
+	})
+
+	t.Run("empty message fails report construction", func(t *testing.T) {
+		var output bytes.Buffer
+		classified, err := writeNPMBuildInputUnavailable(&output, inputUnavailableFailure{})
+		if err == nil || classified {
+			t.Fatalf("classified = %t, err = %v, want a report construction failure", classified, err)
+		}
+	})
+
+	t.Run("report write failure propagates", func(t *testing.T) {
+		cause := errors.New("disk full")
+		classified, err := writeNPMBuildInputUnavailable(failingReportWriter{cause: cause}, inputUnavailableFailure{message: "runner image metadata lacks the Runner Image group"})
+		if !errors.Is(err, cause) || classified {
+			t.Fatalf("classified = %t, err = %v, want the write failure", classified, err)
 		}
 	})
 }

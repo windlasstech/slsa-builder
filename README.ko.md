@@ -233,6 +233,19 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
       [ADR 0079](./docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
       [ADR 0080](./docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
       [osv-scanner#632](https://github.com/google/osv-scanner/issues/632)
+  - 러너 이미지와 실행 환경을 기록하려는 시도는 신뢰성 문제로 중단됐습니다. slsa-github-generator는
+    `RUNNER_ARCH`, `ImageOS`, `ImageVersion` 환경변수 값을 출처 증명에 기록하고, SLSA v0.2의
+    `materials` 배열에 러너 이미지 릴리스를 가리키는 URL을 함께 기록했습니다. 그러나
+    [slsa-github-generator#1817](https://github.com/slsa-framework/slsa-github-generator/issues/1817)에서는
+    이 값들이 호출자로부터 전달돼 실제 빌드를 수행한 러너를 나타내지 않을 수 있다는 문제가 제기됐고,
+    [PR #2010](https://github.com/slsa-framework/slsa-github-generator/pull/2010)에서는
+    slsa-github-generator가 생성하는 predicate에서 해당 값들이 제거됐습니다. 재도입은 빌드 잡의 값을
+    신뢰할 수 있는 방법으로 가져올 수 있을 때까지 유예됐으며
+    ([slsa-github-generator#2027](https://github.com/slsa-framework/slsa-github-generator/issues/2027),
+    미해결 종료), 결국 생성되는 출처 증명에는 신뢰할 수 있는 러너 환경 정보가 포함되지 않게
+    됐습니다.
+    - 참고:
+      [ADR 0100](./docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)
 - **GitHub `actions/attest`:**
   - GitHub Artifact Attestations, 즉 [`attest` 액션](https://github.com/actions/attest)을 활용하면
     GitHub Actions 플랫폼에서 SLSA Build L3 요건을 충족하면서 패키지를 빌드 및 배포하는 것이
@@ -321,6 +334,13 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   ([ADR 0079](docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   [ADR 0080](docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
   명세: [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md)).
+- **롤아웃 중에도 실제 환경을 반영하는 러너 이미지 출처 증명:** slsa-builder는 서명된 출처 증명에서
+  `runner-image` descriptor의 `image_version`과 소프트웨어 보고서 `uri`를 VM 이미지에 내장된
+  `/imagegeneration/imagedata.json`에서 그대로 가져오고, 컨트롤 플레인의 `ImageVersion` 값은 권위를
+  갖지 않는 배포 증거로 `deployment_version`에 별도 기록하여 두 값의 불일치를 빌드 실패가 아니라
+  롤아웃 시그니처로 보존합니다. 증거가 실제로 누락됐거나 형식이 잘못된 경우에는 여전히 fail-closed로
+  빌드를 중단하며, 진단에는 관측된 두 값이 모두 담깁니다
+  ([ADR 0100](docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)).
 
 ## 기능
 

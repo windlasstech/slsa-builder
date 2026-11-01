@@ -136,6 +136,12 @@ func TestProvenanceMatrixDependencyRejections(t *testing.T) {
 		{"runner empty annotation", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["image_os"] = json.RawMessage(`""`) }},
 		{"runner annotation type", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["image_version"] = json.RawMessage(`123`) }},
 		{"runner node mismatch", "runner-image", ".annotations.node_version", func(d *provenance.ResourceDescriptor) { d.Annotations["node_version"] = json.RawMessage(`"v24.1.0"`) }},
+		{"runner missing deployment annotation", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) {
+			delete(d.Annotations, "deployment_version")
+			d.Annotations["unrelated"] = json.RawMessage(`"x"`)
+		}},
+		{"runner deployment annotation type", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["deployment_version"] = json.RawMessage(`123`) }},
+		{"runner deployment empty annotation", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["deployment_version"] = json.RawMessage(`""`) }},
 	}
 	ids := map[string]string{"lockfile": IDResolvedDependenciesLockfile, "node-runtime": "windlass.verify.error.resolved-dependencies-node-runtime", "package-manager-distribution": IDResolvedDependenciesDistribution, "runner-image": IDResolvedDependenciesRunnerImage}
 	for _, test := range tests {

@@ -1257,15 +1257,19 @@ Every manager selection requires exactly one `runner-image` descriptor with exac
 and `annotations`. A `digest` member is prohibited. `uri` is the non-empty `Included Software`
 software-report URL read verbatim from the `Runner Image` entry in
 `/imagegeneration/imagedata.json`; it must never be derived, reconstructed, or rewritten from image
-labels or versions. The annotations contain exactly `image_os`, `image_version`, and `node_version`:
-the observed `$ImageOS`, the observed `$ImageVersion`, and the exact observed `node --version`
-output. A valid descriptor is:
+labels or versions. The annotations contain exactly `deployment_version`, `image_os`,
+`image_version`, and `node_version` (ADR 0100): the observed `$ImageVersion` environment value or
+null, the observed `$ImageOS`, the on-disk file's `Version:` line verbatim, and the exact observed
+`node --version` output. `image_version` is authoritative for the image identity;
+`deployment_version` is non-authoritative control-plane deployment evidence, and a divergence
+between them (the rollout-window signature) is recorded, never rejected. A valid descriptor is:
 
 ```json
 {
   "name": "runner-image",
   "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
   "annotations": {
+    "deployment_version": "20260801.1.1",
     "image_os": "ubuntu24",
     "image_version": "20260801.1.0",
     "node_version": "v24.22.1"
@@ -1274,11 +1278,13 @@ output. A valid descriptor is:
 ```
 
 Before candidate predicate construction, the producer must prove that the file exists and parses as
-the documented JSON array, that its `Runner Image` detail contains `Image`, `Version`, and a
-non-empty `Included Software` URL, that `Version` equals `$ImageVersion`, and that `Image` is
-consistent with `$ImageOS`. Unavailable capture evidence fails before signing with
-`windlass.verify.error.input-unavailable`, severity `error`, exit code `2`; the producer must not
-guess a URI or validate it over the network.
+the documented JSON array, and that its `Runner Image` detail contains `Image`, `Version`, and a
+non-empty `Included Software` URL. The file's `Version:` line is recorded as `image_version` without
+any comparison against `$ImageVersion`. An absent `$ImageVersion` is not a failure:
+`deployment_version` is then null. Unavailable capture evidence fails before signing with
+`windlass.verify.error.input-unavailable`, severity `error`, exit code `2`, with both observed
+environment operands in the diagnostic message; the producer must not guess a URI or validate it
+over the network.
 
 This invalid descriptor carries a prohibited digest:
 
@@ -1290,6 +1296,7 @@ This invalid descriptor carries a prohibited digest:
     "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
   },
   "annotations": {
+    "deployment_version": "20260801.1.1",
     "image_os": "ubuntu24",
     "image_version": "20260801.1.0",
     "node_version": "v24.22.1"

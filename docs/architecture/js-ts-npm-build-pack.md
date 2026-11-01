@@ -776,28 +776,50 @@ section only.
 
 ADR 0070 records the GitHub-hosted runner image that hosts the build; under ADR 0098 the image no
 longer supplies the Node.js runtime, which is provisioned per the digest-verified runtime
-provisioning section above. At build time, the profile must observe `ImageOS`, `ImageVersion`, and
-the exact output of the provisioned runtime's `node --version`. It must read
-`/imagegeneration/imagedata.json` verbatim as a JSON array and select the entry whose `group` is
-`Runner Image`. That entry's `detail` must contain `Image: <label>`, `Version: <full-version>`,
-`Included Software: <url>`, and `Image Release: <url>` lines. If the file is unavailable or
-malformed, the group or detail lines are unavailable or malformed, the image label is inconsistent
-with `$ImageOS`, `Version` differs from `$ImageVersion`, or the Included Software URL is absent or
-empty, the profile must stop before predicate construction with
-`windlass.verify.error.input-unavailable` and exit code `2`.
+provisioning section above. ADR 0100 fixes the authority split between the two platform sources:
+during a runner image rollout window the Actions control plane injects the incoming deployment's
+version into `ImageVersion` while the virtual machine's baked `/imagegeneration/imagedata.json`
+still describes the previous image, so strict equality between the two is not a platform invariant
+and must not be required.
+
+At build time, the profile must observe `ImageOS`, `ImageVersion`, and the exact output of the
+provisioned runtime's `node --version`. It must read `/imagegeneration/imagedata.json` verbatim as a
+JSON array and select the entry whose `group` is `Runner Image`. That entry's `detail` must contain
+`Image: <label>`, `Version: <full-version>`, `Included Software: <url>`, and `Image Release: <url>`
+lines. If the file is unavailable or malformed, the group or any of those detail lines is
+unavailable, malformed, or repeated, or the Included Software URL is absent or empty, the profile
+must stop before predicate construction with `windlass.verify.error.input-unavailable` and exit code
+`2`; every such diagnostic carries both observed operands (the `ImageOS` and `ImageVersion`
+environment values) in its message.
+
+The two environment values have asymmetric roles. `ImageOS` feeds the required `image_os`
+annotation, so an absent `ImageOS` alongside a present `ImageVersion` is an incomplete observation
+and fails with `windlass.verify.error.input-unavailable`, exit code `2`. An absent `ImageVersion` is
+not a failure: `deployment_version` is then null. When both are absent (a non-GitHub-hosted
+environment), the profile emits no runner observations and the descriptor fails the closed-shape
+checks below.
 
 The canonical name-keyed `runner-image` descriptor `uri` must be the non-empty Included Software URL
-read verbatim from that file. Its annotations must be `image_os: $ImageOS`,
-`image_version: $ImageVersion`, and `node_version` equal to the exact observed `node --version`
-output of the provisioned runtime. The profile must not derive, reconstruct, or rewrite an
-undocumented runner URL from `ImageOS`, `ImageVersion`, or another source. A captured malformed
-runner descriptor, including a digest member or a mismatch with these observations, must stop before
-predicate construction with `windlass.verify.error.resolved-dependencies-runner-image` and exit code
-`1`.
+read verbatim from that file. Its annotations must be exactly:
 
-No network validation of the Included Software URL is required. If GitHub removes or reshapes the
-file, producers fail closed before signing with `windlass.verify.error.input-unavailable` and exit
-code `2`; they must not emit guessed provenance.
+- `image_os`: the observed `$ImageOS` environment value;
+- `image_version`: the file's `Version:` line, verbatim. The on-disk metadata is authoritative for
+  the image identity;
+- `deployment_version`: the observed `$ImageVersion` environment value verbatim, or null when the
+  platform supplied none. It is non-authoritative control-plane deployment evidence: a divergence
+  between `image_version` and `deployment_version` is a recorded fact (the rollout-window
+  signature), never a failure, and the profile must not compare the two;
+- `node_version`: the exact observed `node --version` output of the provisioned runtime.
+
+The profile must not derive, reconstruct, or rewrite an undocumented runner URL from `ImageOS`,
+`ImageVersion`, or another source. A captured malformed runner descriptor, including a digest member
+or a mismatch with these observations, must stop before predicate construction with
+`windlass.verify.error.resolved-dependencies-runner-image` and exit code `1`.
+
+No network validation of the Included Software URL is required. During a rollout window the URL may
+dangle because the recorded image can precede its published tag; the recorded URL still names the
+image. If GitHub removes or reshapes the file, producers fail closed before signing with
+`windlass.verify.error.input-unavailable` and exit code `2`; they must not emit guessed provenance.
 
 ## Capture timing and signing boundary
 
@@ -1090,7 +1112,7 @@ must emit the canonical diagnostic ID.
 | The observed Node.js or bundled npm version differs from the pinned toolchain pair at the pre-install pair assertion.                                                                                                                                                              | `windlass.verify.error.toolchain-pair-mismatch`                            | `toolchain-pair-mismatch`                            | pre-mutation | `1`       | `false`             |
 | Required package-manager distribution or runner-image capture evidence is unavailable before predicate construction.                                                                                                                                                               | `windlass.verify.error.input-unavailable`                                  | `input-unavailable`                                  | invocation   | `2`       | `false`             |
 | Captured package-manager distribution evidence has the wrong authority or version, contradicts the selected manager, uses a Known Good Release fallback or ambient manager, changes the Corepack acquisition path through a registry override, or produces a malformed descriptor. | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | `resolved-dependencies-package-manager-distribution` | verification | `1`       | `false`             |
-| Captured runner-image evidence has a malformed descriptor, carries a digest, or disagrees with the observed runner values.                                                                                                                                                         | `windlass.verify.error.resolved-dependencies-runner-image`                 | `resolved-dependencies-runner-image`                 | verification | `1`       | `false`             |
+| Captured runner-image evidence has a malformed descriptor, carries a digest, or disagrees with the captured runner observations.                                                                                                                                                   | `windlass.verify.error.resolved-dependencies-runner-image`                 | `resolved-dependencies-runner-image`                 | verification | `1`       | `false`             |
 | `repository` is missing, malformed, unsupported, or normalizes to an identity different from the observed caller repository.                                                                                                                                                       | `windlass.verify.error.package-repository-identity-mismatch`               | `package-repository-identity-mismatch`               | policy       | `1`       | `false`             |
 | Packed `name` or `version` differs from the selected source manifest.                                                                                                                                                                                                              | `windlass.verify.error.packed-package-metadata-mismatch`                   | `packed-package-metadata-mismatch`                   | verification | `1`       | `false`             |
 | A packed tarball entry's final path segment is `.corepack.env`.                                                                                                                                                                                                                    | `windlass.verify.error.packed-corepack-env-prohibited`                     | `packed-corepack-env-prohibited`                     | verification | `1`       | `false`             |
@@ -1145,6 +1167,8 @@ signing or publishing. Exit code `2` identifies unusable locally required captur
   ambient pnpm or Yarn, and a registry override that changes the Corepack acquisition path each emit
   `windlass.verify.error.resolved-dependencies-package-manager-distribution`, exit `1`, and stop
   before signing.
-- A reconstructed or guessed runner URL, a runner URL missing from the `Runner Image` detail, and
-  runner label, version, Node.js version, or descriptor-shape mismatches each stop before signing
-  with their specified runner-image or input-unavailable diagnostic and expected exit code.
+- A reconstructed or guessed runner URL, a runner URL missing from the `Runner Image` detail, a
+  runner Node.js version mismatch, or a descriptor-shape mismatch each stop before signing with
+  their specified runner-image or input-unavailable diagnostic and expected exit code. A divergence
+  between the file-recorded `image_version` and the environment-recorded `deployment_version` is not
+  a failure (ADR 0100).

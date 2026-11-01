@@ -146,6 +146,16 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		if classified {
 			return ErrVerificationFailure
 		}
+		// ADR 0100: runner-image capture failures are classified as
+		// input-unavailable (exit code 2) per the build-and-pack specification,
+		// not as an unclassified invocation failure.
+		classified, writeErr = writeNPMBuildInputUnavailable(out, err)
+		if writeErr != nil {
+			return writeErr
+		}
+		if classified {
+			return ErrInvocationFailure
+		}
 		return err
 	}
 	finishedOn := now().UTC().Truncate(time.Second).Format(time.RFC3339)
@@ -202,6 +212,28 @@ func writeNPMBuildDigestMismatch(out io.Writer, err error) (bool, error) {
 		return false, nil
 	}
 	entry, buildErr := diagnostic.New(identified.DiagnosticID(), "package_manager.digest", err.Error())
+	if buildErr != nil {
+		return false, buildErr
+	}
+	report, buildErr := diagnostic.Build(nil, []diagnostic.Diagnostic{entry}, nil)
+	if buildErr != nil {
+		return false, buildErr
+	}
+	if writeErr := WriteReport(out, report); writeErr != nil {
+		return false, writeErr
+	}
+	return true, nil
+}
+
+// writeNPMBuildInputUnavailable mirrors writeNPMBuildDigestMismatch for the
+// ADR 0100 runner-image capture classification: it emits the invocation-stage
+// report and reports whether err carried the input-unavailable diagnostic ID.
+func writeNPMBuildInputUnavailable(out io.Writer, err error) (bool, error) {
+	var identified interface{ DiagnosticID() string }
+	if !errors.As(err, &identified) || identified.DiagnosticID() != diagnostic.IDInputUnavailable {
+		return false, nil
+	}
+	entry, buildErr := diagnostic.New(identified.DiagnosticID(), "resolvedDependencies.runner-image", err.Error())
 	if buildErr != nil {
 		return false, buildErr
 	}

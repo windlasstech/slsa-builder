@@ -300,9 +300,10 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 		{
 			Name: "runner-image", URI: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
 			Annotations: map[string]json.RawMessage{
-				"image_os":      mustMarshalSignJSON(t, "ubuntu24"),
-				"image_version": mustMarshalSignJSON(t, "20260801.1.0"),
-				"node_version":  mustMarshalSignJSON(t, "v24.0.0"),
+				"deployment_version": mustMarshalSignJSON(t, "20260801.1.1"),
+				"image_os":           mustMarshalSignJSON(t, "ubuntu24"),
+				"image_version":      mustMarshalSignJSON(t, "20260801.1.0"),
+				"node_version":       mustMarshalSignJSON(t, "v24.0.0"),
 			},
 		},
 	}

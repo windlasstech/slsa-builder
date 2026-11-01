@@ -469,7 +469,7 @@ func validateDistributionDescriptor(value provenance.ResourceDescriptor, paramet
 }
 
 func validateRunnerDescriptor(value provenance.ResourceDescriptor, nodeVersion string) error {
-	if value.URI == "" || len(value.Digest) != 0 || len(value.Annotations) != 3 {
+	if value.URI == "" || len(value.Digest) != 0 || len(value.Annotations) != 4 {
 		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image", "runner-image must have URI and annotations without a digest")
 	}
 	parsed, err := url.Parse(value.URI)
@@ -483,6 +483,19 @@ func validateRunnerDescriptor(value provenance.ResourceDescriptor, nodeVersion s
 		}
 		if name == "node_version" && text != "v"+nodeVersion {
 			return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations.node_version", "runner Node.js version differs from external parameters")
+		}
+	}
+	// ADR 0100: deployment_version is the control-plane deployment evidence; it
+	// is null when the platform supplied no ImageVersion, otherwise a non-empty
+	// string. It is never compared against image_version.
+	rawDeployment, present := value.Annotations["deployment_version"]
+	if !present {
+		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations", "runner-image annotations must carry deployment_version")
+	}
+	if string(rawDeployment) != "null" {
+		var deployment string
+		if json.Unmarshal(rawDeployment, &deployment) != nil || deployment == "" {
+			return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations", "runner-image deployment_version must be null or a non-empty string")
 		}
 	}
 	return nil

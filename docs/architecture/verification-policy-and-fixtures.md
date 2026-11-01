@@ -577,12 +577,15 @@ and uses `windlass.verify.error.input-unavailable` with exit code `2`, not the r
 diagnostic.
 
 The `runner-image` descriptor has no `digest`; its `uri` is the verbatim `Included Software` report
-URL read from `/imagegeneration/imagedata.json`, and its closed annotations are `image_os`,
-`image_version`, and `node_version`. Capture must confirm the documented file shape, the `ImageOS`
-and `ImageVersion` correspondence, and the exact observed `node --version` before predicate
-construction. Capture evidence unavailable at that stage fails with
-`windlass.verify.error.input-unavailable` and exit code `2`; a constructed descriptor that violates
-this shape fails with the narrow runner-image diagnostic.
+URL read from `/imagegeneration/imagedata.json`, and its closed annotations are
+`deployment_version`, `image_os`, `image_version`, and `node_version` (ADR 0100). `image_version`
+carries the file's `Version:` line and is authoritative for the image identity; `deployment_version`
+carries the `$ImageVersion` environment value (or null) as non-authoritative control-plane
+deployment evidence, and is never compared against `image_version`. Capture must confirm the
+documented file shape and the exact observed `node --version` before predicate construction. Capture
+evidence unavailable at that stage fails with `windlass.verify.error.input-unavailable` and exit
+code `2`, with both observed environment operands in the diagnostic message; a constructed
+descriptor that violates this shape fails with the narrow runner-image diagnostic.
 
 `builder.version` is closed: it contains required lowercase `nodejs` and contains lowercase
 `corepack` only when Corepack supplied the selected manager. Missing or extra keys, wrong
@@ -625,6 +628,7 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
       "name": "runner-image",
       "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
       "annotations": {
+        "deployment_version": "20260801.1.1",
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
         "node_version": "v24.22.1"
@@ -660,6 +664,7 @@ because the runner image carries a digest:
       "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
       "digest": { "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" },
       "annotations": {
+        "deployment_version": "20260801.1.1",
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
         "node_version": "v24.22.1"

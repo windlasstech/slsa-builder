@@ -115,6 +115,10 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   `linux-x64` tarball URL and SHA-256 plus `builder-pinned-record` and `platform` annotations. npm
   now records three dependency descriptors, pnpm and Yarn record four, and no separate `npm-cli`
   descriptor is introduced.
+- Added the `runner-image` build-environment descriptor to JS/TS npm provenance (ADR 0100): the
+  descriptor's `image_version` carries the runner VM's baked image metadata version verbatim, while
+  the platform's control-plane deployment version is recorded as a separate non-authoritative
+  `deployment_version` annotation, so GitHub runner image rollout windows do not fail honest builds.
 
 ### Security
 
