@@ -20,6 +20,7 @@
       "name": "runner-image",
       "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
       "annotations": {
+        "deployment_version": "20260801.1.1",
         "image_os": "ubuntu24",
         "image_version": "20260801.1.0",
         "node_version": "v24.0.0"

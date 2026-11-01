@@ -316,26 +316,41 @@ func fetchHTTPS(ctx context.Context, rawURL string, maximum int64, accept string
 }
 
 func captureRunner() (RunnerCapture, error) {
-	capture := RunnerCapture{ImageOS: os.Getenv("ImageOS"), ImageVersion: os.Getenv("ImageVersion")}
-	if capture.ImageOS == "" && capture.ImageVersion == "" {
-		return capture, nil
+	imageOS := os.Getenv("ImageOS")
+	deploymentVersion := os.Getenv("ImageVersion")
+	if imageOS == "" && deploymentVersion == "" {
+		return RunnerCapture{}, nil
 	}
-	if capture.ImageOS == "" || capture.ImageVersion == "" {
-		return RunnerCapture{}, errors.New("runner image observations from GitHub are incomplete")
+	if imageOS == "" || deploymentVersion == "" {
+		return RunnerCapture{}, runnerCaptureError("runner image observations from GitHub are incomplete", imageOS, deploymentVersion)
 	}
 	encoded, err := readBoundedRegularFile(runnerMetadataPath, maxRunnerMetadata)
 	if err != nil {
-		return RunnerCapture{}, fmt.Errorf("read GitHub runner image metadata: %w", err)
+		return RunnerCapture{}, runnerCaptureError(fmt.Sprintf("read GitHub runner image metadata: %v", err), imageOS, deploymentVersion)
 	}
+	return parseRunnerMetadata(encoded, imageOS, deploymentVersion)
+}
+
+func runnerCaptureError(message, imageOS, deploymentVersion string) error {
+	return npmValidationError("windlass.verify.error.input-unavailable", "resolvedDependencies.runner-image",
+		fmt.Sprintf("%s (ImageOS=%q, ImageVersion=%q)", message, imageOS, deploymentVersion))
+}
+
+// parseRunnerMetadata reads the on-disk runner image metadata as the authority
+// for the image identity (ADR 0100). The control-plane deploymentVersion is
+// recorded as separate evidence and never compared for equality: during an
+// image rollout window the two legitimately diverge.
+func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (RunnerCapture, error) {
+	capture := RunnerCapture{ImageOS: imageOS, DeploymentVersion: deploymentVersion}
 	if err := canonicaljson.Validate(encoded); err != nil {
-		return RunnerCapture{}, fmt.Errorf("validate GitHub runner image metadata: %w", err)
+		return RunnerCapture{}, runnerCaptureError(fmt.Sprintf("validate GitHub runner image metadata: %v", err), imageOS, deploymentVersion)
 	}
 	var groups []struct {
 		Group  string `json:"group"`
 		Detail string `json:"detail"`
 	}
 	if err := json.Unmarshal(encoded, &groups); err != nil {
-		return RunnerCapture{}, fmt.Errorf("decode GitHub runner image metadata: %w", err)
+		return RunnerCapture{}, runnerCaptureError(fmt.Sprintf("decode GitHub runner image metadata: %v", err), imageOS, deploymentVersion)
 	}
 	for _, group := range groups {
 		if group.Group != "Runner Image" {
@@ -347,19 +362,17 @@ func captureRunner() (RunnerCapture, error) {
 			case strings.HasPrefix(line, "Image: "):
 				capture.ImageLabel = strings.TrimSpace(strings.TrimPrefix(line, "Image: "))
 			case strings.HasPrefix(line, "Version: "):
-				if strings.TrimSpace(strings.TrimPrefix(line, "Version: ")) != capture.ImageVersion {
-					return RunnerCapture{}, errors.New("runner image metadata version disagrees with ImageVersion")
-				}
+				capture.ImageVersion = strings.TrimSpace(strings.TrimPrefix(line, "Version: "))
 			case strings.HasPrefix(line, "Included Software: "):
 				capture.IncludedSoftwareURL = strings.TrimSpace(strings.TrimPrefix(line, "Included Software: "))
 			case strings.HasPrefix(line, "Image Release: "):
 				capture.ImageReleaseURL = strings.TrimSpace(strings.TrimPrefix(line, "Image Release: "))
 			}
 		}
-		if capture.ImageLabel == "" || capture.IncludedSoftwareURL == "" || capture.ImageReleaseURL == "" {
-			return RunnerCapture{}, errors.New("runner image metadata lacks required detail lines")
+		if capture.ImageLabel == "" || capture.ImageVersion == "" || capture.IncludedSoftwareURL == "" || capture.ImageReleaseURL == "" {
+			return RunnerCapture{}, runnerCaptureError("runner image metadata lacks required detail lines", imageOS, deploymentVersion)
 		}
 		return capture, nil
 	}
-	return RunnerCapture{}, errors.New("runner image metadata lacks the Runner Image group")
+	return RunnerCapture{}, runnerCaptureError("runner image metadata lacks the Runner Image group", imageOS, deploymentVersion)
 }

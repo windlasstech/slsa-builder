@@ -271,7 +271,7 @@ func workflowResolvedDependencies(selection Result, build BuildPackResult, param
 	runner := build.Toolchain.Runner
 	dependencies = append(dependencies, provenance.ResourceDescriptor{
 		Name: "runner-image", URI: runner.IncludedSoftwareURL,
-		Annotations: annotations(map[string]any{"image_os": runner.ImageOS, "image_version": runner.ImageVersion, "node_version": build.Toolchain.NodeVersion}),
+		Annotations: annotations(map[string]any{"deployment_version": nullableString(runner.DeploymentVersion), "image_os": runner.ImageOS, "image_version": runner.ImageVersion, "node_version": build.Toolchain.NodeVersion}),
 	})
 	return dependencies, nil
 }

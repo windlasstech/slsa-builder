@@ -67,7 +67,7 @@ func TestNPMProfileBuildCommand(t *testing.T) {
 	}))
 	t.Cleanup(registry.Close)
 	err = npmProfileBuildCommand{httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
-		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", DeploymentVersion: "20260801.1.1", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
 	}}.Execute(ctx, []string{
 		"--repository-root", repository,
 		"--package-directory", ".",
