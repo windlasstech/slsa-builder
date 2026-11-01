@@ -115,16 +115,17 @@ func lastOutputLine(output string) string {
 }
 
 // captureDistribution records the Corepack acquisition evidence for the
-// selected pnpm or Yarn distribution. ADR 0092's live matrix keys Corepack
-// state on the full descriptor reference (version plus any declared digest
-// suffix) — the cache path, the `.corepack` locator.reference, and the
-// Installing debug line — while URLs and registry metadata key on the plain
-// version. The recorded PackageManagerVer is the verbatim descriptor.
+// selected pnpm or Yarn distribution. ADR 0092's live Corepack behavior keys
+// the cache path and the Installing debug line on the plain version, while the
+// `.corepack` locator.reference keeps the full descriptor (version plus any
+// declared digest suffix) and binds the declared integrity. URLs and registry
+// metadata key on the plain version. The recorded PackageManagerVer is the
+// verbatim descriptor.
 func captureDistribution(ctx context.Context, corepackHome string, selection ManagerSelection, commandOutput string, fetcher distributionFetcher) (*DistributionCapture, error) {
 	manager := selection.Name
 	version := selection.Version
 	reference := selection.Descriptor()
-	distributionURL, err := corepackDistributionURL(commandOutput, manager, reference)
+	distributionURL, err := corepackDistributionURL(commandOutput, manager, version)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +133,7 @@ func captureDistribution(ctx context.Context, corepackHome string, selection Man
 	if distributionURL != wantURL {
 		return nil, fmt.Errorf("corepack acquired %s@%s from unexpected URL %q", manager, version, distributionURL)
 	}
-	metadataPath := filepath.Join(corepackHome, "v1", string(manager), reference, ".corepack")
+	metadataPath := filepath.Join(corepackHome, "v1", string(manager), version, ".corepack")
 	encoded, err := readBoundedRegularFile(metadataPath, maxCorepackMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("read Corepack distribution metadata: %w", err)

@@ -42,9 +42,9 @@ func installFakeToolchain(t *testing.T) {
 // installFakeToolchainWithReferences behaves like installFakeToolchain but
 // keys the Corepack cache and debug output on the given descriptor references.
 // A digest-suffixed reference (ADR 0092, e.g. "11.28.3+sha512.<hex>") mirrors
-// verified Corepack behavior: the cache directory, the `.corepack`
-// locator.reference, and the Installing debug line carry the full reference
-// while `--version` still prints the plain version.
+// observed live Corepack behavior: the cache directory and the Installing
+// debug line carry the plain version, while the `.corepack` locator.reference
+// keeps the full reference and `--version` prints the plain version.
 func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReference string) string {
 	t.Helper()
 	root := t.TempDir()
@@ -261,10 +261,11 @@ printf '%s\n' "pnpm corepack_env_file=${COREPACK_ENV_FILE-<unset>}" >> "@DATA_DI
 case "$1" in
   --version)
     reference=$(cat "@DATA_DIR@/pnpm.reference")
-    mkdir -p "$COREPACK_HOME/v1/pnpm/$reference"
-    cp "@DATA_DIR@/pnpm.corepack" "$COREPACK_HOME/v1/pnpm/$reference/.corepack"
+    plain=${reference%%+*}
+    mkdir -p "$COREPACK_HOME/v1/pnpm/$plain"
+    cp "@DATA_DIR@/pnpm.corepack" "$COREPACK_HOME/v1/pnpm/$plain/.corepack"
     printf 'Corepack DEBUG: resolving pnpm@%s\n' "$reference"
-    printf ' corepack Installing pnpm@%s from ` + fakePNPMDistributionURL + `\n' "$reference"
+    printf ' corepack Installing pnpm@%s from ` + fakePNPMDistributionURL + `\n' "$plain"
     printf '` + fakePNPMVersion + `\n'
     ;;
   install)
@@ -318,10 +319,11 @@ printf '%s\n' "yarn corepack_env_file=${COREPACK_ENV_FILE-<unset>}" >> "@DATA_DI
 case "$1" in
   --version)
     reference=$(cat "@DATA_DIR@/yarn.reference")
-    mkdir -p "$COREPACK_HOME/v1/yarn/$reference"
-    cp "@DATA_DIR@/yarn.corepack" "$COREPACK_HOME/v1/yarn/$reference/.corepack"
+    plain=${reference%%+*}
+    mkdir -p "$COREPACK_HOME/v1/yarn/$plain"
+    cp "@DATA_DIR@/yarn.corepack" "$COREPACK_HOME/v1/yarn/$plain/.corepack"
     printf 'Corepack DEBUG: resolving yarn@%s\n' "$reference"
-    printf ' corepack Installing yarn@%s from ` + fakeYarnDistributionURL + `\n' "$reference"
+    printf ' corepack Installing yarn@%s from ` + fakeYarnDistributionURL + `\n' "$plain"
     printf '` + fakeYarnVersion + `\n'
     ;;
   install)

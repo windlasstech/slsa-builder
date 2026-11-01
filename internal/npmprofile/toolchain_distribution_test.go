@@ -160,6 +160,33 @@ func TestCorepackDistributionURLRejections(t *testing.T) {
 	}
 }
 
+func TestCaptureDistributionDigestSuffixedDescriptor(t *testing.T) {
+	t.Parallel()
+	// Live Corepack keys the Installing debug line and the cache directory on
+	// the plain version; only the .corepack locator.reference keeps the full
+	// digest-suffixed descriptor (ADR 0092, observed on the Node.js 24.22.1
+	// bundled Corepack during the sixth M1 dogfood).
+	declared := strings.Repeat("0", 128)
+	descriptor := "11.28.8+sha512." + declared
+	root := createRepository(t, map[string]string{
+		"v1/pnpm/11.28.8/.corepack": `{"locator":{"name":"pnpm","reference":"` + descriptor + `"},"hash":"sha512.` + declared + `"}`,
+	})
+	fetcher := func(ctx context.Context, rawURL string, maximum int64, accept string) ([]byte, error) {
+		if ctx == nil || rawURL != "https://registry.npmjs.org/pnpm/11.28.8" || maximum != maxRegistryMetadata || accept != "application/json" {
+			return nil, fmt.Errorf("unexpected fetch %q", rawURL)
+		}
+		return []byte(`{"dist":{"tarball":"https://registry.npmjs.org/pnpm/-/pnpm-11.28.8.tgz","integrity":"sha512-` + base64.StdEncoding.EncodeToString(make([]byte, 64)) + `"}}`), nil
+	}
+	selection := ManagerSelection{Name: ManagerPNPM, Version: "11.28.8", Digest: &DeclaredDigest{Algorithm: "sha512", Hex: declared}}
+	got, err := captureDistribution(t.Context(), root, selection, " corepack Installing pnpm@11.28.8 from https://registry.npmjs.org/pnpm/-/pnpm-11.28.8.tgz", fetcher)
+	if err != nil {
+		t.Fatalf("captureDistribution() error = %v; want nil (live Corepack keys on the plain version)", err)
+	}
+	if got.PackageManagerVer != descriptor {
+		t.Fatalf("PackageManagerVer = %q; want the full descriptor %q", got.PackageManagerVer, descriptor)
+	}
+}
+
 func TestCaptureDistributionMetadataRejections(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct{ name, metadata, want string }{
