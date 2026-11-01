@@ -1,0 +1,22 @@
+docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md
+  s_940dc19ccea4fc::t_b2940f8243c65b 116
+  s_940dc19ccea4fc::t_6a7a4355554c87 115,120-121
+docs/architecture/js-ts-npm-build-pack.md
+  s_940dc19ccea4fc::t_b2940f8243c65b 790-793
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7bd41741a61656400d0f224d4e7a3e07c9c3fdcf",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
