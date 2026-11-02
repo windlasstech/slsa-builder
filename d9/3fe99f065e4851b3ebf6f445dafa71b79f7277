@@ -1,0 +1,25 @@
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_d6d41911888818::t_990125a69f3fba 2337-2341
+  s_d6d41911888818::t_9b866ad2cabbb3 1882-1889,1894,1898-1906,1910-1925
+  s_d6d41911888818::t_502a89a44a45fe 1890-1893,1895-1897,1907-1909
+docs/architecture/core-profile-contract.md
+  s_d6d41911888818::t_0a1a9001676003 228-260
+CHANGELOG.md
+  s_d6d41911888818::t_6e46c05f1fb745 122-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d93fe99f065e4851b3ebf6f445dafa71b79f7277",
+  "prompts": {},
+  "sessions": {
+    "s_d6d41911888818": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e63502447ffe8lYIm81sQhMFSO",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
