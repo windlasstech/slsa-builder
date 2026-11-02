@@ -1879,6 +1879,50 @@ classification and its integrity evidence must be included in the run's machine-
 `if: always()` outcome report; a missing report is a conformance failure and must leave the run
 failed rather than silently claim convergence.
 
+## Best-effort operational diagnostics
+
+The profile follows the
+[external-process operational diagnostics contract](core-profile-contract.md#external-process-operational-diagnostics).
+In addition to process lifecycle notices, it may emit best-effort, human-readable stderr diagnostics
+for a failed npm publish process and for registry read-back. These diagnostics remain transport
+metadata, not trust proof or a stable consumer interface.
+
+A failed-publish summary may contain only a recognized npm error code, an independently observed
+HTTP status, and allowlisted server-reported predicate field paths. The code and status are reported
+only when independently observed; neither is inferred from the other. Field paths are limited to
+dotted or indexed paths beneath `predicate.buildDefinition.buildType`,
+`predicate.buildDefinition.externalParameters`, `predicate.buildDefinition.resolvedDependencies`,
+`predicate.runDetails.builder`, and `predicate.runDetails.metadata`. Only the field path is
+reported, never its value or an expected/actual comparison. A request phase may be reported only
+when reliably known; the current implementation omits request-phase information.
+
+Read-back diagnostics emit one summary for each existing classification run, never one line per
+poll. The summary contains the first observation, the latest observation changed from the first when
+one exists, the final observation, observation and change counts, whether read-back follows a
+mutation, and the final decision. It uses only observations already made for classification and adds
+no registry or verifier operations.
+
+Operational diagnostics must not change canonical reports, classification, mutation, retry, exit
+behavior, or existing classification inputs. They must not create a durable artifact, a
+`$GITHUB_OUTPUT` entry, a JSON or JSONL schema, or a diagnostic ID. They contain no raw response
+body or server message. Logging and stderr write failures are discarded and cannot change any of
+these behaviors or outcomes.
+
+Valid illustrative lines are:
+
+```text
+windlass operational: npm_failure code=E422 http_status=422 predicate_paths=predicate.buildDefinition.buildType,predicate.runDetails.builder
+windlass operational: readback after_mutation=true observations=2 changes=1 first="version=unknown integrity=unknown attestations=unknown" latest_changed="version=present integrity=match attestations=present" final="version=present integrity=match attestations=present" decision=committed-as-expected
+```
+
+The following lines are invalid because they claim an unknown request phase and disclose prohibited
+raw values:
+
+```text
+windlass operational: npm_failure request_phase=PUT url="https://registry.npmjs.org/@example%2fpkg" message="expected X, actual Y"
+windlass operational: readback poll=17 response_body="{\"error\":\"server message\"}"
+```
+
 ## npm trusted publishing authentication
 
 - The `publish` job uses OIDC trusted publishing.
@@ -2290,3 +2334,8 @@ The profile must not fall back to:
   human-readable allowlist table are proven drift-free.
 - Successful registry-conformance fixtures use `https://registry.npmjs.org/` only. Synthetic custom
   registry fixtures cover warning and fail-clearly behavior only.
+- Operational-diagnostics TDD and fixtures cover late-`E422` recognition with output truncation and
+  a secret canary, the process lifecycle (start failure, exit, signal, timeout, and cancellation),
+  first/latest-changed/final read-back transitions without per-poll lines, failing-writer
+  non-interference, and real-CLI stream separation between canonical stdout and human-readable
+  stderr.
