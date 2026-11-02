@@ -73,6 +73,7 @@ func TestCLIOperationalDiagnosticsSeparateStdoutAndStderr(t *testing.T) {
 		"PATH=" + bin,
 		"RUNNER_TOOL_CACHE=" + bin,
 		"MISE_DATA_DIR=" + filepath.Join(root, "mise"),
+		"GOCOVERDIR=" + root,
 		"NPM_TOKEN=" + secretCanary,
 	}
 	var stdout, stderr bytes.Buffer
@@ -150,6 +151,7 @@ func TestCLIOperationalDiagnosticsBrokenStderrDoesNotChangeOutcome(t *testing.T)
 		"PATH=" + bin,
 		"RUNNER_TOOL_CACHE=" + bin,
 		"MISE_DATA_DIR=" + filepath.Join(root, "mise"),
+		"GOCOVERDIR=" + root,
 	}
 	stderrReader, err := cmd.StderrPipe()
 	if err != nil {
