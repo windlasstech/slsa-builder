@@ -1,0 +1,31 @@
+internal/observability/registry.go
+  s_b8d299642d98e8::t_a81d468ae033b1 1-7,9,15-17,26-30,34-53
+  s_20d9a4d2077cc0::t_f53826abbb1851 8,10-14,18-25,31-33
+internal/observability/npm.go
+  s_b8d299642d98e8::t_a81d468ae033b1 1-7,34-37,44-48,52-77
+  s_20d9a4d2077cc0::t_f53826abbb1851 8-33,38-43,49-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f1513a35170e50f5e7bdf358025ea58a8721202f",
+  "prompts": {},
+  "sessions": {
+    "s_20d9a4d2077cc0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e63b0f8e6ffe4lA1YU3piBlnp4",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b8d299642d98e8": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e63b0f8e6ffe4lA1YU3piBlnp4",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
