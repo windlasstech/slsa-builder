@@ -1,0 +1,29 @@
+internal/npmprofile/publish_observation_log.go
+  s_d1b1004a8517a9::t_350a416b466fdb 1-82
+internal/npmprofile/publish_observation_log_test.go
+  s_1acbf990f1486c::t_95e3577dc154f7 1-162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "67f1d6e4a420dbc1d24255b17fefe507ec36bae4",
+  "prompts": {},
+  "sessions": {
+    "s_1acbf990f1486c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e6346c0d0ffeaz1mO1G6HW4A4r",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d1b1004a8517a9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e632a92d9ffeuWo0ixFKS0C3EV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
