@@ -1,0 +1,22 @@
+docs/architecture/core-profile-contract.md
+  s_940dc19ccea4fc::t_4863e1f71fb60d 244-246
+  s_940dc19ccea4fc::t_5cde8de2af8493 242-243
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_940dc19ccea4fc::t_44b998dcd96005 1915
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9f77d4bb38e17978b8cbcbf14b626427044208d",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
