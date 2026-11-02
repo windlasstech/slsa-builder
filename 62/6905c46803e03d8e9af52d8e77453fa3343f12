@@ -1,0 +1,22 @@
+cmd/slsa-builder-internal/main.go
+  s_940dc19ccea4fc::t_85d78eefc11fd6 43
+cmd/slsa-builder-internal/main_test.go
+  s_940dc19ccea4fc::t_492bdd9acf15ad 193-209
+  s_940dc19ccea4fc::t_dcd25ba289c29e 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "626905c46803e03d8e9af52d8e77453fa3343f12",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
