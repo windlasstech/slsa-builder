@@ -50,7 +50,7 @@ func TestNPMFailureRecognizer(t *testing.T) {
 		{name: "overlong code is omitted", input: "npm error code " + strings.Repeat("E", maxNPMFailureCodeLength+1) + "\n", want: ""},
 		{
 			name:  "overlong path is omitted",
-			input: "npm error 422 predicate.buildDefinition.externalParameters." + strings.Repeat("x", maxNPMFailurePredicatePathLength) + "\n",
+			input: "npm error 422 predicate.buildDefinition.externalParameters." + strings.Repeat("x", maxNPMFailurePredicatePathLength-len("predicate.buildDefinition.externalParameters.")+1) + "\n",
 			want:  npmFailureSummaryPrefix + " http_status=422",
 		},
 	}
