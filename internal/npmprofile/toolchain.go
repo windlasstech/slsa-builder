@@ -179,7 +179,7 @@ func captureDistribution(ctx context.Context, corepackHome string, selection Man
 		return nil, distributionEvidenceError(err.Error())
 	}
 	if authoritativeHash != corepackHash {
-		return nil, distributionDisagreementError("corepack distribution hash disagrees with acquisition evidence")
+		return nil, distributionEvidenceError("corepack distribution hash disagrees with acquisition evidence")
 	}
 	if err := reconcileDeclaredDigest(ctx, selection, distributionURL, authoritativeHash, bundle, fetcher); err != nil {
 		return nil, err

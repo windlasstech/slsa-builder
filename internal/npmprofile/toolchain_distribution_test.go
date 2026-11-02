@@ -219,7 +219,7 @@ func TestCaptureDistributionClassification(t *testing.T) {
 		})
 	}
 
-	t.Run("hash disagrees with acquisition evidence", func(t *testing.T) {
+	t.Run("hash evidence does not match the acquisition record", func(t *testing.T) {
 		t.Parallel()
 		root := createRepository(t, map[string]string{"v1/pnpm/11.0.0/.corepack": validMetadata})
 		fetcher := func(ctx context.Context, rawURL string, maximum int64, accept string) ([]byte, error) {
@@ -233,7 +233,9 @@ func TestCaptureDistributionClassification(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), "corepack distribution hash disagrees with acquisition evidence") || got != nil {
 			t.Fatalf("captureDistribution() = %v, %v; want the hash disagreement", got, err)
 		}
-		requireNPMDiagnostic(t, err, "windlass.verify.error.resolved-dependencies-package-manager-distribution")
+		// Spec: registry integrity evidence that does not match the acquisition
+		// record is input-unavailable (exit 2), like the other evidence failures.
+		requireNPMDiagnostic(t, err, "windlass.verify.error.input-unavailable")
 	})
 }
 
