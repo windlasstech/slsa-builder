@@ -3,9 +3,11 @@ package npmprofile
 import (
 	"context"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -257,5 +259,57 @@ func TestPublishFlowReportContractFailures(t *testing.T) {
 				t.Fatalf("report construction = %#v, %v; want contract failure %q", got, err, test.message)
 			}
 		})
+	}
+}
+
+type publishOperationalFailingWriter struct{}
+
+func (publishOperationalFailingWriter) Write([]byte) (int, error) {
+	return 0, errors.New("operational writer failure canary")
+}
+
+func TestPublishOperationalDiagnosticsWriterFailureDoesNotChangeOutcome(t *testing.T) {
+	// Given one unchanged same-run fixture and a discard control.
+	fixture := newPublishFixture(t, publishFixtureOptions{})
+	controlResult, controlErr := Publish(WithOperationalDebugOutput(t.Context(), io.Discard), fixture.request)
+	if controlErr != nil {
+		t.Fatalf("control Publish() error = %v", controlErr)
+	}
+	controlReport, err := controlResult.Report.CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fixture.packumentRequests != 1 || fixture.attestationRequests != 1 || fixture.verifier.calls != 2 {
+		t.Fatalf("control operations = packument:%d attestations:%d verifier:%d, want 1/1/2", fixture.packumentRequests, fixture.attestationRequests, fixture.verifier.calls)
+	}
+
+	// When repeating the identical publish with a writer that rejects every diagnostic write.
+	writerResult, writerErr := Publish(WithOperationalDebugOutput(t.Context(), publishOperationalFailingWriter{}), fixture.request)
+
+	// Then the error, state, canonical report, process argv, and operation counts are identical.
+	if !reflect.DeepEqual(writerErr, controlErr) {
+		t.Fatalf("writer error = %#v, control error = %#v", writerErr, controlErr)
+	}
+	if writerResult.State != controlResult.State || writerResult.MutationAttempted != controlResult.MutationAttempted {
+		t.Fatalf("writer outcome = %#v, control outcome = %#v", writerResult, controlResult)
+	}
+	writerReport, err := writerResult.Report.CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(writerReport, controlReport) {
+		t.Fatalf("writer canonical report = %s, control = %s", writerReport, controlReport)
+	}
+	if fixture.packumentRequests != 2 || fixture.attestationRequests != 2 || fixture.verifier.calls != 4 {
+		t.Fatalf("total operations = packument:%d attestations:%d verifier:%d, want 2/2/4", fixture.packumentRequests, fixture.attestationRequests, fixture.verifier.calls)
+	}
+	fixture.requireInvocations(t, [][]string{{"--version"}, {"--version"}})
+	encoded, err := os.ReadFile(fixture.logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(encoded)), "\n")
+	if len(lines) != 2 || lines[0] != lines[1] {
+		t.Fatalf("process calls differ between control and failing writer: %q", lines)
 	}
 }

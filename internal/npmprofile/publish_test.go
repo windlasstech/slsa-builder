@@ -95,6 +95,91 @@ func TestPublishAmbiguousReadback(t *testing.T) {
 	}
 }
 
+func TestPublishOperationalDiagnosticsReadbackFirstChangedFinal(t *testing.T) {
+	// Given one absent entry observation, one pending post-publish poll, and then convergence.
+	fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, readbackPendingPolls: 1})
+	var output strings.Builder
+	ctx := WithOperationalDebugOutput(t.Context(), &output)
+
+	// When publishing with operational diagnostics enabled.
+	result, err := Publish(ctx, fixture.request)
+
+	// Then only the two classification boundaries emit summaries, with bounded post-publish transitions.
+	if err != nil {
+		t.Fatalf("Publish() error = %v", err)
+	}
+	if result.State != PublishCommittedAsExpected || !result.MutationAttempted {
+		t.Fatalf("Publish() result = %#v, want committed mutation", result)
+	}
+	fixture.requireInvocations(t, fixture.expectedMutationInvocations())
+	if fixture.clock.sleeps != 1 || fixture.packumentRequests != 3 || fixture.attestationRequests != 3 || fixture.verifier.calls != 2 {
+		t.Fatalf("operations = sleeps:%d packument:%d attestations:%d verifier:%d, want 1/3/3/2", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests, fixture.verifier.calls)
+	}
+	if got := strings.Count(output.String(), "windlass operational: readback "); got != 2 {
+		t.Fatalf("read-back summary count = %d, want one entry and one post-publish summary\n%s", got, output.String())
+	}
+	requirePublishReadbackSummary(t, output.String(), false)
+	line := requirePublishReadbackSummary(t, output.String(), true)
+	for _, want := range []string{
+		"after_mutation=true observations=2 changes=1",
+		`first="package=unknown version=unknown integrity=unknown attestations=unknown errors=both"`,
+		`latest_changed="package=present version=present integrity=match attestations=present errors=none"`,
+		`final="package=present version=present integrity=match attestations=present errors=none"`,
+		"decision=committed-as-expected",
+	} {
+		if !strings.Contains(line, want) {
+			t.Errorf("post-publish summary missing %q\n%s", want, line)
+		}
+	}
+	for _, forbidden := range []string{"poll=", "sha512-", "https://", "{", "registry packument", "registry attestation"} {
+		if strings.Contains(line, forbidden) {
+			t.Errorf("post-publish summary contains prohibited %q\n%s", forbidden, line)
+		}
+	}
+}
+
+func TestPublishOperationalDiagnosticsReadbackIndeterminateRegression(t *testing.T) {
+	// Given the existing ambiguous publish and malformed read-back fixtures.
+	fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, npmExitCode: 73, readbackIndeterminate: true})
+	var output strings.Builder
+	ctx := WithOperationalDebugOutput(t.Context(), &output)
+
+	// When exhausting the existing fake-clock read-back budget with diagnostics enabled.
+	result, err := Publish(ctx, fixture.request)
+
+	// Then diagnostics preserve the outcome and exact operation counts without per-poll output.
+	if err == nil {
+		t.Fatal("Publish() error = nil, want indeterminate read-back")
+	}
+	if result.State != PublishIndeterminate || !result.MutationAttempted {
+		t.Fatalf("Publish() result = %#v, want one ambiguous mutation", result)
+	}
+	fixture.requireInvocations(t, fixture.expectedMutationInvocations())
+	if fixture.clock.sleeps != 60 || fixture.packumentRequests != 62 || fixture.attestationRequests != 62 || fixture.verifier.calls != 1 {
+		t.Fatalf("operations = sleeps:%d packument:%d attestations:%d verifier:%d, want 60/62/62/1", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests, fixture.verifier.calls)
+	}
+	if got := strings.Count(output.String(), "windlass operational: readback "); got != 2 {
+		t.Fatalf("read-back summary count = %d, want one entry and one bounded post-publish summary\n%s", got, output.String())
+	}
+	requirePublishReadbackSummary(t, output.String(), false)
+	line := requirePublishReadbackSummary(t, output.String(), true)
+	for _, want := range []string{
+		"after_mutation=true observations=61 changes=0",
+		`first="package=unknown version=unknown integrity=unknown attestations=unknown errors=both"`,
+		`final="package=unknown version=unknown integrity=unknown attestations=unknown errors=both"`,
+		"decision=indeterminate",
+	} {
+		if !strings.Contains(line, want) {
+			t.Errorf("indeterminate summary missing %q\n%s", want, line)
+		}
+	}
+	for _, forbidden := range []string{"latest_changed=", "poll=", "sha512-", "https://", "{", "registry packument", "registry attestation"} {
+		if strings.Contains(line, forbidden) {
+			t.Errorf("indeterminate summary contains prohibited %q\n%s", forbidden, line)
+		}
+	}
+}
+
 func TestPublishUsesExactBundle(t *testing.T) {
 	fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true})
 	result, err := Publish(context.Background(), fixture.request)
@@ -163,6 +248,7 @@ type publishFixtureOptions struct {
 	foreignIntegrity      bool
 	foreignRunID          bool
 	readbackIndeterminate bool
+	readbackPendingPolls  int
 	npmExitCode           int
 	npmError              string
 	npmVersion            string
@@ -213,7 +299,7 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 				writePackument(writer, nil)
 				return
 			}
-			if options.readbackIndeterminate {
+			if options.readbackIndeterminate || (fixture.packumentRequests > 1 && fixture.packumentRequests-1 <= options.readbackPendingPolls) {
 				fmt.Fprint(writer, `{`)
 				return
 			}
@@ -228,7 +314,7 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 				writer.WriteHeader(http.StatusNotFound)
 				return
 			}
-			if options.readbackIndeterminate {
+			if options.readbackIndeterminate || (fixture.packumentRequests > 1 && fixture.packumentRequests-1 <= options.readbackPendingPolls) {
 				fmt.Fprint(writer, `{`)
 				return
 			}
@@ -422,10 +508,12 @@ type publishFakeVerifier struct {
 	localBytes   []byte
 	statement    provenance.Statement
 	foreignRunID bool
+	calls        int
 }
 
 func (verifier *publishFakeVerifier) Verify(ctx context.Context, bundle []byte) (VerifiedPublishBundle, error) {
 	_ = ctx
+	verifier.calls++
 	if reflect.DeepEqual(bundle, verifier.localBundle) {
 		verifier.localBytes = append([]byte(nil), bundle...)
 		return VerifiedPublishBundle{Statement: verifier.statement, RunInvocationURI: verifier.statement.Predicate.RunDetails.Metadata.InvocationID}, nil

@@ -119,6 +119,10 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   descriptor's `image_version` carries the runner VM's baked image metadata version verbatim, while
   the platform's control-plane deployment version is recorded as a separate non-authoritative
   `deployment_version` annotation, so GitHub runner image rollout windows do not fail honest builds.
+- Added redacted, best-effort human-readable stderr diagnostics for external-process lifecycle, npm
+  publish failures, and registry read-back transitions. The diagnostics are non-authoritative and
+  cannot change canonical reports, registry or verifier operations, classification, retries, or
+  publish outcomes.
 
 ### Security
 
