@@ -1912,7 +1912,7 @@ Valid illustrative lines are:
 
 ```text
 windlass operational: npm_failure code=E422 http_status=422 predicate_paths=predicate.buildDefinition.buildType,predicate.runDetails.builder
-windlass operational: readback after_mutation=true observations=2 changes=1 first="version=unknown integrity=unknown attestations=unknown" latest_changed="version=present integrity=match attestations=present" final="version=present integrity=match attestations=present" decision=committed-as-expected
+windlass operational: readback after_mutation=true observations=2 changes=1 first="package=unknown version=unknown integrity=unknown attestations=unknown errors=both" latest_changed="package=present version=present integrity=match attestations=present errors=none" final="package=present version=present integrity=match attestations=present errors=none" decision=committed-as-expected
 ```
 
 The following lines are invalid because they claim an unknown request phase and disclose prohibited

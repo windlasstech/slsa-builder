@@ -239,6 +239,11 @@ and whether captured output was truncated. A start failure reports `started=fals
 `outcome=start-failed`, without a fabricated exit code or signal. Timeout and cancellation are
 reported only when observed.
 
+A profile may supplement these process diagnostics with a closed, explicitly specified allowlist of
+profile-specific categorical facts. The profile specification must define those facts and their
+bounds, and every extension remains subject to the non-authoritative, secret-exclusion, and
+non-interference rules below.
+
 Diagnostics must not contain raw argv, environment values, file paths, child output, child or
 trusted-core error strings, credentials, or URLs. Logging and stderr write failures are discarded;
 they cannot change returned output or errors, process behavior, or workflow outcomes.
