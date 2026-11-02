@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -102,25 +103,81 @@ func runCommandAtBoundary(ctx context.Context, directory, executable string, env
 	command.Dir = directory
 	command.Env = environment
 	output := limitedBuffer{maximum: maximumOutput}
-	command.Stdout = &output
-	command.Stderr = &output
-	runErr := command.Run()
+	var combinedOutput io.Writer = &output
+	var failureSummary func() string
+	if filepath.Base(executable) == "npm" && len(arguments) > 0 && arguments[0] == "publish" {
+		recognizer := newNPMFailureRecognizer()
+		failureSummary = recognizer.Summary
+		combinedOutput = io.MultiWriter(&output, recognizer)
+	}
+	command.Stdout = combinedOutput
+	command.Stderr = combinedOutput
+	operation := filepath.Base(executable)
+	startedAt := time.Now()
+	writeOperationalDebug(ctx, "operation="+operation+" start")
+	started := false
+	runErr := command.Start()
+	if runErr == nil {
+		started = true
+		runErr = command.Wait()
+	}
 	if command.Process != nil {
 		cleanupErr := syscall.Kill(-command.Process.Pid, syscall.SIGKILL)
 		if cleanupErr != nil && !errors.Is(cleanupErr, syscall.ESRCH) && runErr == nil {
 			runErr = fmt.Errorf("terminate command descendants: %w", cleanupErr)
 		}
 	}
+	complete := func(success bool) {
+		outcome := "exit"
+		exitCode := -1
+		signalName := ""
+		switch {
+		case !started:
+			outcome = "start-failed"
+		case runErr != nil && errors.Is(commandContext.Err(), context.DeadlineExceeded):
+			outcome = "timeout"
+		case runErr != nil && errors.Is(commandContext.Err(), context.Canceled):
+			outcome = "canceled"
+		default:
+			if command.ProcessState != nil {
+				if status, ok := command.ProcessState.Sys().(syscall.WaitStatus); ok && status.Signaled() {
+					outcome = "signal"
+					signalName = status.Signal().String()
+				} else {
+					exitCode = command.ProcessState.ExitCode()
+				}
+			}
+		}
+		details := ""
+		if exitCode >= 0 {
+			details += fmt.Sprintf(" exit=%d", exitCode)
+		}
+		if signalName != "" {
+			details += " signal=" + signalName
+		}
+		writeOperationalDebug(ctx, fmt.Sprintf(
+			"operation=%s started=%t outcome=%s%s elapsed=%s output_truncated=%t success=%t",
+			operation, started, outcome, details, time.Since(startedAt), output.total > maximumOutput, success,
+		))
+		if !success && failureSummary != nil {
+			if summary := failureSummary(); summary != "" {
+				writeOperationalDebug(ctx, strings.TrimPrefix(summary, "windlass operational: "))
+			}
+		}
+	}
 	trimmedOutput := strings.TrimSpace(output.String())
 	if runErr != nil {
+		complete(false)
 		if errors.Is(commandContext.Err(), context.DeadlineExceeded) {
 			return trimmedOutput, fmt.Errorf("command timed out: %w", commandContext.Err())
 		}
 		return trimmedOutput, fmt.Errorf("%s %v failed: %w: %s", filepath.Base(executable), arguments, runErr, trimmedOutput)
 	}
 	if options.rejectOutputOverflow && output.total > maximumOutput {
+		complete(false)
 		return "", fmt.Errorf("command output exceeds %d bytes", maximumOutput)
 	}
+	complete(true)
 	return trimmedOutput, nil
 }
 
