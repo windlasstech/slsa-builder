@@ -285,12 +285,18 @@ func validatePreparedBindings(request PublishRequest, verified VerifiedPublishBu
 	return verified.RunInvocationURI, nil
 }
 
-func (prepared preparedPublish) classify(ctx context.Context, afterMutation bool) (observationDecision, error) {
+func (prepared preparedPublish) classify(ctx context.Context, afterMutation bool) (decision observationDecision, err error) {
+	summary := newPublishObservationSummary(prepared.expectedSRI)
+	defer func() {
+		writeOperationalDebug(ctx, summary.format(afterMutation, decision.state))
+	}()
+
 	deadline := prepared.now().Add(publishPollBudget)
 	var last registryObservation
 	for {
 		last = prepared.observe(ctx)
-		decision := prepared.decide(ctx, last, afterMutation, false)
+		summary.record(last)
+		decision = prepared.decide(ctx, last, afterMutation, false)
 		if decision.terminal {
 			return decision, nil
 		}
