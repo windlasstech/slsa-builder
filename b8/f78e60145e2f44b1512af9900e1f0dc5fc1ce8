@@ -1,0 +1,46 @@
+docs/architecture/core-profile-contract.md
+  s_20bffdc5780385::t_d9eb42968884d7 217-220
+  s_a718f374413126::t_b0d49b5c7198a9 215-216,221-232,236-248,250-253,261-275,278-279,289-295,307-327,330-332,348-370,374-384,388-408,411-417,423
+  s_940dc19ccea4fc::t_4adb49602c572b 339-347
+  s_20bffdc5780385::t_24c1a89712ebba 14,16
+  s_940dc19ccea4fc::t_bad35b383aa496 249,260
+  s_940dc19ccea4fc::t_ec10da46b26c2d 333-338
+  s_a718f374413126::t_172f54c53c4312 409-410
+  s_a718f374413126::t_158346c4c0e066 9,11
+  s_a718f374413126::t_892f81997a0646 233-235,254-259,276-277,280-288,296-306,328-329,371-373,385-387,418-422
+docs/decisions/0101-record-secret-safe-operational-execution-events-separately-from-outcome-reports.md
+  s_20bffdc5780385::t_61ae83247dccbf 38-39,57-58,71-80,136-138,143-145,171-172
+  s_20bffdc5780385::t_99fbea144b9c89 1-37,40-56,59-70,81-135,139-142,146-170,173-211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b8f78e60145e2f44b1512af9900e1f0dc5fc1ce8",
+  "prompts": {},
+  "sessions": {
+    "s_20bffdc5780385": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e63c24587fferqFzTq4ckYqxyB",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_a718f374413126": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e63dbe7e9ffeFEs2uUGAcqxTsp",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
