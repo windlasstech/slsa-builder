@@ -1,0 +1,31 @@
+internal/observability/operation.go
+  s_b8d299642d98e8::t_a81d468ae033b1 1-8,15-18,24,50-78
+  s_20d9a4d2077cc0::t_f53826abbb1851 9-14,19-23,25-49
+internal/observability/vocabulary_test.go
+  s_b8d299642d98e8::t_3523376195e08e 1-17,21-25,29-43,56-68,72-77,81-91,100-104,108-118,124-135,139-140
+  s_20d9a4d2077cc0::t_f53826abbb1851 18-20,26-28,44-55,69-71,78-80,92-99,105-107,119-123,136-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "097208a1df92088031271ec242ffe1b18981376e",
+  "prompts": {},
+  "sessions": {
+    "s_20d9a4d2077cc0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e63b0f8e6ffe4lA1YU3piBlnp4",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b8d299642d98e8": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e63b0f8e6ffe4lA1YU3piBlnp4",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
