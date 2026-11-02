@@ -1,0 +1,19 @@
+internal/npmprofile/publish_diagnostics_test.go
+  s_940dc19ccea4fc::t_deeff7ddef7ec1 53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c86eefe28b5bd196fa547a9fa2496dba8a9f5e7",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
