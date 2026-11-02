@@ -1,0 +1,21 @@
+.github/workflows/lint.yml
+  s_38e7220c25581f::t_2234a2d11d77dc 207-208
+.github/workflows/fuzz.yml
+  s_38e7220c25581f::t_a79a92df1ea0b6 94-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7f7e16cb78ecff1127b38e20739bde7266c1cc50",
+  "prompts": {},
+  "sessions": {
+    "s_38e7220c25581f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e6346ec91ffefACLa7bqo5LF6l",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
