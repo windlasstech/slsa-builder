@@ -1,6 +1,7 @@
 package npmprofile
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -90,9 +91,11 @@ func TestCaptureDistributionAcquisitionFailure(t *testing.T) {
 			sentinel := errors.New("acquisition unavailable")
 			fetcher := func(context.Context, string, int64, string) ([]byte, error) { return nil, sentinel }
 			got, err := captureDistribution(t.Context(), root, ManagerSelection{Name: manager, Version: "4.0.0"}, " corepack Installing "+string(manager)+"@4.0.0 from "+expectedDistributionURL(manager, "4.0.0"), fetcher)
-			if !errors.Is(err, sentinel) || got != nil {
-				t.Fatalf("capture = %v, %v; want wrapped acquisition failure", got, err)
+			if err == nil || !strings.Contains(err.Error(), sentinel.Error()) || got != nil {
+				t.Fatalf("capture = %v, %v; want the acquisition failure text", got, err)
 			}
+			// Spec: unavailable acquisition evidence is input-unavailable (exit 2).
+			requireNPMDiagnostic(t, err, "windlass.verify.error.input-unavailable")
 		})
 	}
 }
@@ -160,13 +163,89 @@ func TestCorepackDistributionURLRejections(t *testing.T) {
 	}
 }
 
+func TestCaptureDistributionDigestSuffixedDescriptor(t *testing.T) {
+	t.Parallel()
+	// Live Corepack keys the Installing debug line and the cache directory on
+	// the plain version; only the .corepack locator.reference keeps the full
+	// digest-suffixed descriptor (ADR 0092, observed on the Node.js 24.22.1
+	// bundled Corepack during the sixth M1 dogfood).
+	declared := strings.Repeat("0", 128)
+	descriptor := "11.28.8+sha512." + declared
+	root := createRepository(t, map[string]string{
+		"v1/pnpm/11.28.8/.corepack": `{"locator":{"name":"pnpm","reference":"` + descriptor + `"},"hash":"sha512.` + declared + `"}`,
+	})
+	fetcher := func(ctx context.Context, rawURL string, maximum int64, accept string) ([]byte, error) {
+		if ctx == nil || rawURL != "https://registry.npmjs.org/pnpm/11.28.8" || maximum != maxRegistryMetadata || accept != "application/json" {
+			return nil, fmt.Errorf("unexpected fetch %q", rawURL)
+		}
+		return []byte(`{"dist":{"tarball":"https://registry.npmjs.org/pnpm/-/pnpm-11.28.8.tgz","integrity":"sha512-` + base64.StdEncoding.EncodeToString(make([]byte, 64)) + `"}}`), nil
+	}
+	selection := ManagerSelection{Name: ManagerPNPM, Version: "11.28.8", Digest: &DeclaredDigest{Algorithm: "sha512", Hex: declared}}
+	got, err := captureDistribution(t.Context(), root, selection, " corepack Installing pnpm@11.28.8 from https://registry.npmjs.org/pnpm/-/pnpm-11.28.8.tgz", fetcher)
+	if err != nil {
+		t.Fatalf("captureDistribution() error = %v; want nil (live Corepack keys on the plain version)", err)
+	}
+	if got.PackageManagerVer != descriptor {
+		t.Fatalf("PackageManagerVer = %q; want the full descriptor %q", got.PackageManagerVer, descriptor)
+	}
+}
+
+func TestCaptureDistributionClassification(t *testing.T) {
+	t.Parallel()
+	// The specification classifies missing or unreadable capture evidence as
+	// input-unavailable (exit 2) and captured disagreements as
+	// resolved-dependencies-package-manager-distribution (exit 1).
+	zeros := strings.Repeat("0", 128)
+	validMetadata := `{"locator":{"name":"pnpm","reference":"11.0.0"},"hash":"sha512.` + zeros + `"}`
+	for _, test := range []struct {
+		name, output, want, wantID string
+	}{
+		{"missing Installing line", "noise", "corepack did not report the acquired distribution URL", "windlass.verify.error.input-unavailable"},
+		{"invalid Installing URL", " corepack Installing pnpm@11.0.0 from http://registry.npmjs.org/pnpm/-/pnpm-11.0.0.tgz", "corepack reported an invalid distribution URL", "windlass.verify.error.input-unavailable"},
+		{"unexpected URL", " corepack Installing pnpm@11.0.0 from https://example.com/pnpm.tgz", "corepack acquired pnpm@11.0.0 from unexpected URL", "windlass.verify.error.resolved-dependencies-package-manager-distribution"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			root := createRepository(t, map[string]string{"v1/pnpm/11.0.0/.corepack": validMetadata})
+			fetcher := func(context.Context, string, int64, string) ([]byte, error) {
+				t.Error("capture-classification cases must not fetch")
+				return nil, errors.New("unexpected fetch")
+			}
+			got, err := captureDistribution(t.Context(), root, ManagerSelection{Name: ManagerPNPM, Version: "11.0.0"}, test.output, fetcher)
+			if err == nil || !strings.Contains(err.Error(), test.want) || got != nil {
+				t.Fatalf("captureDistribution() = %v, %v; want nil, %q", got, err, test.want)
+			}
+			requireNPMDiagnostic(t, err, test.wantID)
+		})
+	}
+
+	t.Run("hash evidence does not match the acquisition record", func(t *testing.T) {
+		t.Parallel()
+		root := createRepository(t, map[string]string{"v1/pnpm/11.0.0/.corepack": validMetadata})
+		fetcher := func(ctx context.Context, rawURL string, maximum int64, accept string) ([]byte, error) {
+			if ctx == nil || rawURL != "https://registry.npmjs.org/pnpm/11.0.0" || maximum != maxRegistryMetadata || accept != "application/json" {
+				return nil, fmt.Errorf("unexpected fetch %q", rawURL)
+			}
+			return []byte(`{"dist":{"tarball":"https://registry.npmjs.org/pnpm/-/pnpm-11.0.0.tgz","integrity":"sha512-` + base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 64)) + `"}}`), nil
+		}
+		output := " corepack Installing pnpm@11.0.0 from https://registry.npmjs.org/pnpm/-/pnpm-11.0.0.tgz"
+		got, err := captureDistribution(t.Context(), root, ManagerSelection{Name: ManagerPNPM, Version: "11.0.0"}, output, fetcher)
+		if err == nil || !strings.Contains(err.Error(), "corepack distribution hash disagrees with acquisition evidence") || got != nil {
+			t.Fatalf("captureDistribution() = %v, %v; want the hash disagreement", got, err)
+		}
+		// Spec: registry integrity evidence that does not match the acquisition
+		// record is input-unavailable (exit 2), like the other evidence failures.
+		requireNPMDiagnostic(t, err, "windlass.verify.error.input-unavailable")
+	})
+}
+
 func TestCaptureDistributionMetadataRejections(t *testing.T) {
 	t.Parallel()
-	for _, test := range []struct{ name, metadata, want string }{
-		{"missing", "", "read Corepack distribution metadata: path is not a bounded regular file"},
-		{"wrong locator", `{"locator":{"name":"yarn","reference":"11.0.0"}}`, "corepack distribution metadata disagrees with the executed manager"},
-		{"wrong shape", `{"locator":[]}`, "corepack distribution metadata disagrees with the executed manager"},
-		{"wrong hash", `{"locator":{"name":"pnpm","reference":"11.0.0"},"hash":"sha512.00"}`, "corepack distribution metadata lacks a canonical SHA-512 hash"},
+	for _, test := range []struct{ name, metadata, want, wantID string }{
+		{"missing", "", "read Corepack distribution metadata: path is not a bounded regular file", "windlass.verify.error.input-unavailable"},
+		{"wrong locator", `{"locator":{"name":"yarn","reference":"11.0.0"}}`, "corepack distribution metadata disagrees with the executed manager", "windlass.verify.error.resolved-dependencies-package-manager-distribution"},
+		{"wrong shape", `{"locator":[]}`, "decode Corepack distribution metadata", "windlass.verify.error.input-unavailable"},
+		{"wrong hash", `{"locator":{"name":"pnpm","reference":"11.0.0"},"hash":"sha512.00"}`, "corepack distribution metadata lacks a canonical SHA-512 hash", "windlass.verify.error.input-unavailable"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -180,9 +259,10 @@ func TestCaptureDistributionMetadataRejections(t *testing.T) {
 				return nil, errors.New("unexpected fetch")
 			}
 			got, err := captureDistribution(t.Context(), root, ManagerSelection{Name: ManagerPNPM, Version: "11.0.0"}, " corepack Installing pnpm@11.0.0 from https://registry.npmjs.org/pnpm/-/pnpm-11.0.0.tgz", fetcher)
-			if err == nil || err.Error() != test.want || got != nil {
+			if err == nil || !strings.Contains(err.Error(), test.want) || got != nil {
 				t.Fatalf("captureDistribution() = %v, %v; want nil, %q", got, err, test.want)
 			}
+			requireNPMDiagnostic(t, err, test.wantID)
 		})
 	}
 }

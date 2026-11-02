@@ -156,6 +156,15 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		if classified {
 			return ErrInvocationFailure
 		}
+		// A captured distribution disagreement is a classified verification
+		// failure (fail report, exit 1), per the build-and-pack specification.
+		classified, writeErr = writeNPMBuildDistributionDisagreement(out, err)
+		if writeErr != nil {
+			return writeErr
+		}
+		if classified {
+			return ErrVerificationFailure
+		}
 		return err
 	}
 	finishedOn := now().UTC().Truncate(time.Second).Format(time.RFC3339)
@@ -225,15 +234,45 @@ func writeNPMBuildDigestMismatch(out io.Writer, err error) (bool, error) {
 	return true, nil
 }
 
-// writeNPMBuildInputUnavailable mirrors writeNPMBuildDigestMismatch for the
-// ADR 0100 runner-image capture classification: it emits the invocation-stage
-// report and reports whether err carried the input-unavailable diagnostic ID.
+// writeNPMBuildInputUnavailable mirrors writeNPMBuildDigestMismatch for
+// capture-evidence failures: it emits the invocation-stage report and reports
+// whether err carried the input-unavailable diagnostic ID. The report's check
+// follows the error's origin when the error carries one, so runner-image and
+// distribution evidence failures keep their own check paths.
 func writeNPMBuildInputUnavailable(out io.Writer, err error) (bool, error) {
 	var identified interface{ DiagnosticID() string }
 	if !errors.As(err, &identified) || identified.DiagnosticID() != diagnostic.IDInputUnavailable {
 		return false, nil
 	}
-	entry, buildErr := diagnostic.New(identified.DiagnosticID(), "resolvedDependencies.runner-image", err.Error())
+	check := "resolvedDependencies.runner-image"
+	var withCheck interface{ DiagnosticCheck() string }
+	if errors.As(err, &withCheck) {
+		check = withCheck.DiagnosticCheck()
+	}
+	entry, buildErr := diagnostic.New(identified.DiagnosticID(), check, err.Error())
+	if buildErr != nil {
+		return false, buildErr
+	}
+	report, buildErr := diagnostic.Build(nil, []diagnostic.Diagnostic{entry}, nil)
+	if buildErr != nil {
+		return false, buildErr
+	}
+	if writeErr := WriteReport(out, report); writeErr != nil {
+		return false, writeErr
+	}
+	return true, nil
+}
+
+// writeNPMBuildDistributionDisagreement mirrors writeNPMBuildDigestMismatch
+// for the captured-disagreement family: a Corepack acquisition whose evidence
+// conflicts with the selected manager is a classified verification failure
+// (fail report, exit 1).
+func writeNPMBuildDistributionDisagreement(out io.Writer, err error) (bool, error) {
+	var identified interface{ DiagnosticID() string }
+	if !errors.As(err, &identified) || identified.DiagnosticID() != npmprofile.IDResolvedDependenciesDistribution {
+		return false, nil
+	}
+	entry, buildErr := diagnostic.New(identified.DiagnosticID(), "resolvedDependencies.package-manager-distribution", err.Error())
 	if buildErr != nil {
 		return false, buildErr
 	}
