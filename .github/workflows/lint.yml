@@ -204,6 +204,8 @@ jobs:
             target: FuzzExtractNPMDistribution
           - package: internal/npmprofile
             target: FuzzExtractNodeRuntime
+          - package: internal/npmprofile
+            target: FuzzNPMFailureRecognizer
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
     steps:
