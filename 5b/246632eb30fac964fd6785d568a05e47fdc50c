@@ -1,0 +1,32 @@
+docs/dogfood/npm-m1.md
+  s_940dc19ccea4fc::t_ea346515c86d82 86-87,96-97,121-129,145-146,154-161,440-441
+  s_940dc19ccea4fc::t_b557e876c573a2 434-435
+  s_940dc19ccea4fc::t_669c1283d2bd2e 172-177,216-217
+  s_940dc19ccea4fc::t_da69262d4bfcaf 163-171,178-215,218-232,239
+  s_940dc19ccea4fc::t_bfd35fc44cef90 2,7
+  s_940dc19ccea4fc::t_1e8e20b78d8e06 18-19,23-24
+  s_940dc19ccea4fc::t_58ca7f9d0a8e12 402-405
+  s_940dc19ccea4fc::t_b75917498aed0f 427-433
+  s_940dc19ccea4fc::t_285570e2964848 439,442-457
+  s_940dc19ccea4fc::t_6588d5d3ac25f1 44-46
+  s_940dc19ccea4fc::t_ef5f65a78f6fac 30-40,47-85,88-95,98-120,130-144,147-153,162
+  s_940dc19ccea4fc::t_57f1dc9b7643fe 12-15,233
+  s_940dc19ccea4fc::t_0eadc4de599c36 234-238
+  s_940dc19ccea4fc::t_ab9da83c71f30f 41-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5b246632eb30fac964fd6785d568a05e47fdc50c",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
