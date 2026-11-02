@@ -40,6 +40,7 @@ func operationalDebugStderr() (io.Writer, func()) {
 	if err != nil {
 		return io.Discard, func() {}
 	}
+	syscall.CloseOnExec(descriptor)
 	file := os.NewFile(uintptr(descriptor), os.Stderr.Name())
 	return file, func() {
 		if err := file.Close(); err != nil {

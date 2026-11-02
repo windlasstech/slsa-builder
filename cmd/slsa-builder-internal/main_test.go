@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/canonicaljson"
@@ -187,5 +188,22 @@ func TestOperationalDebugStderrClose(t *testing.T) {
 	closeDiagnostics()
 	if _, err := writer.Write([]byte("closed descriptor")); !errors.Is(err, os.ErrClosed) {
 		t.Fatalf("write after cleanup error = %v; want os.ErrClosed", err)
+	}
+}
+
+func TestOperationalDebugStderrCloseOnExec(t *testing.T) {
+	t.Parallel()
+	writer, closeDiagnostics := operationalDebugStderr()
+	defer closeDiagnostics()
+	file, ok := writer.(*os.File)
+	if !ok {
+		t.Fatalf("diagnostic writer type = %T; want *os.File", writer)
+	}
+	flags, _, errno := syscall.Syscall(syscall.SYS_FCNTL, file.Fd(), syscall.F_GETFD, 0)
+	if errno != 0 {
+		t.Fatalf("read diagnostic descriptor flags: %v", errno)
+	}
+	if flags&syscall.FD_CLOEXEC == 0 {
+		t.Fatal("diagnostic descriptor is inherited by child processes")
 	}
 }
