@@ -1,0 +1,28 @@
+internal/npmprofile/exec_boundary_order_test.go
+  s_1c2c27394ee1ed::t_4356bf96abd41f 1-14,18-19,23-32,34-36,46-49
+  s_1d4a5519b5ab09::t_1eaa0d64b26798 15-17,20-22,33,37-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "92c2ac6eb93f544551c26d70be9d7bd563615eaa",
+  "prompts": {},
+  "sessions": {
+    "s_1c2c27394ee1ed": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_1d4a5519b5ab09": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
