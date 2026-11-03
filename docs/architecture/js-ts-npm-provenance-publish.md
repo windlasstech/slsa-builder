@@ -1865,9 +1865,11 @@ Under
 [ADR 0102](../decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md),
 a failed publish mutation whose npm error code is exactly `E422` uses a reduced read-back budget of
 one immediate request followed by one request every 15 seconds until 60 seconds have elapsed from
-the first read-back request. The reduced and full budgets share that same start time; reduced expiry
-never starts a fresh five-minute budget. Definitive `E401`, `E403`, `E404`, and `ENEEDAUTH` mappings
-and every non-E422 failure retain their standing behavior.
+the first read-back request. An observation taken exactly 60 seconds after the first read-back
+request is inside the reduced window; window membership is decided by when the observation request
+is issued, not by when its response arrives. The reduced and full budgets share that same start
+time; reduced expiry never starts a fresh five-minute budget. Definitive `E401`, `E403`, `E404`, and
+`ENEEDAUTH` mappings and every non-E422 failure retain their standing behavior.
 
 If the reduced window contains no clean packument observation of the target version but does contain
 at least one clean packument observation with the target version absent, reduced expiry produces a

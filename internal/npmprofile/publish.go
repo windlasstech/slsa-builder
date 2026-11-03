@@ -317,13 +317,13 @@ func (prepared preparedPublish) classify(ctx context.Context, afterMutation, e42
 	reduced := afterMutation && e422
 	var last registryObservation
 	for {
+		observedAt := prepared.now()
 		last = prepared.observe(ctx)
-		if last.packumentErr == nil {
-			if last.version != nil {
-				sawVersion = true
-			} else {
-				sawCleanAbsence = true
-			}
+		if last.packumentErr == nil && last.version != nil {
+			sawVersion = true
+		}
+		if last.packumentErr == nil && last.version == nil && reduced && !observedAt.After(reducedDeadline) {
+			sawCleanAbsence = true
 		}
 		summary.record(last)
 		decision = prepared.decide(ctx, last, afterMutation, false)
