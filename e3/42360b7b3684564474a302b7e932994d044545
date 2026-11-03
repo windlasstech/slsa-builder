@@ -1,0 +1,21 @@
+internal/npmprofile/oidc_client_test.go
+  s_940dc19ccea4fc::t_6293f51c6dcab0 40-42
+internal/npmprofile/oidc_client.go
+  s_940dc19ccea4fc::t_daf456d83f4482 194-198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e342360b7b3684564474a302b7e932994d044545",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
