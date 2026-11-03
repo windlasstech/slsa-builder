@@ -10,16 +10,6 @@ func routedFamilyMessage(body, packageName string) string {
 	return "npm error 422 Unprocessable Entity - PUT https://registry.npmjs.org/" + escaped + " - " + strings.ReplaceAll(body, "\n", "\nnpm error 422 ")
 }
 
-func completeFamilyBodies() []struct{ family, body string } {
-	return []struct{ family, body string }{
-		{"predicate-field-mismatch", predicateFamilyMessage},
-		{"repository-metadata-mismatch", repositoryFamilyMessage},
-		{"private-source-repository", privateFamilyMessage},
-		{"unsupported-runner-environment", runnerFamilyMessage},
-		{"missing-certificate-claim", "Error verifying sigstore provenance bundle: Missing SourceRepositoryRef in signing certificate"},
-	}
-}
-
 func TestNPMFailureFamiliesRoutedCapacity(t *testing.T) {
 	t.Parallel()
 	maxPackage := "@" + strings.Repeat("s", 100) + "/" + strings.Repeat("p", 112)
@@ -29,7 +19,7 @@ func TestNPMFailureFamiliesRoutedCapacity(t *testing.T) {
 	if got := len(strings.ReplaceAll(predicateFamilyMessage, "\n", " ")); got != 1019 {
 		t.Fatalf("catalog template size = %d; update bound derivation", got)
 	}
-	for _, fixture := range completeFamilyBodies() {
+	for _, fixture := range npmFailureFamilyBodies() {
 		t.Run(fixture.family, func(t *testing.T) {
 			t.Parallel()
 			for _, pkg := range []string{"@windlass/slsa-builder", maxPackage} {

@@ -163,7 +163,7 @@ func FuzzNPMFailureRecognizer(f *testing.F) {
 	for _, fixture := range npmFailureFamilyFixtures() {
 		f.Add([]byte(fixture.input), uint8(1))
 	}
-	for _, fixture := range completeFamilyBodies() {
+	for _, fixture := range npmFailureFamilyBodies() {
 		f.Add([]byte(routedFamilyMessage(strings.ReplaceAll(fixture.body, "\n", " "), "@"+strings.Repeat("s", 100)+"/"+strings.Repeat("p", 112))), uint8(1))
 	}
 	f.Add([]byte(frameNPMFamilyMessage("Error verifying sigstore provenance bundle:\nUnsupported GitHub Actions runner environment: \"self-hosted\".\nActually supported now.")), uint8(1))

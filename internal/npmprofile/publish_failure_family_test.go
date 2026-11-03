@@ -21,8 +21,19 @@ runDetails.builder.id: <observed> does not match expected value for builderId: <
 	runnerFamilyMessage     = `Error verifying sigstore provenance bundle:
 Unsupported GitHub Actions runner environment: "self-hosted".
 Only "github-hosted" runners are supported when publishing with provenance.`
-	missingClaimFamilyLine = `npm error 422 Unprocessable Entity - PUT https://registry.npmjs.org/<escaped package> - Error verifying sigstore provenance bundle: Missing SourceRepositoryRef in signing certificate`
+	missingClaimFamilyBody = `Error verifying sigstore provenance bundle: Missing SourceRepositoryRef in signing certificate`
 )
+
+// npmFailureFamilyBodies is the single fixture list shared by the family tests; only framing differs.
+func npmFailureFamilyBodies() []struct{ family, body string } {
+	return []struct{ family, body string }{
+		{"predicate-field-mismatch", predicateFamilyMessage},
+		{"repository-metadata-mismatch", repositoryFamilyMessage},
+		{"private-source-repository", privateFamilyMessage},
+		{"unsupported-runner-environment", runnerFamilyMessage},
+		{"missing-certificate-claim", missingClaimFamilyBody},
+	}
+}
 
 func npmFailureFamilyFixtures() []struct{ family, input string } {
 	return []struct{ family, input string }{
@@ -30,7 +41,7 @@ func npmFailureFamilyFixtures() []struct{ family, input string } {
 		{"repository-metadata-mismatch", frameNPMFamilyMessage(repositoryFamilyMessage)},
 		{"private-source-repository", frameNPMFamilyMessage(privateFamilyMessage)},
 		{"unsupported-runner-environment", frameNPMFamilyMessage(runnerFamilyMessage)},
-		{"missing-certificate-claim", missingClaimFamilyLine},
+		{"missing-certificate-claim", routedFamilyMessage(missingClaimFamilyBody, "<escaped package>")},
 	}
 }
 
@@ -65,6 +76,7 @@ func TestNPMFailureRecognizerFamilies(t *testing.T) {
 
 func TestNPMFailureRecognizerFamilyAnchors(t *testing.T) {
 	t.Parallel()
+	missingClaimLine := routedFamilyMessage(missingClaimFamilyBody, "<escaped package>")
 	for _, message := range []string{
 		"novel registry rejection",
 		"Unsupported OIDC token issuer",
@@ -74,9 +86,9 @@ func TestNPMFailureRecognizerFamilyAnchors(t *testing.T) {
 		privateFamilyMessage + " not a rejection",
 		`Unsupported GitHub Actions runner environment: "self-hosted".`,
 		"Error verifying sigstore provenance bundle:\nintervening line\n" + `Unsupported GitHub Actions runner environment: "self-hosted".`,
-		"quoted: " + missingClaimFamilyLine,
-		strings.ReplaceAll(missingClaimFamilyLine, "Missing SourceRepositoryRef", "Missing UnknownClaim"),
-		missingClaimFamilyLine + "Extra",
+		"quoted: " + missingClaimLine,
+		strings.ReplaceAll(missingClaimLine, "Missing SourceRepositoryRef", "Missing UnknownClaim"),
+		missingClaimLine + "Extra",
 		strings.Repeat("x", maxNPMFailurePendingLineLength) + privateFamilyMessage,
 	} {
 		t.Run(message[:min(len(message), 70)], func(t *testing.T) {
