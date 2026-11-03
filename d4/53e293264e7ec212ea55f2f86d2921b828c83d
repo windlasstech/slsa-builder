@@ -1,0 +1,38 @@
+internal/npmprofile/publish_diagnostics_test.go
+  s_1c2c27394ee1ed::t_6a504a16cd10fd 166-169
+internal/npmprofile/publish_failure_family_complete_test.go
+  s_1c2c27394ee1ed::t_4356bf96abd41f 1-9,11-24,32-39,44-62,64-68,72-79,81-84,92,98-100
+  s_1c2c27394ee1ed::t_727f9939048ef0 80
+  s_1d4a5519b5ab09::t_1eaa0d64b26798 10,25-31,40-43,63,69-71,85-91,93-97
+internal/npmprofile/publish_diagnostics.go
+  s_1c2c27394ee1ed::t_6de412b28d31e8 10-14,29,65,87
+  s_1d4a5519b5ab09::t_1eaa0d64b26798 6-9,15-16
+internal/npmprofile/publish_failure_family.go
+  s_1d4a5519b5ab09::t_1eaa0d64b26798 25-26,55,66,75-77,100-102,104-106,108-110,118-120,142-144
+  s_1c2c27394ee1ed::t_6de412b28d31e8 18-24,27-29,53-54,57,62,68-70,72,78,81-85,87,89-93,97-99,103,107,111-117,121-141,145-150
+  s_1c2c27394ee1ed::t_e7431a837b7372 56,67,71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d453e293264e7ec212ea55f2f86d2921b828c83d",
+  "prompts": {},
+  "sessions": {
+    "s_1c2c27394ee1ed": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_1d4a5519b5ab09": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
