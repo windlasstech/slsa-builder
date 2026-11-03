@@ -1,0 +1,35 @@
+internal/npmprofile/exec_boundary_relay.go
+  s_1d4a5519b5ab09::t_189ae4de241f00 19-23,39-41,59-61,64-66,76-78,93-96,103-106,116-121,127
+  s_1c2c27394ee1ed::t_939a5e316b55a7 1-18,24-38,42-58,62-63,67-75,79-92,97-102,107-115,122-126,128-135
+internal/npmprofile/exec_boundary_relay_test.go
+  s_1d4a5519b5ab09::t_dc91cd32cc80d8 69-71
+  s_1c2c27394ee1ed::t_393d5fb8f26eee 68,72-74
+  s_1c2c27394ee1ed::t_9a7216f89064d3 1-13,16-25,29-30,35-37,39-41,45,52-64,75,79-89,96-97,105,109-111,115-116,120-124,128-129,169
+  s_1c2c27394ee1ed::t_aee761f97cdf41 90-92,130-147,151-153,160-168
+  s_1d4a5519b5ab09::t_189ae4de241f00 14-15,26-28,31-34,38,42-44,46-51,65-67,76-78,93-95,98-104,106-108,112-114,117-119,125-127
+  s_1d4a5519b5ab09::t_e3834b9a9f29c5 148-150,154-159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6de2279d51f8875465f20f08498073074186685",
+  "prompts": {},
+  "sessions": {
+    "s_1c2c27394ee1ed": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_1d4a5519b5ab09": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
