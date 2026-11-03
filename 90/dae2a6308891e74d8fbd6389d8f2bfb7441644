@@ -1,0 +1,52 @@
+docs/decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md
+  s_940dc19ccea4fc::t_c4b47926fba61b 4
+  s_940dc19ccea4fc::t_27636fcb078d1c 1-3
+  s_940dc19ccea4fc::t_2150262f15a631 5-7
+  s_940dc19ccea4fc::t_781de1e1334912 8-308
+docs/decisions/0076-use-observation-preflights-and-first-mutation-classification.md
+  s_940dc19ccea4fc::t_364cef672f2691 35-38
+  s_940dc19ccea4fc::t_cae17ee3a1294a 39-41
+docs/decisions/0067-converge-repeated-runs-within-run-identity.md
+  s_940dc19ccea4fc::t_4b36326a7886cc 39-40
+docs/decisions/README.md
+  s_940dc19ccea4fc::t_3b742d86197535 34-85,249
+  s_940dc19ccea4fc::t_9e4d45c1c9d10d 32,86
+  s_f2a7ec4f903a33::t_756435320e17ba 33
+docs/decisions/0101-relay-external-cli-stderr-to-logs-under-hygiene-bounds-with-classification-as-enrichment.md
+  s_940dc19ccea4fc::t_3632f8b0691d34 14-15
+docs/decisions/README.ko.md
+  s_940dc19ccea4fc::t_3b742d86197535 85,246
+  s_940dc19ccea4fc::t_9e4d45c1c9d10d 31
+docs/decisions/0073-require-published-attestation-run-identity-for-npm-same-run-convergence.md
+  s_940dc19ccea4fc::t_84134f00c7d665 20-21
+docs/decisions/AGENTS.md
+  s_940dc19ccea4fc::t_3b742d86197535 49-93
+  s_940dc19ccea4fc::t_9e4d45c1c9d10d 36,41
+  s_940dc19ccea4fc::t_c4792bf503182a 7
+AGENTS.md
+  s_940dc19ccea4fc::t_9e4d45c1c9d10d 25,44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "90dae2a6308891e74d8fbd6389d8f2bfb7441644",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f2a7ec4f903a33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
