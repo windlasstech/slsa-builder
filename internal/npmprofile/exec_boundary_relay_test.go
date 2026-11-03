@@ -16,7 +16,7 @@ func TestOperationalStderrRelayFilter(t *testing.T) {
 	}{
 		{name: "empty"},
 		{name: "empty lines and final line", input: "\nfirst\n\nlast", want: "first\nlast\n"},
-		{name: "controls", input: "a\r\x00\x1b[31m\x7fb\t\u0080\u009f\u200e\u200f\u202a\u202e\u2066\u2069c\n", want: "a[31mb\tc\n"},
+		{name: "controls", input: "a\r\x00\x1b[31m\x7fb\t\u0080\u009f\u061c\u200e\u200f\u202a\u202e\u2066\u2069c\n", want: "a[31mb\tc\n"},
 		{name: "invalid UTF8", input: "a\xff\xc0\xe2\x82", want: "a����\n"},
 		{name: "unicode", input: "한글🙂\n", want: "한글🙂\n"},
 		{name: "raw redaction first", input: "x a\x1bb a\x1bb y", secrets: []string{"a\x1bb"}, want: "x [REDACTED] [REDACTED] y\n"},
@@ -113,7 +113,7 @@ func FuzzOperationalStderrRelayFilter(f *testing.F) {
 			payload += len(text)
 			lines++
 			for _, r := range text {
-				if r < 32 && r != '\t' || r >= 127 && r <= 159 || r == '\u200e' || r == '\u200f' || r >= '\u202a' && r <= '\u202e' || r >= '\u2066' && r <= '\u2069' {
+				if r < 32 && r != '\t' || r >= 127 && r <= 159 || r == '\u061c' || r == '\u200e' || r == '\u200f' || r >= '\u202a' && r <= '\u202e' || r >= '\u2066' && r <= '\u2069' {
 					t.Fatal("prohibited control")
 				}
 			}
@@ -140,7 +140,7 @@ func referenceRelay(input, secret string) string {
 	filtered := strings.Map(func(r rune) rune {
 		switch {
 		case r < 32 && r != '\n' && r != '\t', r >= 127 && r <= 159,
-			r == '\u200e', r == '\u200f', r >= '\u202a' && r <= '\u202e', r >= '\u2066' && r <= '\u2069':
+			r == '\u061c', r == '\u200e', r == '\u200f', r >= '\u202a' && r <= '\u202e', r >= '\u2066' && r <= '\u2069':
 			return -1
 		default:
 			return r

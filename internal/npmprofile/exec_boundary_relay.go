@@ -85,7 +85,7 @@ func (r *operationalStderrRelay) decode(b byte, final bool) {
 
 func (r *operationalStderrRelay) collect(value rune) {
 	if r.truncated || value < 32 && value != '\n' && value != '\t' ||
-		value >= 127 && value <= 159 || value == '\u200e' || value == '\u200f' ||
+		value >= 127 && value <= 159 || value == '\u061c' || value == '\u200e' || value == '\u200f' ||
 		value >= '\u202a' && value <= '\u202e' || value >= '\u2066' && value <= '\u2069' {
 		return
 	}
