@@ -233,34 +233,103 @@ input, or a stable consumer interface. Consumers must not treat them as a protoc
 that establishes an artifact's integrity or provenance.
 
 Operation labels are fixed to the existing executable allowlist: `node`, `npm`, `npx`, `corepack`,
-`pnpm`, and `yarn`. Diagnostics are limited to that label, start and completion notices, whether the
-process started, the observed exit code or signal, timeout or cancellation state, elapsed duration,
-and whether captured output was truncated. A start failure reports `started=false` and
-`outcome=start-failed`, without a fabricated exit code or signal. Timeout and cancellation are
+`pnpm`, and `yarn`. Lifecycle diagnostics are limited to that label, start and completion notices,
+whether the process started, the observed exit code or signal, timeout or cancellation state,
+elapsed duration, and whether captured output was truncated. A start failure reports `started=false`
+and `outcome=start-failed`, without a fabricated exit code or signal. Timeout and cancellation are
 reported only when observed.
 
 A profile may supplement these process diagnostics with a closed, explicitly specified allowlist of
 profile-specific categorical facts. The profile specification must define those facts and their
 bounds, and every extension remains subject to the non-authoritative, secret-exclusion, and
-non-interference rules below.
+non-interference rules below. Categorical facts are identifiers, allowlisted field paths, statuses,
+and counts; they never carry external message text.
 
-Diagnostics must not contain raw argv, environment values, file paths, child output, child or
-trusted-core error strings, credentials, or URLs. Logging and stderr write failures are discarded;
-they cannot change returned output or errors, process behavior, or workflow outcomes.
+#### Relayed stderr and its hygiene filter
+
+In addition to trusted-core-authored lifecycle and categorical lines, the trusted core relays the
+stderr of allowlisted external processes to the operational channel. The relay exists so that an
+ecosystem registry or tool rejection is diagnosable from the workflow log without
+re-instrumentation. ADR 0101 fixes the relay's existence and purpose; this specification owns the
+concrete hygiene-filter conditions below and may strengthen or relax them by specification amendment
+without a new ADR.
+
+The relayed text is the only external text that may appear in operational diagnostics, and it
+crosses only through the hygiene filter. The filter's initial conditions are:
+
+- **Exact-value redaction first.** Every exact occurrence of each secret value known to the trusted
+  core is replaced with `[REDACTED]` on the raw stream, before any other filtering. The redaction
+  set for a process is the value of the ambient `ACTIONS_ID_TOKEN_REQUEST_TOKEN` environment
+  variable when present in that process's environment, plus any OIDC material the trusted core holds
+  for the operation. For the npm profile that material is the GitHub OIDC identity token and the npm
+  trusted-publishing exchange token; neither is ever injected into the subprocess environment, and
+  both are redacted purely as defense in depth. Redaction is exact byte matching, including
+  occurrences split across stream chunks; it is never heuristic or pattern-based, and it applies to
+  no other values. Empty values and values containing a line break are excluded from the redaction
+  set; the named token types contain no line breaks by construction. The guarantee is exact-value
+  only: transformed, encoded, truncated, or partial representations of a secret are out of scope by
+  decision (ADR 0101), on the strength of the default-verbosity constraint below and the observed
+  default-level message classes of the allowlisted tools.
+- **Control-character stripping.** After redaction, ASCII control bytes other than LF and TAB, and
+  DEL, are stripped, and each invalid UTF-8 byte sequence is replaced with the Unicode replacement
+  character (U+FFFD). C1 control characters (U+0080 through U+009F) and the Unicode bidirectional
+  control characters (U+061C, U+200E, U+200F, U+202A through U+202E, U+2066 through U+2069) are
+  likewise stripped. The relay never emits a character that can drive a terminal or log-viewer
+  control function, and its emitted payload is always valid UTF-8 text.
+- **Runner-command neutralization.** The legacy GitHub Actions runner command marker `##[` is never
+  emitted: every `[` that would leave `##[` in the emitted text is stripped, wherever it appears in
+  the line. Neutralization runs after control-character stripping, on the filtered post-redaction
+  stream, so a marker exposed by an earlier removal (for example `##[[` or `##` followed by a
+  stripped control byte and `[`) and a marker composed by a redaction replacement (for example text
+  ending in `##` immediately before a redacted value) are stripped as well. The legacy marker is the
+  only workflow-command syntax the runner matches anywhere in a line; the modern `::command::`
+  syntax executes only when a line begins with `::`, and every relayed line begins with the
+  operational prefix. Between the prefix and this rule, no runner workflow-command surface reaches
+  the log.
+- **Bounded volume.** At most 65536 filtered payload bytes (64 KiB) and at most 512 non-empty
+  relayed lines per process. Bounds are measured after redaction and stripping; the operational line
+  prefixes and the truncation marker do not count against them. A byte truncation never splits a
+  UTF-8 multibyte character: the relayed prefix ends at the last complete character within the byte
+  bound. When either bound is exceeded, relaying stops and exactly one `stderr_truncated=true`
+  marker line is emitted; the marker carries no child text.
+- **Line format and ordering.** Relayed lines are emitted when the process completes, after the
+  start notice and before the completion notice, one operational line per non-empty filtered stderr
+  line, in stream order, each in the form
+  `windlass operational: operation=<label> stderr: <filtered text>`. A final unterminated line is
+  flushed. Empty filtered lines are omitted. Every relayed byte carries the operational prefix, so
+  child output cannot forge an operational line or escape the prefix.
+- **Default verbosity only.** A profile must not elevate an external tool's log verbosity (for npm:
+  no `--loglevel` argument and no loglevel configuration), so that relayed content stays within the
+  message classes the tool emits at its default level.
+
+The relay applies to every allowlisted process regardless of exit status. The canonical outcome
+report, the diagnostic registry, and signed artifacts remain sealed: no external text ever reaches
+them.
+
+Trusted-core-authored lines must not contain raw argv, environment values, file paths, child or
+trusted-core error strings, credentials, or URLs; only the filtered stderr relay may carry
+tool-rendered text, and only under the hygiene conditions above. Logging and stderr write failures
+are discarded; they cannot change returned output or errors, process behavior, or workflow outcomes.
 
 Valid illustrative lines are:
 
 ```text
 windlass operational: operation=node start
+windlass operational: operation=npm stderr: npm error code E422
+windlass operational: operation=npm stderr: token value: [REDACTED]
+windlass operational: operation=npm stderr_truncated=true
 windlass operational: operation=node started=true outcome=exit exit=0 elapsed=12ms output_truncated=false
 windlass operational: operation=npm started=false outcome=start-failed elapsed=3ms output_truncated=false
 ```
 
-The following lines are invalid because they disclose prohibited raw values:
+The following lines are invalid because they disclose prohibited values in trusted-core-authored
+records, carry external text outside the filtered relay format, or bypass the filter entirely:
 
 ```text
 windlass operational: operation=npm argv="publish /tmp/package.tgz" registry="https://registry.npmjs.org/"
-windlass operational: operation=node child_error="secret canary from child output"
+windlass operational: operation=npm child_error="raw child error text"
+windlass operational: npm_failure message="expected X, actual Y"
+npm error code E422
 ```
 
 ## Signing adapter boundary

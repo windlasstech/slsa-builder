@@ -120,7 +120,13 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   the platform's control-plane deployment version is recorded as a separate non-authoritative
   `deployment_version` annotation, so GitHub runner image rollout windows do not fail honest builds.
 - Added redacted, best-effort human-readable stderr diagnostics for external-process lifecycle, npm
-  publish failures, and registry read-back transitions. The diagnostics are non-authoritative and
+  publish failures, and registry read-back transitions, including a filtered stderr relay for
+  allowlisted processes on success and failure. The relay redacts exact known token values, strips
+  control characters, normalizes invalid UTF-8, and limits each process to 65536 filtered payload
+  bytes and 512 non-empty lines with an explicit truncation marker. Failed npm publish summaries
+  identify the first recognized rejection family: predicate-field mismatch, repository-metadata
+  mismatch, private source repository, unsupported runner environment, or missing certificate claim.
+  Unknown rejections still relay without a family label. The diagnostics are non-authoritative and
   cannot change canonical reports, registry or verifier operations, classification, retries, or
   publish outcomes.
 

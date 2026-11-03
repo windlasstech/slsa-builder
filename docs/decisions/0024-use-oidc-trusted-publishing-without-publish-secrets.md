@@ -16,6 +16,8 @@ relations:
       wording is scoped to what the exchange and observation preflights can establish"
   - type: see-also
     target: ADR-0083
+  - type: see-also
+    target: ADR-0101
 ---
 
 # Use OIDC Trusted Publishing Without Publish Secrets

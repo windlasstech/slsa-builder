@@ -2,6 +2,7 @@ package npmprofile
 
 import (
 	"bytes"
+	"io"
 	"regexp"
 	"strings"
 	"testing"
@@ -74,6 +75,7 @@ func TestNPMFailureRecognizer(t *testing.T) {
 func TestPublishOperationalDiagnosticsLateE422WithTruncationAndSecretCanary(t *testing.T) {
 	// Given: a real Publish fixture whose combined output exceeds the unchanged head cap before E422.
 	secretCanary := "NPM_FAILURE_SECRET_CANARY_7f3a91"
+	t.Setenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN", secretCanary)
 	noiseLine := "npm error noise " + secretCanary + " MESSAGE_CANARY\n"
 	noise := strings.Repeat(noiseLine, maxNPMOutputSize/len(noiseLine)+1)
 	if len(noise) <= maxNPMOutputSize {
@@ -110,6 +112,10 @@ func TestPublishOperationalDiagnosticsLateE422WithTruncationAndSecretCanary(t *t
 	wantFailure := npmFailureSummaryPrefix + " code=E422 http_status=422 predicate_paths=" +
 		"predicate.buildDefinition.buildType,predicate.buildDefinition.externalParameters.source.repository,predicate.runDetails.builder.id"
 	gotDiagnostics := diagnostics.String()
+	if strings.Count(gotDiagnostics, "operation=npm stderr: npm error noise [REDACTED] MESSAGE_CANARY\n") != 512 ||
+		strings.Count(gotDiagnostics, "operation=npm stderr_truncated=true\n") != 1 {
+		t.Fatal("expected 512 redacted stderr lines and one truncation marker")
+	}
 	failureLines := 0
 	truncatedExitLines := 0
 	for _, line := range strings.Split(strings.TrimSpace(gotDiagnostics), "\n") {
@@ -124,8 +130,8 @@ func TestPublishOperationalDiagnosticsLateE422WithTruncationAndSecretCanary(t *t
 		t.Fatalf("diagnostics failure lines = %d and truncated exit lines = %d, want one each; diagnostics:\n%s", failureLines, truncatedExitLines, gotDiagnostics)
 	}
 	for _, prohibited := range []string{
-		secretCanary, "EXPECTED_CANARY", "ACTUAL_CANARY", "MESSAGE_CANARY", "URL_CANARY", "SUBJECT_CANARY",
-		"https://", "npm err!", "noise", "argv=", "url=", "message=", "expected=", "actual=", "request_phase=", "response_body=",
+		secretCanary, "EXPECTED_CANARY", "ACTUAL_CANARY", "URL_CANARY", "SUBJECT_CANARY",
+		"https://", "npm err!", "argv=", "url=", "message=", "expected=", "actual=", "request_phase=", "response_body=",
 		"must-not-reach-fake-npm", "must-not-reach-npm", "short-lived-token-must-not-reach-npm-env",
 		fixture.request.TarballPath, fixture.request.BundlePath,
 	} {
@@ -133,13 +139,35 @@ func TestPublishOperationalDiagnosticsLateE422WithTruncationAndSecretCanary(t *t
 			t.Errorf("diagnostics contain prohibited raw value %q", prohibited)
 		}
 	}
+	encoded, err := result.Report.CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	control, err := Publish(WithOperationalDebugOutput(t.Context(), io.Discard), fixture.request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	controlBytes, err := control.Report.CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(encoded, controlBytes) {
+		t.Fatal("relay changed canonical report bytes")
+	}
 }
 
 func FuzzNPMFailureRecognizer(f *testing.F) {
 	f.Add([]byte("npm error code E422\nnpm error 422 predicate.runDetails.builder.id\n"), uint8(1))
 	f.Add([]byte("npm err! code E403\nnpm err! 499 predicate.subject[0].name=SECRET_CANARY\n"), uint8(7))
 	f.Add([]byte(strings.Repeat("noise SECRET_CANARY\n", maxNPMOutputSize/8)+"npm err! code E422\nnpm err! 422 predicate.buildDefinition.buildType\n"), uint8(31))
-	summaryPattern := regexp.MustCompile(`^windlass operational: npm_failure( code=[A-Z][A-Z0-9_]{0,63})?( http_status=[45][0-9]{2})?( predicate_paths=[A-Za-z0-9_.\[\],]+)?$`)
+	for _, fixture := range npmFailureFamilyFixtures() {
+		f.Add([]byte(fixture.input), uint8(1))
+	}
+	for _, fixture := range npmFailureFamilyBodies() {
+		f.Add([]byte(routedFamilyMessage(strings.ReplaceAll(fixture.body, "\n", " "), "@"+strings.Repeat("s", 100)+"/"+strings.Repeat("p", 112))), uint8(1))
+	}
+	f.Add([]byte(frameNPMFamilyMessage("Error verifying sigstore provenance bundle:\nUnsupported GitHub Actions runner environment: \"self-hosted\".\nActually supported now.")), uint8(1))
+	summaryPattern := regexp.MustCompile(`^windlass operational: npm_failure( family=(predicate-field-mismatch|repository-metadata-mismatch|private-source-repository|unsupported-runner-environment|missing-certificate-claim))?( code=[A-Z][A-Z0-9_]{0,63})?( http_status=[45][0-9]{2})?( predicate_paths=[A-Za-z0-9_.\[\],]+)?$`)
 	f.Fuzz(func(t *testing.T, input []byte, chunk uint8) {
 		// Given: arbitrary bytes and a nonzero arbitrary write size.
 		// When: the recognizer consumes every chunk without a panic recovery path.

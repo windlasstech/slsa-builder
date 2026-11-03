@@ -457,6 +457,8 @@ func (prepared preparedPublish) runNPMCommand(ctx context.Context, arguments []s
 		prepared.request.NPMExecutable,
 		publishEnvironment(os.Environ(), isolationDirectory, userConfig, globalConfig),
 		arguments,
+		prepared.request.OIDCExchange.Token.value(),
+		prepared.request.OIDCExchange.GitHubIdentityToken.value(),
 	)
 	return []byte(output), err
 }

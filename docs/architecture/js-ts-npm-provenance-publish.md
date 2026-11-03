@@ -1888,13 +1888,24 @@ for a failed npm publish process and for registry read-back. These diagnostics r
 metadata, not trust proof or a stable consumer interface.
 
 A failed-publish summary may contain only a recognized npm error code, an independently observed
-HTTP status, and allowlisted server-reported predicate field paths. The code and status are reported
-only when independently observed; neither is inferred from the other. Field paths are limited to
-dotted or indexed paths beneath `predicate.buildDefinition.buildType`,
-`predicate.buildDefinition.externalParameters`, `predicate.buildDefinition.resolvedDependencies`,
-`predicate.runDetails.builder`, and `predicate.runDetails.metadata`. Only the field path is
-reported, never its value or an expected/actual comparison. A request phase may be reported only
-when reliably known; the current implementation omits request-phase information.
+HTTP status, allowlisted server-reported predicate field paths, and an optional rejection family
+identifier. The code and status are reported only when independently observed; neither is inferred
+from the other. Field paths are limited to dotted or indexed paths beneath
+`predicate.buildDefinition.buildType`, `predicate.buildDefinition.externalParameters`,
+`predicate.buildDefinition.resolvedDependencies`, `predicate.runDetails.builder`, and
+`predicate.runDetails.metadata`. Only the field path is reported, never its value or an
+expected/actual comparison. A request phase may be reported only when reliably known; the current
+implementation omits request-phase information.
+
+The rejection family is a closed vocabulary of five identifiers, each bound to an anchored match on
+the complete catalogued template of a documented npm registry rejection message family:
+`predicate-field-mismatch`, `repository-metadata-mismatch`, `private-source-repository`,
+`unsupported-runner-environment`, and `missing-certificate-claim`. The family is reported only when
+the publish output matches a family template, including its routed and multiline forms; incomplete
+or altered templates carry no family field. Family matching never gates behavior: it enriches the
+operational channel only. Independently of any family match, the publish process's stderr is relayed
+under the core contract's hygiene filter, so a novel rejection reaches the log in the registry's own
+rendered words.
 
 Read-back diagnostics emit one summary for each existing classification run, never one line per
 poll. The summary contains the first observation, the latest observation changed from the first when
@@ -1904,22 +1915,30 @@ no registry or verifier operations.
 
 Operational diagnostics must not change canonical reports, classification, mutation, retry, exit
 behavior, or existing classification inputs. They must not create a durable artifact, a
-`$GITHUB_OUTPUT` entry, a JSON or JSONL schema, or a diagnostic ID. They contain no raw response
-body or server message. Logging and stderr write failures are discarded and cannot change any of
+`$GITHUB_OUTPUT` entry, a JSON or JSONL schema, or a diagnostic ID. The trusted core never possesses
+the raw registry response body: registry message text reaches the log only as the filtered stderr
+relay defined by the core contract, and categorical summary lines contain no server message text.
+When a process writes to both stdout and stderr, the combined captured stream that failure
+classification reads preserves each stream's internal order but not the relative order between
+streams; the npm CLI emits its failure diagnostics on stderr, so this relaxation does not change
+observed classifications. Logging and stderr write failures are discarded and cannot change any of
 these behaviors or outcomes.
 
 Valid illustrative lines are:
 
 ```text
+windlass operational: npm_failure family=predicate-field-mismatch code=E422 http_status=422 predicate_paths=predicate.buildDefinition.buildType,predicate.runDetails.builder
 windlass operational: npm_failure code=E422 http_status=422 predicate_paths=predicate.buildDefinition.buildType,predicate.runDetails.builder
+windlass operational: operation=npm stderr: npm error 422 Unprocessable Content - POST https://registry.npmjs.org/-/package/example/dist-tags
 windlass operational: readback after_mutation=true observations=2 changes=1 first="package=unknown version=unknown integrity=unknown attestations=unknown errors=both" latest_changed="package=present version=present integrity=match attestations=present errors=none" final="package=present version=present integrity=match attestations=present errors=none" decision=committed-as-expected
 ```
 
-The following lines are invalid because they claim an unknown request phase and disclose prohibited
-raw values:
+The following lines are invalid because they claim an unknown request phase, place server message
+text in a categorical summary instead of the filtered relay, or disclose prohibited raw values:
 
 ```text
 windlass operational: npm_failure request_phase=PUT url="https://registry.npmjs.org/@example%2fpkg" message="expected X, actual Y"
+windlass operational: npm_failure family=registry-said-no code=E422
 windlass operational: readback poll=17 response_body="{\"error\":\"server message\"}"
 ```
 

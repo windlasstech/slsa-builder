@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0100`.
+`0101`.
 
 ## STRUCTURE
 
@@ -32,11 +32,12 @@ docs/decisions/
 ├── 0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md
 ├── 0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
 ├── 0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md
+├── 0101-relay-external-cli-stderr-to-logs-under-hygiene-bounds-with-classification-as-enrichment.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0100`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0101`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -87,6 +88,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | Build-stage Node.js runtime    | `0098`                                                     | Digest-verified release tarball with a committed SHA-256 replaces setup-action and toolcache selection; bundled vs provisioned build npm is a spec-level choice. |
 | Node.js runtime recording      | `0099`                                                     | Digest-verified runtime tarball as a `resolvedDependencies` descriptor (accepted).                                                                               |
 | Runner image identity          | `0100`                                                     | On-disk image metadata is authoritative for `image_version`; the control-plane deployment version is recorded separately as `deployment_version` evidence.       |
+| External-process stderr relay  | `0101`                                                     | Allowlisted tool stderr reaches the log through a spec-owned hygiene filter; classification is enrichment; the canonical contract stays sealed.                  |
 
 ## CONVENTIONS
 

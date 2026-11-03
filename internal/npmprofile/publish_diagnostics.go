@@ -3,13 +3,17 @@ package npmprofile
 import "strings"
 
 const (
-	maxNPMFailureCodeLength            = 64
-	maxNPMFailurePredicatePathLength   = 256
-	maxNPMFailureSummaryLength         = 8192
-	maxNPMFailureRecognizerState       = 4096
-	maxNPMFailureHTTPStatusLength      = 3
-	maxNPMFailurePendingLineLength     = len("npm error ") + maxNPMFailureHTTPStatusLength + 1 + maxNPMFailurePredicatePathLength + 1
-	maxNPMFailurePredicatePathsState   = maxNPMFailureRecognizerState - maxNPMFailurePendingLineLength - maxNPMFailureCodeLength - maxNPMFailureHTTPStatusLength
+	maxNPMFailureCodeLength          = 64
+	maxNPMFailurePredicatePathLength = 256
+	maxNPMFailureSummaryLength       = 8192
+	maxNPMFailureHTTPStatusLength    = 3
+	// Longest catalog template (flattened predicate mismatch): 1019 bytes.
+	// Route framing 68 + scoped package 214+4 (%40 and %2f) + separator 3
+	// + template 1019 + CR 1 = 1309; 2048 leaves 739 bytes of value margin.
+	maxNPMFailurePendingLineLength = 2048
+	// Preserve the previous predicate-path budget: 4096 - 271 - 64 - 3.
+	maxNPMFailurePredicatePathsState   = 3758
+	maxNPMFailureRecognizerState       = maxNPMFailurePendingLineLength + maxNPMFailurePredicatePathsState + maxNPMFailureCodeLength + maxNPMFailureHTTPStatusLength
 	npmFailureOperationalSummaryPrefix = "windlass operational: npm_failure"
 )
 
@@ -21,6 +25,8 @@ type npmFailureRecognizer struct {
 	httpStatus         string
 	predicatePathsSize int
 	discarding         bool
+	family             npmFailureFamily
+	familyStage        npmFailureFamilyStage
 }
 
 func newNPMFailureRecognizer() *npmFailureRecognizer {
@@ -55,6 +61,8 @@ func (r *npmFailureRecognizer) Summary() string {
 		code:               r.code,
 		httpStatus:         r.httpStatus,
 		predicatePathsSize: r.predicatePathsSize,
+		family:             r.family,
+		familyStage:        r.familyStage,
 	}
 	snapshot.observeLine(string(r.pending), !r.discarding)
 	return snapshot.summary()
@@ -76,8 +84,10 @@ func (r *npmFailureRecognizer) observeLine(line string, complete bool) {
 	case strings.HasPrefix(line, "npm err! "):
 		rest = line[len("npm err! "):]
 	default:
+		r.familyStage = npmFailureStageNone
 		return
 	}
+	r.observeFamily(rest, complete)
 
 	if strings.HasPrefix(rest, "code ") {
 		code := rest[len("code "):]
@@ -138,11 +148,15 @@ func (r *npmFailureRecognizer) addPredicatePath(path string) {
 }
 
 func (r *npmFailureRecognizer) summary() string {
-	if r.code == "" && r.httpStatus == "" && len(r.predicatePaths) == 0 {
+	if r.family == npmFailureFamilyNone && r.code == "" && r.httpStatus == "" && len(r.predicatePaths) == 0 {
 		return ""
 	}
 	var summary strings.Builder
 	summary.WriteString(npmFailureOperationalSummaryPrefix)
+	if r.family != npmFailureFamilyNone {
+		summary.WriteString(" family=")
+		summary.WriteString(r.family.label())
+	}
 	if r.code != "" {
 		summary.WriteString(" code=")
 		summary.WriteString(r.code)

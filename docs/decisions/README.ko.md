@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0100`까지입니다.
+`0101`까지입니다.
 
 | 범위      | 주제                                       | 설명                                                                                                                                        |
 | --------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -81,6 +81,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0098      | 빌드 스테이지 Node.js 런타임 프로비저닝    | 커밋된 SHA-256으로 다이제스트를 검증한 릴리스 tarball이 setup 액션과 툴캐시 선택을 대체. 번들 대 독립 프로비저닝 빌드 npm은 명세 레벨 선택. |
 | 0099      | resolvedDependencies의 Node.js 런타임 기록 | 다이제스트를 검증한 런타임 tarball을 provenance 의존성으로 기록.                                                                            |
 | 0100      | 러너 이미지 아이덴티티 권위                | 이미지 버전을 온디스크 메타데이터에서 기록. 컨트롤 플레인 배포 버전은 별도의 비권위 증거.                                                   |
+| 0101      | 외부 CLI stderr 위생 필터 릴레이           | allowlisted 서브프로세스 stderr를 명세 소유 위생 필터를 거쳐 로그에 릴레이. 템플릿 분류는 enrichment. canonical 계약은 봉인 유지.           |
 
 ## ADR status와 relations
 
@@ -240,6 +241,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0098 | Provision the build-stage Node.js 런타임 from a digest-verified release tarball                                   | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                                                             |
 | 0099 | Record the digest-verified Node.js 런타임 in resolvedDependencies                                                 | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                    |
 | 0100 | Record runner image identity from on-disk metadata with the control-plane deployment version as separate evidence | JS/TS npm build and pack(runner image capture), verification policy and fixtures                                                                                                    |
+| 0101 | Relay external CLI stderr to logs under hygiene bounds, with template classification as enrichment                | Core profile contract(external-process operational diagnostics), JS/TS npm provenance and publish(best-effort operational diagnostics)                                              |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

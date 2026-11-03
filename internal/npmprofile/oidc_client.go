@@ -55,11 +55,12 @@ type OIDCIdentity struct {
 
 // OIDCExchangeResult is the classified result of the non-mutating npm token exchange.
 type OIDCExchangeResult struct {
-	Token            SecretToken
-	CreatedAt        time.Time
-	ExpiresAt        time.Time
-	WorkflowFilename string
-	Report           diagnostic.Report
+	GitHubIdentityToken SecretToken `json:"-"`
+	Token               SecretToken
+	CreatedAt           time.Time
+	ExpiresAt           time.Time
+	WorkflowFilename    string
+	Report              diagnostic.Report
 }
 
 // NewOIDCClient validates endpoints and installs TLS, redirect, timeout, and proxy controls.
@@ -138,6 +139,7 @@ func (client *OIDCClient) Preflight(ctx context.Context, packageName string) OID
 		return OIDCExchangeResult{Report: report}
 	}
 	result := client.Exchange(ctx, packageName, identity.Token)
+	result.GitHubIdentityToken = identity.Token
 	result.WorkflowFilename = identity.WorkflowFilename
 	return result
 }
@@ -189,10 +191,11 @@ func (client *OIDCClient) Exchange(ctx context.Context, packageName string, iden
 		)}
 	}
 	return OIDCExchangeResult{
-		Token:     publishToken,
-		CreatedAt: createdAt,
-		ExpiresAt: expiresAt,
-		Report:    oidcPassReport(),
+		GitHubIdentityToken: identityToken,
+		Token:               publishToken,
+		CreatedAt:           createdAt,
+		ExpiresAt:           expiresAt,
+		Report:              oidcPassReport(),
 	}
 }
 

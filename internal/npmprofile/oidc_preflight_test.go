@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -73,6 +74,18 @@ func TestPreflightOIDC(t *testing.T) {
 				t.Fatal(err)
 			}
 			result := client.Preflight(t.Context(), "@windlass/slsa-builder")
+			if test.exchangeRequests != 0 && result.GitHubIdentityToken.value() != jwt {
+				t.Fatal("preflight discarded identity token needed for relay redaction")
+			}
+			encoded, encodeErr := result.Report.CanonicalJSON()
+			if encodeErr != nil {
+				t.Fatal(encodeErr)
+			}
+			for _, rendered := range []string{fmt.Sprint(result), fmt.Sprintf("%+v", result), fmt.Sprintf("%#v", result), string(encoded)} {
+				if strings.Contains(rendered, jwt) || strings.Contains(rendered, testPublishToken) {
+					t.Fatal("preflight leaked token material")
+				}
+			}
 			assertReportPrimary(t, result.Report, test.wantID)
 			if result.WorkflowFilename != test.wantWorkflow {
 				t.Fatalf("workflow filename = %q, want %q", result.WorkflowFilename, test.wantWorkflow)
