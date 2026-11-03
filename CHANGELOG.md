@@ -17,7 +17,9 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   polls the registry once every 15 seconds for up to 5 minutes; at budget expiry a confirmed version
   whose attestation is not yet visible is classified `foreign-conflict`, and an unconfirmed version
   `indeterminate`, and both converge on re-run via `committed-as-expected` once propagation
-  completes.
+  completes. A failed publish reporting `E422` instead uses a 60-second reduced window for
+  determinate absence classification, while any observed committed publication carries a
+  contradictory-publication warning without replacing the final convergence outcome.
 - Added official slsa-builder badge SVGs (`built with` with a package-check icon, `verified with`
   with a shield-check icon, and a plain logo badge in gray or green) under `assets/badges/`, each in
   four shields.io-compatible styles (flat, flat-square, plastic, and for-the-badge), with copy-ready

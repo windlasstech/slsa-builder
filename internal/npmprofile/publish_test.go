@@ -93,6 +93,11 @@ func TestPublishAmbiguousReadback(t *testing.T) {
 	if fixture.clock.sleeps != 20 || fixture.packumentRequests != 22 || fixture.attestationRequests != 22 {
 		t.Fatalf("polling = sleeps:%d packument:%d attestations:%d, want exact 5-minute budget", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests)
 	}
+	for _, entry := range result.Report.Diagnostics {
+		if entry.ID == "windlass.verify.warning.publish-committed-after-rejection" {
+			t.Fatalf("non-E422 read-back diagnostics = %#v, want no committed-after-rejection warning", result.Report.Diagnostics)
+		}
+	}
 }
 
 func TestPublishOperationalDiagnosticsReadbackFirstChangedFinal(t *testing.T) {
@@ -244,15 +249,18 @@ func TestPublishRejectsNPMVersionMismatchBeforeMutation(t *testing.T) {
 }
 
 type publishFixtureOptions struct {
-	initialVersionAbsent  bool
-	foreignIntegrity      bool
-	foreignRunID          bool
-	readbackIndeterminate bool
-	readbackPendingPolls  int
-	npmExitCode           int
-	npmError              string
-	npmVersion            string
-	buildNPMVersion       string
+	initialVersionAbsent             bool
+	foreignIntegrity                 bool
+	foreignRunID                     bool
+	readbackIndeterminate            bool
+	readbackAbsent                   bool
+	readbackAbsentPolls              int
+	readbackAttestationIndeterminate bool
+	readbackPendingPolls             int
+	npmExitCode                      int
+	npmError                         string
+	npmVersion                       string
+	buildNPMVersion                  string
 }
 
 type publishFixture struct {
@@ -299,6 +307,11 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 				writePackument(writer, nil)
 				return
 			}
+			if options.readbackAbsent && fixture.packumentRequests > 1 &&
+				(options.readbackAbsentPolls == 0 || fixture.packumentRequests-1 <= options.readbackAbsentPolls) {
+				writePackument(writer, nil)
+				return
+			}
 			if options.readbackIndeterminate || (fixture.packumentRequests > 1 && fixture.packumentRequests-1 <= options.readbackPendingPolls) {
 				fmt.Fprint(writer, `{`)
 				return
@@ -312,6 +325,15 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 			fixture.attestationRequests++
 			if options.initialVersionAbsent && fixture.packumentRequests == 1 {
 				writer.WriteHeader(http.StatusNotFound)
+				return
+			}
+			if options.readbackAbsent && fixture.packumentRequests > 1 &&
+				(options.readbackAbsentPolls == 0 || fixture.packumentRequests-1 <= options.readbackAbsentPolls) {
+				writer.WriteHeader(http.StatusNotFound)
+				return
+			}
+			if options.readbackAttestationIndeterminate && fixture.packumentRequests > 1 {
+				fmt.Fprint(writer, `{`)
 				return
 			}
 			if options.readbackIndeterminate || (fixture.packumentRequests > 1 && fixture.packumentRequests-1 <= options.readbackPendingPolls) {

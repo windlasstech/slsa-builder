@@ -72,7 +72,8 @@ func buildRegistry() map[string]Definition {
 		"node-runtime-provision-layout-violation", "node-runtime-provision-version-mismatch",
 		"publish-npm-pin-mismatch",
 		"toolchain-pair-mismatch", "toolchain-pin-drift")
-	set(definitions, PhaseMutation, ExitCodePolicyFailure, false, 7, "mutation-permission-denied")
+	set(definitions, PhaseMutation, ExitCodePolicyFailure, false, 7,
+		"mutation-permission-denied", "publish-rejected-unprocessable")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, true, 7,
 		"publisher-indeterminate-primary-upload", "mutation-queue-overflow",
 		"manifest-partial-json-uploaded", "manifest-indeterminate-json-upload",
@@ -123,6 +124,7 @@ var warningCategories = []string{
 	"native-provenance-locator-missing",
 	"npm-version-mismatch",
 	"project-corepack-env-ignored",
+	"publish-committed-after-rejection",
 	"stale-non-selected-lockfile",
 	"timestamp-clock-skew",
 }
@@ -221,6 +223,7 @@ prepublish-registry-metadata-required
 private-package
 publish-intent-conflict
 publish-npm-pin-mismatch
+publish-rejected-unprocessable
 publisher-handoff-field-error
 publisher-indeterminate-primary-upload
 publisher-permission-boundary-violation

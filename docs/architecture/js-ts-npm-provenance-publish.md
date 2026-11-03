@@ -1855,15 +1855,42 @@ unconfirmed, or required metadata cannot be read or verified, the result is `ind
 job must fail while reporting that publication may already have committed. Before the run's first
 publish call, an authoritative packument version-not-found response classifies as `absent`; after a
 publish call or ambiguous publish result, the same response remains pending because it may reflect
-replication lag. As the documented fallback within the same total budget, the job may download
-`dist.tarball` and compute its sha512 SRI locally; only exact equality with the expected SRI plus
-the verified attestation binding can establish `committed-as-expected`, and an unavailable or
-inconclusive fallback still ends as `indeterminate`.
+replication lag, except for the determinate E422 absence contract below. As the documented fallback
+within the same total budget, the job may download `dist.tarball` and compute its sha512 SRI
+locally; only exact equality with the expected SRI plus the verified attestation binding can
+establish `committed-as-expected`, and an unavailable or inconclusive fallback still ends as
+`indeterminate`.
 
-On `absent`, the same run may invoke `npm publish` once. A successful call is not final until
-read-back reaches `committed-as-expected`; `foreign-conflict` or `indeterminate` after the call must
-fail as a possible partial publication and preserve the evidence. `EPUBLISHCONFLICT` is not an
-automatic failure for a retry attempt within the same `github.run_id`: it is a candidate for
+Under
+[ADR 0102](../decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md),
+a failed publish mutation whose npm error code is exactly `E422` uses a reduced read-back budget of
+one immediate request followed by one request every 15 seconds until 60 seconds have elapsed from
+the first read-back request. The reduced and full budgets share that same start time; reduced expiry
+never starts a fresh five-minute budget. Definitive `E401`, `E403`, `E404`, and `ENEEDAUTH` mappings
+and every non-E422 failure retain their standing behavior.
+
+If the reduced window contains no clean packument observation of the target version but does contain
+at least one clean packument observation with the target version absent, reduced expiry produces a
+terminal `absent` result with `windlass.verify.error.publish-rejected-unprocessable`. An attestation
+error never invalidates an otherwise clean packument absence for this determination. If no clean
+packument absence was observed, reduced expiry instead returns to the standing rules through the
+original full deadline. A clean absence first observed after the reduced window never becomes
+determinate absence, and determinate absence is never re-evaluated after the transition to the full
+budget.
+
+Any clean packument observation of the target version at any post-mutation poll, including one after
+reduced expiry or one paired with an attestation error, adds
+`windlass.verify.warning.publish-committed-after-rejection` with the fixed message "npm reported
+E422 but registry read-back observed a committed publication". The full budget measured from the
+first read-back request still governs custody. The standing committed-as-expected, foreign-conflict,
+and indeterminate rules determine the final outcome, and the warning coexists with any final error.
+The rejection-family recognizer never influences this classification.
+
+On pre-mutation `absent`, the same run may invoke `npm publish` once. E422 determinate absence is a
+terminal failure and grants no same-run retry. A successful call is not final until read-back
+reaches `committed-as-expected`; `foreign-conflict` or `indeterminate` after the call must fail as a
+possible partial publication and preserve the evidence. `EPUBLISHCONFLICT` is not an automatic
+failure for a retry attempt within the same `github.run_id`: it is a candidate for
 `committed-as-expected` pending the same integrity-plus-attestation binding check. An integrity
 mismatch, missing attestation after the polling bound, or a verified foreign run identity or subject
 mismatch after `EPUBLISHCONFLICT` must become `foreign-conflict`; an unreadable or unverifiable
@@ -2338,6 +2365,16 @@ The profile must not fall back to:
   unreadable, unverifiable, or contradictory attestation surface classifies `indeterminate`. A 404
   response from the attestation endpoint alone cannot classify version or attestation absence and
   must be paired with the packument result.
+- ADR 0102 E422 fixtures must prove determinate absence with continuous clean absence and with clean
+  absence followed by errors, each using exactly 6 packument requests, 6 attestation requests, and 4
+  sleeps including the entry observation. Immediate committed and foreign-conflict outcomes each use
+  exactly 2 requests per endpoint and 0 sleeps. Attestation-only indeterminacy uses exactly 22
+  requests per endpoint and 20 sleeps without granting a fresh full budget after reduced expiry. A
+  version first observed at 75 seconds uses exactly 7 requests per endpoint and 5 sleeps and carries
+  the committed-after-rejection warning. Each mutation case invokes `npm --version` once and
+  `npm publish` once. Foreign-conflict and indeterminate outcomes prove error-before-warning
+  ordering and error primacy; the non-E422 ambiguous-read-back control retains exactly 22 requests
+  per endpoint and 20 sleeps and never carries the E422 warning.
 - Concurrency fixtures: the npm publish job uses the release-intent mutation group with
   `cancel-in-progress: false` and `queue: max`; pre-mutation jobs use `cancel-in-progress: true`
   with no `queue` key; a queued contender revalidates at segment entry; and keys containing

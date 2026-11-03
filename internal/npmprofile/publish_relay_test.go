@@ -51,8 +51,9 @@ func TestPublishRelayAndFamilyEnrichmentAreIndependent(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			// Given: a failed npm process followed by successful authoritative read-back.
-			fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, npmExitCode: 1,
-				npmError: "npm error code E422\n" + test.message})
+			options := publishFixtureOptions{initialVersionAbsent: true, npmExitCode: 1,
+				npmError: "npm error code E422\n" + test.message}
+			fixture := newPublishFixture(t, options)
 			var log bytes.Buffer
 			// When: Publish observes the failed process with operational diagnostics enabled.
 			result, err := Publish(WithOperationalDebugOutput(t.Context(), &log), fixture.request)
@@ -84,7 +85,8 @@ func TestPublishRelayAndFamilyEnrichmentAreIndependent(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			control, err := Publish(WithOperationalDebugOutput(t.Context(), io.Discard), fixture.request)
+			controlFixture := newPublishFixture(t, options)
+			control, err := Publish(WithOperationalDebugOutput(t.Context(), io.Discard), controlFixture.request)
 			if err != nil {
 				t.Fatal(err)
 			}

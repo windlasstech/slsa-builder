@@ -81,7 +81,7 @@ func TestPublishOperationalDiagnosticsLateE422WithTruncationAndSecretCanary(t *t
 	if len(noise) <= maxNPMOutputSize {
 		t.Fatalf("noise length = %d, want more than %d", len(noise), maxNPMOutputSize)
 	}
-	fixture := newPublishFixture(t, publishFixtureOptions{
+	options := publishFixtureOptions{
 		initialVersionAbsent: true,
 		npmExitCode:          1,
 		npmError: noise +
@@ -91,7 +91,8 @@ func TestPublishOperationalDiagnosticsLateE422WithTruncationAndSecretCanary(t *t
 			"npm err! 422 predicate.buildDefinition.externalParameters.source.repository=https://example.invalid/URL_CANARY\n" +
 			"npm err! 422 predicate.runDetails.builder.id message MESSAGE_CANARY\n" +
 			"npm err! 422 predicate.subject[0].name SUBJECT_CANARY\n",
-	})
+	}
+	fixture := newPublishFixture(t, options)
 	var diagnostics bytes.Buffer
 	ctx := WithOperationalDebugOutput(t.Context(), &diagnostics)
 
@@ -143,7 +144,8 @@ func TestPublishOperationalDiagnosticsLateE422WithTruncationAndSecretCanary(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	control, err := Publish(WithOperationalDebugOutput(t.Context(), io.Discard), fixture.request)
+	controlFixture := newPublishFixture(t, options)
+	control, err := Publish(WithOperationalDebugOutput(t.Context(), io.Discard), controlFixture.request)
 	if err != nil {
 		t.Fatal(err)
 	}
