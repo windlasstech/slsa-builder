@@ -11,6 +11,8 @@ relations:
     target: ADR-0076
   - type: see-also
     target: ADR-0083
+  - type: see-also
+    target: ADR-0102
 ---
 
 # Relay External CLI stderr to Logs Under Hygiene Bounds, with Template Classification as Enrichment
