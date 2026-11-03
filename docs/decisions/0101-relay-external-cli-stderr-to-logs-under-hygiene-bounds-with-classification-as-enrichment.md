@@ -39,8 +39,9 @@ established the facts that bear on the boundary question:
   repository, self-hosted runner, missing certificate claim) contain only public values: repository
   URLs, refs, workflow paths, event names, public numeric repository and owner IDs, runner
   environment, and visibility. The trusted-publishing token travels in the request, and no report
-  shows it echoed in a response. npm CLI itself renders this message class to stderr on every
-  failure, in public CI logs worldwide.
+  shows it echoed in a response. npm CLI renders this message class to stderr at its default log
+  level (code-observed; the slsa-github-generator#2499 thread contains pasted public-CI examples).
+  No first-party captured sample exists yet; obtaining one is a purpose of this decision.
 - **The registry derives expected values from the signing certificate.** Its own error text names
   Fulcio extension labels (`SourceRepositoryRef`, `BuildConfigURI`, and so on) as the expected-value
   source, so the message content is largely a reflection of public certificate claims.
@@ -112,8 +113,8 @@ amended so that:
   to the operational diagnostics; a non-match loses nothing, because the text itself is already in
   the log. The five confirmed message families recorded in the research note become its initial
   fixtures.
-- The npm CLI's own stdout/stderr relay applies at the tool's default log level; the profile does
-  not enable verbose or silly logging, which carry materially broader and less characterized output.
+- The npm CLI's own stderr relay applies at the tool's default log level; the profile does not
+  enable verbose or silly logging, which carry materially broader and less characterized output.
 - This establishes the default pattern for future profiles: a new profile inherits hygienic
   pass-through for its ecosystem tools and may add template classification incrementally as
   enrichment. Each profile confirms the pattern at its own admission.
@@ -220,8 +221,9 @@ Only template matches cross the boundary as family identifiers; unmatched output
 - Good, because the boundary admits no external text at all, giving the strongest conceivable
   confidentiality posture for the log channel.
 - Bad, because every novel rejection is invisible: the registry's message is dropped, and each new
-  family costs a dogfood cycle plus a recognizer update before diagnosis can begin. The #2499
-  history shows the registry's validation behavior changes over time, so this cost recurs.
+  family costs a dogfood cycle plus a recognizer update before diagnosis can begin. The
+  slsa-github-generator#2499 history shows the registry's validation behavior changes over time, so
+  this cost recurs.
 - Bad, because its secrecy justification is not supported by the gathered evidence: the observed
   message class contains only public values, so the option pays a recurring diagnosability cost for
   a confidentiality benefit the evidence does not corroborate.
