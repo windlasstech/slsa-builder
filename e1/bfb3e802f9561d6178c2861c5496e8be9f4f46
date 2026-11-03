@@ -1,0 +1,22 @@
+internal/npmprofile/exec_boundary_relay_test.go
+  s_940dc19ccea4fc::t_29eb4f7c9e81b2 143
+  s_940dc19ccea4fc::t_311c983525a194 19,116
+internal/npmprofile/exec_boundary_relay.go
+  s_940dc19ccea4fc::t_931340f0754405 88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e1bfb3e802f9561d6178c2861c5496e8be9f4f46",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
