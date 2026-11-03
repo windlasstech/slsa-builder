@@ -273,17 +273,19 @@ crosses only through the hygiene filter. The filter's initial conditions are:
 - **Control-character stripping.** After redaction, ASCII control bytes other than LF and TAB, and
   DEL, are stripped, and each invalid UTF-8 byte sequence is replaced with the Unicode replacement
   character (U+FFFD). C1 control characters (U+0080 through U+009F) and the Unicode bidirectional
-  control characters (U+200E, U+200F, U+202A through U+202E, U+2066 through U+2069) are likewise
-  stripped. The relay never emits a character that can drive a terminal or log-viewer control
-  function, and its emitted payload is always valid UTF-8 text.
+  control characters (U+061C, U+200E, U+200F, U+202A through U+202E, U+2066 through U+2069) are
+  likewise stripped. The relay never emits a character that can drive a terminal or log-viewer
+  control function, and its emitted payload is always valid UTF-8 text.
 - **Runner-command neutralization.** The legacy GitHub Actions runner command marker `##[` is never
-  emitted: the `[` immediately following a `##` pair is stripped, wherever it appears in the line.
-  Neutralization runs on the post-redaction stream, so a marker composed by a redaction replacement
-  (for example text ending in `##` immediately before a redacted value) is stripped as well. The
-  legacy marker is the only workflow-command syntax the runner matches anywhere in a line; the
-  modern `::command::` syntax executes only when a line begins with `::`, and every relayed line
-  begins with the operational prefix. Between the prefix and this rule, no runner workflow-command
-  surface reaches the log.
+  emitted: every `[` that would leave `##[` in the emitted text is stripped, wherever it appears in
+  the line. Neutralization runs after control-character stripping, on the filtered post-redaction
+  stream, so a marker exposed by an earlier removal (for example `##[[` or `##` followed by a
+  stripped control byte and `[`) and a marker composed by a redaction replacement (for example text
+  ending in `##` immediately before a redacted value) are stripped as well. The legacy marker is the
+  only workflow-command syntax the runner matches anywhere in a line; the modern `::command::`
+  syntax executes only when a line begins with `::`, and every relayed line begins with the
+  operational prefix. Between the prefix and this rule, no runner workflow-command surface reaches
+  the log.
 - **Bounded volume.** At most 65536 filtered payload bytes (64 KiB) and at most 512 non-empty
   relayed lines per process. Bounds are measured after redaction and stripping; the operational line
   prefixes and the truncation marker do not count against them. A byte truncation never splits a
