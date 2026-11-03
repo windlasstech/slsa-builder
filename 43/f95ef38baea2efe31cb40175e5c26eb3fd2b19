@@ -1,0 +1,31 @@
+internal/npmprofile/oidc_client.go
+  s_1c2c27394ee1ed::t_939a5e316b55a7 58,142
+  s_1d4a5519b5ab09::t_189ae4de241f00 59-63
+internal/npmprofile/oidc_preflight_test.go
+  s_1d4a5519b5ab09::t_189ae4de241f00 81-83,85-87
+  s_1c2c27394ee1ed::t_622b71e8bfcb39 8,77-80,84,88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "43f95ef38baea2efe31cb40175e5c26eb3fd2b19",
+  "prompts": {},
+  "sessions": {
+    "s_1c2c27394ee1ed": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_1d4a5519b5ab09": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
