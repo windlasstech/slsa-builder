@@ -1,0 +1,64 @@
+internal/npmprofile/publish_test.go
+  s_b1e3373cd6435e::t_ce8932b5c410e4 96-100
+  s_b1e3373cd6435e::t_20d8d9506e490c 330-338
+  s_b1e3373cd6435e::t_552e7eb40e2404 252-263
+  s_b1e3373cd6435e::t_9525a0bc743d9e 310-314
+internal/npmprofile/publish_relay_test.go
+  s_b1e3373cd6435e::t_4f564ca61d7e09 54-56
+  s_b1e3373cd6435e::t_b4c6c2dab6a052 88-89
+docs/architecture/README.ko.md
+  s_b1e3373cd6435e::t_3a71f56b33e8ec 30-36,38-41
+  s_b1e3373cd6435e::t_5cf5857096db63 37
+  s_b1e3373cd6435e::t_7add4ca9e0f764 42
+internal/diagnostic/registry.go
+  s_b1e3373cd6435e::t_22c7f51c08c4ae 127
+  s_b1e3373cd6435e::t_fb6b4db2debf97 226
+  s_b1e3373cd6435e::t_ec6dbbc688f509 75-76
+CHANGELOG.md
+  s_b1e3373cd6435e::t_6c572783affa7e 20-22
+docs/architecture/README.md
+  s_b1e3373cd6435e::t_90f844f3230d72 37
+  s_b1e3373cd6435e::t_832e7a954266db 42
+  s_b1e3373cd6435e::t_3a71f56b33e8ec 30-36,38-41
+internal/diagnostic/diagnostic_test.go
+  s_b1e3373cd6435e::t_7c4de0d653d2a7 145
+  s_b1e3373cd6435e::t_2fcdb330794e7c 163-164
+internal/npmprofile/publish_diagnostics_test.go
+  s_b1e3373cd6435e::t_20760039e015df 84,94-95
+  s_b1e3373cd6435e::t_9b57d91af8b889 147-148
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_b1e3373cd6435e::t_3a71f56b33e8ec 1859-1865,1883-1887,1890-1893,2375-2377
+  s_b1e3373cd6435e::t_aea1c1b4e72faa 1858,1866-1882,1888-1889
+  s_b1e3373cd6435e::t_e89f7a184e6639 2368-2374
+internal/npmprofile/publish_e422_test.go
+  s_b1e3373cd6435e::t_755ab27a4cb3c0 1-198
+internal/npmprofile/publish.go
+  s_b1e3373cd6435e::t_56f6d952fe0bd6 166,171,174-185,187,190,193,195
+  s_b1e3373cd6435e::t_9eeb9638179291 142
+  s_b1e3373cd6435e::t_9df5ff15fcfaf9 511
+  s_b1e3373cd6435e::t_af6193334f23e2 129-132
+  s_b1e3373cd6435e::t_55177736ddb26d 305,307-308,310,314-317,321-327,333-340
+  s_b1e3373cd6435e::t_1bc8f7d2e720e6 28-29,34
+  s_b1e3373cd6435e::t_d149a1249c839a 523-524
+  s_b1e3373cd6435e::t_86b14c31919083 503-504
+docs/architecture/verification-policy-and-fixtures.md
+  s_b1e3373cd6435e::t_3a71f56b33e8ec 1005,1054,1092,1516,1955-1957,1961-1962
+  s_b1e3373cd6435e::t_b6fbf69395726b 1015-1021
+  s_b1e3373cd6435e::t_f7a50d7735cc17 1948-1954,1958-1960,1963-1965
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dc66551116d329d8a571b293be5cc4eaf841b134",
+  "prompts": {},
+  "sessions": {
+    "s_b1e3373cd6435e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5cf4888fffeGkow6NDJQ61UJx",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
