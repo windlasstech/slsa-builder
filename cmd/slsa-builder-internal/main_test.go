@@ -103,8 +103,8 @@ func TestCLIOperationalDiagnosticsSeparateStdoutAndStderr(t *testing.T) {
 		t.Fatalf("human diagnostics leaked into stdout: %q", stdout.Bytes())
 	}
 	lines := strings.Split(strings.TrimSpace(stderr.String()), "\n")
-	if len(lines) != 2 {
-		t.Fatalf("stderr operational records = %q; want start and completion", stderr.Bytes())
+	if len(lines) != 3 {
+		t.Fatalf("stderr operational records = %q; want start, relay and completion", stderr.Bytes())
 	}
 	for _, line := range lines {
 		if !strings.HasPrefix(line, "windlass operational: ") {
@@ -114,12 +114,18 @@ func TestCLIOperationalDiagnosticsSeparateStdoutAndStderr(t *testing.T) {
 	if !strings.Contains(lines[0], "operation=node") || !strings.HasSuffix(lines[0], " start") {
 		t.Fatalf("stderr start record = %q; want fixed operation label and start notice", lines[0])
 	}
+	if lines[1] != "windlass operational: operation=node stderr: "+childCanary {
+		t.Fatalf("stderr relay = %q; want prefixed child stderr", lines[1])
+	}
+	if strings.Contains(stdout.String(), childCanary) {
+		t.Fatal("child stderr leaked into canonical report")
+	}
 	for _, field := range []string{"operation=node", "started=true", "outcome=exit", "exit=0"} {
-		if !strings.Contains(lines[1], field) {
-			t.Fatalf("stderr completion = %q; missing operational field %q", lines[1], field)
+		if !strings.Contains(lines[2], field) {
+			t.Fatalf("stderr completion = %q; missing operational field %q", lines[2], field)
 		}
 	}
-	for _, disclosed := range []string{secretCanary, childCanary, "--version", root, bin, node, "NPM_TOKEN="} {
+	for _, disclosed := range []string{secretCanary, "--version", root, bin, node, "NPM_TOKEN="} {
 		if strings.Contains(stderr.String(), disclosed) {
 			t.Fatalf("stderr disclosed %q: %q", disclosed, stderr.Bytes())
 		}

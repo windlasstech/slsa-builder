@@ -36,9 +36,10 @@ var allowedExecutableBasenames = map[string]bool{
 }
 
 type commandBoundaryOptions struct {
-	shimDirectory        string
-	maximumOutput        int
-	rejectOutputOverflow bool
+	additionalRedactionValues []string
+	shimDirectory             string
+	maximumOutput             int
+	rejectOutputOverflow      bool
 }
 
 type commandBoundaryError struct{ cause error }
@@ -68,10 +69,11 @@ func runCommandWithShimRoot(ctx context.Context, directory, executable string, e
 	})
 }
 
-func runPublishCommand(ctx context.Context, directory, executable string, environment, arguments []string) (string, error) {
+func runPublishCommand(ctx context.Context, directory, executable string, environment, arguments []string, additionalRedactionValues ...string) (string, error) {
 	return runCommandAtBoundary(ctx, directory, executable, environment, arguments, commandBoundaryOptions{
-		shimDirectory: publishProvisionedShimRoot(executable),
-		maximumOutput: maxNPMOutputSize,
+		shimDirectory:             publishProvisionedShimRoot(executable),
+		maximumOutput:             maxNPMOutputSize,
+		additionalRedactionValues: additionalRedactionValues,
 	})
 }
 
@@ -110,8 +112,16 @@ func runCommandAtBoundary(ctx context.Context, directory, executable string, env
 		failureSummary = recognizer.Summary
 		combinedOutput = io.MultiWriter(&output, recognizer)
 	}
+	combinedOutput = &lockedCommandWriter{writer: combinedOutput}
+	redactionValues := append([]string(nil), options.additionalRedactionValues...)
+	for _, entry := range command.Environ() {
+		if value, ok := strings.CutPrefix(entry, "ACTIONS_ID_TOKEN_REQUEST_TOKEN="); ok {
+			redactionValues = append(redactionValues, value)
+		}
+	}
+	relay := newOperationalStderrRelay(redactionValues)
 	command.Stdout = combinedOutput
-	command.Stderr = combinedOutput
+	command.Stderr = io.MultiWriter(combinedOutput, relay)
 	operation := filepath.Base(executable)
 	startedAt := time.Now()
 	writeOperationalDebug(ctx, "operation="+operation+" start")
@@ -128,6 +138,7 @@ func runCommandAtBoundary(ctx context.Context, directory, executable string, env
 		}
 	}
 	complete := func(success bool) {
+		relay.emit(ctx, operation)
 		outcome := "exit"
 		exitCode := -1
 		signalName := ""
