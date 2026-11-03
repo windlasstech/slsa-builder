@@ -2,6 +2,7 @@ package npmprofile
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 )
@@ -40,5 +41,60 @@ func TestPublishRelayRedactsOIDCMaterial(t *testing.T) {
 		if strings.Contains(strings.ToLower(entry), "loglevel") {
 			t.Fatal("publish environment elevates loglevel")
 		}
+	}
+}
+
+func TestPublishRelayAndFamilyEnrichmentAreIndependent(t *testing.T) {
+	for _, test := range []struct{ name, message, family string }{
+		{"known", frameNPMFamilyMessage(predicateFamilyMessage), "predicate-field-mismatch"},
+		{"unknown", "npm error 422 Error verifying sigstore provenance bundle: Novel registry rejection", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// Given: a failed npm process followed by successful authoritative read-back.
+			fixture := newPublishFixture(t, publishFixtureOptions{initialVersionAbsent: true, npmExitCode: 1,
+				npmError: "npm error code E422\n" + test.message})
+			var log bytes.Buffer
+			// When: Publish observes the failed process with operational diagnostics enabled.
+			result, err := Publish(WithOperationalDebugOutput(t.Context(), &log), fixture.request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Then: known and novel text both relay; only known text enriches the summary.
+			want := npmFailureSummaryPrefix
+			if test.family != "" {
+				want += " family=" + test.family
+			}
+			want += " code=E422 http_status=422\n"
+			if strings.Count(log.String(), want) != 1 {
+				t.Fatalf("missing summary %q in %s", want, log.String())
+			}
+			if test.family == "" && strings.Contains(log.String(), " family=") {
+				t.Fatal("unknown message gained a family")
+			}
+			for line := range strings.SplitSeq(test.message, "\n") {
+				if !strings.Contains(log.String(), "operation=npm stderr: "+line+"\n") {
+					t.Fatal("relay omitted child message")
+				}
+			}
+			if result.State != PublishCommittedAsExpected || !result.MutationAttempted || fixture.packumentRequests != 2 || fixture.attestationRequests != 2 || fixture.clock.sleeps != 0 {
+				t.Fatal("family enrichment changed publication or observation behavior")
+			}
+			fixture.requireInvocations(t, fixture.expectedMutationInvocations())
+			encoded, err := result.Report.CanonicalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			control, err := Publish(WithOperationalDebugOutput(t.Context(), io.Discard), fixture.request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			controlBytes, err := control.Report.CanonicalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(encoded, controlBytes) {
+				t.Fatal("enrichment changed canonical report")
+			}
+		})
 	}
 }
