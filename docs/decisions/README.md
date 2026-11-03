@@ -244,6 +244,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0098 | Provision the build-stage Node.js runtime from a digest-verified release tarball                                  | JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                                                                          |
 | 0099 | Record the digest-verified Node.js runtime in resolvedDependencies                                                | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                                 |
 | 0100 | Record runner image identity from on-disk metadata with the control-plane deployment version as separate evidence | JS/TS npm build and pack (runner image capture), verification policy and fixtures                                                                                                                |
+| 0101 | Relay external CLI stderr to logs under hygiene bounds, with template classification as enrichment                | Core profile contract (external-process operational diagnostics), JS/TS npm provenance and publish (best-effort operational diagnostics)                                                         |
 
 ### Superseded or deprecated ADRs (historical only)
 
