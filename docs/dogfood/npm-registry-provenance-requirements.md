@@ -146,6 +146,10 @@ shown as quoted values; some field-mismatch lines omit the observed value.
    Sources: [slsa-github-generator#2499][ghg-2499] (12023-08, 12024-02 forms),
    [slsa-github-generator#2758][ghg-2758] (12023-10, single-field form).
 
+   The 12023-08 form carries all eight lines above. The 12024-02 retry form carries only the six
+   `externalParameters.workflow.*` and `internalParameters.github.*` lines; the `buildType` and
+   `runDetails.builder.id` mismatch lines appear only in the pre-relaxation form.
+
 2. **Repository metadata mismatch**:
 
    ```text
@@ -182,14 +186,13 @@ shown as quoted values; some field-mismatch lines omit the observed value.
    Sources: [npm/cli#8699][npm-cli-8699], [npm/cli#8982][npm-cli-8982], [GitHub Community discussion
    #177028][community-177028].
 
-Recognizer-relevant structure: families 1 and 2 are multiline with colon-delimited field paths;
-family 1 carries dotted predicate paths (`buildDefinition.internalParameters.github.*`) and may omit
-the observed value on some lines; families 3-5 are single- or two-line forms with quoted variable
-values. All families observed so far share the `Error verifying sigstore provenance bundle` wrapper
-after npm's `E422` status line. The client-side surface is recoverable: npm CLI maps HTTP 422 to
-`E422` and retains the parsed response body on the thrown error (`body.error`, then `body.message`,
-then the serialized body; [npm-registry-fetch `check-response.js`/`errors.js`][npm-registry-fetch]
-at `6b4159a2519ce5aab26cc4dd8d4596a0b47781d2`).
+Recognizer-relevant structure: family 1 is multiline with colon-delimited dotted field paths and may
+omit the observed value on some lines; family 2 is a single-line repository metadata message;
+families 3-5 are single- or two-line fixed templates. All families observed so far share the
+`Error verifying sigstore provenance bundle` wrapper after npm's `E422` status line. The client-side
+surface is recoverable: npm CLI maps HTTP 422 to `E422` and retains the parsed response body on the
+thrown error (`body.error`, then `body.message`, then the serialized body; [npm-registry-fetch
+`check-response.js`/`errors.js`][npm-registry-fetch] at `6b4159a2519ce5aab26cc4dd8d4596a0b47781d2`).
 
 ## npm CLI client behavior (code-observed)
 
@@ -243,19 +246,19 @@ extensions as the expected-value source. The mapping below follows the [Fulcio O
 directory][fulcio-oids] (generic OIDs; deprecated GitHub-specific OIDs `…1.1`-`…1.6` have generic
 successors):
 
-| Predicate field (registry-expected)                  | Fulcio extension label             | OID (generic family)     |
-| ---------------------------------------------------- | ---------------------------------- | ------------------------ |
-| `externalParameters.workflow.ref`                    | SourceRepositoryRef                | `1.3.6.1.4.1.57264.1.14` |
-| `externalParameters.workflow.repository`             | SourceRepositoryURI                | `1.3.6.1.4.1.57264.1.12` |
-| `externalParameters.workflow.path` (caller workflow) | BuildConfigURI                     | `1.3.6.1.4.1.57264.1.18` |
-| `internalParameters.github.event_name`               | BuildTrigger                       | `1.3.6.1.4.1.57264.1.20` |
-| `internalParameters.github.repository_id`            | SourceRepositoryIdentifier         | `1.3.6.1.4.1.57264.1.15` |
-| `internalParameters.github.repository_owner_id`      | SourceRepositoryOwnerIdentifier    | `1.3.6.1.4.1.57264.1.17` |
-| (policy) runner environment                          | RunnerEnvironment                  | `1.3.6.1.4.1.57264.1.11` |
-| (policy) source visibility                           | SourceRepositoryVisibility         | `1.3.6.1.4.1.57264.1.22` |
-| (identity) signing workflow (this builder)           | BuildSignerURI / BuildSignerDigest | `…1.9` / `…1.10`         |
-| (identity) run                                       | RunInvocationURI                   | `1.3.6.1.4.1.57264.1.21` |
-| (policy) issuer                                      | Issuer                             | `1.3.6.1.4.1.57264.1.8`  |
+| Predicate field (registry-expected)                  | Fulcio extension label              | OID (generic family)     |
+| ---------------------------------------------------- | ----------------------------------- | ------------------------ |
+| `externalParameters.workflow.ref`                    | SourceRepositoryRef                 | `1.3.6.1.4.1.57264.1.14` |
+| `externalParameters.workflow.repository`             | SourceRepositoryURI                 | `1.3.6.1.4.1.57264.1.12` |
+| `externalParameters.workflow.path` (caller workflow) | BuildConfigURI                      | `1.3.6.1.4.1.57264.1.18` |
+| `internalParameters.github.event_name`               | BuildTrigger                        | `1.3.6.1.4.1.57264.1.20` |
+| `internalParameters.github.repository_id`            | SourceRepositoryIdentifier          | `1.3.6.1.4.1.57264.1.15` |
+| `internalParameters.github.repository_owner_id`      | SourceRepositoryOwnerIdentifier     | `1.3.6.1.4.1.57264.1.17` |
+| (policy) runner environment                          | RunnerEnvironment                   | `1.3.6.1.4.1.57264.1.11` |
+| (policy) source visibility                           | SourceRepositoryVisibilityAtSigning | `1.3.6.1.4.1.57264.1.22` |
+| (identity) signing workflow (this builder)           | BuildSignerURI / BuildSignerDigest  | `…1.9` / `…1.10`         |
+| (identity) run                                       | RunInvocationURI                    | `1.3.6.1.4.1.57264.1.21` |
+| (policy) issuer                                      | Issuer                              | `1.3.6.1.4.1.57264.1.8`  |
 
 `BuildConfigURI` derives from the GitHub OIDC `workflow_ref` claim — the **caller** workflow — while
 `BuildSignerURI` derives from `job_workflow_ref`, the actually executing (reusable) workflow. npm's
@@ -300,7 +303,7 @@ Supported by the evidence above:
 
 1. npm registry admission applies provenance policy beyond Sigstore validity, and its rejection
    messages derive expected values from signing-certificate claims (Fulcio extension labels appear
-   verbatim in registry errors) and from package metadata. (C1/C4 in the research claim graph.)
+   verbatim in registry errors) and from package metadata.
 2. The six GitHub workflow predicate fields are enforced by the registry as present-and-matching for
    the GitHub Actions provenance path; their absence is a confirmed E422 family. The Windlass
    attempt-7/8 statements lack exactly these fields, matching that family.
