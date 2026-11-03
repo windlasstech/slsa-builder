@@ -21,6 +21,8 @@ type npmFailureRecognizer struct {
 	httpStatus         string
 	predicatePathsSize int
 	discarding         bool
+	family             npmFailureFamily
+	familyWrapper      bool
 }
 
 func newNPMFailureRecognizer() *npmFailureRecognizer {
@@ -55,6 +57,8 @@ func (r *npmFailureRecognizer) Summary() string {
 		code:               r.code,
 		httpStatus:         r.httpStatus,
 		predicatePathsSize: r.predicatePathsSize,
+		family:             r.family,
+		familyWrapper:      r.familyWrapper,
 	}
 	snapshot.observeLine(string(r.pending), !r.discarding)
 	return snapshot.summary()
@@ -76,8 +80,10 @@ func (r *npmFailureRecognizer) observeLine(line string, complete bool) {
 	case strings.HasPrefix(line, "npm err! "):
 		rest = line[len("npm err! "):]
 	default:
+		r.familyWrapper = false
 		return
 	}
+	r.observeFamily(rest, complete)
 
 	if strings.HasPrefix(rest, "code ") {
 		code := rest[len("code "):]
@@ -138,11 +144,15 @@ func (r *npmFailureRecognizer) addPredicatePath(path string) {
 }
 
 func (r *npmFailureRecognizer) summary() string {
-	if r.code == "" && r.httpStatus == "" && len(r.predicatePaths) == 0 {
+	if r.family == npmFailureFamilyNone && r.code == "" && r.httpStatus == "" && len(r.predicatePaths) == 0 {
 		return ""
 	}
 	var summary strings.Builder
 	summary.WriteString(npmFailureOperationalSummaryPrefix)
+	if r.family != npmFailureFamilyNone {
+		summary.WriteString(" family=")
+		summary.WriteString(r.family.label())
+	}
 	if r.code != "" {
 		summary.WriteString(" code=")
 		summary.WriteString(r.code)

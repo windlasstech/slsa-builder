@@ -160,7 +160,10 @@ func FuzzNPMFailureRecognizer(f *testing.F) {
 	f.Add([]byte("npm error code E422\nnpm error 422 predicate.runDetails.builder.id\n"), uint8(1))
 	f.Add([]byte("npm err! code E403\nnpm err! 499 predicate.subject[0].name=SECRET_CANARY\n"), uint8(7))
 	f.Add([]byte(strings.Repeat("noise SECRET_CANARY\n", maxNPMOutputSize/8)+"npm err! code E422\nnpm err! 422 predicate.buildDefinition.buildType\n"), uint8(31))
-	summaryPattern := regexp.MustCompile(`^windlass operational: npm_failure( code=[A-Z][A-Z0-9_]{0,63})?( http_status=[45][0-9]{2})?( predicate_paths=[A-Za-z0-9_.\[\],]+)?$`)
+	for _, fixture := range npmFailureFamilyFixtures() {
+		f.Add([]byte(fixture.input), uint8(1))
+	}
+	summaryPattern := regexp.MustCompile(`^windlass operational: npm_failure( family=(predicate-field-mismatch|repository-metadata-mismatch|private-source-repository|unsupported-runner-environment|missing-certificate-claim))?( code=[A-Z][A-Z0-9_]{0,63})?( http_status=[45][0-9]{2})?( predicate_paths=[A-Za-z0-9_.\[\],]+)?$`)
 	f.Fuzz(func(t *testing.T, input []byte, chunk uint8) {
 		// Given: arbitrary bytes and a nonzero arbitrary write size.
 		// When: the recognizer consumes every chunk without a panic recovery path.
