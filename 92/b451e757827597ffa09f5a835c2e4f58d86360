@@ -1,0 +1,25 @@
+internal/npmprofile/publish_failure_family_complete_test.go
+  s_940dc19ccea4fc::t_08c222c61f6e70 22
+internal/npmprofile/publish_diagnostics_test.go
+  s_940dc19ccea4fc::t_1ebed833c7cab0 166
+internal/npmprofile/publish_failure_family_test.go
+  s_940dc19ccea4fc::t_96e36f2b089143 89-91
+  s_940dc19ccea4fc::t_b8200b66172d33 24,27-37,44
+  s_940dc19ccea4fc::t_983eb137c7b54e 79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "92b451e757827597ffa09f5a835c2e4f58d86360",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
