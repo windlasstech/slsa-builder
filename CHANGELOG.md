@@ -13,7 +13,11 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Added Go-native keyless DSSE signing for npm provenance, with digest-verified handoffs and offline
   exact-Statement verification before bundle upload.
 - Added the public npm-only reusable workflow with trusted-publisher preflights, serialized publish
-  convergence, immutable artifact handoffs, and persistent outcome reports.
+  convergence, immutable artifact handoffs, and persistent outcome reports. Post-publish read-back
+  polls the registry once every 15 seconds for up to 5 minutes; at budget expiry a confirmed version
+  whose attestation is not yet visible is classified `foreign-conflict`, and an unconfirmed version
+  `indeterminate`, and both converge on re-run via `committed-as-expected` once propagation
+  completes.
 - Added official slsa-builder badge SVGs (`built with` with a package-check icon, `verified with`
   with a shield-check icon, and a plain logo badge in gray or green) under `assets/badges/`, each in
   four shields.io-compatible styles (flat, flat-square, plastic, and for-the-badge), with copy-ready

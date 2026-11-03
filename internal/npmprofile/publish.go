@@ -29,7 +29,7 @@ const (
 	IDUnsupportedInitialPublication            = "windlass.verify.error.unsupported-initial-publication"
 	npmSLSAPredicateType                       = "https://slsa.dev/provenance/v1"
 	publishPollInterval                        = 15 * time.Second
-	publishPollBudget                          = 15 * time.Minute
+	publishPollBudget                          = 5 * time.Minute
 	maxPublishBundleSize                 int64 = 32 << 20
 	maxNPMOutputSize                           = 64 << 10
 )

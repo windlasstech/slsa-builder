@@ -90,8 +90,8 @@ func TestPublishAmbiguousReadback(t *testing.T) {
 		t.Fatalf("Publish() result = %#v, want one ambiguous mutation", result)
 	}
 	fixture.requireInvocations(t, fixture.expectedMutationInvocations())
-	if fixture.clock.sleeps != 60 || fixture.packumentRequests != 62 || fixture.attestationRequests != 62 {
-		t.Fatalf("polling = sleeps:%d packument:%d attestations:%d, want exact 15-minute budget", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests)
+	if fixture.clock.sleeps != 20 || fixture.packumentRequests != 22 || fixture.attestationRequests != 22 {
+		t.Fatalf("polling = sleeps:%d packument:%d attestations:%d, want exact 5-minute budget", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests)
 	}
 }
 
@@ -155,8 +155,8 @@ func TestPublishOperationalDiagnosticsReadbackIndeterminateRegression(t *testing
 		t.Fatalf("Publish() result = %#v, want one ambiguous mutation", result)
 	}
 	fixture.requireInvocations(t, fixture.expectedMutationInvocations())
-	if fixture.clock.sleeps != 60 || fixture.packumentRequests != 62 || fixture.attestationRequests != 62 || fixture.verifier.calls != 1 {
-		t.Fatalf("operations = sleeps:%d packument:%d attestations:%d verifier:%d, want 60/62/62/1", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests, fixture.verifier.calls)
+	if fixture.clock.sleeps != 20 || fixture.packumentRequests != 22 || fixture.attestationRequests != 22 || fixture.verifier.calls != 1 {
+		t.Fatalf("operations = sleeps:%d packument:%d attestations:%d verifier:%d, want 20/22/22/1", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests, fixture.verifier.calls)
 	}
 	if got := strings.Count(output.String(), "windlass operational: readback "); got != 2 {
 		t.Fatalf("read-back summary count = %d, want one entry and one bounded post-publish summary\n%s", got, output.String())
@@ -164,7 +164,7 @@ func TestPublishOperationalDiagnosticsReadbackIndeterminateRegression(t *testing
 	requirePublishReadbackSummary(t, output.String(), false)
 	line := requirePublishReadbackSummary(t, output.String(), true)
 	for _, want := range []string{
-		"after_mutation=true observations=61 changes=0",
+		"after_mutation=true observations=21 changes=0",
 		`first="package=unknown version=unknown integrity=unknown attestations=unknown errors=both"`,
 		`final="package=unknown version=unknown integrity=unknown attestations=unknown errors=both"`,
 		"decision=indeterminate",

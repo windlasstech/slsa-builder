@@ -1843,23 +1843,22 @@ Package URL and the expected SHA-512 and SHA-256 tarball digests. A matching `di
 is never sufficient for same-run convergence.
 
 npm offers no read-after-write SLA, and observed metadata delays can be long. The explicit read-back
-budget is pinned conservatively pending first-publish measurement: one immediate request followed by
-one request every 15 seconds until 15 minutes have elapsed from the first request. Each polling
-cycle must pair the packument version-existence check with the attestation endpoint check. The
-attestation endpoint returns `404 {"error":"Not found"}` both when a version has no provenance and
-when the version does not exist, so its 404 response alone cannot establish either attestation
-absence or version absence. A transient not-found, missing `dist.integrity`, missing attestation,
-transport failure, or rate-limit response remains pending while budget remains. If the packument
-confirms the version exists but no required attestation is visible when the budget expires, the
-result is `foreign-conflict`. If the version remains unconfirmed, or required metadata cannot be
-read or verified, the result is `indeterminate` and the job must fail while reporting that
-publication may already have committed. Before the run's first publish call, an authoritative
-packument version-not-found response classifies as `absent`; after a publish call or ambiguous
-publish result, the same response remains pending because it may reflect replication lag. As the
-documented fallback within the same total budget, the job may download `dist.tarball` and compute
-its sha512 SRI locally; only exact equality with the expected SRI plus the verified attestation
-binding can establish `committed-as-expected`, and an unavailable or inconclusive fallback still
-ends as `indeterminate`.
+budget is one immediate request followed by one request every 15 seconds until 5 minutes have
+elapsed from the first request. Each polling cycle must pair the packument version-existence check
+with the attestation endpoint check. The attestation endpoint returns `404 {"error":"Not found"}`
+both when a version has no provenance and when the version does not exist, so its 404 response alone
+cannot establish either attestation absence or version absence. A transient not-found, missing
+`dist.integrity`, missing attestation, transport failure, or rate-limit response remains pending
+while budget remains. If the packument confirms the version exists but no required attestation is
+visible when the budget expires, the result is `foreign-conflict`. If the version remains
+unconfirmed, or required metadata cannot be read or verified, the result is `indeterminate` and the
+job must fail while reporting that publication may already have committed. Before the run's first
+publish call, an authoritative packument version-not-found response classifies as `absent`; after a
+publish call or ambiguous publish result, the same response remains pending because it may reflect
+replication lag. As the documented fallback within the same total budget, the job may download
+`dist.tarball` and compute its sha512 SRI locally; only exact equality with the expected SRI plus
+the verified attestation binding can establish `committed-as-expected`, and an unavailable or
+inconclusive fallback still ends as `indeterminate`.
 
 On `absent`, the same run may invoke `npm publish` once. A successful call is not final until
 read-back reaches `committed-as-expected`; `foreign-conflict` or `indeterminate` after the call must
