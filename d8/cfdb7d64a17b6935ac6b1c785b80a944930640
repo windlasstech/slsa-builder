@@ -1,0 +1,23 @@
+internal/npmprofile/publish_test.go
+  s_940dc19ccea4fc::t_896823cd37fc76 158-159
+  s_940dc19ccea4fc::t_b7f0330167f8bb 167
+  s_940dc19ccea4fc::t_9b00f6a1f05099 93-94
+internal/npmprofile/publish.go
+  s_940dc19ccea4fc::t_c9656f5755b28e 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d8cfdb7d64a17b6935ac6b1c785b80a944930640",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
