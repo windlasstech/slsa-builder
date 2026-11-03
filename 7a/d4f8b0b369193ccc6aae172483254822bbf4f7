@@ -1,0 +1,25 @@
+docs/architecture/core-profile-contract.md
+  s_940dc19ccea4fc::t_3fa8b5b857dba5 279-280
+  s_940dc19ccea4fc::t_857f01a7df1f5b 281-283
+  s_940dc19ccea4fc::t_196987b6b1cd9a 284-286
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_940dc19ccea4fc::t_4294f75e55deea 1905-1908
+  s_940dc19ccea4fc::t_2c6913cd141efd 1921-1925
+  s_940dc19ccea4fc::t_9636c22cb70f06 1901-1904
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ad4f8b0b369193ccc6aae172483254822bbf4f7",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
