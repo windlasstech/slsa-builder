@@ -1,0 +1,21 @@
+docs/decisions/0101-relay-external-cli-stderr-to-logs-under-hygiene-bounds-with-classification-as-enrichment.md
+  s_940dc19ccea4fc::t_5c52fd8e121678 42-44
+  s_940dc19ccea4fc::t_6a9cc6c1ba494f 224-226
+  s_940dc19ccea4fc::t_d7a6dd18ce520e 116-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "66f461b0642fa8dbace6a5a2ba7a895200178126",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
