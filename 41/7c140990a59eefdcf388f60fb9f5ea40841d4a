@@ -1,0 +1,31 @@
+docs/dogfood/npm-registry-provenance-requirements.md
+  s_940dc19ccea4fc::t_fede04316339b1 189-191
+  s_940dc19ccea4fc::t_0b4a61d3804700 258
+  s_940dc19ccea4fc::t_ba30bcd0212979 149-152
+  s_940dc19ccea4fc::t_64a9f7dd6e78f7 306
+  s_f2a7ec4f903a33::t_50ba3c177dd790 192-195,249-257,259-261
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "417c140990a59eefdcf388f60fb9f5ea40841d4a",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f2a7ec4f903a33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
