@@ -82,11 +82,15 @@ func relayForTest(t *testing.T, input string, secrets []string, chunk int) strin
 }
 
 func FuzzOperationalStderrRelayFilter(f *testing.F) {
+	f.Add([]byte("##[error]bad ##secret"), "secret", uint8(1))
 	f.Add([]byte("secret\nhello\x1b\u202e🙂"), "secret", uint8(1))
 	f.Add([]byte{0xff, 0xc2, 0x80}, "", uint8(2))
 	f.Add([]byte(strings.Repeat("x\n", 513)), "x", uint8(255))
 	f.Fuzz(func(t *testing.T, input []byte, secret string, chunk uint8) {
 		got := relayForTest(t, string(input), []string{secret}, int(chunk)+1)
+		if strings.Contains(got, "##[") {
+			t.Fatal("runner command marker survived")
+		}
 		if got != referenceRelay(string(input), secret) {
 			t.Fatal("streaming relay differs from whole-input redaction/filter/bounds")
 		}
@@ -142,6 +146,9 @@ func referenceRelay(input, secret string) string {
 			return r
 		}
 	}, input)
+	for strings.Contains(filtered, "##[") {
+		filtered = strings.ReplaceAll(filtered, "##[", "##")
+	}
 	var output strings.Builder
 	remaining, count := 65536, 0
 	for line := range strings.SplitSeq(filtered, "\n") {

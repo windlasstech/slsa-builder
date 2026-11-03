@@ -89,6 +89,9 @@ func (r *operationalStderrRelay) collect(value rune) {
 		value >= '\u202a' && value <= '\u202e' || value >= '\u2066' && value <= '\u2069' {
 		return
 	}
+	if value == '[' && strings.HasSuffix(r.payload.String(), "##") {
+		return
+	}
 	if value == '\n' {
 		if r.inLine {
 			r.payload.WriteByte('\n')
