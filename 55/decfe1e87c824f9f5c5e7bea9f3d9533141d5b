@@ -1,0 +1,53 @@
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_940dc19ccea4fc::t_5a44457130683e 1869-1870
+  s_b1e3373cd6435e::t_38ed4f4b65293a 1868
+  s_940dc19ccea4fc::t_410ec68d9dd345 1871
+  s_b1e3373cd6435e::t_0ba4943b347774 1872
+internal/npmprofile/publish_e422_test.go
+  s_b1e3373cd6435e::t_59ab4727c7c620 188-354
+  s_b1e3373cd6435e::t_bd0fbb7b3754d5 6
+internal/npmprofile/publish_test.go
+  s_b1e3373cd6435e::t_448d529d8e9834 341-344,347-350
+  s_b1e3373cd6435e::t_a82852c573f103 387
+  s_b1e3373cd6435e::t_5307b7acaf1866 573-575
+  s_b1e3373cd6435e::t_a855b3c92574da 582
+  s_b1e3373cd6435e::t_39738099f14a39 328-330
+  s_b1e3373cd6435e::t_261d9ec855e2b4 258-259,262-263
+  s_b1e3373cd6435e::t_7153fdbe3758db 314-317
+internal/npmprofile/publish.go
+  s_b1e3373cd6435e::t_2bd95768d59cb5 322-323,326
+  s_940dc19ccea4fc::t_71f0f1eb52c224 320,325
+  s_f2a7ec4f903a33::t_729ed76851ff39 324
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "55decfe1e87c824f9f5c5e7bea9f3d9533141d5b",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b1e3373cd6435e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5cf4888fffeGkow6NDJQ61UJx",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f2a7ec4f903a33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
