@@ -1,13 +1,119 @@
 ---
-run_id: 41488152839
+run_id: 41666974638
 attempt: 1
 tag: refs/tags/v0.1.3
 commit: ae5bb155d447bbaeeab2c40f79434d4760440546
 operator: yunseo-kim
-date: 2026-11-02T17:07:44Z
+date: 2026-11-03T15:44:18Z
 ---
 
 # npm M1 dogfood evidence
+
+## Attempt 9 run identity
+
+The frontmatter and this section identify the latest attempt-9 run. Older attempt sections carry
+their own run identities.
+
+- Caller: `windlasstech/vers-js/.github/workflows/publish.yml`
+- Reusable workflow pin: `e7c55d9192e4493eb21d40d2b4dbf0bdfb1cbfc2` (carries the ADR 0101 stderr
+  relay from PR #145 and the five-minute read-back budget from PR #146)
+- Invocation ref and revision: `refs/heads/main`, `bd8b7ab116046e2c9bf8ee8682606ce643452c26`
+- Built source ref and revision: `refs/tags/v0.1.3`, `ae5bb155d447bbaeeab2c40f79434d4760440546`
+- Tag object and peeled commit: `ede69038d5878dcc53e29396237537da0a7f7b75`,
+  `ae5bb155d447bbaeeab2c40f79434d4760440546`
+- Caller workflow blob SHA (supporting evidence): `21f174854a9c5405a0504a7d4f17c97a2b93251e`
+- Run URL: <https://github.com/windlasstech/vers-js/actions/runs/41666974638>
+- Event: `workflow_dispatch` (fixed-pipeline retry from `main` with `source-ref: refs/tags/v0.1.3`,
+  per ADR 0079), attempt 1
+- Pre-run registry state: `npm view @windlass/vers-js@0.1.3 version` returned `E404` (version
+  absent)
+
+## Outcome: fail-closed after npm E422 — full registry rejection captured (attempt 9, 12026-11-03)
+
+Run <https://github.com/windlasstech/vers-js/actions/runs/41666974638>, `Publish npm package` job
+<https://github.com/windlasstech/vers-js/actions/runs/41666974638/job/126026791130>. The caller-side
+`Verify release` job, trusted-core `Build npm package` job, and `Sign npm provenance` job all
+passed. The publish job passed pinned runtime and npm CLI provisioning and both handoff
+verifications, then failed at `Publish with trusted-publisher convergence` with npm code `E422`
+after 2.83 seconds, exactly as attempt 8. The caller-side `Publish GitHub Release` job was skipped.
+
+This attempt exercised the ADR 0101 stderr relay for the first time. The relay captured the complete
+npm CLI-rendered registry rejection message with no instrumentation change, satisfying the ADR 0101
+confirmation criterion. The rejection is the routed predicate-mismatch form, and the registry now
+names nine expected-value sources — the six catalogued workflow/GitHub fields plus two
+`resolvedDependencies[0]` lines that pre-attempt-9 evidence had not shown:
+
+```text
+npm error code E422
+npm error 422 Unprocessable Entity - PUT https://registry.npmjs.org/@windlass%2fvers-js - Error verifying sigstore provenance bundle: Invalid GitHub Actions SLSA v1 provenance predicate:
+npm error buildDefinition.externalParameters.workflow.ref: <empty> does not match expected value for SourceRepositoryRef: refs/heads/main,
+npm error buildDefinition.externalParameters.workflow.repository: <empty> does not match expected value for SourceRepositoryURI: https://github.com/windlasstech/vers-js,
+npm error buildDefinition.externalParameters.workflow.path: .github/workflows/js-ts-npm-package-slsa3.yml does not match expected value for BuildConfigURI: .github/workflows/publish.yml,
+npm error buildDefinition.internalParameters.github.event_name: <empty> does not match expected value for BuildTrigger: workflow_dispatch,
+npm error buildDefinition.internalParameters.github.repository_id: <empty> does not match expected value for SourceRepositoryIdentifier: 1261293345,
+npm error buildDefinition.internalParameters.github.repository_owner_id: <empty> does not match expected value for SourceRepositoryOwnerIdentifier: 257660296,
+npm error buildDefinition.resolvedDependencies[0].uri: git+https://github.com/windlasstech/vers-js@ae5bb155d447bbaeeab2c40f79434d4760440546#pnpm-lock.yaml does not match expected value for SourceRepositoryURI: git+https://github.com/windlasstech/vers-js@refs/heads/main,
+npm error buildDefinition.resolvedDependencies[0].digest.gitCommit: <empty> does not match expected value for SourceRepositoryDigest: bd8b7ab116046e2c9bf8ee8682606ce643452c26
+```
+
+First-party findings from this message:
+
+- **`buildType` and `builder.id` are absent from the complaint.** The registry did not list the
+  custom Windlass buildType (`https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`) or
+  the Windlass builder identity among the mismatches, consistent with the post-12023-08 relaxation
+  recorded in the research note. This is suggestive, not conclusive: the validator may evaluate
+  those fields only after the reported mismatches are corrected, so acceptance remains unproven
+  until a run with conforming fields reaches the registry.
+- **Missing fields render as `<empty>`**, confirming the attempt-8 bundle lacks the fields rather
+  than carrying mismatched values.
+- **`workflow.path` must equal the certificate's BuildConfigURI**: the caller workflow path
+  (`.github/workflows/publish.yml`), not the reusable workflow's own path.
+- **`workflow.ref` is the invocation ref** (`refs/heads/main`), not the built tag — consistent with
+  the ADR 0079/0080 dispatch-retry model in which certificate claims prove the invocation.
+- **`resolvedDependencies[0]` is validated against the invocation source**: expected URI
+  `git+https://github.com/windlasstech/vers-js@refs/heads/main` (SourceRepositoryURI at
+  SourceRepositoryRef, with no lockfile fragment) and `digest.gitCommit` equal to the invocation
+  head commit (`bd8b7ab...`), not the peeled tag commit. This requirement was not in any catalogued
+  form and directly shapes the #143 projection.
+- The failure summary emitted `code=E422 http_status=422` but **no `family=`**: the recognizer's
+  complete-template matcher rejected the live form because the two `resolvedDependencies[0]` lines
+  are not in its binding table. The relay carried the full text regardless, which is the ADR 0101
+  enrichment fallback working as designed. Widening the family template is follow-up work under
+  issue #142.
+
+Post-mutation read-back made 21 observations over the new five-minute budget; the version and
+attestation sets never changed, so the state machine returned `indeterminate` and emitted
+`windlass.verify.error.registry-linkage-mismatch`, as in attempt 8. The run completed in
+approximately 9 minutes 46 seconds, down from attempt 8's 20 minutes 25 seconds.
+
+Canonical outcome report (no external text; the sealed contract is unchanged):
+
+```json
+{
+  "diagnostic_metadata": { "publish_npm_version": "11.21.1" },
+  "diagnostics": [
+    {
+      "category": "registry-linkage-mismatch",
+      "check": "npm.publish.readback",
+      "id": "windlass.verify.error.registry-linkage-mismatch",
+      "message": "publication outcome is indeterminate",
+      "severity": "error"
+    }
+  ],
+  "exit_code": 1,
+  "primary_id": "windlass.verify.error.registry-linkage-mismatch",
+  "result": "fail",
+  "run_invocation": "https://github.com/windlasstech/vers-js/actions/runs/41666974638/attempts/1",
+  "schema_version": "1"
+}
+```
+
+Post-run registry state confirms zero mutation: `npm view @windlass/vers-js@0.1.3 version` returns
+`E404` and the attestations endpoint returns HTTP 404.
+
+Preserved evidence (local): full publish-job log, outcome report, build metadata, package tarball,
+and provenance bundle artifacts under the attempt-9 evidence directory; the rejection message is
+quoted verbatim above.
 
 ## Attempt 8 run identity
 
@@ -399,9 +505,10 @@ exists).
 
 ## P06/M1 acceptance checklist
 
-Not accepted by these runs: attempts 7 and 8 advanced through build and provenance signing,
-attempted one npm publication each, and failed closed in post-mutation read-back. Attempt 8
-established the npm result as `E422`; attempt 7 predates that operational diagnostic. No registry
+Not accepted by these runs: attempts 7, 8, and 9 advanced through build and provenance signing,
+attempted one npm publication each, and failed closed in post-mutation read-back. Attempts 8 and 9
+established the npm result as `E422`; attempt 9 captured the registry's complete rejection message
+through the ADR 0101 stderr relay; attempt 7 predates the operational diagnostics. No registry
 publication became visible, so all publication-side acceptance items remain open.
 
 - [ ] The real `@windlass/vers-js@0.1.3` version exists in npm.
@@ -424,6 +531,11 @@ publication became visible, so all publication-side acceptance items remain open
 
 ## Propagation observations
 
+Attempt 9 is not applicable as a Phase 2 propagation measurement for the same reason as attempt 8:
+npm returned `E422`, so no attestation propagation window applies. Its post-mutation read-back made
+21 observations over the five-minute budget introduced by PR #146 and never observed the version or
+its attestations.
+
 Attempt 8 is not applicable as a Phase 2 propagation measurement: npm returned `E422`, no
 publish-completion success was observed, and no attestation propagation window applies. The publish
 command's own post-mutation read-back made 61 observations over 15 minutes and never observed the
@@ -435,6 +547,29 @@ records that post-mutation read-back exhausted its budget with `indeterminate` a
 publication or attestation is visible now.
 
 ## Command outputs and preserved evidence
+
+Attempt 9:
+
+- Run URL: <https://github.com/windlasstech/vers-js/actions/runs/41666974638>
+- Publish-job URL:
+  <https://github.com/windlasstech/vers-js/actions/runs/41666974638/job/126026791130>
+- Publish failure diagnostics: the complete registry rejection message, quoted verbatim in the
+  attempt-9 Outcome section above
+- Post-run registry responses: `E404` on `npm view @windlass/vers-js@0.1.3 version`; HTTP 404 on
+  `https://registry.npmjs.org/-/npm/v1/attestations/%40windlass%2Fvers-js@0.1.3`
+- Package tarball artifact: `js-ts-npm-package-tarball-41666974638-1` (artifact ID `13246517763`,
+  SHA-256 `e3de6be684ff97651c09361d67680fddf1d5fe96d673433a88e2ddd3c03fa898`, SHA-512
+  `e89f2c710fb587775984e7365bd80018df6d9b00a78b35c0838fe088b09f08747c6b04e568df06f48820b60c4ffb98d4897dc91a75ad741eabe89919dc5955af`).
+  Both digests are byte-identical to attempt 8's tarball, reconfirming deterministic build
+  reproduction across runs.
+- Build metadata artifact: `js-ts-npm-build-metadata-41666974638-1` (artifact ID `13246392710`,
+  SHA-256 `a9a35eb9ee2243522a1fc98dfdfe39a38223872dbe5644471479d6508038bdff`)
+- Provenance bundle artifact: `js-ts-npm-provenance-bundle-41666974638-1` (artifact ID
+  `13246027941`, SHA-256 `98fc2325d3dcd26798b82214198509732acf136507ebf0f977bb6262c34735f3`)
+- Outcome report artifact: `js-ts-npm-outcome-report-41666974638-1` (artifact ID `13245314214`,
+  SHA-256 `cfee1692293e5799d943ff770946b46283e21fe793b509dce11916ead647e2d9`)
+
+Attempt 8:
 
 - Run URL: <https://github.com/windlasstech/vers-js/actions/runs/41488152839>
 - Publish-job URL:
