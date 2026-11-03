@@ -37,6 +37,9 @@ func TestOIDCExchangeSuccess(t *testing.T) {
 	if result.Token.value() != testPublishToken {
 		t.Fatal("Exchange() did not preserve the exchanged token in memory")
 	}
+	if result.GitHubIdentityToken.value() != testIdentityToken {
+		t.Fatal("Exchange() did not retain the GitHub identity token for stderr relay redaction")
+	}
 	if !result.ExpiresAt.Equal(time.Date(2026, 8, 7, 13, 0, 0, 0, time.UTC)) {
 		t.Fatalf("expires_at = %s", result.ExpiresAt)
 	}

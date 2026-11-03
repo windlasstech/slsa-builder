@@ -191,10 +191,11 @@ func (client *OIDCClient) Exchange(ctx context.Context, packageName string, iden
 		)}
 	}
 	return OIDCExchangeResult{
-		Token:     publishToken,
-		CreatedAt: createdAt,
-		ExpiresAt: expiresAt,
-		Report:    oidcPassReport(),
+		GitHubIdentityToken: identityToken,
+		Token:               publishToken,
+		CreatedAt:           createdAt,
+		ExpiresAt:           expiresAt,
+		Report:              oidcPassReport(),
 	}
 }
 
