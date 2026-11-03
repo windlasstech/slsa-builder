@@ -30,6 +30,8 @@ relations:
       hour' documentation note cited in ADR-0076; the observed lifetime is 15 minutes)"
   - type: see-also
     target: ADR-0083
+  - type: see-also
+    target: ADR-0101
 ---
 
 # Use Observation Preflights and First-Mutation Classification
