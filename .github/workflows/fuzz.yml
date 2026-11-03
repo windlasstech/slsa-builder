@@ -93,6 +93,8 @@ jobs:
             target: FuzzExtractNodeRuntime
           - package: internal/npmprofile
             target: FuzzNPMFailureRecognizer
+          - package: internal/npmprofile
+            target: FuzzOperationalStderrRelayFilter
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
     steps:
