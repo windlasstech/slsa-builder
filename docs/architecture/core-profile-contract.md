@@ -276,6 +276,14 @@ crosses only through the hygiene filter. The filter's initial conditions are:
   control characters (U+200E, U+200F, U+202A through U+202E, U+2066 through U+2069) are likewise
   stripped. The relay never emits a character that can drive a terminal or log-viewer control
   function, and its emitted payload is always valid UTF-8 text.
+- **Runner-command neutralization.** The legacy GitHub Actions runner command marker `##[` is never
+  emitted: the `[` immediately following a `##` pair is stripped, wherever it appears in the line.
+  Neutralization runs on the post-redaction stream, so a marker composed by a redaction replacement
+  (for example text ending in `##` immediately before a redacted value) is stripped as well. The
+  legacy marker is the only workflow-command syntax the runner matches anywhere in a line; the
+  modern `::command::` syntax executes only when a line begins with `::`, and every relayed line
+  begins with the operational prefix. Between the prefix and this rule, no runner workflow-command
+  surface reaches the log.
 - **Bounded volume.** At most 65536 filtered payload bytes (64 KiB) and at most 512 non-empty
   relayed lines per process. Bounds are measured after redaction and stripping; the operational line
   prefixes and the truncation marker do not count against them. A byte truncation never splits a

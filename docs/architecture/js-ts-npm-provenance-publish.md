@@ -1898,13 +1898,14 @@ expected/actual comparison. A request phase may be reported only when reliably k
 implementation omits request-phase information.
 
 The rejection family is a closed vocabulary of five identifiers, each bound to an anchored match on
-a documented npm registry rejection message family: `predicate-field-mismatch`,
-`repository-metadata-mismatch`, `private-source-repository`, `unsupported-runner-environment`, and
-`missing-certificate-claim`. The family is reported only when the publish output matches a family
-pattern exactly; unmatched output carries no family field. Family matching never gates behavior: it
-enriches the operational channel only. Independently of any family match, the publish process's
-stderr is relayed under the core contract's hygiene filter, so a novel rejection reaches the log in
-the registry's own rendered words.
+the complete catalogued template of a documented npm registry rejection message family:
+`predicate-field-mismatch`, `repository-metadata-mismatch`, `private-source-repository`,
+`unsupported-runner-environment`, and `missing-certificate-claim`. The family is reported only when
+the publish output matches a family template, including its routed and multiline forms; incomplete
+or altered templates carry no family field. Family matching never gates behavior: it enriches the
+operational channel only. Independently of any family match, the publish process's stderr is relayed
+under the core contract's hygiene filter, so a novel rejection reaches the log in the registry's own
+rendered words.
 
 Read-back diagnostics emit one summary for each existing classification run, never one line per
 poll. The summary contains the first observation, the latest observation changed from the first when
@@ -1917,8 +1918,11 @@ behavior, or existing classification inputs. They must not create a durable arti
 `$GITHUB_OUTPUT` entry, a JSON or JSONL schema, or a diagnostic ID. The trusted core never possesses
 the raw registry response body: registry message text reaches the log only as the filtered stderr
 relay defined by the core contract, and categorical summary lines contain no server message text.
-Logging and stderr write failures are discarded and cannot change any of these behaviors or
-outcomes.
+When a process writes to both stdout and stderr, the combined captured stream that failure
+classification reads preserves each stream's internal order but not the relative order between
+streams; the npm CLI emits its failure diagnostics on stderr, so this relaxation does not change
+observed classifications. Logging and stderr write failures are discarded and cannot change any of
+these behaviors or outcomes.
 
 Valid illustrative lines are:
 
