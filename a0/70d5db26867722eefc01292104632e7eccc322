@@ -1,0 +1,34 @@
+internal/npmprofile/publish_failure_family_test.go
+  s_ecd54b7aab965c::t_187d49220d6124 18-19,29-48,99-125
+  s_ecd54b7aab965c::t_dbd5d2c4ab44a4 126
+docs/dogfood/npm-registry-provenance-requirements.md
+  s_ecd54b7aab965c::t_864365062e909f 3-8,153-158
+  s_ecd54b7aab965c::t_ceb0967bfebfa8 317-322,325,327,330,344-346,358-359
+  s_ecd54b7aab965c::t_1fa5185fe85b3c 416-418
+  s_ecd54b7aab965c::t_84673a9f508d68 144-145,150-151
+CHANGELOG.md
+  s_ecd54b7aab965c::t_a21b41922840ff 135-136
+  s_ecd54b7aab965c::t_864365062e909f 137-139
+internal/npmprofile/publish_failure_family_complete_test.go
+  s_ecd54b7aab965c::t_3dc244cbb4d2e3 19
+internal/npmprofile/publish_failure_family.go
+  s_ecd54b7aab965c::t_1f5372cb574909 139-140
+internal/npmprofile/publish_diagnostics.go
+  s_ecd54b7aab965c::t_cc90a8355b8ec6 10,12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a070d5db26867722eefc01292104632e7eccc322",
+  "prompts": {},
+  "sessions": {
+    "s_ecd54b7aab965c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5cd10817ffewxXuKdO1HJRxAd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
