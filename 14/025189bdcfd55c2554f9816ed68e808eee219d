@@ -1,0 +1,34 @@
+internal/npmprofile/exec_boundary_relay.go
+  s_1c2c27394ee1ed::t_984addd6db02fe 92-93
+  s_1c2c27394ee1ed::t_8604b0e4d4ee1c 91
+internal/npmprofile/exec_boundary_relay_test.go
+  s_1d4a5519b5ab09::t_1eaa0d64b26798 91-93
+  s_1c2c27394ee1ed::t_4356bf96abd41f 85,149-151
+internal/npmprofile/exec_boundary_relay_commands_test.go
+  s_1d4a5519b5ab09::t_1eaa0d64b26798 26-29,37-41,43-45
+  s_1c2c27394ee1ed::t_4356bf96abd41f 1-25,30-36,42,46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "14025189bdcfd55c2554f9816ed68e808eee219d",
+  "prompts": {},
+  "sessions": {
+    "s_1c2c27394ee1ed": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_1d4a5519b5ab09": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
