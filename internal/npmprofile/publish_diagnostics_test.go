@@ -163,6 +163,10 @@ func FuzzNPMFailureRecognizer(f *testing.F) {
 	for _, fixture := range npmFailureFamilyFixtures() {
 		f.Add([]byte(fixture.input), uint8(1))
 	}
+	for _, fixture := range completeFamilyBodies() {
+		f.Add([]byte(routedFamilyMessage(strings.ReplaceAll(fixture.body, "\n", " "), "@"+strings.Repeat("s", 100)+"/"+strings.Repeat("p", 112))), uint8(1))
+	}
+	f.Add([]byte(frameNPMFamilyMessage("Error verifying sigstore provenance bundle:\nUnsupported GitHub Actions runner environment: \"self-hosted\".\nActually supported now.")), uint8(1))
 	summaryPattern := regexp.MustCompile(`^windlass operational: npm_failure( family=(predicate-field-mismatch|repository-metadata-mismatch|private-source-repository|unsupported-runner-environment|missing-certificate-claim))?( code=[A-Z][A-Z0-9_]{0,63})?( http_status=[45][0-9]{2})?( predicate_paths=[A-Za-z0-9_.\[\],]+)?$`)
 	f.Fuzz(func(t *testing.T, input []byte, chunk uint8) {
 		// Given: arbitrary bytes and a nonzero arbitrary write size.
