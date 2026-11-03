@@ -1,0 +1,30 @@
+internal/npmprofile/publish_relay_test.go
+  s_1d4a5519b5ab09::t_189ae4de241f00 18-20,25-27,29-31,35-37,40-42
+  s_1c2c27394ee1ed::t_622b71e8bfcb39 1-17,21-24,28,32-34,38-39,43-44
+internal/npmprofile/publish.go
+  s_1c2c27394ee1ed::t_939a5e316b55a7 460-461
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3dabdda6678572b3f5603a00cdc8befa4cdf24c8",
+  "prompts": {},
+  "sessions": {
+    "s_1c2c27394ee1ed": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_1d4a5519b5ab09": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e5ec3a863ffe5X9lSeR3oS10i1",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
