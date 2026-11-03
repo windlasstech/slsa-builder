@@ -40,7 +40,7 @@ after 2.83 seconds, exactly as attempt 8. The caller-side `Publish GitHub Releas
 This attempt exercised the ADR 0101 stderr relay for the first time. The relay captured the complete
 npm CLI-rendered registry rejection message with no instrumentation change, satisfying the ADR 0101
 confirmation criterion. The rejection is the routed predicate-mismatch form, and the registry now
-names nine expected-value sources — the six catalogued workflow/GitHub fields plus two
+names eight expected-value sources — the six catalogued workflow/GitHub fields plus two
 `resolvedDependencies[0]` lines that pre-attempt-9 evidence had not shown:
 
 ```text
@@ -108,8 +108,9 @@ Canonical outcome report (no external text; the sealed contract is unchanged):
 }
 ```
 
-Post-run registry state confirms zero mutation: `npm view @windlass/vers-js@0.1.3 version` returns
-`E404` and the attestations endpoint returns HTTP 404.
+Post-run registry state showed no visible publication: `npm view @windlass/vers-js@0.1.3 version`
+returns `E404` and the attestations endpoint returns HTTP 404; because the publish call was
+attempted, this remains an `indeterminate` outcome.
 
 Preserved evidence (local): full publish-job log, outcome report, build metadata, package tarball,
 and provenance bundle artifacts under the attempt-9 evidence directory; the rejection message is
