@@ -1,10 +1,11 @@
 # npm registry provenance requirements
 
-Research note supporting the M1 dogfood failure analysis (`npm-m1.md`, attempts 7 and 8) and issues
-#142 (rejection classification) and #143 (compatibility projection). It records what public sources
-establish about npm registry provenance behavior as of 12026-11-03, what they do not establish, and
-which claims come from executed local evidence rather than documents. This is an observation record,
-not a specification or an ADR; any contract change still follows the normal ADR/spec/TDD path.
+Research note supporting the M1 dogfood failure analysis (`npm-m1.md`, attempts 7 through 9) and
+issues #142 (rejection classification) and #143 (compatibility projection). It records what public
+sources establish about npm registry provenance behavior as of 12026-11-03, what they do not
+establish, and which claims come from executed local evidence rather than documents. This is an
+observation record, not a specification or an ADR; any contract change still follows the normal
+ADR/spec/TDD path.
 
 Source reliability tiers used below: **documented** (official npm/GitHub/Sigstore/SLSA text),
 **registry-observed** (error text emitted by the registry and quoted in a dated report, or a live
@@ -140,15 +141,21 @@ shown as quoted values; some field-mismatch lines omit the observed value.
    buildDefinition.internalParameters.github.event_name: does not match expected value for BuildTrigger: <expected>,
    buildDefinition.internalParameters.github.repository_id: does not match expected value for SourceRepositoryIdentifier: <expected>,
    buildDefinition.internalParameters.github.repository_owner_id: does not match expected value for SourceRepositoryOwnerIdentifier: <expected>,
+   buildDefinition.resolvedDependencies[0].uri: <observed> does not match expected value for SourceRepositoryURI: <expected>,
+   buildDefinition.resolvedDependencies[0].digest.gitCommit: <observed> does not match expected value for SourceRepositoryDigest: <expected>,
    runDetails.builder.id: <observed> does not match expected value for builderId: <expected>
    ```
 
    Sources: [slsa-github-generator#2499][ghg-2499] (12023-08, 12024-02 forms),
-   [slsa-github-generator#2758][ghg-2758] (12023-10, single-field form).
+   [slsa-github-generator#2758][ghg-2758] (12023-10, single-field form), and the
+   [attempt-9 routed registry rejection](npm-m1.md) (12026-11-03).
 
-   The 12023-08 form carries all eight lines above. The 12024-02 retry form carries only the six
-   `externalParameters.workflow.*` and `internalParameters.github.*` lines; the `buildType` and
-   `runDetails.builder.id` mismatch lines appear only in the pre-relaxation form.
+   The 12023-08 form carries the `buildType`, six workflow/GitHub, and `runDetails.builder.id`
+   lines, but not the two `resolvedDependencies[0]` comparisons. The 12024-02 retry form carries
+   only the six `externalParameters.workflow.*` and `internalParameters.github.*` lines; the
+   `buildType` and `runDetails.builder.id` mismatch lines appear only in the pre-relaxation form.
+   The attempt-9 routed form carries the same six fields plus the two `resolvedDependencies[0]`
+   comparisons above.
 
 2. **Repository metadata mismatch**:
 
@@ -307,15 +314,20 @@ Supported by the evidence above:
 2. The six GitHub workflow predicate fields are enforced by the registry as present-and-matching for
    the GitHub Actions provenance path; their absence is a confirmed E422 family. The Windlass
    attempt-7/8 statements lack exactly these fields, matching that family.
-3. `builder.id` and `buildType` mismatch enforcement was relaxed around 12023-08 (registry-observed
+3. Attempt 9 evidences two additional registry comparisons in its routed form:
+   `resolvedDependencies[0].uri` against `SourceRepositoryURI`, and
+   `resolvedDependencies[0].digest.gitCommit` against `SourceRepositoryDigest`. This establishes
+   those comparisons for the attempt-9 descriptor and form only, not for other descriptors or
+   indices.
+4. `builder.id` and `buildType` mismatch enforcement was relaxed around 12023-08 (registry-observed
    via the 12024-02 retry). End-to-end acceptance of a custom builder identity or build type remains
    **unproven**; no positive post-12024 report was found.
-4. The Sigstore bundle envelope, signature count, and transparency-log material of the rejected
+5. The Sigstore bundle envelope, signature count, and transparency-log material of the rejected
    Windlass bundle are byte-shape identical to the registry-accepted bundle (local-verified).
-5. The extra SHA-256 subject digest is not a documented or evidenced rejection cause: npm's CLI
+6. The extra SHA-256 subject digest is not a documented or evidenced rejection cause: npm's CLI
    requires the SHA-512 and does not reject additional algorithms client-side; no registry-side
    evidence was found either way (unresolved, low suspicion).
-6. npm's registry-side validator implementation is not public; the npm/provenance design document is
+7. npm's registry-side validator implementation is not public; the npm/provenance design document is
    archived (12025-06-30). All "current registry behavior" statements here carry that caveat.
 
 Implications:
@@ -329,8 +341,9 @@ Implications:
   (invocation ref, caller workflow path, trigger, repository/owner IDs), not the built source tag
   and not arbitrary environment text. The open design questions for the ADR are precisely the
   unproven dimensions: whether npm accepts the Windlass `buildType`/`builder.id` once the six fields
-  match, and whether any further registry check (for example resolved-dependency shape) applies. A
-  further dogfood attempt after the projection lands is the only definitive test, per the runbook.
+  and the two attempt-9 resolved-dependency comparisons match, and whether any further registry
+  check applies. A further dogfood attempt after the projection lands is the only definitive test,
+  per the runbook.
 
 ## Gaps
 
@@ -342,7 +355,8 @@ Implications:
   not empty.
 - The exact registry behavior when only some of the six fields are present (partial projection) is
   unknown; the 12024 #2499 retry had all six absent.
-- Whether the registry inspects `resolvedDependencies` shape is unevidenced either way.
+- Validation of other `resolvedDependencies` descriptors, indices, or fields beyond attempt 9's
+  `uri` and `digest.gitCommit` comparisons remains unknown.
 
 ## Sources
 
@@ -399,8 +413,9 @@ Issue reports and discussions:
 35. [Hacker News launch discussion (12023-04)][hn-launch]
 
 Live registry responses (this research): `/-/npm/v1/attestations/gundam-visor@1.0.1` (200, standard
-shape); `/-/npm/v1/attestations/@ianlewis/actions-test@0.1.162` (404). Local artifacts: preserved
-attempt-8 bundle and the `0.1.2` registry attestation read-back recorded in `npm-m1.md`.
+shape); `/-/npm/v1/attestations/@ianlewis/actions-test@0.1.162` (404). Local evidence: the preserved
+attempt-8 bundle, the attempt-9 rejection output preserved in `npm-m1.md`, and the `0.1.2` registry
+attestation read-back recorded in the same document.
 
 [npm-generating]: https://docs.npmjs.com/generating-provenance-statements/
 [npm-trusted]: https://docs.npmjs.com/trusted-publishers/

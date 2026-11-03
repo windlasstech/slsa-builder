@@ -136,6 +136,8 @@ func completePredicateMismatch(detail string) bool {
 		{"buildDefinition.internalParameters.github.event_name", "BuildTrigger"},
 		{"buildDefinition.internalParameters.github.repository_id", "SourceRepositoryIdentifier"},
 		{"buildDefinition.internalParameters.github.repository_owner_id", "SourceRepositoryOwnerIdentifier"},
+		{"buildDefinition.resolvedDependencies[0].uri", "SourceRepositoryURI"},
+		{"buildDefinition.resolvedDependencies[0].digest.gitCommit", "SourceRepositoryDigest"},
 		{"runDetails.builder.id", "builderId"},
 	} {
 		value, ok := strings.CutPrefix(detail, binding[0]+": ")

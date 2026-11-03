@@ -7,9 +7,9 @@ const (
 	maxNPMFailurePredicatePathLength = 256
 	maxNPMFailureSummaryLength       = 8192
 	maxNPMFailureHTTPStatusLength    = 3
-	// Longest catalog template (flattened predicate mismatch): 1019 bytes.
+	// Longest catalog template (flattened predicate mismatch): 1281 bytes.
 	// Route framing 68 + scoped package 214+4 (%40 and %2f) + separator 3
-	// + template 1019 + CR 1 = 1309; 2048 leaves 739 bytes of value margin.
+	// + template 1281 + CR 1 = 1571; 2048 leaves 477 bytes of value margin.
 	maxNPMFailurePendingLineLength = 2048
 	// Preserve the previous predicate-path budget: 4096 - 271 - 64 - 3.
 	maxNPMFailurePredicatePathsState   = 3758

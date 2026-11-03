@@ -132,9 +132,11 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   bytes and 512 non-empty lines with an explicit truncation marker. Failed npm publish summaries
   identify the first recognized rejection family: predicate-field mismatch, repository-metadata
   mismatch, private source repository, unsupported runner environment, or missing certificate claim.
-  Unknown rejections still relay without a family label. The diagnostics are non-authoritative and
-  cannot change canonical reports, registry or verifier operations, classification, retries, or
-  publish outcomes.
+  Predicate-field mismatch recognition includes the `resolvedDependencies[0].uri` and
+  `resolvedDependencies[0].digest.gitCommit` comparison lines observed in attempt 9. Unknown
+  rejections still relay without a family label. The diagnostics are non-authoritative and cannot
+  change canonical reports, registry or verifier operations, classification, retries, or publish
+  outcomes.
 
 ### Security
 
