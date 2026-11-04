@@ -19,6 +19,8 @@ relations:
     target: ADR-0070
   - type: see-also
     target: ADR-0071
+  - type: see-also
+    target: ADR-0103
 ---
 
 # Use SHA-Pinned Reusable Workflow Builder Identity
