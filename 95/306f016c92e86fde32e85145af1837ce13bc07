@@ -1,0 +1,26 @@
+docs/decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md
+  s_940dc19ccea4fc::t_882553c9a68de8 121-128,175-176
+  s_940dc19ccea4fc::t_6767f856c85303 146-148
+  s_940dc19ccea4fc::t_a3d445dddda461 60-71
+  s_940dc19ccea4fc::t_e1b131e687516f 318-320,323
+  s_940dc19ccea4fc::t_bcd50909c2e8cb 120
+  s_940dc19ccea4fc::t_ecc804e0d41aea 141-142,145,149-150
+  s_940dc19ccea4fc::t_02751dbeadbbb8 321-322
+  s_940dc19ccea4fc::t_44cebcba290729 177-184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "95306f016c92e86fde32e85145af1837ce13bc07",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
