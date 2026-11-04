@@ -14,6 +14,15 @@ relations:
       runner trust bindings remain in force"
   - type: see-also
     target: ADR-0079
+  - type: partially-superseded-by
+    target: ADR-0103
+    scope:
+      "the omitted-source-ref byte-compatibility promise (the 'Change nothing when the capability is
+      unused' decision driver and the 'Backward compatibility is structural' outcome clause):
+      pre-release contract revisions may add required invocation-identity fields, so byte-for-byte
+      compatibility with pre-change bundles is not guaranteed; the built-source policy binding,
+      certificate source claims as invocation-context evidence, repository identity binding, and Run
+      Invocation URI binding remain in force"
 ---
 
 # Bind Source Identity Policy to Signed Provenance Fields and Treat Certificate Source Claims as Invocation Context
