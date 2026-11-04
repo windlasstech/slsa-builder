@@ -68,6 +68,10 @@ certificate source claims authenticate the invocation. The new external workflow
 model without substituting the invocation ref for the built tag or replacing the SHA-pinned builder
 identity selected by ADR 0028.
 
+Which fields and meanings should `externalParameters.workflow` carry to represent caller invocation
+identity consistently across all producer profiles without conflating invocation, built source, and
+builder identity?
+
 ## Decision Drivers
 
 - One signed statement must serve both Windlass verification and npm registry admission. Separate
