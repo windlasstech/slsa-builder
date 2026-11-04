@@ -1,0 +1,23 @@
+docs/decisions/0029-use-windlass-generated-slsa-provenance-for-npm-publish.md
+  s_fe3fefee50bd83::t_07512fa3743c31 27-28
+docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md
+  s_fe3fefee50bd83::t_ceb200a563ceb4 22-23
+docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md
+  s_fe3fefee50bd83::t_015eb45375386c 20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6c44b6d8c0657e34d5c831fd7fa1082dee76c8d0",
+  "prompts": {},
+  "sessions": {
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
