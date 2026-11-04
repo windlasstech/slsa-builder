@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0103`까지입니다.
+`0104`까지입니다.
 
 | 범위      | 주제                                       | 설명                                                                                                                                        |
 | --------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -84,6 +84,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0101      | 외부 CLI stderr 위생 필터 릴레이           | allowlisted 서브프로세스 stderr를 명세 소유 위생 필터를 거쳐 로그에 릴레이. 템플릿 분류는 enrichment. canonical 계약은 봉인 유지.           |
 | 0102      | npm E422 게시 거부 분류                    | E422 거부를 축소된 read-back budget으로 폴링하고 창 안에 게시가 관측되지 않으면 determinate absent로 실패. 버전이 관측되면 풀 budget 유지.  |
 | 0103      | 공통 호출 정체성 필드                      | 모든 producer profile의 공통 외부 workflow 호출 정체성. ADR 0080의 바이트 호환 약속은 부분 대체.                                            |
+| 0104      | 빌더 레코드 표현                           | 중복된 external-parameter builder 삼중 필드를 제거하고 canonical builder identity, 인증된 signer identity, 신뢰 정책 검증은 유지.           |
 
 ## ADR status와 relations
 
@@ -246,6 +247,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0101 | Relay external CLI stderr to logs under hygiene bounds, with template classification as enrichment                | Core profile contract(external-process operational diagnostics), JS/TS npm provenance and publish(best-effort operational diagnostics)                                              |
 | 0102 | Classify npm publish E422 rejections as determinate pre-commit failures under a reduced read-back budget          | JS/TS npm provenance and publish, verification policy and fixtures                                                                                                                  |
 | 0103 | Define external workflow parameters as common invocation identity                                                 | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
+| 0104 | Remove redundant external-parameter builder record                                                                | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

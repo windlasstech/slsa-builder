@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0103`.
+sequence currently runs from `0000` through `0104`.
 
 | Range     | Topic                                                      | Notes                                                                                                                                                                   |
 | --------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -85,6 +85,7 @@ sequence currently runs from `0000` through `0103`.
 | 0101      | External CLI stderr relay with hygiene filter              | Allowlisted subprocess stderr is relayed to the log through a spec-owned hygiene filter; template classification is enrichment; the canonical contract stays sealed.    |
 | 0102      | npm E422 publish rejection classification                  | E422 rejections read back under a reduced budget and fail determinately when no publication appears within it; the full budget is retained when the version is present. |
 | 0103      | Common invocation identity fields                          | Common external workflow identity for every producer profile; ADR 0080 byte compatibility is partially superseded.                                                      |
+| 0104      | Builder record representation                              | Removes the redundant external-parameter builder triplet while retaining canonical builder identity, authenticated signer identity, and trusted-policy verification.    |
 
 ## ADR status and relations
 
@@ -249,6 +250,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0101 | Relay external CLI stderr to logs under hygiene bounds, with template classification as enrichment                | Core profile contract (external-process operational diagnostics), JS/TS npm provenance and publish (best-effort operational diagnostics)                                                         |
 | 0102 | Classify npm publish E422 rejections as determinate pre-commit failures under a reduced read-back budget          | JS/TS npm provenance and publish, verification policy and fixtures                                                                                                                               |
 | 0103 | Define external workflow parameters as common invocation identity                                                 | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                                          |
+| 0104 | Remove redundant external-parameter builder record                                                                | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                                          |
 
 ### Superseded or deprecated ADRs (historical only)
 
