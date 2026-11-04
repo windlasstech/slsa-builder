@@ -57,9 +57,18 @@ Three structural facts bound the design space:
 - **Server-side verification precedes acceptance.** The npm provenance documentation states the
   registry performs its Sigstore verifications "before accepting the publish". Combined with the two
   attempts' negative read-backs, the E422 provenance rejection is empirically pre-commit.
-- **RFC 9110 semantics.** HTTP 422 (Unprocessable Content) is a semantic refusal of a well-formed
-  request; repeating the identical request cannot succeed, so polling cannot change the outcome
-  class — it can only detect the unexpected case where something committed anyway.
+- **HTTP semantics and convention.** RFC 9110 defines 422 as the server's inability to process the
+  instructions of a syntactically correct request and attaches no retry rule — the RFC's only
+  repeat-related normative text is 403's credential-scoped one — and the WebDAV origin RFC 4918 is
+  likewise silent. Ecosystem convention reads 422 more strongly: MDN documents that a client
+  receiving 422 should expect an unmodified repeat to fail the same way, and provider APIs use 422
+  for validation rejections the caller should fix rather than retry. That convention governs
+  retryability, not commit semantics: it does not say the server made no state change before
+  refusing, and state-dependent validation can succeed later. The non-retryability of this rejection
+  class therefore rests on the npm-specific evidence above — the single-PUT structure and pre-commit
+  server-side verification — so polling cannot change the outcome class for the observed
+  provenance-rejection form; it can only detect the unexpected case where something committed
+  anyway. Other E422 variants carry no such assurance, which the accepted risks below keep explicit.
 
 Under the current doctrine the trusted core pays the full polling budget and emits an
 `indeterminate` outcome for a rejection that is, on the evidence, neither retryable nor
@@ -108,14 +117,15 @@ manual-investigation trigger are operational cost without corresponding informat
 ## Decision Outcome
 
 Chosen option: "Keep read-back polling for E422 outcomes but under a reduced budget, failing
-determinately when no publication appears within that budget, with the full standard budget retained
-when the version is present", because it converts an evidenced non-retryable rejection into a fast
-determinate failure while the reduced window — not a single sighting — covers the version-visibility
-lag that no pinned evidence bounds. The 422 refusal fires after the request body has been parsed and
-evaluated — structurally closer to the mutation boundary than the entry-gate rejections the existing
-definitive classes cover — so the determination rests on an npm implementation fact, and an
-implementation fact deserves observation, but observation sized to the risk it covers rather than to
-the attestation-propagation budget of a different failure class.
+determinately when no publication appears within that budget and at least one clean absence is
+observed, with the full standard budget retained when the version is present", because it converts
+an evidenced non-retryable rejection into a fast determinate failure while the reduced window — not
+a single sighting — covers the version-visibility lag that no pinned evidence bounds. The 422
+refusal fires after the request body has been parsed and evaluated — structurally closer to the
+mutation boundary than the entry-gate rejections the existing definitive classes cover — so the
+determination rests on an npm implementation fact, and an implementation fact deserves observation,
+but observation sized to the risk it covers rather than to the attestation-propagation budget of a
+different failure class.
 
 **The rule.** The standing doctrine treats every post-publish registry read as replication-lagged:
 npm offers no read-after-write consistency guarantee (ADR 0067), attestation read-back joined the
@@ -128,11 +138,16 @@ the standard read-back classification under a reduced polling budget:
 - The reduced budget is spec-owned and sized to the version-visibility risk — on the order of a few
   polling intervals (tens of seconds), not the attestation-propagation scale of the full budget. It
   begins, as the standard read-back does, with one immediate observation.
-- If the version never appears within the reduced budget, the run fails determinately: outcome state
+- If the version never appears within the reduced budget and at least one clean packument
+  observation establishes target-version absence, the run fails determinately: outcome state
   `absent`, mutation attempted, with the new registered diagnostic
   `windlass.verify.error.publish-rejected-unprocessable` ("npm rejected the publication as
-  unprocessable and no committed publication was observed"). This is the exception: for every other
-  failure class, an unconfirmed version at budget exhaustion remains `indeterminate`.
+  unprocessable and no committed publication was observed"). If every observation in the window
+  errored and no clean absence exists, reduced expiry instead continues under the standing rules
+  through the original full deadline, measured from the first read-back request — no fresh budget
+  starts — because an unreadable registry cannot support a determinate claim. This is the exception:
+  for every other failure class, an unconfirmed version at budget exhaustion remains
+  `indeterminate`.
 - If the version appears at any observation, the E422 is contradicted — npm reported a validation
   refusal while the registry committed — and the trusted core must surface it rather than classify
   silently: the outcome report carries the registered warning
@@ -157,10 +172,16 @@ determinate answer:
    source guarantees that every E422 variant is commit-free. If the registry ever commits state and
    then returns E422, and the version becomes visible within the reduced window, the anomaly branch
    handles it correctly; if it commits without any version record ever becoming visible, the report
-   asserts `absent` while a version is live. The error is bounded and self-limiting: the next
-   publish run for that version performs fail-closed entry classification before any mutation and
-   surfaces the version as `committed-as-expected` or `foreign-conflict`, so the false assertion
-   cannot survive a subsequent run and cannot enable an unintended mutation.
+   asserts `absent` while a version is live. The error is bounded but not immediate: the next
+   publish run for that version re-classifies at entry before any mutation, yet while the committed
+   version remains invisible that entry still reads `absent` and permits one more `npm publish` call
+   — and so can every later run, until the version becomes visible. Each such call is a write issued
+   on an incorrect absence classification; it produces no unintended state change because npm never
+   republishes an existing version, so the registry rejects it, and once the version becomes visible
+   the entry classification surfaces it as `committed-as-expected` or `foreign-conflict`. The false
+   assertion is therefore bounded only by eventual visibility: if the committed version never
+   becomes visible, the residual is a registry-side inconsistency that no client-side classification
+   can observe, and each run pays one futile, registry-rejected publish call.
 2. **Visibility lag beyond the reduced window.** A version-not-found throughout the reduced budget
    may still reflect replication lag rather than genuine absence — the standing specification
    deliberately classifies that response as pending after any publish call, and this ADR overrides
@@ -294,7 +315,12 @@ keeps an observation window those classes do not have.
   publish" verification statement —
   [npm/provenance README, "Server-side provenance verification and proof"](https://github.com/npm/provenance#server-side-provenance-verification-and-proof).
 - HTTP 422 semantics:
-  [RFC 9110 section 15.5.21](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.5.21).
+  [RFC 9110 section 15.5.21](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.5.21)
+  (definition; no retry rule — the RFC's only repeat-related normative text is 403's
+  credential-scoped one; the WebDAV origin RFC 4918 is likewise silent) and
+  [MDN's 422 reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/422) (the
+  conventional expectation that an unmodified repeat fails the same way; MDN editorial guidance
+  citing the RFC definition, governing retryability rather than commit semantics).
 - Status-code scoping survey (12026-11-04): the npm registry publishes no status-code contract for
   the publish PUT, dist-tag, or OIDC exchange endpoints (the archived registry API reference covers
   read endpoints only), and the npm CLI maps every status ≥ 400 to a generic `E<status>` label with
