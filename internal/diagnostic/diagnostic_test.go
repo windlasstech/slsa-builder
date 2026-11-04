@@ -142,9 +142,9 @@ func TestMutationPossible(t *testing.T) {
 	}{
 		{IDReleaseTargetImmutable, PhasePreMutation, false},
 		{IDMutationPermissionDenied, PhaseMutation, false},
-		{"windlass.verify.error.publish-rejected-unprocessable", PhaseMutation, false},
 		{IDPublisherIndeterminatePrimaryUpload, PhaseMutation, true},
 		{IDManifestPartialJSONUploaded, PhaseMutation, true},
+		{"windlass.verify.error.publish-rejected-unprocessable", PhaseMutation, true},
 	}
 	for _, test := range tests {
 		definition, ok := Lookup(test.id)

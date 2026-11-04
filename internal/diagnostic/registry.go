@@ -73,12 +73,13 @@ func buildRegistry() map[string]Definition {
 		"publish-npm-pin-mismatch",
 		"toolchain-pair-mismatch", "toolchain-pin-drift")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, false, 7,
-		"mutation-permission-denied", "publish-rejected-unprocessable")
+		"mutation-permission-denied")
 	set(definitions, PhaseMutation, ExitCodePolicyFailure, true, 7,
 		"publisher-indeterminate-primary-upload", "mutation-queue-overflow",
 		"manifest-partial-json-uploaded", "manifest-indeterminate-json-upload",
 		"manifest-remote-digest-unproven", "sidecar-upload-partial-failure",
 		"duplicate-release-asset", "duplicate-sidecar-asset", "registry-linkage-mismatch",
+		"publish-rejected-unprocessable",
 		"custom-registry-tokenless-auth-failed", "custom-registry-provenance-submission-rejected",
 		"custom-registry-linkage-metadata-absent", "custom-registry-digest-semantics-mismatch")
 

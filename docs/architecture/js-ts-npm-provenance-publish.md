@@ -35,7 +35,10 @@ the package to an npm registry through a three-job digest-verified graph.
   [0083](../decisions/0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md),
   [0084](../decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md),
   [0085](../decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md),
-  and [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md)
+  [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md),
+  [0101](../decisions/0101-relay-external-cli-stderr-to-logs-under-hygiene-bounds-with-classification-as-enrichment.md),
+  and
+  [0102](../decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
