@@ -93,6 +93,11 @@ func TestPublishAmbiguousReadback(t *testing.T) {
 	if fixture.clock.sleeps != 20 || fixture.packumentRequests != 22 || fixture.attestationRequests != 22 {
 		t.Fatalf("polling = sleeps:%d packument:%d attestations:%d, want exact 5-minute budget", fixture.clock.sleeps, fixture.packumentRequests, fixture.attestationRequests)
 	}
+	for _, entry := range result.Report.Diagnostics {
+		if entry.ID == "windlass.verify.warning.publish-committed-after-rejection" {
+			t.Fatalf("non-E422 read-back diagnostics = %#v, want no committed-after-rejection warning", result.Report.Diagnostics)
+		}
+	}
 }
 
 func TestPublishOperationalDiagnosticsReadbackFirstChangedFinal(t *testing.T) {
@@ -244,15 +249,22 @@ func TestPublishRejectsNPMVersionMismatchBeforeMutation(t *testing.T) {
 }
 
 type publishFixtureOptions struct {
-	initialVersionAbsent  bool
-	foreignIntegrity      bool
-	foreignRunID          bool
-	readbackIndeterminate bool
-	readbackPendingPolls  int
-	npmExitCode           int
-	npmError              string
-	npmVersion            string
-	buildNPMVersion       string
+	initialVersionAbsent             bool
+	foreignIntegrity                 bool
+	foreignRunID                     bool
+	readbackIndeterminate            bool
+	readbackAbsent                   bool
+	readbackAbsentPolls              int
+	readbackErrorPolls               int
+	readbackAbsentAttestationError   bool
+	readbackAttestationIndeterminate bool
+	readbackPendingPolls             int
+	malformedIntegrity               bool
+	sleepOvershoot                   time.Duration
+	npmExitCode                      int
+	npmError                         string
+	npmVersion                       string
+	buildNPMVersion                  string
 }
 
 type publishFixture struct {
@@ -299,11 +311,23 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 				writePackument(writer, nil)
 				return
 			}
+			if options.readbackAbsent && fixture.packumentRequests > 1 && fixture.packumentRequests-1 <= options.readbackErrorPolls {
+				fmt.Fprint(writer, `{`)
+				return
+			}
+			if options.readbackAbsent && fixture.packumentRequests > 1 &&
+				(options.readbackAbsentPolls == 0 || fixture.packumentRequests-1 <= options.readbackAbsentPolls) {
+				writePackument(writer, nil)
+				return
+			}
 			if options.readbackIndeterminate || (fixture.packumentRequests > 1 && fixture.packumentRequests-1 <= options.readbackPendingPolls) {
 				fmt.Fprint(writer, `{`)
 				return
 			}
 			integrity := expectedSRI
+			if options.malformedIntegrity && fixture.packumentRequests > 1 {
+				integrity = "not-an-sri"
+			}
 			if options.foreignIntegrity {
 				integrity = "sha512-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 			}
@@ -312,6 +336,23 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 			fixture.attestationRequests++
 			if options.initialVersionAbsent && fixture.packumentRequests == 1 {
 				writer.WriteHeader(http.StatusNotFound)
+				return
+			}
+			if options.readbackAbsent && fixture.packumentRequests > 1 && fixture.packumentRequests-1 <= options.readbackErrorPolls {
+				fmt.Fprint(writer, `{`)
+				return
+			}
+			if options.readbackAbsent && fixture.packumentRequests > 1 &&
+				(options.readbackAbsentPolls == 0 || fixture.packumentRequests-1 <= options.readbackAbsentPolls) {
+				if options.readbackAbsentAttestationError {
+					fmt.Fprint(writer, `{`)
+					return
+				}
+				writer.WriteHeader(http.StatusNotFound)
+				return
+			}
+			if options.readbackAttestationIndeterminate && fixture.packumentRequests > 1 {
+				fmt.Fprint(writer, `{`)
 				return
 			}
 			if options.readbackIndeterminate || (fixture.packumentRequests > 1 && fixture.packumentRequests-1 <= options.readbackPendingPolls) {
@@ -343,7 +384,7 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 		},
 	}
 	fixture.verifier = &publishFakeVerifier{localBundle: bundleBytes, statement: statement, foreignRunID: options.foreignRunID}
-	fixture.clock = &publishFakeClock{now: time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC)}
+	fixture.clock = &publishFakeClock{now: time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC), overshoot: options.sleepOvershoot}
 
 	npmPath := writeFakeNPM(t, directory)
 	t.Setenv("MISE_DATA_DIR", directory)
@@ -529,14 +570,15 @@ func (verifier *publishFakeVerifier) Verify(ctx context.Context, bundle []byte) 
 }
 
 type publishFakeClock struct {
-	now    time.Time
-	sleeps int
+	now       time.Time
+	sleeps    int
+	overshoot time.Duration
 }
 
 func (clock *publishFakeClock) Now() time.Time { return clock.now }
 
 func (clock *publishFakeClock) Sleep(ctx context.Context, duration time.Duration) error {
 	clock.sleeps++
-	clock.now = clock.now.Add(duration)
+	clock.now = clock.now.Add(duration + clock.overshoot)
 	return ctx.Err()
 }

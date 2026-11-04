@@ -25,10 +25,13 @@ const (
 	IDBundleByteFormatMismatch                 = "windlass.verify.error.bundle-byte-format-mismatch"
 	IDMutationPermissionDenied                 = "windlass.verify.error.mutation-permission-denied"
 	IDPrepublishRegistryMetadataRequired       = "windlass.verify.error.prepublish-registry-metadata-required"
+	IDPublishCommittedAfterRejection           = "windlass.verify.warning.publish-committed-after-rejection"
+	IDPublishRejectedUnprocessable             = "windlass.verify.error.publish-rejected-unprocessable"
 	IDRegistryLinkageMismatch                  = "windlass.verify.error.registry-linkage-mismatch"
 	IDUnsupportedInitialPublication            = "windlass.verify.error.unsupported-initial-publication"
 	npmSLSAPredicateType                       = "https://slsa.dev/provenance/v1"
 	publishPollInterval                        = 15 * time.Second
+	publishRejectedPollBudget                  = 60 * time.Second
 	publishPollBudget                          = 5 * time.Minute
 	maxPublishBundleSize                 int64 = 32 << 20
 	maxNPMOutputSize                           = 64 << 10
@@ -123,9 +126,10 @@ type registryObservation struct {
 }
 
 type observationDecision struct {
-	state         PublishState
-	terminal      bool
-	packageAbsent bool
+	state                   PublishState
+	terminal                bool
+	packageAbsent           bool
+	committedAfterRejection bool
 }
 
 // Publish revalidates entry state, performs at most one argv-only npm mutation, and resolves read-back.
@@ -135,7 +139,7 @@ func Publish(ctx context.Context, request PublishRequest) (PublishResult, error)
 		return publishFailure(request, PublishIndeterminate, false, diagnosticIDOr(err, IDBundleByteFormatMismatch), "npm.publish.entry", err)
 	}
 
-	entryDecision, err := prepared.classify(ctx, false)
+	entryDecision, err := prepared.classify(ctx, false, false)
 	if err != nil {
 		return prepared.failure(PublishIndeterminate, false, IDPrepublishRegistryMetadataRequired, "npm.publish.entry-revalidation", err)
 	}
@@ -159,23 +163,36 @@ func Publish(ctx context.Context, request PublishRequest) (PublishResult, error)
 	}
 
 	output, mutationErr := prepared.runNPM(ctx)
+	e422Rejected := false
 	if mutationErr != nil {
 		if id := definitivePublishError(output); id != "" {
 			return prepared.failure(PublishAbsent, true, id, "npm.publish.mutation", errors.New("npm rejected publication before commit"))
 		}
+		e422Rejected = npmErrorCode(output) == "e422"
 	}
 
-	readbackDecision, readbackErr := prepared.classify(ctx, true)
+	readbackDecision, readbackErr := prepared.classify(ctx, true, e422Rejected)
+	if e422Rejected && readbackDecision.state == PublishAbsent {
+		return prepared.failure(PublishAbsent, true, IDPublishRejectedUnprocessable, "npm.publish.readback", errors.New("npm rejected the publication as unprocessable and no committed publication was observed"))
+	}
+	var rejectionDiagnostics []diagnostic.Diagnostic
+	if readbackDecision.committedAfterRejection {
+		warning, warningErr := diagnostic.New(IDPublishCommittedAfterRejection, "npm.publish.readback", "npm reported E422 but registry read-back observed a committed publication")
+		if warningErr != nil {
+			return PublishResult{}, warningErr
+		}
+		rejectionDiagnostics = append(rejectionDiagnostics, warning)
+	}
 	if readbackErr != nil || readbackDecision.state == PublishIndeterminate {
-		return prepared.failure(PublishIndeterminate, true, IDRegistryLinkageMismatch, "npm.publish.readback", errors.New("publication outcome is indeterminate"))
+		return prepared.failure(PublishIndeterminate, true, IDRegistryLinkageMismatch, "npm.publish.readback", errors.New("publication outcome is indeterminate"), rejectionDiagnostics...)
 	}
 	if readbackDecision.state == PublishForeignConflict {
-		return prepared.failure(PublishForeignConflict, true, IDRegistryLinkageMismatch, "npm.publish.readback", errors.New("published registry evidence conflicts with the verified handoff"))
+		return prepared.failure(PublishForeignConflict, true, IDRegistryLinkageMismatch, "npm.publish.readback", errors.New("published registry evidence conflicts with the verified handoff"), rejectionDiagnostics...)
 	}
 	if readbackDecision.state != PublishCommittedAsExpected {
-		return prepared.failure(PublishIndeterminate, true, IDRegistryLinkageMismatch, "npm.publish.readback", errors.New("publication did not converge"))
+		return prepared.failure(PublishIndeterminate, true, IDRegistryLinkageMismatch, "npm.publish.readback", errors.New("publication did not converge"), rejectionDiagnostics...)
 	}
-	return prepared.success(true)
+	return prepared.success(true, rejectionDiagnostics...)
 }
 
 func preparePublish(ctx context.Context, request PublishRequest) (preparedPublish, error) {
@@ -285,22 +302,42 @@ func validatePreparedBindings(request PublishRequest, verified VerifiedPublishBu
 	return verified.RunInvocationURI, nil
 }
 
-func (prepared preparedPublish) classify(ctx context.Context, afterMutation bool) (decision observationDecision, err error) {
+func (prepared preparedPublish) classify(ctx context.Context, afterMutation, e422 bool) (decision observationDecision, err error) {
 	summary := newPublishObservationSummary(prepared.expectedSRI)
+	sawVersion := false
+	sawCleanAbsence := false
 	defer func() {
+		decision.committedAfterRejection = e422 && sawVersion
 		writeOperationalDebug(ctx, summary.format(afterMutation, decision.state))
 	}()
 
-	deadline := prepared.now().Add(publishPollBudget)
+	start := prepared.now()
+	deadline := start.Add(publishPollBudget)
+	reducedDeadline := start.Add(publishRejectedPollBudget)
+	reduced := afterMutation && e422
 	var last registryObservation
 	for {
+		observedAt := prepared.now()
 		last = prepared.observe(ctx)
+		if last.packumentErr == nil && last.version != nil {
+			sawVersion = true
+		}
+		if last.packumentErr == nil && last.version == nil && reduced && !observedAt.After(reducedDeadline) {
+			sawCleanAbsence = true
+		}
 		summary.record(last)
 		decision = prepared.decide(ctx, last, afterMutation, false)
 		if decision.terminal {
 			return decision, nil
 		}
-		if !prepared.now().Before(deadline) {
+		now := prepared.now()
+		if reduced && !now.Before(reducedDeadline) {
+			reduced = false
+			if !sawVersion && sawCleanAbsence {
+				return observationDecision{state: PublishAbsent, terminal: true}, nil
+			}
+		}
+		if !now.Before(deadline) {
 			final := prepared.decide(ctx, last, afterMutation, true)
 			if final.state == PublishIndeterminate {
 				return final, errors.New("registry polling budget exhausted without authoritative evidence")
@@ -463,15 +500,15 @@ func (prepared preparedPublish) runNPMCommand(ctx context.Context, arguments []s
 	return []byte(output), err
 }
 
-func (prepared preparedPublish) success(mutationAttempted bool) (PublishResult, error) {
-	report, err := diagnostic.Build(&prepared.runInvocation, nil, prepared.metadata)
+func (prepared preparedPublish) success(mutationAttempted bool, extra ...diagnostic.Diagnostic) (PublishResult, error) {
+	report, err := diagnostic.Build(&prepared.runInvocation, extra, prepared.metadata)
 	if err != nil {
 		return PublishResult{}, err
 	}
 	return PublishResult{State: PublishCommittedAsExpected, MutationAttempted: mutationAttempted, Report: report}, nil
 }
 
-func (prepared preparedPublish) failure(state PublishState, mutationAttempted bool, id, check string, cause error) (PublishResult, error) {
+func (prepared preparedPublish) failure(state PublishState, mutationAttempted bool, id, check string, cause error, extra ...diagnostic.Diagnostic) (PublishResult, error) {
 	entry, err := diagnostic.New(id, check, cause.Error())
 	if err != nil {
 		return PublishResult{}, err
@@ -483,7 +520,8 @@ func (prepared preparedPublish) failure(state PublishState, mutationAttempted bo
 	if prepared.runInvocation != "" {
 		invocation = &prepared.runInvocation
 	}
-	report, err := diagnostic.Build(invocation, []diagnostic.Diagnostic{entry}, prepared.metadata)
+	entries := append([]diagnostic.Diagnostic{entry}, extra...)
+	report, err := diagnostic.Build(invocation, entries, prepared.metadata)
 	if err != nil {
 		return PublishResult{}, err
 	}

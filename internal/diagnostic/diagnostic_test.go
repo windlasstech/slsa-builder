@@ -144,6 +144,7 @@ func TestMutationPossible(t *testing.T) {
 		{IDMutationPermissionDenied, PhaseMutation, false},
 		{IDPublisherIndeterminatePrimaryUpload, PhaseMutation, true},
 		{IDManifestPartialJSONUploaded, PhaseMutation, true},
+		{"windlass.verify.error.publish-rejected-unprocessable", PhaseMutation, true},
 	}
 	for _, test := range tests {
 		definition, ok := Lookup(test.id)
@@ -159,8 +160,8 @@ func TestMutationPossible(t *testing.T) {
 func TestClosedRegistryAndContractValidation(t *testing.T) {
 	t.Parallel()
 
-	if got := len(RegisteredIDs()); got != 176 {
-		t.Fatalf("registered ID count = %d, want 176", got)
+	if got := len(RegisteredIDs()); got != 178 {
+		t.Fatalf("registered ID count = %d, want 178", got)
 	}
 	if _, ok := Lookup("windlass.verify.error.not-registered"); ok {
 		t.Fatal("unknown ID unexpectedly registered")

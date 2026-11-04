@@ -17,6 +17,8 @@ relations:
     target: ADR-0068
   - type: see-also
     target: ADR-0072
+  - type: see-also
+    target: ADR-0102
 ---
 
 # Require Published-Attestation Run Identity for npm Same-Run Convergence

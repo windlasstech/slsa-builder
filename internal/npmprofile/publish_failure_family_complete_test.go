@@ -16,7 +16,7 @@ func TestNPMFailureFamiliesRoutedCapacity(t *testing.T) {
 	if len(maxPackage) != 214 {
 		t.Fatal("invalid maximum-length fixture")
 	}
-	if got := len(strings.ReplaceAll(predicateFamilyMessage, "\n", " ")); got != 1019 {
+	if got := len(strings.ReplaceAll(predicateFamilyMessage, "\n", " ")); got != 1281 {
 		t.Fatalf("catalog template size = %d; update bound derivation", got)
 	}
 	for _, fixture := range npmFailureFamilyBodies() {

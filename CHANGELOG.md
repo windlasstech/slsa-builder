@@ -17,7 +17,13 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   polls the registry once every 15 seconds for up to 5 minutes; at budget expiry a confirmed version
   whose attestation is not yet visible is classified `foreign-conflict`, and an unconfirmed version
   `indeterminate`, and both converge on re-run via `committed-as-expected` once propagation
-  completes.
+  completes. A publish rejected by the registry as unprocessable instead fails fast: when no
+  committed publication appears in a one-minute read-back window, the run reports a determinate
+  `windlass.verify.error.publish-rejected-unprocessable` failure rather than polling for the full
+  five minutes and ending `indeterminate`. If the registry committed the publication despite its
+  rejection, the outcome report carries a
+  `windlass.verify.warning.publish-committed-after-rejection` warning and convergence still follows
+  the standard rules.
 - Added official slsa-builder badge SVGs (`built with` with a package-check icon, `verified with`
   with a shield-check icon, and a plain logo badge in gray or green) under `assets/badges/`, each in
   four shields.io-compatible styles (flat, flat-square, plastic, and for-the-badge), with copy-ready

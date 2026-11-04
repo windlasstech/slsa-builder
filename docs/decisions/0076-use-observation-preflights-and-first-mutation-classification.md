@@ -32,6 +32,14 @@ relations:
     target: ADR-0083
   - type: see-also
     target: ADR-0101
+  - type: amended-by
+    target: ADR-0102
+    scope:
+      "the tier-2 first-mutation classification set for the npm publish invocation: an E422
+      rejection is read back under a reduced polling budget and fails as a determinate pre-commit
+      failure when no publication appears within that budget and at least one clean absence is
+      observed; the 401/403 and E404/ENEEDAUTH mappings and the full-budget read-back doctrine for
+      all other outcomes remain in force"
 ---
 
 # Use Observation Preflights and First-Mutation Classification

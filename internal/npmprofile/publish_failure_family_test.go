@@ -15,6 +15,8 @@ buildDefinition.externalParameters.workflow.path: does not match expected value 
 buildDefinition.internalParameters.github.event_name: does not match expected value for BuildTrigger: <expected>,
 buildDefinition.internalParameters.github.repository_id: does not match expected value for SourceRepositoryIdentifier: <expected>,
 buildDefinition.internalParameters.github.repository_owner_id: does not match expected value for SourceRepositoryOwnerIdentifier: <expected>,
+buildDefinition.resolvedDependencies[0].uri: <observed> does not match expected value for SourceRepositoryURI: <expected>,
+buildDefinition.resolvedDependencies[0].digest.gitCommit: <observed> does not match expected value for SourceRepositoryDigest: <expected>,
 runDetails.builder.id: <observed> does not match expected value for builderId: <expected>`
 	repositoryFamilyMessage = `Error verifying sigstore provenance bundle: Failed to validate repository information: package.json: "repository.url" is "<manifest value>", expected to match "<provenance repository URL>" from provenance`
 	privateFamilyMessage    = `Error verifying sigstore provenance bundle: Unsupported GitHub Actions source repository visibility: "private". Only public source repositories are supported when publishing with provenance.`
@@ -23,6 +25,26 @@ Unsupported GitHub Actions runner environment: "self-hosted".
 Only "github-hosted" runners are supported when publishing with provenance.`
 	missingClaimFamilyBody = `Error verifying sigstore provenance bundle: Missing SourceRepositoryRef in signing certificate`
 )
+
+const attempt9PredicateFamilyInput = `npm error code E422
+npm error 422 Unprocessable Entity - PUT https://registry.npmjs.org/@windlass%2fvers-js - Error verifying sigstore provenance bundle: Invalid GitHub Actions SLSA v1 provenance predicate:
+npm error buildDefinition.externalParameters.workflow.ref: <empty> does not match expected value for SourceRepositoryRef: refs/heads/main,
+npm error buildDefinition.externalParameters.workflow.repository: <empty> does not match expected value for SourceRepositoryURI: https://github.com/windlasstech/vers-js,
+npm error buildDefinition.externalParameters.workflow.path: .github/workflows/js-ts-npm-package-slsa3.yml does not match expected value for BuildConfigURI: .github/workflows/publish.yml,
+npm error buildDefinition.internalParameters.github.event_name: <empty> does not match expected value for BuildTrigger: workflow_dispatch,
+npm error buildDefinition.internalParameters.github.repository_id: <empty> does not match expected value for SourceRepositoryIdentifier: 1261293345,
+npm error buildDefinition.internalParameters.github.repository_owner_id: <empty> does not match expected value for SourceRepositoryOwnerIdentifier: 257660296,
+npm error buildDefinition.resolvedDependencies[0].uri: git+https://github.com/windlasstech/vers-js@ae5bb155d447bbaeeab2c40f79434d4760440546#pnpm-lock.yaml does not match expected value for SourceRepositoryURI: git+https://github.com/windlasstech/vers-js@refs/heads/main,
+npm error buildDefinition.resolvedDependencies[0].digest.gitCommit: <empty> does not match expected value for SourceRepositoryDigest: bd8b7ab116046e2c9bf8ee8682606ce643452c26`
+
+const sixFieldPredicateFamilyInput = `npm error code E422
+npm error 422 Unprocessable Entity - PUT https://registry.npmjs.org/@windlass%2fvers-js - Error verifying sigstore provenance bundle: Invalid GitHub Actions SLSA v1 provenance predicate:
+npm error buildDefinition.externalParameters.workflow.ref: <empty> does not match expected value for SourceRepositoryRef: refs/heads/main,
+npm error buildDefinition.externalParameters.workflow.repository: <empty> does not match expected value for SourceRepositoryURI: https://github.com/windlasstech/vers-js,
+npm error buildDefinition.externalParameters.workflow.path: <empty> does not match expected value for BuildConfigURI: .github/workflows/publish.yml,
+npm error buildDefinition.internalParameters.github.event_name: <empty> does not match expected value for BuildTrigger: workflow_dispatch,
+npm error buildDefinition.internalParameters.github.repository_id: <empty> does not match expected value for SourceRepositoryIdentifier: 1261293345,
+npm error buildDefinition.internalParameters.github.repository_owner_id: <empty> does not match expected value for SourceRepositoryOwnerIdentifier: 257660296`
 
 // npmFailureFamilyBodies is the single fixture list shared by the family tests; only framing differs.
 func npmFailureFamilyBodies() []struct{ family, body string } {
@@ -71,6 +93,34 @@ func TestNPMFailureRecognizerFamilies(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestNPMFailureRecognizerAttempt9PredicateFamily(t *testing.T) {
+	t.Parallel()
+	// Given: the verbatim eight-field rejection captured in attempt 9.
+	want := npmFailureSummaryPrefix + " family=predicate-field-mismatch code=E422 http_status=422"
+	// When: the captured output is consumed with split and whole writes.
+	for _, chunk := range []int{1, 37, 4096} {
+		got := recognizeNPMFailureForTest(t, attempt9PredicateFamilyInput, chunk)
+		// Then: the family is recognized without predicate paths from unprefixed detail lines.
+		if got != want {
+			t.Fatalf("chunk %d: Summary() = %q, want %q", chunk, got, want)
+		}
+	}
+}
+
+func TestNPMFailureRecognizerSixFieldPredicateFamily(t *testing.T) {
+	t.Parallel()
+	// Given: only the six previously catalogued workflow/GitHub comparisons.
+	want := npmFailureSummaryPrefix + " family=predicate-field-mismatch code=E422 http_status=422"
+	// When: the roster-independent form is consumed with split and whole writes.
+	for _, chunk := range []int{1, 37, 4096} {
+		got := recognizeNPMFailureForTest(t, sixFieldPredicateFamilyInput, chunk)
+		// Then: the older six-field form remains recognized without the new comparisons.
+		if got != want {
+			t.Fatalf("chunk %d: Summary() = %q, want %q", chunk, got, want)
+		}
 	}
 }
 
