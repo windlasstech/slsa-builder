@@ -1,0 +1,33 @@
+docs/decisions/0076-use-observation-preflights-and-first-mutation-classification.md
+  s_940dc19ccea4fc::t_627e49a5e23589 40-42
+docs/decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md
+  s_940dc19ccea4fc::t_627e49a5e23589 13-15
+  s_940dc19ccea4fc::t_b9c44bf159fba0 109-110
+  s_940dc19ccea4fc::t_55ead7b7ff5e9e 229-230
+  s_940dc19ccea4fc::t_72e453a31a68f5 260,266-267
+  s_f2a7ec4f903a33::t_0ea0e538fa5d94 282
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4288d1dcace3eaf2839a6f0277445800ab6e8994",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f2a7ec4f903a33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
