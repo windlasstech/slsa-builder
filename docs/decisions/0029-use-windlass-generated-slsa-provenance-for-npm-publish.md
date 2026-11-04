@@ -26,6 +26,8 @@ relations:
     target: ADR-0083
   - type: see-also
     target: ADR-0103
+  - type: see-also
+    target: ADR-0104
 ---
 
 # Use Windlass-Generated SLSA Provenance for npm Publish

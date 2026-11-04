@@ -31,6 +31,8 @@ relations:
       and Source Repository Ref equality with the expected release commit SHA and tag ref; the
       issuer, signer workflow, source repository identity including numeric IDs, run identity, and
       runner trust bindings remain in force"
+  - type: see-also
+    target: ADR-0104
 ---
 
 # Bind Verification to Immutable Builder and Source Identities
