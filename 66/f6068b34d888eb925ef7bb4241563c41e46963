@@ -1,0 +1,28 @@
+internal/diagnostic/registry.go
+  s_940dc19ccea4fc::t_6db54f8c569d0b 76,82
+docs/architecture/verification-policy-and-fixtures.md
+  s_940dc19ccea4fc::t_882553c9a68de8 39-40,1009,1017-1026
+  s_940dc19ccea4fc::t_d42b1c684d6dd6 38
+  s_940dc19ccea4fc::t_614f6cb48ad3f6 1007
+internal/diagnostic/diagnostic_test.go
+  s_940dc19ccea4fc::t_bb61a528db4fe4 147
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_940dc19ccea4fc::t_882553c9a68de8 40-41
+  s_940dc19ccea4fc::t_59843bb79cf39e 38-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "66f6068b34d888eb925ef7bb4241563c41e46963",
+  "prompts": {},
+  "sessions": {
+    "s_940dc19ccea4fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e68d2cec4ffepqKNeP7QN2CqQv",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
