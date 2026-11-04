@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0102`.
+`0103`.
 
 ## STRUCTURE
 
@@ -34,11 +34,12 @@ docs/decisions/
 ├── 0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md
 ├── 0101-relay-external-cli-stderr-to-logs-under-hygiene-bounds-with-classification-as-enrichment.md
 ├── 0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md
+├── 0103-define-external-workflow-parameters-as-common-invocation-identity.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0102`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0103`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -91,6 +92,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | Runner image identity             | `0100`                                                     | On-disk image metadata is authoritative for `image_version`; the control-plane deployment version is recorded separately as `deployment_version` evidence.              |
 | External-process stderr relay     | `0101`                                                     | Allowlisted tool stderr reaches the log through a spec-owned hygiene filter; classification is enrichment; the canonical contract stays sealed.                         |
 | npm E422 rejection classification | `0102`                                                     | E422 rejections read back under a reduced budget and fail determinately when no publication appears within it; the full budget is retained when the version is present. |
+| Invocation identity fields        | `0103`                                                     | Common external workflow identity for producer profiles; ADR 0080 byte compatibility is partially superseded.                                                           |
 
 ## CONVENTIONS
 
