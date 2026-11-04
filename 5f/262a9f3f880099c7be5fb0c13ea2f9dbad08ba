@@ -1,0 +1,21 @@
+docs/decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md
+  s_fe3fefee50bd83::t_327b1bda105c7e 71-74
+docs/decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md
+  s_fe3fefee50bd83::t_e871b3dacee2f6 80-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5f262a9f3f880099c7be5fb0c13ea2f9dbad08ba",
+  "prompts": {},
+  "sessions": {
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
