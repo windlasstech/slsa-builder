@@ -10,8 +10,9 @@ relations:
     scope:
       "the tier-2 first-mutation classification set for the npm publish invocation: an E422
       rejection is read back under a reduced polling budget and fails as a determinate pre-commit
-      failure when no publication appears within that budget; the 401/403 and E404/ENEEDAUTH
-      mappings and the full-budget read-back doctrine for all other outcomes remain in force"
+      failure when no publication appears within that budget and at least one clean absence is
+      observed; the 401/403 and E404/ENEEDAUTH mappings and the full-budget read-back doctrine for
+      all other outcomes remain in force"
   - type: see-also
     target: ADR-0067
   - type: see-also
@@ -105,8 +106,8 @@ manual-investigation trigger are operational cost without corresponding informat
 
 - Classify every publish-time E422 as a determinate pre-commit failure with no read-back at all.
 - Keep read-back polling for E422 outcomes but under a reduced budget, failing determinately when no
-  publication appears within that budget, with the full standard budget retained when the version is
-  present (chosen).
+  publication appears within that budget and at least one clean absence is observed, with the full
+  standard budget retained when the version is present (chosen).
 - Gate the determinate classification on the rejection-family recognizer identifying the
   provenance-verification family.
 - Keep read-back polling for E422 outcomes but under a reduced budget, failing `indeterminate` when
@@ -225,7 +226,8 @@ keeps an observation window those classes do not have.
 
 ## Confirmation
 
-- TDD conformance fixtures cover: E422 with the version never appearing failing determinately with
+- TDD conformance fixtures cover: E422 with the version never appearing and at least one clean
+  absence observed failing determinately with
   `windlass.verify.error.publish-rejected-unprocessable`, outcome `absent`, with observation and
   sleep counts bounded by the reduced budget; E422 with the version appearing within the reduced
   window emitting `windlass.verify.warning.publish-committed-after-rejection` and then engaging the
@@ -255,12 +257,14 @@ keeps an observation window those classes do not have.
   despite the E422 would surface only at the next run's entry classification as an unexplained
   `foreign-conflict`, and the `publish-committed-after-rejection` warning could not exist.
 
-### Keep read-back polling for E422 under a reduced budget, failing determinately on absence
+### Keep read-back polling for E422 outcomes but under a reduced budget, failing determinately when no publication appears within that budget and at least one clean absence is observed, with the full standard budget retained when the version is present
 
 - Good, because the wait shrinks to a window sized for the actual risk (version-visibility lag)
   while the determinate outcome eliminates the manual-investigation trigger.
 - Good, because the reduced window catches a late-appearing version record that a single observation
   would miss; the single-observation design is its degenerate one-cycle case, subsumed.
+- Good, because the determinate label fires only on a clean observed absence: an all-errored window
+  degrades to the standing full-budget path rather than asserting absence on no evidence.
 - Good, because a version-present anomaly still receives the full budget for the custody question,
   so no absence-type observation beyond the E422 version check is promoted to a fact early.
 - Bad, because it accepts the two pinned residual risks above, including a shortened but still
@@ -275,7 +279,7 @@ keeps an observation window those classes do not have.
   failure semantics — and couples outcome semantics to npm's English message prose, which a silent
   upstream rewording could degrade.
 
-### Keep read-back polling for E422 under a reduced budget, failing indeterminate on absence
+### Keep read-back polling for E422 outcomes but under a reduced budget, failing `indeterminate` when no publication appears within that budget, with the full standard budget retained when the version is present
 
 - Good, because it never asserts anything unverified and still eliminates the long wait — the
   reduced budget and the version-present fallback are identical to the chosen option's.
