@@ -1,0 +1,40 @@
+docs/decisions/README.md
+  s_fe3fefee50bd83::t_5d3b7798fae7c2 34-89,257
+  s_fe3fefee50bd83::t_22f448ff98f516 32
+  s_fe3fefee50bd83::t_ea7ccd5f6f6fa6 90
+docs/decisions/README.ko.md
+  s_fe3fefee50bd83::t_c9c99fb7702979 31
+  s_fe3fefee50bd83::t_5d3b7798fae7c2 33-88,254
+  s_fe3fefee50bd83::t_dcd7b5a05207d9 89
+  s_039d1a197d09cb::t_44f7547ea1a8d6 32
+docs/decisions/AGENTS.md
+  s_fe3fefee50bd83::t_15903f90266ad6 45
+  s_fe3fefee50bd83::t_a7fec02e627112 101
+  s_fe3fefee50bd83::t_ea3e57843b5756 40
+  s_fe3fefee50bd83::t_666276fa74189b 7
+  s_fe3fefee50bd83::t_5d3b7798fae7c2 53-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e487dc366987c4c757d76c678c3786a07c9aafd",
+  "prompts": {},
+  "sessions": {
+    "s_039d1a197d09cb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
