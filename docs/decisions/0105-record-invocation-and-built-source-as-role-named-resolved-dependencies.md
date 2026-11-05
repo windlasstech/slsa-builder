@@ -13,6 +13,15 @@ relations:
     target: ADR-0103
   - type: see-also
     target: ADR-0104
+  - type: partially-superseded-by
+    target: ADR-0106
+    scope:
+      "the coexistence equality invariants that reference the externalParameters.source members
+      removed there (built-source URI/digest equalities with source.repository/ref/revision and the
+      conditional source.invocation_* rows); the invocation-source descriptor shape, descriptor
+      cardinality, serialization order, and invocation-side invariants remain in force, while the
+      built-source descriptor's closed shape is extended there with a required annotations.ref_type
+      member"
 ---
 
 # Record Invocation and Built Source as Role-Named Resolved Dependencies

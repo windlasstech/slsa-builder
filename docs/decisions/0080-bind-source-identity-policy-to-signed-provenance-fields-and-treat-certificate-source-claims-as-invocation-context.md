@@ -25,6 +25,16 @@ relations:
       Invocation URI binding remain in force"
   - type: see-also
     target: ADR-0105
+  - type: partially-superseded-by
+    target: ADR-0106
+    scope:
+      "the signed field locations of the built-source policy binding
+      (externalParameters.source.repository/ref/revision) and the certificate-to-invocation-record
+      comparison fields (source.invocation_ref/invocation_revision and the
+      source.ref/source.revision fallback); the binding meanings are preserved, with repository
+      authorization re-pointed to externalParameters.workflow.repository, release ref/commit
+      expectations to the built-source descriptor, and certificate invocation comparisons to
+      workflow.ref and the invocation-source descriptor"
 ---
 
 # Bind Source Identity Policy to Signed Provenance Fields and Treat Certificate Source Claims as Invocation Context
