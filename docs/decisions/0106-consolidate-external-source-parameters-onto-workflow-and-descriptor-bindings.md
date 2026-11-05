@@ -30,6 +30,8 @@ relations:
       cardinality, serialization order, and invocation-side invariants remain in force, while the
       built-source descriptor's closed shape is extended here with a required annotations.ref_type
       member"
+  - type: see-also
+    target: ADR-0107
 ---
 
 # Consolidate External Source Parameters onto Workflow and Descriptor Bindings

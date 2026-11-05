@@ -26,6 +26,8 @@ relations:
     target: ADR-0105
   - type: see-also
     target: ADR-0106
+  - type: see-also
+    target: ADR-0107
 ---
 
 # Define External Workflow Parameters as Common Invocation Identity
