@@ -22,6 +22,8 @@ relations:
       Invocation URI binding remain in force"
   - type: see-also
     target: ADR-0104
+  - type: see-also
+    target: ADR-0105
 ---
 
 # Define External Workflow Parameters as Common Invocation Identity

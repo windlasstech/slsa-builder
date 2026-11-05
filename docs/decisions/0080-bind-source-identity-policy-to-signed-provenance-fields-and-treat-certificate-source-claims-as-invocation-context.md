@@ -23,6 +23,8 @@ relations:
       compatibility with pre-change bundles is not guaranteed; the built-source policy binding,
       certificate source claims as invocation-context evidence, repository identity binding, and Run
       Invocation URI binding remain in force"
+  - type: see-also
+    target: ADR-0105
 ---
 
 # Bind Source Identity Policy to Signed Provenance Fields and Treat Certificate Source Claims as Invocation Context

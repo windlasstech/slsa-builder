@@ -19,6 +19,8 @@ relations:
     target: ADR-0080
   - type: see-also
     target: ADR-0103
+  - type: see-also
+    target: ADR-0105
 ---
 
 # Support a Tags-Only Caller-Specified Build Source Ref for Release Retries Across Profiles
