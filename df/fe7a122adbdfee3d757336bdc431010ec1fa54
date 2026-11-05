@@ -1,0 +1,28 @@
+docs/decisions/0104-remove-redundant-external-parameter-builder-record.md
+  s_fe3fefee50bd83::t_a87c15524ca67c 18-19
+docs/decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md
+  s_fe3fefee50bd83::t_a87c15524ca67c 27-28
+docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md
+  s_fe3fefee50bd83::t_a87c15524ca67c 24-25
+docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md
+  s_fe3fefee50bd83::t_a87c15524ca67c 28-37
+docs/decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md
+  s_fe3fefee50bd83::t_d73b6e2595c2ba 21-24
+  s_fe3fefee50bd83::t_a87c15524ca67c 16-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dffe7a122adbdfee3d757336bdc431010ec1fa54",
+  "prompts": {},
+  "sessions": {
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
