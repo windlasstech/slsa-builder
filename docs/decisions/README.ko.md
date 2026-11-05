@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0106`까지입니다.
+`0107`까지입니다.
 
 | 범위      | 주제                                       | 설명                                                                                                                                                               |
 | --------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -87,6 +87,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0104      | 빌더 레코드 표현                           | 중복된 external-parameter builder 삼중 필드를 제거하고 canonical builder identity, 인증된 signer identity, 신뢰 정책 검증은 유지.                                  |
 | 0105      | 소스 dependency 역할                       | 역할명이 붙은 `invocation-source`와 `built-source` descriptor를 `gitCommit` digest와 함께 상시 필수로 기록. npm은 index-0 직렬화, 검증은 무순서 name-keyed.        |
 | 0106      | 외부 소스 파라미터 정리                    | 파생 소스 필드를 제거하고 caller 선택자인 optional `source.ref`는 존치. 검증은 workflow 필드와 descriptor로 재지정. `ref_type`은 built-source annotation으로 이동. |
+| 0107      | 호출 이벤트 메타데이터                     | `event_name`은 `internalParameters.github`에만 기록. `source` 그룹은 명시적 선택자가 있을 때만 방출.                                                               |
 
 ## ADR status와 relations
 
@@ -252,6 +253,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0104 | Remove redundant external-parameter builder record                                                                | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                             |
 | 0105 | Record invocation and built source as role-named resolved dependencies                                            | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                       |
 | 0106 | Consolidate external source parameters onto workflow and descriptor bindings                                      | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                       |
+| 0107 | Record invocation event metadata in internalParameters.github only                                                | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                       |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0106`.
+sequence currently runs from `0000` through `0107`.
 
 | Range     | Topic                                                      | Notes                                                                                                                                                                                    |
 | --------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -88,6 +88,7 @@ sequence currently runs from `0000` through `0106`.
 | 0104      | Builder record representation                              | Removes the redundant external-parameter builder triplet while retaining canonical builder identity, authenticated signer identity, and trusted-policy verification.                     |
 | 0105      | Source dependency roles                                    | Mandatory role-named `invocation-source` and `built-source` descriptors with `gitCommit` digests; npm index-0 serialization, unordered name-keyed verification.                          |
 | 0106      | External source consolidation                              | Derived source fields removed; optional caller-selector `source.ref` retained; verification re-pointed to workflow fields and descriptors; `ref_type` becomes a built-source annotation. |
+| 0107      | Invocation event metadata                                  | `event_name` recorded only in `internalParameters.github`; the `source` group is emitted only when an explicit selector is present.                                                      |
 
 ## ADR status and relations
 
@@ -255,6 +256,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0104 | Remove redundant external-parameter builder record                                                                | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                                          |
 | 0105 | Record invocation and built source as role-named resolved dependencies                                            | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                    |
 | 0106 | Consolidate external source parameters onto workflow and descriptor bindings                                      | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                    |
+| 0107 | Record invocation event metadata in internalParameters.github only                                                | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                    |
 
 ### Superseded or deprecated ADRs (historical only)
 
