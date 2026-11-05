@@ -1,0 +1,25 @@
+docs/decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md
+  s_fe3fefee50bd83::t_bc1aeab1bc57f5 33-34
+docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md
+  s_fe3fefee50bd83::t_bc1aeab1bc57f5 26-27
+docs/decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md
+  s_fe3fefee50bd83::t_bc1aeab1bc57f5 29-30
+docs/decisions/0026-document-supported-release-caller-patterns-and-runtime-guards.md
+  s_fe3fefee50bd83::t_bc1aeab1bc57f5 20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b524352090b2e9183cddc2f709a9591b1adca305",
+  "prompts": {},
+  "sessions": {
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
