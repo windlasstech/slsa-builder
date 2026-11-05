@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0104`.
+`0105`.
 
 ## STRUCTURE
 
@@ -36,11 +36,12 @@ docs/decisions/
 ├── 0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md
 ├── 0103-define-external-workflow-parameters-as-common-invocation-identity.md
 ├── 0104-remove-redundant-external-parameter-builder-record.md
+├── 0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0104`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0105`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -95,6 +96,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | npm E422 rejection classification | `0102`                                                     | E422 rejections read back under a reduced budget and fail determinately when no publication appears within it; the full budget is retained when the version is present.     |
 | Invocation identity fields        | `0103`                                                     | Common external workflow identity for producer profiles; ADR 0080 byte compatibility is partially superseded.                                                               |
 | Builder record representation     | `0104`                                                     | Removes the redundant external-parameter builder triplet while retaining canonical `runDetails.builder.id`, authenticated signer identity, and trusted-policy verification. |
+| Source dependency roles           | `0105`                                                     | Mandatory role-named `invocation-source` and `built-source` descriptors with `gitCommit` digests; npm index-0 serialization, unordered name-keyed verification.             |
 
 ## CONVENTIONS
 

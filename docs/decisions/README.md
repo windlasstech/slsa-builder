@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0104`.
+sequence currently runs from `0000` through `0105`.
 
 | Range     | Topic                                                      | Notes                                                                                                                                                                   |
 | --------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -86,6 +86,7 @@ sequence currently runs from `0000` through `0104`.
 | 0102      | npm E422 publish rejection classification                  | E422 rejections read back under a reduced budget and fail determinately when no publication appears within it; the full budget is retained when the version is present. |
 | 0103      | Common invocation identity fields                          | Common external workflow identity for every producer profile; ADR 0080 byte compatibility is partially superseded.                                                      |
 | 0104      | Builder record representation                              | Removes the redundant external-parameter builder triplet while retaining canonical builder identity, authenticated signer identity, and trusted-policy verification.    |
+| 0105      | Source dependency roles                                    | Mandatory role-named `invocation-source` and `built-source` descriptors with `gitCommit` digests; npm index-0 serialization, unordered name-keyed verification.         |
 
 ## ADR status and relations
 
@@ -251,6 +252,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0102 | Classify npm publish E422 rejections as determinate pre-commit failures under a reduced read-back budget          | JS/TS npm provenance and publish, verification policy and fixtures                                                                                                                               |
 | 0103 | Define external workflow parameters as common invocation identity                                                 | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                                          |
 | 0104 | Remove redundant external-parameter builder record                                                                | Core profile contract, SLSA provenance v1, identity and build types, JS/TS npm provenance and publish, verification policy and fixtures                                                          |
+| 0105 | Record invocation and built source as role-named resolved dependencies                                            | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                    |
 
 ### Superseded or deprecated ADRs (historical only)
 
