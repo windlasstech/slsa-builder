@@ -1,0 +1,28 @@
+docs/decisions/README.ko.md
+  s_fe3fefee50bd83::t_4927929aa83c85 31
+  s_fe3fefee50bd83::t_d426d30c5fb0c4 90,256
+docs/decisions/AGENTS.md
+  s_fe3fefee50bd83::t_b285ed46ea8d18 7
+  s_fe3fefee50bd83::t_d426d30c5fb0c4 103
+  s_fe3fefee50bd83::t_c93d99a9551eb0 46
+  s_fe3fefee50bd83::t_efcc56fdccc216 41
+docs/decisions/README.md
+  s_fe3fefee50bd83::t_65dcfba8712bf9 32
+  s_fe3fefee50bd83::t_d426d30c5fb0c4 91,259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "af062be85317d90b095865cb42828ca6a4a2eeef",
+  "prompts": {},
+  "sessions": {
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
