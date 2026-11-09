@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0107`.
+sequence currently runs from `0000` through `0109`.
 
 | Range     | Topic                                                      | Notes                                                                                                                                                                                    |
 | --------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -89,6 +89,8 @@ sequence currently runs from `0000` through `0107`.
 | 0105      | Source dependency roles                                    | Mandatory role-named `invocation-source` and `built-source` descriptors with `gitCommit` digests; npm index-0 serialization, unordered name-keyed verification.                          |
 | 0106      | External source consolidation                              | Derived source fields removed; optional caller-selector `source.ref` retained; verification re-pointed to workflow fields and descriptors; `ref_type` becomes a built-source annotation. |
 | 0107      | Invocation event metadata                                  | `event_name` recorded only in `internalParameters.github`; the `source` group is emitted only when an explicit selector is present.                                                      |
+| 0108      | Redundant npm release-asset inputs                         | Public `release-tag` and `provenance-sidecar` removed; built-tag derivation and mandatory sidecar distribution.                                                                          |
+| 0109      | External-parameter minimization                            | Actual interface inputs, package-manifest dependency, re-homed observations, and recompute rules.                                                                                        |
 
 ## ADR status and relations
 
@@ -257,6 +259,8 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0105 | Record invocation and built source as role-named resolved dependencies                                            | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                    |
 | 0106 | Consolidate external source parameters onto workflow and descriptor bindings                                      | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                    |
 | 0107 | Record invocation event metadata in internalParameters.github only                                                | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                    |
+| 0108 | Remove redundant npm release-asset inputs                                                                         | JS/TS npm package profile, JS/TS npm provenance and publish, npm-to-release-asset composition, GitHub Release asset publisher, verification policy and fixtures                                  |
+| 0109 | Minimize external parameters to actual interface inputs                                                           | Core profile contract, SLSA provenance v1, JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                               |
 
 ### Superseded or deprecated ADRs (historical only)
 

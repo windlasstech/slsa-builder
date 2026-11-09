@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0107`.
+`0109`.
 
 ## STRUCTURE
 
@@ -39,11 +39,13 @@ docs/decisions/
 ├── 0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md
 ├── 0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md
 ├── 0107-record-invocation-event-metadata-in-internalparameters-github.md
+├── 0108-remove-redundant-npm-release-asset-inputs.md
+├── 0109-minimize-external-parameters-to-actual-interface-inputs.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0107`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0109`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -101,6 +103,8 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | Source dependency roles           | `0105`                                                     | Mandatory role-named `invocation-source` and `built-source` descriptors with `gitCommit` digests; npm index-0 serialization, unordered name-keyed verification.                          |
 | External source consolidation     | `0106`                                                     | Derived source fields removed; optional caller-selector `source.ref` retained; verification re-pointed to workflow fields and descriptors; `ref_type` becomes a built-source annotation. |
 | Invocation event metadata         | `0107`                                                     | `event_name` recorded only in `internalParameters.github`; the `source` group is emitted only when an explicit selector is present.                                                      |
+| Redundant npm release inputs      | `0108`                                                     | Public `release-tag` and `provenance-sidecar` removed; the release target derives from the effective built tag and mandatory sidecar distribution remains.                               |
+| External parameter minimization   | `0109`                                                     | Actual interface inputs only; a package-manifest descriptor is added, observations are re-homed, and derived values are recomputed.                                                      |
 
 ## CONVENTIONS
 
