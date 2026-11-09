@@ -1,0 +1,111 @@
+docs/decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md
+  s_fe3fefee50bd83::t_41af10c42f6e0a 39
+  s_fe3fefee50bd83::t_07872ae416258b 38,40
+  s_fe3fefee50bd83::t_d943bf4efc7cd6 41-42
+docs/decisions/0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md
+  s_fe3fefee50bd83::t_591c65b2d7d56b 29-30
+docs/decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md
+  s_fe3fefee50bd83::t_07872ae416258b 25,27-29
+  s_fe3fefee50bd83::t_6d1f3fbe2c17f1 26
+docs/decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
+  s_fe3fefee50bd83::t_a0a9be3af0ed93 32-33
+docs/decisions/0023-use-package-directory-as-required-js-ts-npm-package-selector.md
+  s_fe3fefee50bd83::t_fea461a0cebc7b 7-9
+docs/decisions/0050-define-producer-to-publisher-handoff-contract.md
+  s_fe3fefee50bd83::t_d094986b419b02 11-12
+docs/decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md
+  s_fe3fefee50bd83::t_472243752c23df 14,16-19
+  s_fe3fefee50bd83::t_f7bcad83be9e42 15
+docs/decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md
+  s_fe3fefee50bd83::t_052704d1ad82dd 34
+  s_fe3fefee50bd83::t_07872ae416258b 33,35-37
+docs/decisions/0030-accept-registry-url-while-guaranteeing-only-npmjs-semantics.md
+  s_fe3fefee50bd83::t_f7b5736ce3854e 7-11
+docs/decisions/0057-provide-composed-public-npm-release-asset-workflow.md
+  s_fe3fefee50bd83::t_1b171fc8f21eed 23-27
+  s_a4eb4092f54fb3::t_c56106f857867b 21
+  s_fe3fefee50bd83::t_57a4827dc2e000 22
+docs/decisions/0068-bind-verification-to-immutable-builder-and-source-identities.md
+  s_fe3fefee50bd83::t_70571b275dc61b 36-37
+docs/decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md
+  s_fe3fefee50bd83::t_a32844546413b5 41-42
+  s_fe3fefee50bd83::t_07872ae416258b 35,37-40
+  s_fe3fefee50bd83::t_46caa80db08876 36
+docs/decisions/0059-define-public-npm-release-composed-workflow-interface.md
+  s_a4eb4092f54fb3::t_c56106f857867b 13
+  s_fe3fefee50bd83::t_40c88cde86e43e 14
+  s_fe3fefee50bd83::t_1b171fc8f21eed 15-20
+docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md
+  s_fe3fefee50bd83::t_26eb7a69d6d7f8 25
+  s_fe3fefee50bd83::t_17f58e6b7fc5c0 28
+  s_fe3fefee50bd83::t_07872ae416258b 24,26-27
+docs/decisions/0076-use-observation-preflights-and-first-mutation-classification.md
+  s_fe3fefee50bd83::t_6d993aeb4bd437 43-44
+docs/decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md
+  s_fe3fefee50bd83::t_29397bcb9c9cdd 17-18
+docs/decisions/0048-make-linked-artifacts-storage-records-explicit-opt-in-for-release-assets.md
+  s_fe3fefee50bd83::t_9f323952d2fade 7-9
+docs/decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md
+  s_fe3fefee50bd83::t_d938b71e31a13a 32
+  s_fe3fefee50bd83::t_1b4de8e4dfa725 36-37
+  s_fe3fefee50bd83::t_07872ae416258b 31,33-35
+docs/decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md
+  s_fe3fefee50bd83::t_27fecb157c49a8 17
+  s_fe3fefee50bd83::t_07872ae416258b 16
+docs/decisions/0051-distribute-producer-provenance-with-release-assets.md
+  s_fe3fefee50bd83::t_f957e4e811c98e 12-13
+docs/decisions/0033-run-build-script-only-when-declared.md
+  s_fe3fefee50bd83::t_07872ae416258b 8
+  s_fe3fefee50bd83::t_0602038fdea08b 9
+  s_fe3fefee50bd83::t_e9451508cf8793 7
+docs/decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md
+  s_fe3fefee50bd83::t_313b9ec68f3e42 26
+  s_fe3fefee50bd83::t_07872ae416258b 25,27-31
+docs/decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md
+  s_fe3fefee50bd83::t_172d28922e405b 52
+  s_fe3fefee50bd83::t_07872ae416258b 51,53-55
+docs/decisions/0104-remove-redundant-external-parameter-builder-record.md
+  s_fe3fefee50bd83::t_ae85fb8320a3aa 20-21
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_fe3fefee50bd83::t_08e6acfb7c1429 74
+  s_fe3fefee50bd83::t_7f9af0da0b6c17 77-80
+  s_fe3fefee50bd83::t_07872ae416258b 73,75-76
+docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md
+  s_fe3fefee50bd83::t_66f0944c007368 29
+  s_fe3fefee50bd83::t_07872ae416258b 28
+docs/decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md
+  s_fe3fefee50bd83::t_07872ae416258b 48,50-52
+  s_fe3fefee50bd83::t_2ec58b6a94aeea 49
+docs/decisions/0029-use-windlass-generated-slsa-provenance-for-npm-publish.md
+  s_fe3fefee50bd83::t_1ef83e1bb47ad6 31-32
+docs/decisions/0058-define-github-release-asset-publisher-authority-boundary.md
+  s_fe3fefee50bd83::t_1a19d25e336123 23-24
+docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md
+  s_fe3fefee50bd83::t_5da703f320c037 26-27
+docs/decisions/0060-unify-npm-profile-public-entrypoint-with-release-asset-mode.md
+  s_fe3fefee50bd83::t_8a619c9365c2cd 22-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53254aeac24fa030e66f3be192b52979ed0c8f04",
+  "prompts": {},
+  "sessions": {
+    "s_a4eb4092f54fb3": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e48a56704ffeRTMeZlr6VIPD4z",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
