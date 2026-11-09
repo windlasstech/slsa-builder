@@ -22,6 +22,13 @@ relations:
       cardinality, serialization order, and invocation-side invariants remain in force, while the
       built-source descriptor's closed shape is extended there with a required annotations.ref_type
       member"
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the closed resolvedDependencies set membership and cardinalities, extended by the
+      package-manifest descriptor, and the preservation of existing descriptor shapes where the
+      runner-image descriptor changes as scoped in ADR 0100's relation; the source descriptors,
+      index-0 serialization, and name-keyed verification remain in force"
 ---
 
 # Record Invocation and Built Source as Role-Named Resolved Dependencies

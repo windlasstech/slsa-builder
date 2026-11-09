@@ -22,6 +22,11 @@ relations:
     target: ADR-0070
   - type: see-also
     target: ADR-0088
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the builder.version closed key set, which now admits npm for the bundled npm record, and the
+      reference to externalParameters.package_manager version recording"
 ---
 
 # Activate builder.version and builderDependencies for Build Platform Components

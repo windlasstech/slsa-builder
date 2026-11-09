@@ -10,6 +10,14 @@ relations:
     scope: "the release-asset mode public workflow_call interface is a minimal user-intent surface"
   - type: see-also
     target: ADR-0060
+  - type: partially-superseded-by
+    target: ADR-0108
+    scope:
+      "the public workflow_call categories for independent release selection and optional provenance
+      sidecar publication, including their repetitions in sidecar-output conditionality,
+      Confirmation, and Pros and Cons; the release target is derived from the effective built tag,
+      sidecar publication remains mandatory in release-asset mode, and sidecar locators and all
+      other public interface decisions remain in force"
 ---
 
 # Define the Public npm Release-Asset Mode Interface

@@ -70,6 +70,14 @@ relations:
       deployment evidence. The recording obligation, the runner-image descriptor's presence in the
       closed descriptor set, the no-distribution-digest rationale, and the source-native
       digest-authority discipline remain in force"
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the retention of the actual package-manager version recording in
+      externalParameters.package_manager and the runner-image descriptor's node_version annotation;
+      the manager version continues in the package-manager-distribution descriptor's annotations,
+      the bundled npm version moves to builder.version.npm, and the Node.js version is single-homed
+      in builder.version.nodejs"
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies

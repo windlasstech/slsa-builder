@@ -11,6 +11,12 @@ relations:
   - type: amends
     target: ADR-0052
     scope: "the npm producer subject name is the npm Package URL, not the release asset name"
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the requirement to represent the tarball filename in profile-defined provenance fields; the
+      npm PURL subject, SHA-512 and SHA-256 subject digests, actual-tarball and Release-asset
+      verification, and the producer-to-publisher handoff filename binding remain in force"
 ---
 
 # Use npm PURL Subject with SHA-512 and SHA-256 Digests

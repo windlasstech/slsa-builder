@@ -32,6 +32,14 @@ relations:
       member"
   - type: see-also
     target: ADR-0107
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the package.repository identity-chain operand and the retention of
+      externalParameters.release.*; repository identity binds to the normalized manifest repository
+      and workflow.repository, and release identity to the built-source descriptor"
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Consolidate External Source Parameters onto Workflow and Descriptor Bindings

@@ -40,6 +40,8 @@ relations:
       failure when no publication appears within that budget and at least one clean absence is
       observed; the 401/403 and E404/ENEEDAUTH mappings and the full-budget read-back doctrine for
       all other outcomes remain in force"
+  - type: see-also
+    target: ADR-0109
 ---
 
 # Use Observation Preflights and First-Mutation Classification

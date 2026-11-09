@@ -4,6 +4,9 @@ nav_order: 33
 status: accepted
 date: 12026-07-05
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0109
 ---
 
 # Run Build Script Only When Declared

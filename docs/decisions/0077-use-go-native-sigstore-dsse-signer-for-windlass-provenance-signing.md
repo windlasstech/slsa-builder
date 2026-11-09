@@ -14,6 +14,8 @@ relations:
     scope:
       "the signing-adapter descriptor for every producer profile identifies the governed sigstore-go
       module instead of actions/attest; field classification and closed-set policy remain"
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Use a Go-Native Sigstore DSSE Signer for Windlass Provenance Signing

@@ -33,6 +33,8 @@ relations:
       runner trust bindings remain in force"
   - type: see-also
     target: ADR-0104
+  - type: see-also
+    target: ADR-0109
 ---
 
 # Bind Verification to Immutable Builder and Source Identities

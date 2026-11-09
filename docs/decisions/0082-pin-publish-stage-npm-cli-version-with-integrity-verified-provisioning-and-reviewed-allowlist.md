@@ -48,6 +48,11 @@ relations:
     target: ADR-0085
   - type: see-also
     target: ADR-0098
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the externalParameters.runtime.npm_version recording location; the bundled npm version moves
+      to builder.version.npm"
 ---
 
 # Pin the Publish-Stage npm CLI Version with Integrity-Verified Provisioning and a Reviewed Allowlist

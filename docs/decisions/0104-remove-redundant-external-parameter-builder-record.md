@@ -17,6 +17,8 @@ relations:
     target: ADR-0105
   - type: see-also
     target: ADR-0106
+  - type: see-also
+    target: ADR-0109
 ---
 
 # Remove Redundant External-Parameter Builder Record

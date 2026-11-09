@@ -13,6 +13,8 @@ relations:
     target: ADR-0103
   - type: see-also
     target: ADR-0106
+  - type: see-also
+    target: ADR-0109
 ---
 
 # Record Invocation Event Metadata in internalParameters.github Only

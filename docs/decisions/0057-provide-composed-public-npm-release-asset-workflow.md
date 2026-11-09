@@ -18,6 +18,13 @@ relations:
     scope:
       "the release-asset mode lives on the single public npm entrypoint; no second public npm
       workflow entrypoint"
+  - type: partially-superseded-by
+    target: ADR-0108
+    scope:
+      "the Decision Outcome's shaping of the public release-asset mode surface around a
+      caller-facing release tag input; the release target is derived from the effective built tag,
+      while the single public entrypoint, internal handoff, standalone publisher release-tag
+      contract, release validation, and sidecar distribution decisions remain in force"
 ---
 
 # Provide a Public npm Release-Asset Mode

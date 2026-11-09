@@ -28,6 +28,13 @@ relations:
     target: ADR-0106
   - type: see-also
     target: ADR-0107
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the sentence retaining externalParameters.release.* as built-release policy surface; the
+      workflow group and the internalParameters.github placement are unchanged"
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Define External Workflow Parameters as Common Invocation Identity

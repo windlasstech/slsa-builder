@@ -35,6 +35,11 @@ relations:
       authorization re-pointed to externalParameters.workflow.repository, release ref/commit
       expectations to the built-source descriptor, and certificate invocation comparisons to
       workflow.ref and the invocation-source descriptor"
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the externalParameters.release.* portion of the built-release policy binding surface; release
+      expectations now bind to the effective built ref derivation and the built-source descriptor"
 ---
 
 # Bind Source Identity Policy to Signed Provenance Fields and Treat Certificate Source Claims as Invocation Context

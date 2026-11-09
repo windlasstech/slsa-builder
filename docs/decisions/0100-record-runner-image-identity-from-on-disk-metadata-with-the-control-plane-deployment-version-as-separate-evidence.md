@@ -21,6 +21,11 @@ relations:
     target: ADR-0098
   - type: see-also
     target: ADR-0099
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the runner-image descriptor's closed shape: annotations.node_version is removed in favor of
+      the single builder.version.nodejs record, and annotations.runner_label is added"
 ---
 
 # Record Runner Image Identity from On-Disk Metadata with the Control-Plane Deployment Version as Separate Evidence

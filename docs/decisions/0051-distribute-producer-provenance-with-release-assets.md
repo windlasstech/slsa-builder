@@ -9,6 +9,8 @@ relations:
     target: ADR-0047
   - type: see-also
     target: ADR-0072
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Distribute Producer Provenance with GitHub Release Assets
