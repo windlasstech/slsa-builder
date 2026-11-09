@@ -1,0 +1,75 @@
+docs/decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md
+  s_fe3fefee50bd83::t_3026a548053443 388-390,394-399,404-407,414-416,420,423-433,439-449,451-456,460-478
+  s_fe3fefee50bd83::t_42c65f55d3d7c4 49
+  s_fe3fefee50bd83::t_b5c13bc581fcdb 72-77,79,84-91
+  s_fe3fefee50bd83::t_fc59a4625f8582 215-220,222-228
+  s_fe3fefee50bd83::t_d90d72b0bb81f9 3,5
+  s_fe3fefee50bd83::t_298c91efc4ec2a 391-393,417-419,421-422,434-435
+  s_fe3fefee50bd83::t_6d827c2a21bd6e 4
+  s_fe3fefee50bd83::t_3b03c52d94f91e 408
+  s_fe3fefee50bd83::t_d8c8e657be68fb 270
+  s_fe3fefee50bd83::t_dbeff5706cf670 376-378
+  s_fe3fefee50bd83::t_993bc27765b953 156
+  s_fe3fefee50bd83::t_d68b5a36da7777 111-118,296-300,379-380
+  s_fe3fefee50bd83::t_d1ea716f224502 99-107
+  s_fe3fefee50bd83::t_fde079c3a81bd6 154-155,241
+  s_fe3fefee50bd83::t_09c5666fb97304 1-2,6-48,50-69,92-98,108-110,119-153,157-214,221,229-240,243-269,275-295,301-356,358-370,375,381-387,411-413,436-438,450,457-459,479-525
+  s_fe3fefee50bd83::t_a351cf86865c8a 271-274,409-410
+  s_fe3fefee50bd83::t_005ccb24b176eb 371-374
+  s_fe3fefee50bd83::t_cd8925f9af42f1 78,80-83
+  s_fe3fefee50bd83::t_79a9f34692faff 357
+  s_fe3fefee50bd83::t_440a4afd1719f5 400-403
+  s_fe3fefee50bd83::t_ace051c7ed5691 70-71
+  s_039d1a197d09cb::t_b4a406114ebb34 242
+docs/decisions/0108-remove-redundant-npm-release-asset-inputs.md
+  s_fe3fefee50bd83::t_5c08c9d1772b83 23,46
+  s_fe3fefee50bd83::t_7d9f9b4f2f4471 138-140
+  s_fe3fefee50bd83::t_b0b6a32694b01b 111-113
+  s_fe3fefee50bd83::t_6d430b27df9e84 228-232
+  s_fe3fefee50bd83::t_59bbab66b64b8a 137
+  s_fe3fefee50bd83::t_a7aeee6cf5ea36 325-341
+  s_fe3fefee50bd83::t_3b9bb2b13168f7 4
+  s_fe3fefee50bd83::t_886827de04d87c 114-120
+  s_fe3fefee50bd83::t_74d7d1ac92f8ba 169
+  s_fe3fefee50bd83::t_0e250777e8a9de 391
+  s_fe3fefee50bd83::t_79b447d76c6cb9 134-136
+  s_fe3fefee50bd83::t_c886e9e203e215 3,5
+  s_fe3fefee50bd83::t_6ab276a188f35c 24-45
+  s_fe3fefee50bd83::t_9c36b8e8fed988 104-109
+  s_fe3fefee50bd83::t_84b5261aef4ada 250-255
+  s_fe3fefee50bd83::t_e2c88d3304309b 1-2
+  s_fe3fefee50bd83::t_140c5dc79fce1b 6-8,20-22
+  s_fe3fefee50bd83::t_316be0fd6dd910 47-49,101-103
+  s_fe3fefee50bd83::t_adafcb51159124 110
+  s_fe3fefee50bd83::t_702f311d7eae9d 121-123,131-133
+  s_fe3fefee50bd83::t_47d216fcad4273 141-143,166-168
+  s_fe3fefee50bd83::t_c9cd5507cf1306 170-172,225-227
+  s_fe3fefee50bd83::t_d51627156eaf54 233-235,247-249
+  s_fe3fefee50bd83::t_a34a081cc3c8f3 256-258,322-324
+  s_fe3fefee50bd83::t_7acee6e291eb9b 342-344,388-390
+  s_fe3fefee50bd83::t_f02075b6d9f473 9-19,50-100,124-130,144-165,173-224,236-246,259-321,345-387
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38151c15802f6dec1f786331dce08322336b2260",
+  "prompts": {},
+  "sessions": {
+    "s_039d1a197d09cb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
