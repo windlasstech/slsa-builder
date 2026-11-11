@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0109`까지입니다.
+`0112`까지입니다.
 
 | 범위      | 주제                                       | 설명                                                                                                                                                               |
 | --------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -90,6 +90,9 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0107      | 호출 이벤트 메타데이터                     | `event_name`은 `internalParameters.github`에만 기록. `source` 그룹은 명시적 선택자가 있을 때만 방출.                                                               |
 | 0108      | 중복 npm release-asset 입력 제거           | 공개 `release-tag`와 `provenance-sidecar` 입력 제거. built tag 파생과 mandatory sidecar 배포는 유지.                                                               |
 | 0109      | 외부 파라미터 최소화                       | 실제 interface 입력만 유지하고 package-manifest dependency, 관측값 재배치, recompute 규칙을 정의.                                                                  |
+| 0110      | Non-runner dependency 미디어 타입          | 구체적 artifact에 deterministic `mediaType`을 부여. source descriptor는 타입을 기록하지 않고 `downloadLocation`도 추가하지 않음.                                   |
+| 0111      | Runner-image reported identity             | Included Software URI와 정확한 full `image_version`을 기록. 오프라인 projection을 사용하고 public availability, digest, content, media type은 요구하지 않음.       |
+| 0112      | Runner-image 운영체제                      | 디코딩된 `Operating System.detail`을 `operating_system`에 그대로 기록. `$ImageOS`는 진단 전용이며 raw metadata는 보존하지 않음.                                    |
 
 ## ADR status와 relations
 
@@ -258,6 +261,9 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0107 | Record invocation event metadata in internalParameters.github only                                                | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                       |
 | 0108 | Remove redundant npm release-asset inputs                                                                         | JS/TS npm package profile, JS/TS npm provenance and publish, npm-to-release-asset composition, GitHub Release asset publisher, verification policy and fixtures                     |
 | 0109 | Minimize external parameters to actual interface inputs                                                           | Core profile contract, SLSA provenance v1, JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                  |
+| 0110 | Record deterministic media types for non-runner dependencies                                                      | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                    |
+| 0111 | Record runner-image reported identity with the Included Software URI and full image version                       | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                    |
+| 0112 | Record runner-image operating system from on-disk metadata                                                        | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                    |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

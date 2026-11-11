@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0109`.
+`0112`.
 
 ## STRUCTURE
 
@@ -41,11 +41,14 @@ docs/decisions/
 ├── 0107-record-invocation-event-metadata-in-internalparameters-github.md
 ├── 0108-remove-redundant-npm-release-asset-inputs.md
 ├── 0109-minimize-external-parameters-to-actual-interface-inputs.md
+├── 0110-record-deterministic-media-types-for-non-runner-dependencies.md
+├── 0111-record-runner-image-reported-identity-with-included-software-uri-and-full-image-version.md
+├── 0112-record-runner-image-operating-system-from-on-disk-metadata.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0109`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0112`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -105,6 +108,9 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | Invocation event metadata         | `0107`                                                     | `event_name` recorded only in `internalParameters.github`; the `source` group is emitted only when an explicit selector is present.                                                      |
 | Redundant npm release inputs      | `0108`                                                     | Public `release-tag` and `provenance-sidecar` removed; the release target derives from the effective built tag and mandatory sidecar distribution remains.                               |
 | External parameter minimization   | `0109`                                                     | Actual interface inputs only; a package-manifest descriptor is added, observations are re-homed, and derived values are recomputed.                                                      |
+| Non-runner dependency media types | `0110`                                                     | Deterministic `mediaType` values for concrete artifacts; source descriptors remain untyped and `downloadLocation` stays absent.                                                          |
+| Runner-image reported identity    | `0111`                                                     | Included Software URI and exact full `image_version`; offline projection without public-availability gating, digest, content, or media typing.                                           |
+| Runner-image operating system     | `0112`                                                     | Exact decoded `Operating System.detail` recorded as `operating_system`; `$ImageOS` is diagnostic-only and raw metadata is not preserved.                                                 |
 
 ## CONVENTIONS
 

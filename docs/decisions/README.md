@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0109`.
+sequence currently runs from `0000` through `0112`.
 
 | Range     | Topic                                                      | Notes                                                                                                                                                                                    |
 | --------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -91,6 +91,9 @@ sequence currently runs from `0000` through `0109`.
 | 0107      | Invocation event metadata                                  | `event_name` recorded only in `internalParameters.github`; the `source` group is emitted only when an explicit selector is present.                                                      |
 | 0108      | Redundant npm release-asset inputs                         | Public `release-tag` and `provenance-sidecar` removed; built-tag derivation and mandatory sidecar distribution.                                                                          |
 | 0109      | External-parameter minimization                            | Actual interface inputs, package-manifest dependency, re-homed observations, and recompute rules.                                                                                        |
+| 0110      | Non-runner dependency media types                          | Deterministic `mediaType` values for concrete artifacts; source descriptors remain untyped and `downloadLocation` stays absent.                                                          |
+| 0111      | Runner-image reported identity                             | Included Software URI and exact full `image_version`; offline projection without public-availability gating, digest, content, or media typing.                                           |
+| 0112      | Runner-image operating system                              | Exact decoded `Operating System.detail` recorded as `operating_system`; `$ImageOS` is diagnostic-only and raw metadata is not preserved.                                                 |
 
 ## ADR status and relations
 
@@ -261,6 +264,9 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0107 | Record invocation event metadata in internalParameters.github only                                                | Core profile contract, SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                    |
 | 0108 | Remove redundant npm release-asset inputs                                                                         | JS/TS npm package profile, JS/TS npm provenance and publish, npm-to-release-asset composition, GitHub Release asset publisher, verification policy and fixtures                                  |
 | 0109 | Minimize external parameters to actual interface inputs                                                           | Core profile contract, SLSA provenance v1, JS/TS npm package profile, JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy and fixtures                               |
+| 0110 | Record deterministic media types for non-runner dependencies                                                      | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                                 |
+| 0111 | Record runner-image reported identity with the Included Software URI and full image version                       | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                                 |
+| 0112 | Record runner-image operating system from on-disk metadata                                                        | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                                 |
 
 ### Superseded or deprecated ADRs (historical only)
 
