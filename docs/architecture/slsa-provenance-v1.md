@@ -1,8 +1,8 @@
 # Common SLSA Provenance v1 Contract
 
 This document defines the shared SLSA provenance v1 contract used by producer profiles.
-Profile-specific rules such as subject naming and `externalParameters` are layered on top of this
-common contract.
+Profile-specific rules such as subject naming and the remaining `externalParameters` surface are
+layered on top of this common contract.
 
 - Source ADRs: [0002](../decisions/0002-use-extensible-trusted-reusable-workflow-foundation.md),
   [0003](../decisions/0003-use-thin-core-with-profile-owned-reusable-workflows.md),
@@ -53,7 +53,8 @@ rules for `externalParameters`, `resolvedDependencies` entries, `builder.version
 `builderDependencies`. Duplicate-member rejection still applies before semantic validation.
 
 Every SLSA provenance emitted by a producer profile must be wrapped in an in-toto Statement with the
-following shape:
+following common shape. The example omits profile-owned external interface groups whose enumeration
+belongs to the profile specification:
 
 ```json
 {
@@ -71,16 +72,57 @@ following shape:
   "predicate": {
     "buildDefinition": {
       "buildType": "<canonical buildType URI>",
-      "externalParameters": {},
-      "internalParameters": {},
+      "externalParameters": {
+        "workflow": {
+          "ref": "refs/heads/main",
+          "repository": "https://github.com/example/project",
+          "path": ".github/workflows/publish.yml"
+        },
+        "source": { "ref": "refs/tags/v1.2.3" }
+      },
+      "internalParameters": {
+        "github": {
+          "event_name": "workflow_dispatch",
+          "repository_id": "123456789",
+          "repository_owner_id": "987654321"
+        }
+      },
       "resolvedDependencies": [
-        { "name": "lockfile" },
+        {
+          "name": "invocation-source",
+          "uri": "git+https://github.com/example/project@refs/heads/main",
+          "digest": { "gitCommit": "89abcdef0123456789abcdef0123456789abcdef" }
+        },
+        {
+          "name": "built-source",
+          "uri": "git+https://github.com/example/project@refs/tags/v1.2.3",
+          "digest": { "gitCommit": "0123456789abcdef0123456789abcdef01234567" },
+          "annotations": { "ref_type": "tag" }
+        },
+        {
+          "name": "package-manifest",
+          "uri": "git+https://github.com/example/project@0123456789abcdef0123456789abcdef01234567#package.json",
+          "digest": {
+            "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          },
+          "mediaType": "application/json",
+          "annotations": { "workspace_root": null }
+        },
+        {
+          "name": "lockfile",
+          "uri": "git+https://github.com/example/project@0123456789abcdef0123456789abcdef01234567#package-lock.json",
+          "digest": {
+            "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+          },
+          "mediaType": "application/json"
+        },
         {
           "name": "node-runtime",
           "uri": "https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz",
           "digest": {
             "sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"
           },
+          "mediaType": "application/gzip",
           "annotations": {
             "digest_authority": "builder-pinned-record",
             "platform": "linux-x64"
@@ -88,12 +130,12 @@ following shape:
         },
         {
           "name": "runner-image",
-          "uri": "<platform-provided Included Software URL>",
+          "uri": "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md",
           "annotations": {
-            "deployment_version": "<ImageVersion>",
-            "image_os": "<ImageOS>",
-            "image_version": "<on-disk imagedata.json Version>",
-            "node_version": "<exact node --version output>"
+            "deployment_version": "20261026.354.1",
+            "operating_system": "Ubuntu\n24.04.5\nLTS",
+            "image_version": "20261025.353.1",
+            "runner_label": "ubuntu-24.04"
           }
         }
       ]
@@ -101,7 +143,7 @@ following shape:
     "runDetails": {
       "builder": {
         "id": "<full GitHub reusable workflow URI with SHA>",
-        "version": { "nodejs": "v24.0.0" },
+        "version": { "nodejs": "v24.0.0", "npm": "11.0.0" },
         "builderDependencies": [
           {
             "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
@@ -113,12 +155,19 @@ following shape:
       "metadata": {
         "invocationId": "https://github.com/<owner>/<repo>/actions/runs/<run-id>/attempts/<attempt-number>",
         "startedOn": "<RFC 3339 UTC timestamp at whole-second precision>",
-        "finishedOn": "<RFC 3339 UTC timestamp at whole-second precision>"
+        "finishedOn": "<RFC 3339 UTC timestamp at whole-second precision>",
+        "windlass_build_script_disposition": "executed"
       }
     }
   }
 }
 ```
+
+The example depicts an ADR 0079 dispatch retry: the workflow and `invocation-source` record the
+dispatch invocation on `refs/heads/main` and its head commit, while `source.ref`, `built-source`,
+and the source-artifact descriptors (`package-manifest`, `lockfile`) record the caller-selected
+release tag and its resolved commit. On a tag-push run with no selector, `source` is omitted and the
+two source descriptors carry identical URI and digest values under their distinct names.
 
 ### `_type`
 
@@ -162,91 +211,326 @@ See the [identity and build types spec](identity-and-buildtypes.md). Must be a c
 
 ## `externalParameters`
 
-`externalParameters` must be complete and verifier-relevant. Every field that a verifier needs to
-decide whether the build is trustworthy must be present and explicit.
+`externalParameters` records the actual values passed through the build interface. Derived values,
+resolved artifact metadata, environment observations, manifest content, and behavior fixed by the
+buildType do not belong in this object. Verifier-relevant evidence remains available through the
+common invocation record, resolved dependencies, `builder.version`, signed run metadata, input
+artifacts, or a profile-specified recompute rule.
 
-Common field groups recorded by producer profiles include:
+Every producer profile must emit a required, closed `workflow` object with exactly `ref`,
+`repository`, and `path`:
 
-- `source`:
-  - `repository`: source repository URI.
-  - `ref`: the built source ref (the ref whose content was checked out, built, and attested, for
-    example `refs/tags/v1.2.3`).
-  - `revision`: the immutable commit the built ref resolved to.
-  - Conditional invocation record members (for example `input_ref`, `invocation_ref`,
-    `invocation_revision`) when the profile's caller selected a built ref through an input such as
-    ADR 0079's `source-ref` and that ref differs from the ref the run was dispatched on. Profile
-    specs define the exact member names and conditional-presence rules.
-- `workflow`:
-  - `path`: reusable workflow file path.
-  - `sha`: full commit SHA.
-  - `builder_id`: the builder identity derived from the path and SHA.
-- `inputs`: caller-provided inputs that affect the build output.
-- `runtime`:
-  - `runner`: `ubuntu-24.04`.
-- `package_manager`: name, actual version, and selection source when the profile uses a package
-  manager.
+```json
+{
+  "workflow": {
+    "ref": "refs/heads/main",
+    "repository": "https://github.com/example/project",
+    "path": ".github/workflows/publish.yml"
+  }
+}
+```
 
-The built source identity is the release identity that verifier policy binds to (ADR 0080). The
-invocation record keeps "which ref's workflow file ran" explicit when it differs from the built ref;
-the signing certificate's platform-fixed source claims are verified against that signed invocation
-record, not against the built identity.
+- `ref` is the invocation ref authenticated by the signing certificate's Source Repository Ref
+  claim. It is not replaced by the built release ref on a dispatch retry.
+- `repository` is the canonical HTTPS repository URI authenticated by the certificate's Source
+  Repository URI claim.
+- `path` is the repository-relative caller workflow YAML path authenticated by the certificate's
+  Build Config URI claim. It is never the reusable builder workflow's own path.
 
-A verifier must reject unexpected `externalParameters` fields when the policy requires strict
-matching. The profile spec must define the complete schema and the strict-matching policy.
+All three members are required whenever producer provenance is emitted, including when invocation
+and built-source identities coincide. A missing or additional member is rejected under the closed
+schema. A Source Repository Ref or Source Repository URI disagreement is a signer identity failure;
+a Build Config URI disagreement is rejected with `windlass.verify.error.build-config-uri-mismatch`.
+The former builder `path`, `sha`, and `builder_id` members are forbidden and are not recreated under
+another external-parameter name. Canonical builder identity remains only in `runDetails.builder.id`.
 
-For the initial JS/TS npm package profile, the complete normative schema is defined in
-[JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md). The common contract is not a
-fallback schema and must not be used to accept fields omitted by the profile schema.
+The remaining external-parameter surface is profile-specific and minimal. Each profile spec defines
+its complete closed schema and strict-matching policy. The common contract provides no fallback
+`inputs`, `runtime`, `package_manager`, or other group that can accept a field omitted by that
+schema. Unexpected fields are rejected with `windlass.verify.error.external-parameters-unexpected`.
+
+A profile that exposes a caller-selected source ref defines an optional `source` group containing
+exactly one required member, `ref`. The group is emitted exactly when the caller supplied the
+profile's non-empty source-selector input, and `ref` preserves that selector's exact interface
+spelling. The group is omitted entirely when no selector was supplied; an empty `source: {}` object
+is non-conforming. The profile spec defines selector grammar, suppliedness, and conflict rejection.
+
+The effective built ref is `source.ref` when that member is present and `workflow.ref` otherwise.
+Producers apply this rule before constructing the statement, and consumers independently recompute
+it. Built-release policy binds to the effective built ref and to the `built-source` descriptor's URI
+ref component and `digest.gitCommit`, not to a duplicate external-parameter record. Resolved source
+revisions, repository duplicates, ref classifiers, invocation duplicates, and release identity are
+recorded through descriptors or descriptor annotations rather than additional `source` members. In
+particular, `source.repository`, `source.revision`, `source.ref_type`, `source.input_ref`,
+`source.invocation_ref`, `source.invocation_revision`, `source.event_name`, and
+`externalParameters.release.*` are forbidden under the revised closed contract. There is no
+`source.invocation_*` or built-field fallback for certificate invocation comparisons.
+
+For the initial JS/TS npm package profile, the complete normative profile-owned schema is defined in
+[JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md). The common contract must not be
+used to accept fields omitted by that profile schema.
 
 ## `internalParameters`
 
-The producer must emit `internalParameters` as exactly the empty object `{}`. Verification treats an
-absent field, explicit JSON `null`, and `{}` as equivalent empty values per the SLSA parsing rules.
-A non-empty object or any non-object, non-null value is rejected with
-`windlass.verify.error.unexpected-internal-parameters`.
-
-Valid:
+For GitHub Actions producers, `internalParameters` is a required closed object containing exactly
+one member, `github`. The `github` object contains exactly three string fields: `event_name`,
+`repository_id`, and `repository_owner_id`.
 
 ```json
-{ "internalParameters": {} }
+{
+  "internalParameters": {
+    "github": {
+      "event_name": "workflow_dispatch",
+      "repository_id": "123456789",
+      "repository_owner_id": "987654321"
+    }
+  }
+}
 ```
 
-Invalid, because it contains a member:
+The values are constructed from GitHub-issued OIDC claims before signing. All three are compared
+fail-closed with the corresponding claims in the issued signing certificate before any registry or
+release mutation. In particular, `event_name` must equal the certificate's Build Trigger claim; a
+disagreement is rejected with `windlass.verify.error.build-trigger-mismatch`. The numeric repository
+and owner identifiers must also agree with the certificate and trusted policy. Certificate
+authentication of an event does not replace the profile's separate supported-event admission check.
+
+Shape failures use `windlass.verify.error.unexpected-internal-parameters`:
+
+- An absent, `null`, empty, non-object, or otherwise malformed `internalParameters` value.
+- A missing or additional `github` member.
+- A missing, additional, or non-string field in the required triple.
+
+Actor fields including `actor_id` and `triggering_actor_id` are forbidden.
+
+No `externalParameters` member may duplicate or alias the invocation event.
+
+Invalid, because `debug` is not the closed `github` object:
 
 ```json
 { "internalParameters": { "debug": true } }
 ```
 
+Invalid, because the required `repository_owner_id` string is absent:
+
+```json
+{
+  "internalParameters": {
+    "github": { "event_name": "push", "repository_id": "123456789" }
+  }
+}
+```
+
 Raw package metadata that is not trust input belongs only in `diagnostic_metadata.package_manifest`,
-not in `internalParameters`. A producer that places it in `internalParameters` is rejected with
+not in `internalParameters`. A producer that places it there is rejected with
 `windlass.verify.error.unexpected-internal-parameters`.
 
 ## `resolvedDependencies`
 
 Each profile must define its complete, unordered, name-keyed `resolvedDependencies` shape and strict
-matching policy. The common contract defines no fallback schema. A profile that emits an unknown or
-non-enumerated dependency is rejected with
+matching policy. The common contract defines no fallback schema. Consumers select descriptors by
+`name`, never by array position. Duplicate names are rejected before any name-keyed lookup, and an
+unknown or non-enumerated name is rejected with
 `windlass.verify.error.resolved-dependencies-unexpected-entry`.
 
-The initial JS/TS npm profile enumerates `lockfile`, `node-runtime`, and `runner-image`; pnpm and
-Yarn additionally enumerate `package-manager-distribution`. Its exact descriptor shapes and
-conditional cardinalities of three entries for npm and four for pnpm or Yarn are defined by
-[JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema).
-That profile does not enumerate every installed package as a separate `ResourceDescriptor`. The
+Producer serialization order is deterministic and fixed before signing. Semantic verification
+accepts any permutation of a valid set, but reordering an already signed payload changes its bytes
+and fails exact-payload comparison. For the initial JS/TS npm profile, the closed set contains
+`invocation-source`, `built-source`, `package-manifest`, `lockfile`, `node-runtime`, and
+`runner-image`, exactly six descriptors for npm selections. pnpm and Yarn add exactly one
+`package-manager-distribution`, for seven descriptors. The npm profile's deterministic emission
+order, including the index-0 placement of `invocation-source`, is an npm emission compatibility rule
+owned by
+[JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema);
+it does not change name-keyed consumer semantics.
+
+The npm profile does not enumerate every installed package as a separate `ResourceDescriptor`. The
 selected lockfile is the verifier-relevant dependency graph input, and package versions are
-represented by its bytes and digest. Non-selected supported lockfiles may appear only as stale
-diagnostics in profile-defined descriptor annotations and are not selected dependency graph inputs.
+represented by its bytes and digest. Non-selected supported lockfiles remain stale diagnostics; they
+do not become selected dependencies or acquire descriptor media types. Exact profile-owned
+descriptor rules are defined by
+[JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema),
+subject to the common source, media-type, and runner-image rules below.
+
+### Git source descriptors
+
+The role-named Git source descriptors have these closed shapes:
+
+```json
+{
+  "name": "invocation-source",
+  "uri": "git+https://github.com/example/project@refs/heads/main",
+  "digest": { "gitCommit": "89abcdef0123456789abcdef0123456789abcdef" }
+}
+```
+
+```json
+{
+  "name": "built-source",
+  "uri": "git+https://github.com/example/project@refs/tags/v1.2.3",
+  "digest": { "gitCommit": "0123456789abcdef0123456789abcdef01234567" },
+  "annotations": { "ref_type": "tag" }
+}
+```
+
+- `invocation-source` identifies the caller repository content supplying the invocation workflow.
+  Its URI is exactly `git+<workflow.repository>@<workflow.ref>` with no path fragment, and its
+  `digest.gitCommit` equals the certificate's Source Repository Digest.
+- The descriptor has exactly `name`, `uri`, and `digest`; annotations are forbidden. A missing,
+  duplicate, malformed, or mismatched descriptor is rejected with
+  `windlass.verify.error.resolved-dependencies-invocation-source`.
+- `built-source` identifies the content that was checked out, built, and attested. Its URI equals
+  `git+<workflow.repository>@<effective built ref>`, and its `digest.gitCommit` is that ref's
+  verified resolved commit. Its required `annotations` object contains exactly `ref_type: "tag"`,
+  which must agree with the URI's `refs/tags/` prefix. A missing, duplicate, malformed,
+  annotation-inconsistent, or identity-mismatched descriptor is rejected with
+  `windlass.verify.error.resolved-dependencies-built-source`.
+- Each `digest` object contains exactly `gitCommit`, a full 40-character lowercase hexadecimal Git
+  commit ID. `mediaType` is forbidden on both descriptors because a Git commit or tree identity is
+  not one serialized artifact representation. `content` and `downloadLocation` are also forbidden.
+- Both descriptors are required whenever a profile enumerates these roles, including when the
+  identities coincide. With no explicit `source.ref`, the effective built ref equals `workflow.ref`,
+  so the descriptors carry identical URI and digest values under their distinct names. Neither role
+  may be omitted or substituted for the other.
+- Invocation certificate claims bind only to `workflow.ref`, `workflow.repository`, and
+  `invocation-source`. Built-release ref and commit expectations bind to the recomputed effective
+  built ref and `built-source`. The commit embedded in source-artifact descriptor URIs such as
+  `package-manifest` and `lockfile` must equal `built-source.digest.gitCommit`.
+
+### `package-manifest` and offline evidence
+
+A profile that enumerates `package-manifest` records the original selected source manifest with
+exactly `name`, `uri`, `digest`, `mediaType`, and `annotations`:
+
+- `uri` is `git+<workflow.repository>@<built revision>#<repository-root-relative manifest path>`.
+  The built revision equals `built-source.digest.gitCommit`, and the path uses the profile's
+  percent-encoding rule.
+- `digest` contains exactly `sha256` over the original selected source-manifest bytes, not a
+  build-mutated or packed manifest.
+- `mediaType` is exactly `application/json`.
+- `annotations` contains exactly `workspace_root`, which is `null` for a standalone package or the
+  repository-root-relative workspace root for a workspace package.
+- `content` and `downloadLocation` are forbidden.
+
+A missing, duplicate, malformed, wrongly typed, or identity-mismatched descriptor is rejected with
+`windlass.verify.error.resolved-dependencies-package-manifest`. Manifest-dependent verification uses
+the original source bytes supplied through the profile's explicit offline evidence contract, bound
+to this descriptor's digest and source identity. Missing, mismatched, or malformed evidence is
+rejected with `windlass.verify.error.package-manifest-evidence`. There is no network fallback and no
+silent skipping of manifest-dependent checks. In particular, package identity, publish
+configuration, and normalized manifest repository checks use those authenticated bytes. The
+normalized manifest repository must equal `workflow.repository`, the certificate's Source Repository
+URI, and both Git source descriptors' URI repository components.
+
+### Deterministic media types
+
+Concrete non-runner artifact descriptors carry the following closed `mediaType` matrix. The value
+describes the actual digest-covered representation, not merely a filename suffix, manager name, or
+remote response header.
+
+| Descriptor                     | Actual digest-covered representation                                    | `mediaType`        | Closed rule                                                                                           |
+| ------------------------------ | ----------------------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `package-manifest`             | Selected `package.json` source bytes                                    | `application/json` | Required; retains ADR 0109's value and no-content rule                                                |
+| `lockfile`                     | Selected `package-lock.json` bytes                                      | `application/json` | Required for the selected npm lockfile only                                                           |
+| `lockfile`                     | Selected `pnpm-lock.yaml` bytes                                         | `application/yaml` | Required for the selected pnpm lockfile only                                                          |
+| `lockfile`                     | Selected supported Yarn Berry v4/v5 `yarn.lock` bytes                   | `application/yaml` | Required for the selected Berry lockfile only                                                         |
+| `node-runtime`                 | Exact compressed Node.js `.tar.gz` bytes covered by the existing digest | `application/gzip` | Required; never describes the extracted runtime tree                                                  |
+| `package-manager-distribution` | Exact npm registry `.tgz` bytes                                         | `application/gzip` | Required for every represented registry tarball, including any represented pnpm dual-artifact tarball |
+| `package-manager-distribution` | Exact current single `yarn.js` bytes                                    | `text/javascript`  | Required only when this is the actual acquired and digest-covered representation                      |
+| `invocation-source`            | Git commit or tree identity, not one serialized artifact                | none               | `mediaType` is forbidden                                                                              |
+| `built-source`                 | Git commit or tree identity, not one serialized artifact                | none               | `mediaType` is forbidden                                                                              |
+
+Every represented registry tarball, including a pnpm dual-artifact tarball, uses `application/gzip`.
+`text/javascript` applies only when the descriptor's digest covers the single `yarn.js` bytes rather
+than a containing registry tarball. `application/gzip` never describes an extracted runtime or
+distribution tree. There is no generic or producer-selected fallback such as
+`application/octet-stream` or `text/plain`; an unenumerated representation is rejected until the
+closed matrix is deliberately extended.
+
+A missing, incorrect, or forbidden `mediaType` is rejected under the owning descriptor's validation
+rule. `mediaType` is descriptive only: it does not authenticate bytes, authorize a parser, replace
+digest or source verification, or permit execution. Producers and consumers must not fetch or trust
+a remote Content-Type value to select, repair, or override it. No `resolvedDependencies` descriptor
+carries `downloadLocation`.
+
+### `runner-image`
+
+Exactly one `runner-image` descriptor remains mandatory in the npm closed set. Its top-level members
+are exactly `name`, `uri`, and `annotations`. The required annotation set is exactly
+`deployment_version`, `operating_system`, `image_version`, and `runner_label`:
+
+```json
+{
+  "name": "runner-image",
+  "uri": "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md",
+  "annotations": {
+    "deployment_version": "20261026.354.1",
+    "operating_system": "Ubuntu\n24.04.5\nLTS",
+    "image_version": "20261025.353.1",
+    "runner_label": "ubuntu-24.04"
+  }
+}
+```
+
+- `uri` is the verbatim, non-empty, platform-supplied Included Software URI from the local Runner
+  Image metadata. It is not reconstructed, normalized, replaced, or rewritten.
+- `image_version` is the exact full version string from the same on-disk metadata's `Version:`
+  detail, including every component. The URI and full `image_version` together are the sole reported
+  identity pair. They do not assert immutable image bytes, report integrity, unique tag-to-version
+  mapping, or public report availability.
+- Producer and consumer conformance validate the supported URI/version projection offline. The full
+  version's first two numeric components must agree with the release-tag component in the captured
+  URI. Neither captured value is rewritten to force a match. No DNS, HTTP, tag, release, or report
+  lookup is required, and HTTP 404 neither rejects valid local evidence nor selects descriptor
+  omission, substitution, or a warning.
+- `operating_system` is the exact decoded `Operating System` `detail` string from the same bounded
+  local metadata snapshot, captured before caller-controlled install, build, or pack scripts. The
+  snapshot must contain exactly one well-formed Operating System group with exactly one non-empty,
+  non-whitespace string `detail`. The producer does not trim, normalize, convert line endings,
+  compact, parse components, or map the value to another label. `image_os` is forbidden. Runtime
+  `$ImageOS` is optional diagnostic-only context and is never required, compared, moved into another
+  signed field, or used as a fallback.
+- `deployment_version` is the control-plane `ImageVersion` value when supplied and `null` otherwise.
+  It is non-authoritative, non-identifying rollout evidence, may differ from `image_version`, and is
+  never an identity or evidence fallback. `runner_label` is the independently observed Actions
+  runner label and is not derived from the other annotations.
+- `digest`, `content`, `mediaType`, `downloadLocation`, unknown top-level members, `image_os`,
+  `node_version`, and arbitrary additional annotations are forbidden. No raw metadata, metadata
+  digest, or additional metadata-evidence descriptor is emitted.
+
+Baseline consumers validate the signed closed shape, annotation schema and values, and offline
+URI/version projection without requiring the raw local snapshot or independently rechecking OS
+extraction. Missing or malformed local evidence fails closed at the producer. A missing, duplicate,
+malformed, forbidden-member-bearing, projection-mismatched, or snapshot-inconsistent runner
+descriptor is rejected with `windlass.verify.error.resolved-dependencies-runner-image`.
 
 ## `runDetails`
 
 ### `builder`
 
-- `id`: full GitHub reusable workflow URI with SHA.
-- `version`: a closed object containing required lowercase `nodejs` and conditional lowercase
-  `corepack`. Values are exact observed version strings, not ranges, tags, or aliases. `corepack` is
-  present only when Corepack supplied the selected package manager. `npm`, `runner-image`, and every
-  other key are forbidden. Missing or extra keys, incorrect conditional `corepack` presence, or an
-  observed-version mismatch is rejected with `windlass.verify.error.builder-version-mismatch`.
+- `id`: the canonical full GitHub reusable workflow URI with a full commit SHA.
+- The SHA suffix is exactly 40 lowercase hexadecimal characters (ADR 0028 and the identity and build
+  types spec).
+- No external-parameter builder record duplicates or replaces this identity.
+- Build Signer URI and Digest come from the same verified certificate.
+- The URI equals `runDetails.builder.id` byte-for-byte; the Digest equals its full SHA suffix.
+- Trusted policy or authenticated release metadata authorizes the builder.
+- Authorization covers the exact profile path, full SHA, builder URI, and buildType.
+- Missing, malformed, unauthorized, or signer-inconsistent identity evidence fails closed.
+- `version`: a closed object with required lowercase `nodejs` and `npm` keys plus conditional
+  lowercase `corepack`.
+- Values are exact observed version strings, not ranges, tags, or aliases.
+- `nodejs` is the single home for the observed Node.js version.
+- `npm` records only the build-stage bundled npm from the pinned toolchain pair, not the separately
+  provisioned publish-stage npm.
+- `corepack` is present only when Corepack supplied the selected package manager.
+- `runner-image` and every other key are forbidden.
+
+Version failures use `windlass.verify.error.builder-version-mismatch`:
+
+- Missing or extra keys.
+- Incorrect conditional `corepack` presence.
+- An observed-version mismatch.
 - `builderDependencies`: exactly one signing-adapter descriptor identifying the Go-native signer
   selected by ADR 0077. Its `uri` is `pkg:golang/github.com/sigstore/sigstore-go@v1.3.0`, its only
   digest member is the governed module checksum `h1: hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE=`,
@@ -256,34 +540,35 @@ diagnostics in profile-defined descriptor annotations and are not selected depen
   descriptors, are rejected with
   `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.
 
-The npm CLI version is already recorded by the npm profile in
-`externalParameters.runtime.npm_version` and, for npm-selected runs, as
-`externalParameters.package_manager.version`, so `builder.version` must not add an npm key. The
-runner image version remains only in the named `runner-image` descriptor. A duplicated or forbidden
-builder value is rejected with `windlass.verify.error.builder-version-mismatch`.
+The former `externalParameters.runtime.node_version` and `runtime.npm_version` members and the
+runner-image `node_version` annotation are forbidden rather than duplicated here. For pnpm and Yarn,
+the selected manager's observed version remains in the `package-manager-distribution` descriptor's
+annotations. The runner image version remains only in the named `runner-image` descriptor. A
+duplicated or forbidden builder value is rejected with
+`windlass.verify.error.builder-version-mismatch`.
 
 Valid direct-npm version shape:
-
-```json
-{ "version": { "nodejs": "v24.0.0" } }
-```
-
-Valid Corepack version shape:
-
-```json
-{ "version": { "nodejs": "v24.0.0", "corepack": "0.29.4" } }
-```
-
-Invalid, because npm is forbidden:
 
 ```json
 { "version": { "nodejs": "v24.0.0", "npm": "11.0.0" } }
 ```
 
+Valid Corepack version shape:
+
+```json
+{ "version": { "nodejs": "v24.0.0", "npm": "11.0.0", "corepack": "0.29.4" } }
+```
+
+Invalid, because the required bundled `npm` observation is absent:
+
+```json
+{ "version": { "nodejs": "v24.0.0" } }
+```
+
 Invalid, because `nodejs` is not an exact observed version string:
 
 ```json
-{ "version": { "nodejs": "v24" } }
+{ "version": { "nodejs": "v24", "npm": "11.0.0" } }
 ```
 
 Valid signing-adapter dependency:
@@ -315,6 +600,14 @@ Invalid, because the checksum does not identify the module version in the URI:
 ```
 
 ### `metadata`
+
+Profiles may require additional vendor-prefixed run-outcome fields in this object. Their closed
+value grammars and verification rules belong to the profile contract. The npm profile requires
+`windlass_build_script_disposition` with exactly one of `executed` or `skipped-absent`. The field
+records what the builder did about the declared build script, including a skip reason, rather than a
+success/failure result. A missing, unsupported, or authenticated-manifest-inconsistent value is
+rejected with `windlass.verify.error.build-script-disposition-mismatch`. The common cross-profile
+schema does not require this field for profiles that do not enumerate it.
 
 - `invocationId`: exactly
   `https://github.com/<owner>/<repo>/actions/runs/<run-id>/attempts/<attempt-number>`, where the
@@ -416,28 +709,23 @@ extensions, GitHub artifact attestation metadata, DSSE bundle verification outpu
 verified representation of the same signing certificate, but they must prove the semantic fields
 below before accepting a bundle.
 
-| Semantic field             | Required meaning                                                                                                       |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| OIDC issuer                | GitHub Actions, and not another identity provider.                                                                     |
-| Signer workflow repository | Repository that owns the signing workflow, for example `windlasstech/slsa-builder`.                                    |
-| Signer workflow path       | Workflow file path that performed signing, for example `.github/workflows/js-ts-npm-package-slsa3.yml`.                |
-| Signer workflow ref or SHA | Immutable workflow identity selected by the profile: a full commit SHA for reusable producer workflows, or a protected |
-|                            | release tag ref for the release manifest signer.                                                                       |
-| Source repository          | Repository whose source was released, which may differ from the signer workflow repository for reusable workflows.     |
-| Source ref                 | Built release ref recorded in the signed predicate and expected policy.                                                |
-| Source revision            | Immutable commit the built ref resolved to, recorded in the signed predicate and expected policy.                      |
-| Invocation ref             | Ref the run was dispatched on, proven by the certificate source ref claim and the signed invocation record.            |
-| Invocation revision        | Commit SHA of the invocation ref, proven by the certificate source digest claim and the signed invocation record.      |
-| Predicate type             | The predicate URI expected for the signed Statement.                                                                   |
+The required semantic fields are the GitHub Actions OIDC issuer; signer workflow repository, path,
+and immutable ref or SHA; caller workflow path; source repository; invocation ref and revision;
+built source ref and revision; Build Trigger; numeric repository and owner identifiers; and
+predicate type. Reusable producer workflows require a full signer commit SHA, while the release
+manifest signer uses its protected release tag ref. The signer repository and path identify the
+trusted Windlass workflow rather than the caller workflow.
 
-For reusable producer profiles, the signer workflow repository and path identify the trusted
-Windlass workflow, while the source repository, ref, and revision identify the caller package
-repository and release. Under ADR 0080, the source ref and revision rows are the **built** identity
-and are bound from the signed predicate; the certificate's platform-issued source claims describe
-the invocation context and are bound to the signed invocation record (or to the built fields when
-the invocation record is absent, where both are the same value). For the release manifest workflow,
-the signer workflow repository and source repository are both `windlasstech/slsa-builder`, and the
-signer workflow ref is the protected release tag recorded in the manifest.
+For reusable producers, the signer workflow repository and path identify the Windlass workflow.
+
+- The `workflow` group and `invocation-source` record the authenticated caller invocation.
+- The effective built ref and `built-source` record the release content.
+- Certificate source claims authenticate only the invocation side.
+- On an ADR 0079 dispatch retry, those claims are not compared with the built ref or commit.
+- Removed `source.invocation_*` and `source.revision` members are not fallbacks.
+- The optional `source.ref` selector is not invocation evidence.
+- Release manifest signing uses `windlasstech/slsa-builder` as both signer and source repository.
+- Its signer workflow ref is the protected release tag recorded in the manifest.
 
 Common GitHub/Sigstore verification outputs expose these concepts with claim names such as `issuer`,
 `repository`, `workflow_ref`, `workflow_sha`, `job_workflow_ref`, `job_workflow_sha`, `ref`, and
@@ -452,30 +740,39 @@ cryptographically bound to that certificate. An implementation must not combine 
 repository from one bundle, a source repository from another bundle, or unsigned GitHub API metadata
 with signed certificate claims to satisfy one policy.
 
-When the pinned verification tool exposes multiple claim names for the same semantic field, the
-implementation must apply this fallback order:
+The verified claim sources and their required statement-side comparisons are:
 
-| Semantic field             | Preferred verified claim source                                          | Fallback verified claim source                                                               |
-| -------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| OIDC issuer                | Sigstore certificate issuer extension.                                   | Tool-reported issuer value bound to the same certificate.                                    |
-| Signer workflow repository | Reusable workflow identity such as `job_workflow_ref` owner/repository.  | Signing workflow `workflow_ref` owner/repository when no reusable claim exists.              |
-| Signer workflow path       | Reusable workflow identity such as `job_workflow_ref` workflow path.     | Signing workflow `workflow_ref` path when no reusable claim exists.                          |
-| Signer workflow SHA        | `job_workflow_sha` for reusable workflow signers.                        | `workflow_sha` or the SHA suffix of `runDetails.builder.id`.                                 |
-| Signer workflow ref        | Ref component of `job_workflow_ref` for reusable workflow signers.       | Ref component of `workflow_ref` when no reusable claim exists.                               |
-| Source repository          | Source repository claim emitted for the caller/source repository.        | Signed predicate `externalParameters.source.repository` plus local policy.                   |
-| Source ref                 | Signed predicate `externalParameters.source.ref` plus local policy.      | None: the certificate source ref claim is invocation evidence, not built-source evidence.    |
-| Source revision            | Signed predicate `externalParameters.source.revision` plus local policy. | None: the certificate source digest claim is invocation evidence, not built-source evidence. |
-| Invocation ref             | Source ref claim emitted for the caller invocation ref.                  | Signed predicate invocation record member defined by the profile spec.                       |
-| Invocation revision        | Source digest claim emitted for the caller invocation revision.          | Signed predicate invocation record member defined by the profile spec.                       |
-| Predicate type             | Verified Statement `predicateType`.                                      | Tool-reported predicate type extracted from the same signed Statement.                       |
+| Authenticated input (verified) | Required signed comparison                                               |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| Source Repository Ref          | `workflow.ref` and the `invocation-source` URI ref component             |
+| Source Repository Digest       | `invocation-source.digest.gitCommit`                                     |
+| Source Repository URI          | `workflow.repository` and both source descriptors' repository components |
+| Build Trigger                  | `internalParameters.github.event_name`                                   |
+| Build Config URI               | `workflow.path`, never the reusable builder path                         |
+| Numeric repository/owner IDs   | `internalParameters.github.repository_id` and `repository_owner_id`      |
+| Build Signer URI               | Byte-for-byte equal to `runDetails.builder.id`                           |
+| Build Signer Digest            | Full SHA suffix of `runDetails.builder.id`                               |
+| Built-release policy           | `source.ref ?? workflow.ref`; `built-source` URI and digest              |
+| Predicate type                 | Expected predicate URI                                                   |
 
-If both a preferred and fallback source are present for the same semantic field, they must identify
-the same value after the profile-defined canonicalization. A conflict is a signer identity failure,
-not a reason to choose one spelling by precedence. This equality rule does not compare the built
-source ref or revision against the certificate source claims: on an ADR 0079 dispatch retry those
-claims legitimately describe the invocation context, and the invocation rows above define their
-comparison target. If a required field remains unavailable after the allowed fallback sources are
-checked, verification fails with a missing semantic identity field.
+- For reusable producers, Build Signer URI derives from `job_workflow_ref`.
+- Build Signer Digest derives from `job_workflow_sha`.
+- The `job_workflow_ref` suffix must be the authorized full SHA and agree with `job_workflow_sha`.
+- Caller `workflow_ref` and `workflow_sha` never identify the reusable builder.
+- `github.workflow_sha` never identifies it either.
+- Other signer profiles use their specified verified claims.
+- Caller claims cannot substitute for reusable producer signer evidence.
+- The Build Trigger comparison occurs before any registry or release mutation.
+- Numeric identifier comparisons also bind to trusted policy.
+
+If two verified representations of one semantic field are present, they must identify the same value
+after the profile-defined canonicalization. A conflict is a signer identity failure, not a reason to
+choose one spelling by precedence. A candidate predicate value cannot repair a missing certificate
+claim. In particular, the SHA suffix in `runDetails.builder.id` cannot substitute for Build Signer
+Digest, and built-source fields cannot substitute for invocation certificate claims. This equality
+rule does not compare the built source ref or revision against the certificate source claims on an
+ADR 0079 dispatch retry. If a required verified field remains unavailable after the allowed sources
+are checked, verification fails with a missing semantic identity field.
 
 Before the npm production implementation is accepted, a controlled publish must prove that the
 Go-signer bundle is accepted by `npm publish --provenance-file`, appears in registry read-back, and
@@ -538,14 +835,24 @@ A verifier must reject provenance if any of the following are true:
 | Any JSON object in the signed Statement payload contains duplicate member names after unescaping  | `windlass.verify.error.duplicate-json-member`                              | policy       | `1`       | `false`           |
 | Any security-relevant bundle or DSSE JSON object contains duplicate member names after unescaping | `windlass.verify.error.duplicate-json-member`                              | policy       | `1`       | `false`           |
 | `builder.id` uses a branch, tag, or short SHA                                                     | `windlass.verify.error.builder-id-not-immutable`                           | verification | `1`       | `false`           |
+| `builder.id` is unauthorized or disagrees with Build Signer URI or Digest                         | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
 | `buildType` is not in the canonical namespace                                                     | `windlass.verify.error.build-type-not-canonical`                           | verification | `1`       | `false`           |
 | `externalParameters` is incomplete                                                                | `windlass.verify.error.external-parameters-incomplete`                     | verification | `1`       | `false`           |
 | `externalParameters` contains unexpected fields                                                   | `windlass.verify.error.external-parameters-unexpected`                     | verification | `1`       | `false`           |
-| `internalParameters` is a nonempty object or a non-object, non-null value                         | `windlass.verify.error.unexpected-internal-parameters`                     | verification | `1`       | `false`           |
-| A profile emits an unknown or non-enumerated dependency                                           | `windlass.verify.error.resolved-dependencies-unexpected-entry`             | verification | `1`       | `false`           |
-| A node-runtime descriptor is missing, duplicated, malformed, or mismatched                        | `windlass.verify.error.resolved-dependencies-node-runtime`                 | verification | `1`       | `false`           |
+| Source Repository Ref or URI disagrees with `workflow.ref` or `workflow.repository`               | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
+| `workflow.path` differs from Build Config URI or uses the reusable builder path                   | `windlass.verify.error.build-config-uri-mismatch`                          | verification | `1`       | `false`           |
+| `internalParameters` violates the closed `github` three-string-field shape                        | `windlass.verify.error.unexpected-internal-parameters`                     | verification | `1`       | `false`           |
+| `internalParameters.github.event_name` differs from Build Trigger                                 | `windlass.verify.error.build-trigger-mismatch`                             | verification | `1`       | `false`           |
+| Numeric repository or owner identifiers disagree with `internalParameters.github`                 | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
+| A dependency name is unknown, non-enumerated, or duplicated before lookup                         | `windlass.verify.error.resolved-dependencies-unexpected-entry`             | verification | `1`       | `false`           |
+| An invocation-source descriptor is missing, duplicated, malformed, wrongly typed, or mismatched   | `windlass.verify.error.resolved-dependencies-invocation-source`            | verification | `1`       | `false`           |
+| A built-source descriptor is missing, duplicated, malformed, or identity/annotation mismatched    | `windlass.verify.error.resolved-dependencies-built-source`                 | verification | `1`       | `false`           |
+| A package-manifest descriptor is missing, duplicated, malformed, wrongly typed, or mismatched     | `windlass.verify.error.resolved-dependencies-package-manifest`             | verification | `1`       | `false`           |
+| Required offline package-manifest evidence is missing, malformed, or mismatched                   | `windlass.verify.error.package-manifest-evidence`                          | verification | `1`       | `false`           |
+| A node-runtime descriptor is missing, duplicated, malformed, wrongly typed, or mismatched         | `windlass.verify.error.resolved-dependencies-node-runtime`                 | verification | `1`       | `false`           |
 | A package-manager-distribution descriptor is missing, duplicated, forbidden, or malformed         | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | verification | `1`       | `false`           |
 | A runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched        | `windlass.verify.error.resolved-dependencies-runner-image`                 | verification | `1`       | `false`           |
+| A required build-script disposition is missing, unsupported, or manifest-inconsistent             | `windlass.verify.error.build-script-disposition-mismatch`                  | verification | `1`       | `false`           |
 | `builder.version` has an invalid key, conditional shape, or observed version                      | `windlass.verify.error.builder-version-mismatch`                           | verification | `1`       | `false`           |
 | `builderDependencies` lacks exactly one valid signing adapter                                     | `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      | verification | `1`       | `false`           |
 | `metadata.invocationId` is malformed or differs from Fulcio OID `.21`                             | `windlass.verify.error.run-invocation-uri-invalid`                         | verification | `1`       | `false`           |
@@ -569,27 +876,64 @@ error category from the rejection matrix above.
 
 ## TDD and fixtures
 
-- Golden Statement fixture with valid `_type`, `predicateType`, `builder.id`, `buildType`, and
-  `subject`.
-- Rejected fixtures for each row in the rejection matrix, including zero-subject, multi-subject,
-  top-level duplicate-member, nested predicate duplicate-member, duplicate extension-field, and
-  escaped duplicate-member Statements, plus non-`Z`, fractional, Holocene-year, and excessive
-  negative-skew timestamps.
-- A fixture proving that the npm signing adapter's DSSE payload exactly matches the preassembled
-  Windlass-verified Statement bytes.
-- Accepted fixtures `npm-internal-parameters-empty-valid`, `npm-builder-version-direct-npm-valid`,
-  `npm-builder-version-corepack-valid`, `npm-builder-signing-adapter-valid`, and
-  `npm-invocation-id-certificate-uri-valid` prove exactly empty `internalParameters`, both
-  `builder.version` shapes, the one signing-adapter dependency, and the run-attempt invocation URI
-  equal to Fulcio OID `.21`.
-- Acceptance tests for absent, `null`, and `{}` internal parameters, including JSON whitespace, and
-  for unrecognized Statement envelope members being ignored without changing recognized fields.
-- Rejected fixtures for nonempty objects or non-object, non-null `internalParameters`, missing or
-  extra builder version keys, invalid package-manager-distribution or runner-image descriptors, an
-  invalid signing-adapter descriptor, and malformed or certificate-unequal invocation IDs. They use
-  `windlass.verify.error.unexpected-internal-parameters`,
-  `windlass.verify.error.resolved-dependencies-package-manager-distribution`,
-  `windlass.verify.error.resolved-dependencies-runner-image`,
-  `windlass.verify.error.builder-version-mismatch`,
-  `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, and
-  `windlass.verify.error.run-invocation-uri-invalid`, respectively.
+- Golden Statement fixtures have valid `_type` and `predicateType`.
+- They have valid `builder.id`, `buildType`, and `subject`.
+- Golden fixtures include the required `workflow` invocation identity.
+- They include the closed `internalParameters.github` invocation metadata.
+- They cover role-named source descriptors and deterministic media types.
+- They cover current runner-image annotations and required `nodejs`/`npm` builder versions.
+- Rejected fixtures cover every rejection-matrix row and zero or multiple subjects.
+- Duplicate cases cover top-level, nested predicate, extension-field, and escaped members.
+- Timestamp cases cover non-`Z`, fractional, Holocene-year, and excessive negative skew.
+- An npm signing fixture proves the DSSE payload equals the preassembled Statement bytes.
+- `npm-internal-parameters-github-valid` proves the three-string GitHub object.
+- `npm-builder-version-direct-npm-valid` proves direct-npm `builder.version`.
+- `npm-builder-version-corepack-valid` proves Corepack `builder.version`.
+- Both version fixtures require `nodejs` and `npm`; Corepack adds conditional `corepack`.
+- `npm-builder-signing-adapter-valid` proves the one signing-adapter dependency.
+- `npm-invocation-id-certificate-uri-valid` proves a run-attempt URI equal to Fulcio OID `.21`.
+- A tag-push fixture omits `source` when no selector is supplied and never emits `source: {}`.
+- A dispatch-retry fixture records the exact caller selector in `source.ref`.
+- Effective built refs follow `source.ref ?? workflow.ref` in both cases.
+- Coincident runs keep distinct source descriptors with identical URI and digest values.
+- Retry runs bind certificate claims to `workflow.ref` and `invocation-source`.
+- Release policy binds to the effective built ref and `built-source`.
+- No certificate comparison uses `source.invocation_*` or a built-field fallback.
+- Accepted descriptor fixtures cover every media-type matrix row and six/seven cardinalities.
+- Producer order is fixed before signing, with `invocation-source` at npm index 0.
+- Semantic verification accepts descriptor permutations selected by name.
+- Runner fixtures preserve multiline `operating_system`, full `image_version`, and the verbatim URI.
+- They cover nullable divergent `deployment_version` and independent `runner_label`.
+- Valid captures without `$ImageOS` and offline report unavailability are accepted.
+- Acceptance tests ignore unrecognized Statement envelope members.
+- Recognized fields stay unchanged and project-owned closed schemas remain strict.
+- Rejected fixtures cover invalid `internalParameters` presence and shape.
+- Cases include absent, `null`, empty, non-object, and wrong-shaped values.
+- They cover missing, extra, non-string, actor, and certificate-mismatched GitHub fields.
+- They cover Build Trigger and Build Config URI mismatches.
+- They cover caller/builder path confusion and numeric repository/owner mismatches.
+- Removed builder fields and derived source or release fields are rejected.
+- Removed runtime, package-manager, caller, and build records are rejected.
+- Descriptor fixtures reject duplicate names before lookup and unknown names.
+- They reject source URI or `gitCommit` mismatches and source `mediaType`.
+- They reject missing or extra source annotations and URI-inconsistent built `ref_type`.
+- They reject missing, incorrect, or representation-inconsistent media types.
+- They reject `downloadLocation` and incorrect six/seven cardinalities.
+- They reject invalid package-manager-distribution, node-runtime, and runner-image descriptors.
+- Package-manifest cases reject wrong identity, path, digest, type, or `workspace_root`.
+- Missing or mismatched offline manifest evidence fails without a network fallback.
+- Runner fixtures reject `image_os`, `node_version`, and missing or additional annotations.
+- They reject forbidden top-level members and malformed or duplicate OS groups or details.
+- They reject whitespace-only, trimmed, or compacted OS values and mixed metadata snapshots.
+- They reject `$ImageOS` comparison or fallback and URI/version projection mismatches.
+- They reject deployment/image equality requirements.
+- Producer evidence failures remain fail closed without network substitution.
+- Builder fixtures reject missing or extra version keys, absent `npm`, and wrong `corepack`.
+- They reject unauthorized or signer-inconsistent builder identity and invalid signer descriptors.
+- They reject missing or manifest-inconsistent `windlass_build_script_disposition`.
+- They reject malformed or certificate-unequal invocation IDs.
+- Descriptor and evidence failures use their corresponding registered diagnostics.
+- Version failures use `windlass.verify.error.builder-version-mismatch`.
+- Signer dependency failures use the signing-adapter mismatch diagnostic from the matrix.
+- Disposition failures use `windlass.verify.error.build-script-disposition-mismatch`.
+- Invocation ID failures use `windlass.verify.error.run-invocation-uri-invalid`.
