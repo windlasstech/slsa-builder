@@ -1,0 +1,25 @@
+docs/decisions/0110-record-deterministic-media-types-for-non-runner-dependencies.md
+  s_9f937a1d557f89::t_d488d80df27840 77
+  s_9f937a1d557f89::t_aac4fdc2fbec92 201-290
+  s_9f937a1d557f89::t_167e4649598e49 3
+  s_9f937a1d557f89::t_c5d58d7db3ba88 1-2
+  s_9f937a1d557f89::t_793bee5975dce2 4-6,74-76
+  s_9f937a1d557f89::t_795a5d06c33e83 78-80,198-200
+  s_9f937a1d557f89::t_54666236d018e5 291-293
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "544ed6418bea30843b92b93b09212591976ae81b",
+  "prompts": {},
+  "sessions": {
+    "s_9f937a1d557f89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e34c4ab14ffeWLHhXTh4kHeyXB",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
