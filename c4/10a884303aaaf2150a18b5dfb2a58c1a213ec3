@@ -1,0 +1,21 @@
+docs/decisions/README.ko.md
+  s_8631c66cf2d5a0::t_f013b62b0c69f2 285,311
+docs/decisions/README.md
+  s_8631c66cf2d5a0::t_af6b2b6d0f6dea 289,317
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c410a884303aaaf2150a18b5dfb2a58c1a213ec3",
+  "prompts": {},
+  "sessions": {
+    "s_8631c66cf2d5a0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e339ed834ffeRVeA62BdbdfMEP",
+        "model": "k3.1-pro"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
