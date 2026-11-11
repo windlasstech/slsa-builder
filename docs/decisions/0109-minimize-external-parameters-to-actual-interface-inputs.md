@@ -89,6 +89,32 @@ relations:
     target: ADR-0099
   - type: see-also
     target: ADR-0104
+  - type: partially-superseded-by
+    target: ADR-0112
+    scope:
+      "the exact four-key runner-image annotation set and associated Confirmation clause insofar as
+      they require image_os: the required set becomes exactly deployment_version, operating_system,
+      image_version, and runner_label, with operating_system equal to the exact decoded Operating
+      System.detail string and image_os rejected. The name/uri/annotations top-level shape, the
+      verbatim Included Software URI and exact full image_version as the sole reported-identity
+      pair, nullable deployment_version and independent runner_label semantics, descriptor
+      cardinality and serialization order, no-public-availability behavior, baseline consumer
+      independence, external-parameter minimization, and every unrelated descriptor and observation
+      rule remain in force. Arbitrary additional annotations remain rejected, while ADR 0111's
+      allowance for a later separately governed vendor-prefixed evidence annotation is neither
+      adopted nor closed"
+  - type: partially-superseded-by
+    target: ADR-0110
+    scope:
+      "the Decision Driver and Preserved contracts clauses deferring mediaType for lockfile,
+      node-runtime, and package-manager-distribution: those concrete artifact descriptors now
+      require deterministic mediaType values selected from their actual digest-covered
+      representations, while package-manifest retains application/json and invocation-source and
+      built-source remain without mediaType. Identity, URI, digest, acquisition, annotations,
+      descriptor cardinality and serialization order, the package-manifest no-content rule, and
+      every runner-image decision remain in force"
+  - type: see-also
+    target: ADR-0111
 ---
 
 # Minimize External Parameters to Actual Interface Inputs

@@ -40,6 +40,8 @@ relations:
       and workflow.repository, and release identity to the built-source descriptor"
   - type: see-also
     target: ADR-0108
+  - type: see-also
+    target: ADR-0110
 ---
 
 # Consolidate External Source Parameters onto Workflow and Descriptor Bindings

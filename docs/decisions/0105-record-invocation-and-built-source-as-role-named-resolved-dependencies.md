@@ -29,6 +29,10 @@ relations:
       package-manifest descriptor, and the preservation of existing descriptor shapes where the
       runner-image descriptor changes as scoped in ADR 0100's relation; the source descriptors,
       index-0 serialization, and name-keyed verification remain in force"
+  - type: see-also
+    target: ADR-0110
+  - type: see-also
+    target: ADR-0111
 ---
 
 # Record Invocation and Built Source as Role-Named Resolved Dependencies

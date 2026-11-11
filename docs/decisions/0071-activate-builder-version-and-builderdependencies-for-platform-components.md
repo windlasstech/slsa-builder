@@ -27,6 +27,8 @@ relations:
     scope:
       "the builder.version closed key set, which now admits npm for the bundled npm record, and the
       reference to externalParameters.package_manager version recording"
+  - type: see-also
+    target: ADR-0111
 ---
 
 # Activate builder.version and builderDependencies for Build Platform Components

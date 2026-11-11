@@ -26,6 +26,31 @@ relations:
     scope:
       "the runner-image descriptor's closed shape: annotations.node_version is removed in favor of
       the single builder.version.nodejs record, and annotations.runner_label is added"
+  - type: partially-superseded-by
+    target: ADR-0112
+    scope:
+      "the clauses sourcing image_os from $ImageOS, treating it as required signed capture evidence,
+      and requiring ImageOS in capture diagnostics and associated Confirmation coverage:
+      operating_system instead records the exact decoded Operating System.detail string from the
+      same bounded local metadata snapshot as the URI and image_version; $ImageOS is optional
+      diagnostic-only and never required, compared, or used as a fallback. On-disk URI and full
+      image_version authority, their sole reported-identity pair, nullable non-authoritative
+      non-identifying deployment_version evidence and accepted rollout divergence, independent
+      runner_label, the name/uri/annotations shape, descriptor cardinality and serialization order,
+      no-public-availability behavior, baseline consumer independence, and all other fail-closed
+      local evidence rules remain in force"
+  - type: amended-by
+    target: ADR-0111
+    scope:
+      "the identity-strength and verification semantics of the on-disk runner-image record: the
+      Included Software URI and exact full Version-line image_version jointly carry a
+      buildType-defined reported identity, not immutable URI or image-byte identity and not an
+      assertion of public report/release availability; descriptor conformance uses offline
+      structural projection, HTTP 404 does not trigger omission of the `runner-image` dependency,
+      and missing or malformed local evidence remains fail closed. On-disk authority, verbatim URI
+      and image_version capture, separate non-identifying deployment_version evidence,
+      rollout-divergence acceptance, the existing annotation set and descriptor cardinality, and all
+      unrelated capture and failure rules remain in force"
 ---
 
 # Record Runner Image Identity from On-Disk Metadata with the Control-Plane Deployment Version as Separate Evidence
