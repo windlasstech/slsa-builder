@@ -1,0 +1,107 @@
+docs/architecture/identity-and-buildtypes.md
+  s_3caf2fabab4031::t_911dc872a2dcb5 326
+  s_3caf2fabab4031::t_69fc75692d786c 25-26
+  s_3caf2fabab4031::t_ddfc89876f812b 135-136
+  s_3caf2fabab4031::t_2aea07885debc5 146-147,150-153,162
+  s_3caf2fabab4031::t_c9eda73b856c5d 148-149,154-161
+  s_3caf2fabab4031::t_eab30b896ef20a 227-232
+  s_3caf2fabab4031::t_6abcb935e2082d 305-307,310-317,319-320,328-329,331-333,335-337,340-347,353-362,367-377,380-381,384-387
+  s_3caf2fabab4031::t_3cc3a714cff738 133-134
+  s_3caf2fabab4031::t_08deb2951516e5 321-325
+  s_3caf2fabab4031::t_69345b99dbbff8 327,330,334,338-339
+  s_3caf2fabab4031::t_6c6ddc6ea6a9df 388
+  s_3caf2fabab4031::t_a513e79624a2d0 34-35
+  s_3caf2fabab4031::t_41ef7ec767f500 12-15
+  s_865f8027074929::t_60ad4ed1686caa 382-383
+  s_3caf2fabab4031::t_8a8f32b172d0fb 115-119,124-127
+  s_3caf2fabab4031::t_0a277814a36656 168-180
+  s_3caf2fabab4031::t_f45468bdde86af 363
+  s_3caf2fabab4031::t_4880aa9c02f525 378-379
+  s_3caf2fabab4031::t_fda7e43b3986bf 318
+  s_3caf2fabab4031::t_42117ca72ba61a 60-61,64,67-70,77-90,96-110
+docs/architecture/slsa-provenance-v1.md
+  s_30b8624e298722::t_3abad84ed1a2db 382
+  s_30b8624e298722::t_c2610a2783e783 250
+  s_30b8624e298722::t_e6b497bc81a27c 883-884
+  s_30b8624e298722::t_845f8bc509f380 879-880
+  s_636baadbb9f5f6::t_e0fe605433f6d1 342-343
+  s_30b8624e298722::t_5caeeffc05218c 431-441
+  s_30b8624e298722::t_dc68b3b7197e38 214-218,220-221,223-249,251-271
+  s_30b8624e298722::t_b9a62e790b96fd 4-5
+  s_30b8624e298722::t_5e1c9803609d85 838
+  s_30b8624e298722::t_3730cae4d7505c 275-276
+  s_30b8624e298722::t_5994c895e2fa30 881-882
+  s_30b8624e298722::t_aade6d4e5549b9 543-548,553,559,562,565,571
+  s_30b8624e298722::t_1c9ff10b1fd52c 520-533
+  s_30b8624e298722::t_458ccb09f2b2b9 937
+  s_30b8624e298722::t_5252f6910b2749 56-57
+  s_30b8624e298722::t_bc7cdcb26434bf 895-907,912-936,938-939
+  s_30b8624e298722::t_1aaf75fd1ffc4e 331-333,336-340,346-347,349,352-377,383-430,442-505
+  s_30b8624e298722::t_dc27e7b7031b16 378-381
+  s_30b8624e298722::t_d587a5c7b30792 75-89,91-118,125,133,135-138,146,158-159
+  s_30b8624e298722::t_4bc1e4150c00a7 745-756
+  s_30b8624e298722::t_7518441adbdd6e 298-306
+  s_30b8624e298722::t_fd10a6f5d33fad 277,280-288,291-297,308,314-323,325
+  s_30b8624e298722::t_17fc66b1b08934 743,768-775
+  s_30b8624e298722::t_c36b26efafcc81 511-519
+  s_30b8624e298722::t_860c2ce70880ab 889-894
+  s_30b8624e298722::t_66fde64746dbee 712-717
+  s_636baadbb9f5f6::t_7bb8abe28214c7 341,344-345
+  s_30b8624e298722::t_8596ebdc388f54 719-728
+  s_30b8624e298722::t_961c8b4cf01ff8 908-909
+  s_30b8624e298722::t_1c6e06f9fd6c9e 910-911
+  s_30b8624e298722::t_47467d71f8ec26 604-611
+  s_30b8624e298722::t_8bb9a8f6cb1b5e 761-762
+  s_30b8624e298722::t_2fe13c775717e8 767
+  s_636baadbb9f5f6::t_19c8e543a3856f 166-171
+  s_30b8624e298722::t_5b15e9e8e02723 758-760,763-766
+  s_30b8624e298722::t_6aa3e1fafeeb8d 888
+  s_30b8624e298722::t_68b58c46105649 350-351
+  s_30b8624e298722::t_285685fefa2a1a 885-887
+  s_30b8624e298722::t_e0d1146ec61010 842-852,855
+  s_30b8624e298722::t_1159252fb89b51 272-273
+  s_30b8624e298722::t_fe6d081c395a6e 307
+  s_30b8624e298722::t_f203fdcc8c5ffa 718
+  s_30b8624e298722::t_0871a5b74820e2 744
+  s_30b8624e298722::t_b12bd6705289b7 757
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0ab53f6b6362bad8a18822af4eaef07544788569",
+  "prompts": {},
+  "sessions": {
+    "s_30b8624e298722": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e33526869ffenjzzphkqv964V3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_3caf2fabab4031": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e33524394ffe0txf25kdK2sU4s",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_865f8027074929": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e33524394ffe0txf25kdK2sU4s",
+        "model": "k3.1-pro"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
