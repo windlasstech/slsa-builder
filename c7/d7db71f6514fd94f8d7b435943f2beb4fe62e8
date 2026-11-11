@@ -1,0 +1,35 @@
+docs/decisions/0112-record-runner-image-operating-system-from-on-disk-metadata.md
+  s_d4c5ed9645564b::t_b7a00557d7bc73 251
+  s_d4c5ed9645564b::t_027a16851ec762 252-253
+  s_d4c5ed9645564b::t_a96a723af1a19e 10-19,22-32,35-46,49-58,60,72-76,127-130,244-248,283-285,318-319,326-327,351-352,354-355,361-363,372-373,375-376,396-399,402-403,412-413,418-420,428-429,435-436,453-455,465-466,472-474
+  s_fe3fefee50bd83::t_99ade4ccc08abf 59
+  s_fe3fefee50bd83::t_6c9ae2c7db8fee 206-210,323-325
+  s_d4c5ed9645564b::t_62581756b426be 364-365
+  s_d4c5ed9645564b::t_509358101c0864 110-111
+  s_d4c5ed9645564b::t_e5db8a09416ba7 328
+  s_d4c5ed9645564b::t_5de001ffe1bb62 1-9,20-21,33-34,47-48,61-71,77-109,112-126,131-205,211-243,249-250,254-282,286-317,320-322,329-350,353,356-360,366-371,374,377-395,400-401,404-411,414-417,421-427,430-434,437-452,456-464,467-471
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7d7db71f6514fd94f8d7b435943f2beb4fe62e8",
+  "prompts": {},
+  "sessions": {
+    "s_d4c5ed9645564b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e340f1dfaffevzEYmnd5Cyxr7I",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
