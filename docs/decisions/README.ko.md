@@ -282,7 +282,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 1. **ADR 하나당 결정 하나.** 나중에 대체하거나 참조하기 쉽도록 결정 범위를 좁게 유지합니다.
 2. **다음 순번 사용.** `0000-title.md` 형식의 연속된 번호 체계를 이어갑니다.
 3. **MADR 4.0.0 사용.** 해당 결정에 명백히 필요 없는 경우가 아니라면 기존 섹션 구조를 유지합니다.
-4. **Human Era 날짜 사용.** ADR front matter 날짜는 `12026-07-08` 형식을 사용합니다.
+4. **Holocene Era 날짜 사용.** ADR front matter 날짜는 `12026-07-08` 형식을 사용합니다.
 5. **채택된 ADR 본문 불변.** 채택 후에는 `status`와 `relations` frontmatter 필드만 업데이트하고,
    결정이 바뀌면 새 ADR을 작성합니다.
 6. **닫힌 status 문법 사용.** `status`는 `proposed`, `rejected`, `accepted`, `deprecated`,
@@ -308,7 +308,7 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 ## ADR PR 검증 체크리스트
 
 - [ ] ADR 번호가 순차적이고 제목이 kebab-case입니다.
-- [ ] ADR이 MADR 4.0.0 구조와 Human Era 날짜 형식을 사용합니다.
+- [ ] ADR이 MADR 4.0.0 구조와 Holocene Era 날짜 형식을 사용합니다.
 - [ ] 채택된 ADR 본문을 소급 수정하지 않았습니다. `status`와 `relations`만 변경했습니다.
 - [ ] `status`가 닫힌 문법을 사용합니다(합성·서술형 값 없음).
 - [ ] 관계 type, target, 필수 `scope` 값이 ADR 0065를 따르고, 모든 정방향 관계에 대상 ADR의 역방향

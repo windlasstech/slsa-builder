@@ -286,7 +286,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 2. **Use the next number.** Continue the sequential `0000-title.md` naming scheme.
 3. **Use MADR 4.0.0.** Preserve the established sections unless the decision clearly does not need
    one.
-4. **Use Human Era dates.** ADR front matter dates use the `12026-07-08` style.
+4. **Use Holocene Era dates.** ADR front matter dates use the `12026-07-08` style.
 5. **Keep accepted ADRs immutable.** After acceptance, update only the `status` and `relations`
    frontmatter fields; write a new ADR for changed decisions.
 6. **Use the closed status grammar.** `status` must be exactly one of `proposed`, `rejected`,
@@ -314,7 +314,7 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 ## Verification checklist for ADR PRs
 
 - [ ] The ADR number is sequential and the title is kebab-case.
-- [ ] The ADR uses MADR 4.0.0 structure and Human Era date format.
+- [ ] The ADR uses MADR 4.0.0 structure and Holocene Era date format.
 - [ ] Accepted ADR bodies were not edited retroactively; only `status` and `relations` changed.
 - [ ] `status` uses the closed grammar (no composite or prose values).
 - [ ] Relation types, targets, and required `scope` values follow ADR 0065, and every forward
