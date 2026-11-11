@@ -1,0 +1,63 @@
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_565328b6453dfe::t_da6b0e04feb47b 93-104
+  s_565328b6453dfe::t_44692a8515dcf1 82,84-92
+  s_565328b6453dfe::t_6ecfa5d62582e8 81,83
+docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+  s_565328b6453dfe::t_af3dcc4148b532 67
+  s_9f937a1d557f89::t_16aba454e772c3 68
+docs/decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md
+  s_565328b6453dfe::t_da6b0e04feb47b 116-117
+  s_565328b6453dfe::t_44692a8515dcf1 93,95-105
+  s_565328b6453dfe::t_af3dcc4148b532 106,108-115
+  s_9f937a1d557f89::t_b7f29dba99bd37 107
+  s_565328b6453dfe::t_6ecfa5d62582e8 92,94
+docs/decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md
+  s_565328b6453dfe::t_af3dcc4148b532 43
+  s_9f937a1d557f89::t_ef72f7460174b9 44
+docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md
+  s_565328b6453dfe::t_6ecfa5d62582e8 29,31
+  s_565328b6453dfe::t_da6b0e04feb47b 42-48
+  s_565328b6453dfe::t_44692a8515dcf1 30,32-41
+  s_fe3fefee50bd83::t_cabb894d277923 49-53
+docs/decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md
+  s_565328b6453dfe::t_6ecfa5d62582e8 32
+  s_565328b6453dfe::t_da6b0e04feb47b 34-35
+  s_9f937a1d557f89::t_9d602b370cae52 33
+docs/decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md
+  s_565328b6453dfe::t_da6b0e04feb47b 30-31
+docs/decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
+  s_565328b6453dfe::t_af3dcc4148b532 34
+  s_9f937a1d557f89::t_7106cffad72014 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4b457f7cb1c4d352d23d1b0559fb2fbddbf1cd42",
+  "prompts": {},
+  "sessions": {
+    "s_565328b6453dfe": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e39d6f3b9ffeQ53pptoeRUrmjl",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_9f937a1d557f89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e34c4ab14ffeWLHhXTh4kHeyXB",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fe3fefee50bd83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e598ed984ffeUQHU9OQtWrTMNd",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
