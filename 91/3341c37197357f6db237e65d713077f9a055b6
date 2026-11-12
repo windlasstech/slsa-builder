@@ -1,0 +1,19 @@
+docs/decisions/README.md
+  s_636baadbb9f5f6::t_41187a61a72752 241-251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "913341c37197357f6db237e65d713077f9a055b6",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
