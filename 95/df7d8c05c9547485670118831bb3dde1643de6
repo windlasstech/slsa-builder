@@ -1,0 +1,23 @@
+internal/npmprofile/producer_evidence.go
+  s_636baadbb9f5f6::t_acfc37489ea3fb 52-53
+internal/command/npm_profile_publish_test.go
+  s_636baadbb9f5f6::t_e07003c7bcf11e 160,166-169,173,175,193
+  s_636baadbb9f5f6::t_ca2f3ed6d34a58 161,163,187-192,194-222
+  s_636baadbb9f5f6::t_00924cf17c8008 4,6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "95df7d8c05c9547485670118831bb3dde1643de6",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
