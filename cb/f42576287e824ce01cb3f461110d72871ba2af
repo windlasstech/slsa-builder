@@ -1,0 +1,29 @@
+docs/decisions/0111-record-runner-image-reported-identity-with-included-software-uri-and-full-image-version.md
+  s_636baadbb9f5f6::t_c8b32fd7bd1701 73,471
+internal/command/verify_attestation.go
+  s_636baadbb9f5f6::t_7a3654cf8c096b 43
+  s_636baadbb9f5f6::t_733595fdd4c12c 48-50
+internal/command/publish_input_report.go
+  s_636baadbb9f5f6::t_01b83e151e7767 7,13
+docs/architecture/slsa-provenance-v1.md
+  s_636baadbb9f5f6::t_e8c328d232a55f 31
+  s_636baadbb9f5f6::t_360392586630b1 22-30
+internal/command/npm_profile_sign.go
+  s_636baadbb9f5f6::t_d3cbd4afa39494 57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cbf42576287e824ce01cb3f461110d72871ba2af",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
