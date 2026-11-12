@@ -23,6 +23,7 @@ tarball producer feeding the GitHub Release asset publisher.
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
   [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
+  [0103](../decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md),
   [0105](../decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md),
   [0106](../decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md),
   [0108](../decisions/0108-remove-redundant-npm-release-asset-inputs.md),
