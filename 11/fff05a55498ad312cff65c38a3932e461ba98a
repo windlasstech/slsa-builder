@@ -1,0 +1,22 @@
+internal/npmprofile/consumer_sources.go
+  s_636baadbb9f5f6::t_708d327a8d4944 23-24,27
+internal/npmprofile/final_dependencies.go
+  s_636baadbb9f5f6::t_6632e406fe7ce0 54-55
+  s_636baadbb9f5f6::t_62ce285f94d3ce 91-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "11fff05a55498ad312cff65c38a3932e461ba98a",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
