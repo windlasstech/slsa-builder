@@ -355,7 +355,7 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
 | JS/TS npm | [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md) | npm 패키지 빌드, SLSA v1 출처 증명 발급·서명, npm 게시 | 프리릴리스 |
 
 - **각 실행당 정확히 하나의 패키지:** 필수 입력 `package-directory`로 대상 패키지를 선택합니다. 공개
-  계약은 이 필수 입력 하나와 선택 입력 여덟 개로 구성됩니다.
+  계약은 이 필수 입력 하나와 선택 입력 여섯 개로 구성됩니다.
 - **고정 파이프라인 릴리스 재시도:** 태그 전용 선택 입력 `source-ref`를 사용하면, 수정된
   파이프라인이 있는 ref(예: `main`)에서 dispatch하면서도 빌드·증명 대상 콘텐츠는 서명된 릴리스
   태그로 유지하는 릴리스 재시도가 가능합니다. 태그 재생성도, 출처 증명 주장 약화도 필요 없습니다.

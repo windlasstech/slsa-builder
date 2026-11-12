@@ -36,8 +36,18 @@ downstream consumers can use to verify artifacts produced by `slsa-builder`.
   [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
   [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md),
   [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md),
-  and
-  [0102](../decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md)
+  [0100](../decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md),
+  [0102](../decisions/0102-classify-npm-e422-publish-rejection-as-determinate-under-reduced-readback-budget.md),
+  [0103](../decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md),
+  [0104](../decisions/0104-remove-redundant-external-parameter-builder-record.md),
+  [0105](../decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md),
+  [0106](../decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md),
+  [0107](../decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md),
+  [0108](../decisions/0108-remove-redundant-npm-release-asset-inputs.md),
+  [0109](../decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md),
+  [0110](../decisions/0110-record-deterministic-media-types-for-non-runner-dependencies.md),
+  [0111](../decisions/0111-record-runner-image-reported-identity-with-included-software-uri-and-full-image-version.md),
+  and [0112](../decisions/0112-record-runner-image-operating-system-from-on-disk-metadata.md)
 - Related specs: [SLSA provenance v1](slsa-provenance-v1.md),
   [Identity and build types](identity-and-buildtypes.md), [Release manifest](release-manifest.md),
   [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -198,11 +208,15 @@ closed constraints; a violation fails with `windlass.verify.error.policy-schema-
 | `producer.runner_environment` | Exactly `"github-hosted"`.                                                                                              |
 | `trust_root`                  | Exactly one of the closed TUF or pinned-root shapes specified here.                                                     |
 
-Under ADR 0080, the policy's `source.digest` and `source.ref` express expectations about the
-**built** source identity: they are compared against the signed `externalParameters.source.revision`
-and `externalParameters.source.ref` fields, not against certificate extensions. The certificate's
-platform-fixed source claims describe the invocation context and are bound separately, as defined in
-the identity binding section below.
+Under ADRs 0080, 0105, 0106, and 0109, the policy's `source.repository_uri`, `source.digest`, and
+`source.ref` express expectations about the **built** source identity. They compare respectively
+with `externalParameters.workflow.repository`, `built-source.digest.gitCommit`, and the effective
+built ref, recomputed as `externalParameters.source.ref` when present and
+`externalParameters.workflow.ref` otherwise. The effective built ref must also equal the
+`built-source` URI's ref component. These built-source comparisons never target certificate
+extensions. The certificate's platform-fixed source claims describe the invocation context and bind
+separately to `workflow.ref`, `workflow.repository`, and `invocation-source`, as defined in the
+identity binding section below.
 
 For pinned-root operation, `trust_root` instead has this shape. The timestamps are technical JSON
 timestamps and therefore use the standard four-digit Gregorian year:
@@ -262,8 +276,9 @@ manifest expectation, signed source-repository field, and identity comparison in
 First, each URI is parsed and rejected unless it has the exact canonical lowercase form. Then,
 values that represent the same field are compared byte-for-byte. Numeric repository and owner IDs
 remain authoritative identity checks, but they do not permit a non-canonical URI spelling. The npm
-package verification comparison in item 11 applies this parse-then-byte-compare rule to its three
-source repository values.
+package verification comparison in item 11 applies this parse-then-byte-compare rule to the
+normalized manifest repository, `workflow.repository`, the certificate Source Repository URI, and
+both Git source descriptors' URI repository components.
 
 The signed release-manifest payload remains the closed schema defined by
 [Release manifest](release-manifest.md); the expectation object above does not add caller-specific
@@ -314,44 +329,51 @@ ADR 0037. The verifier extracts the signing certificate from the verified bundle
 Fulcio extensions. Values are UTF-8 strings after X.509 extension decoding; a duplicate, malformed,
 or undecodable required extension fails with `windlass.verify.error.signer-identity-claim-missing`.
 
-| Fulcio extension OID     | Fulcio semantic claim                      | GitHub OIDC origin         | Required comparison                                                                                                                                                |
-| ------------------------ | ------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `1.3.6.1.4.1.57264.1.1`  | Issuer (deprecated legacy raw-string form) | `iss`                      | Decode old bundles only; never use as authoritative issuer.                                                                                                        |
-| `1.3.6.1.4.1.57264.1.8`  | Issuer V2                                  | `iss`                      | DER-decoded issuer exactly matches the trusted GitHub issuer.                                                                                                      |
-| `1.3.6.1.4.1.57264.1.9`  | Build Signer URI                           | `job_workflow_ref`         | Exact trusted policy-selected signer workflow URI and path.                                                                                                        |
-| `1.3.6.1.4.1.57264.1.10` | Build Signer Digest                        | `job_workflow_sha`         | Full SHA equals the selected manifest/policy `workflow_sha`.                                                                                                       |
-| `1.3.6.1.4.1.57264.1.11` | Runner Environment                         | `runner_environment`       | Exactly `github-hosted`.                                                                                                                                           |
-| `1.3.6.1.4.1.57264.1.12` | Source Repository URI                      | `repository`               | Exact expected canonical `https://github.com/<owner>/<repo>` URI.                                                                                                  |
-| `1.3.6.1.4.1.57264.1.13` | Source Repository Digest                   | `sha`                      | Byte-equal to the signed invocation record revision: `externalParameters.source.invocation_revision` when present, otherwise `externalParameters.source.revision`. |
-| `1.3.6.1.4.1.57264.1.14` | Source Repository Ref                      | `ref`                      | Byte-equal to the signed invocation record ref: `externalParameters.source.invocation_ref` when present, otherwise `externalParameters.source.ref`.                |
-| `1.3.6.1.4.1.57264.1.15` | Source Repository Identifier               | `repository_id`            | Exact expected decimal repository ID.                                                                                                                              |
-| `1.3.6.1.4.1.57264.1.17` | Source Repository Owner Identifier         | `repository_owner_id`      | Exact expected decimal owner ID.                                                                                                                                   |
-| `1.3.6.1.4.1.57264.1.21` | Run Invocation URI                         | `run_id` and `run_attempt` | Byte-for-byte equal to `metadata.invocationId` and well-formed for the expected source repository.                                                                 |
+| Fulcio extension OID     | Fulcio semantic claim                      | GitHub OIDC origin         | Required comparison                                                                                                                                              |
+| ------------------------ | ------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1.3.6.1.4.1.57264.1.1`  | Issuer (deprecated legacy raw-string form) | `iss`                      | Deprecated diagnostic decoding only; never use as authoritative issuer.                                                                                          |
+| `1.3.6.1.4.1.57264.1.8`  | Issuer V2                                  | `iss`                      | DER-decoded issuer exactly matches the trusted GitHub issuer.                                                                                                    |
+| `1.3.6.1.4.1.57264.1.9`  | Build Signer URI                           | `job_workflow_ref`         | Exact trusted policy-selected signer workflow URI and path.                                                                                                      |
+| `1.3.6.1.4.1.57264.1.10` | Build Signer Digest                        | `job_workflow_sha`         | Full SHA equals the selected manifest/policy `workflow_sha`.                                                                                                     |
+| `1.3.6.1.4.1.57264.1.11` | Runner Environment                         | `runner_environment`       | Exactly `github-hosted`.                                                                                                                                         |
+| `1.3.6.1.4.1.57264.1.12` | Source Repository URI                      | `repository`               | Exact expected canonical URI and `workflow.repository`; for npm, also the normalized manifest repository and both source descriptors' URI repository components. |
+| `1.3.6.1.4.1.57264.1.13` | Source Repository Digest                   | `sha`                      | Byte-equal to `invocation-source.digest.gitCommit`; never to a built-source or removed external-parameter fallback.                                              |
+| `1.3.6.1.4.1.57264.1.14` | Source Repository Ref                      | `ref`                      | Byte-equal to `workflow.ref` and the `invocation-source` URI ref component.                                                                                      |
+| `1.3.6.1.4.1.57264.1.15` | Source Repository Identifier               | `repository_id`            | Exact expected decimal repository ID and, for producer provenance, `internalParameters.github.repository_id`.                                                    |
+| `1.3.6.1.4.1.57264.1.16` | Build Trigger                              | `event_name`               | Byte-equal to `internalParameters.github.event_name`; mismatch uses `windlass.verify.error.build-trigger-mismatch`.                                              |
+| `1.3.6.1.4.1.57264.1.17` | Source Repository Owner Identifier         | `repository_owner_id`      | Exact expected decimal owner ID and, for producer provenance, `internalParameters.github.repository_owner_id`.                                                   |
+| `1.3.6.1.4.1.57264.1.18` | Build Config URI                           | `workflow_ref`             | Repository-relative caller path equals `workflow.path`, never the reusable builder path; mismatch uses `windlass.verify.error.build-config-uri-mismatch`.        |
+| `1.3.6.1.4.1.57264.1.21` | Run Invocation URI                         | `run_id` and `run_attempt` | Byte-for-byte equal to `metadata.invocationId` and well-formed for the expected source repository.                                                               |
 
 Issuer V2 OID `.8` is the current authoritative issuer source. A verifier may decode deprecated OID
-`.1` for old-bundle diagnostics, but using `.1` instead of `.8` as the authoritative issuer source
-fails with `windlass.verify.error.issuer-mismatch`.
+`.1` for diagnostics about the legacy representation, but using `.1` instead of `.8` as the
+authoritative issuer source fails with `windlass.verify.error.issuer-mismatch`.
 
 The certificate URI SAN carries the called workflow ref. The Build Signer URI and SAN are separate
 surfaces and both are checked; equality on one does not excuse absence or mismatch on the other. The
-verifier enforces all six bindings below for npm producer, release asset producer, and release
-manifest bundles. Every binding is mandatory, and no mismatch is downgraded to a warning.
+verifier enforces bindings 1 through 6 for npm producer, release asset producer, and release
+manifest bundles, and additionally enforces producer-only bindings 7 and 8. Every applicable binding
+is mandatory, and no mismatch is downgraded to a warning.
 
-| Binding | Required check                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Failure diagnostic                                                                                            |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 1       | Certificate OIDC issuer is exactly `https://token.actions.githubusercontent.com`; URI normalization, redirects, prefixes, and alternate GitHub issuers are not accepted.                                                                                                                                                                                                                                                                                                                                                                                                      | `windlass.verify.error.issuer-mismatch`                                                                       |
-| 2       | URI SAN and Build Signer URI identify the exact policy-selected signer workflow path, and Build Signer Digest (`job_workflow_sha`) exactly equals the manifest/policy `workflow_sha`. `github.workflow_sha` is the caller SHA and is forbidden as builder identity.                                                                                                                                                                                                                                                                                                           | `windlass.verify.error.signer-workflow-path-mismatch` or `windlass.verify.error.signer-workflow-sha-mismatch` |
-| 3       | Source Repository URI equals the expected source URI, and OIDs `.15` and `.17` equal the expected decimal repository and owner IDs. Numeric IDs decide; names are display-only.                                                                                                                                                                                                                                                                                                                                                                                               | `windlass.verify.error.source-identity-mismatch` or `windlass.verify.error.source-numeric-id-mismatch`        |
-| 4       | Source Repository Digest and Source Repository Ref describe the invocation context (ADR 0080): each must be byte-for-byte equal to the signed invocation record (`externalParameters.source.invocation_revision` and `externalParameters.source.invocation_ref` when those members are present, otherwise `externalParameters.source.revision` and `externalParameters.source.ref`). The expected release commit SHA and release tag ref from policy instead bind to the signed built-source fields `externalParameters.source.revision` and `externalParameters.source.ref`. | `windlass.verify.error.source-digest-mismatch` or `windlass.verify.error.source-ref-mismatch`                 |
-| 5       | Run Invocation URI is present, byte-for-byte equals `metadata.invocationId`, and has exactly `https://github.com/<owner>/<repo>/actions/runs/<run-id>/attempts/<attempt-number>`, where owner/repo equal the expected source URI and both final components are positive base-10 integers without signs, whitespace, query, fragment, userinfo, or a non-default port.                                                                                                                                                                                                         | `windlass.verify.error.run-invocation-uri-invalid`                                                            |
-| 6       | Runner Environment OID `.11` is present and its platform-signed value is exactly `github-hosted`. A self-hosted, missing, unknown, or caller-asserted runner value is not accepted.                                                                                                                                                                                                                                                                                                                                                                                           | `windlass.verify.error.self-hosted-runner`                                                                    |
+| Binding | Required check                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Failure diagnostic                                                                                                                                                                                                          |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1       | Certificate OIDC issuer is exactly `https://token.actions.githubusercontent.com`; URI normalization, redirects, prefixes, and alternate GitHub issuers are not accepted.                                                                                                                                                                                                                                                                                                                      | `windlass.verify.error.issuer-mismatch`                                                                                                                                                                                     |
+| 2       | URI SAN and Build Signer URI identify the exact policy-selected signer workflow path, and Build Signer Digest (`job_workflow_sha`) exactly equals the manifest/policy `workflow_sha`. `github.workflow_sha` is the caller SHA and is forbidden as builder identity.                                                                                                                                                                                                                           | `windlass.verify.error.signer-workflow-path-mismatch` or `windlass.verify.error.signer-workflow-sha-mismatch`                                                                                                               |
+| 3       | Source Repository URI equals the expected source URI, `workflow.repository`, the normalized manifest repository, and both source descriptors' URI repository components. OIDs `.15` and `.17` equal the expected decimal repository and owner IDs and, for producer provenance, `internalParameters.github.repository_id` and `repository_owner_id`. Numeric IDs decide; names are display-only.                                                                                              | `windlass.verify.error.source-identity-mismatch`, `windlass.verify.error.source-numeric-id-mismatch`, or `windlass.verify.error.package-repository-identity-mismatch`                                                       |
+| 4       | Source Repository Digest and Source Repository Ref describe the invocation context (ADRs 0080 and 0105-0107): the digest equals `invocation-source.digest.gitCommit`, and the ref equals both `workflow.ref` and the `invocation-source` URI ref component. No `source.invocation_*`, `source.ref`, `source.revision`, or built-source fallback exists. Policy release expectations instead bind to the effective built ref, the `built-source` URI ref, and `built-source.digest.gitCommit`. | `windlass.verify.error.source-digest-mismatch`, `windlass.verify.error.source-ref-mismatch`, `windlass.verify.error.resolved-dependencies-invocation-source`, or `windlass.verify.error.resolved-dependencies-built-source` |
+| 5       | Run Invocation URI is present, byte-for-byte equals `metadata.invocationId`, and has exactly `https://github.com/<owner>/<repo>/actions/runs/<run-id>/attempts/<attempt-number>`, where owner/repo equal the expected source URI and both final components are positive base-10 integers without signs, whitespace, query, fragment, userinfo, or a non-default port.                                                                                                                         | `windlass.verify.error.run-invocation-uri-invalid`                                                                                                                                                                          |
+| 6       | Runner Environment OID `.11` is present and its platform-signed value is exactly `github-hosted`. A self-hosted, missing, unknown, or caller-asserted runner value is not accepted.                                                                                                                                                                                                                                                                                                           | `windlass.verify.error.self-hosted-runner`                                                                                                                                                                                  |
+| 7       | For producer provenance, Build Trigger OID `.16` is present and byte-equal to `internalParameters.github.event_name`. The closed GitHub object is also evaluated against the separate supported-event admission policy.                                                                                                                                                                                                                                                                       | `windlass.verify.error.build-trigger-mismatch`                                                                                                                                                                              |
+| 8       | For producer provenance, Build Config URI OID `.18` identifies the caller workflow and its repository-relative path equals `workflow.path`. The reusable builder path cannot satisfy this comparison.                                                                                                                                                                                                                                                                                         | `windlass.verify.error.build-config-uri-mismatch`                                                                                                                                                                           |
 
 ADR 0062 policy intersection operates over these immutable keys: workflow path plus `workflow_sha`,
-source `repository_id`, source `repository_owner_id`, source digest, and source ref, the latter two
-binding the signed built-source fields per ADR 0080. When the explicit policy and an authenticated
-release-manifest expectation both constrain one of those keys, both values apply. An empty
-intersection fails with `windlass.verify.error.trusted-producer-policy-conflict`; names never break
-a tie between different numeric IDs.
+source `repository_id`, source `repository_owner_id`, source repository URI, source digest, and
+source ref. Repository expectations bind to `workflow.repository`; digest and ref expectations bind
+to `built-source.digest.gitCommit` and the recomputed effective built ref, whose URI component must
+match `built-source`. When the explicit policy and an authenticated release-manifest expectation
+both constrain one of those keys, both values apply. An empty intersection fails with
+`windlass.verify.error.trusted-producer-policy-conflict`; names never break a tie between different
+numeric IDs.
 
 ## Bundle, transparency, and signing-time requirements
 
@@ -408,15 +430,15 @@ surface, but they are not constrained by the schema version `1` release manifest
 supplied by explicit verifier policy, producer-side expected values, the digest-verified handoff, or
 another ADR-backed policy source:
 
-| Required verification field class                                       | Required non-manifest source                                                                                               |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Producer signer identity beyond manifest mappings                       | Explicit verifier policy or profile-owned producer policy.                                                                 |
-| Caller/source repository URI and immutable numeric repository/owner IDs | Explicit verifier policy or producer-side expected data; certificate OIDs `.12`, `.15`, and `.17` provide observed values. |
-| Caller/source ref and revision                                          | Explicit verifier policy, signed producer `externalParameters`, and producer-side expected data.                           |
-| Producer release ref and version tag                                    | Explicit verifier policy, signed producer `externalParameters`, and digest-verified handoff.                               |
-| Subject name and subject digest                                         | Explicit verifier policy, profile subject rules, and downloaded artifact bytes.                                            |
-| Strict `externalParameters` requirements                                | Profile verifier policy and signed producer Statement schema.                                                              |
-| Release asset filename to producer artifact binding                     | Producer policy and digest-verified publisher handoff fields.                                                              |
+| Required verification field class                                       | Required non-manifest source                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Producer signer identity beyond manifest mappings                       | Explicit verifier policy or profile-owned producer policy.                                                                                                                                                                                |
+| Caller/source repository URI and immutable numeric repository/owner IDs | Explicit verifier policy or producer-side expected data; certificate OIDs `.12`, `.15`, and `.17` provide observed values, and producer provenance binds them to `workflow.repository` and the closed `internalParameters.github` triple. |
+| Invocation ref and revision                                             | Explicit verifier policy and producer-side expected data, compared with `workflow.ref` and `invocation-source.digest.gitCommit`.                                                                                                          |
+| Producer built release ref, version tag, and revision                   | Explicit verifier policy and digest-verified handoff, compared with the effective built ref and `built-source` URI/digest.                                                                                                                |
+| Subject name and subject digest                                         | Explicit verifier policy, profile subject rules, and downloaded artifact bytes.                                                                                                                                                           |
+| Strict `externalParameters` requirements                                | Profile verifier policy and signed producer Statement schema.                                                                                                                                                                             |
+| Release asset filename to producer artifact binding                     | Producer policy and digest-verified publisher handoff fields.                                                                                                                                                                             |
 
 If a field is absent because a policy source's schema does not represent it, that field is
 unconstrained by that source. The absence is not affirmative permission and does not remove a check
@@ -449,148 +471,302 @@ package with the narrow diagnostic from those sections. The verifier then must c
 4. The `predicateType` is `https://slsa.dev/provenance/v1`.
 5. The `builder.id` is in the trusted release manifest and uses a full SHA.
 6. The `buildType` is `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1`.
-7. The `subject[0].name` matches the expected npm Package URL for the package version.
+7. The `subject[0].name` matches the npm Package URL derived from the authenticated manifest's
+   `name` and `version`, and the digest-verified tarball's packed identity agrees with both.
 8. The `subject[0].digest.sha512` matches the tarball bytes.
 9. The `subject[0].digest.sha256` matches the tarball bytes.
-10. The `externalParameters` include the expected source repository, ref, commit, package directory,
-    normalized package repository, package identity, package manager, runner, publish intent,
-    release ref, and build-script result.
-11. `externalParameters.package.repository`, `externalParameters.source.repository`, and the
-    observed caller repository identity are byte-for-byte equal canonical
-    `https://github.com/<lowercase-owner>/<lowercase-repository>` values. A missing, malformed, or
-    unequal value rejects the package with
-    `windlass.verify.error.package-repository-identity-mismatch`.
-12. The signer identity is the Windlass reusable workflow identity, while the source repository in
-    `externalParameters.source.repository` is the caller package repository.
-13. No unexpected `externalParameters` are present under strict matching.
-14. The selected package is not marked `private: true`.
-15. For `https://registry.npmjs.org/`, the package version was not already present before publish
-    and the selected package identity already existed before publish; first publication of a package
-    identity is outside the initial npmjs trusted-publishing-only profile.
-16. For non-npmjs registries, package identity and package version preflight fields are best-effort
-    diagnostics unless a later ADR defines that registry class. A custom-registry report, including
-    `custom-registry-preflight-inconclusive`, never establishes successful registry conformance.
-17. `externalParameters.package.package_url` equals the registry package-version URL reconstructed
-    from `externalParameters.publish.resolved_registry_url`, `externalParameters.package.name`, and
-    `externalParameters.package.version`. It must not be a Package URL (`pkg:npm/...`).
-18. `externalParameters.source.ref`, `externalParameters.release.ref`, and the accepted built ref
-    are the same full `refs/tags/<tag-name>` ref, and `externalParameters.release.version_tag`
-    reconstructs that same ref. When `source.input_ref` is present it must equal that same ref, and
-    `source.invocation_ref` and `source.invocation_revision` record the invocation context per
-    ADR 0080.
+10. The minimized `externalParameters` exactly match the accepted caller inputs and the closed
+    schema: optional `source` with only `ref`, required `workflow` with only `ref`, `repository`,
+    and `path`, `package` with only `directory`, `publish` with only the three nullable raw
+    `input_registry_url`, `input_dist_tag`, and `input_access` strings, and `distribution` with only
+    the `release_asset_mode` and `linked_artifact_metadata` booleans.
+11. The normalized repository in authenticated manifest evidence equals `workflow.repository`, the
+    certificate Source Repository URI, and both Git source descriptors' URI repository components.
+    All are canonical `https://github.com/<lowercase-owner>/<lowercase-repository>` values after
+    their specified normalization. A missing, malformed, or unequal manifest value rejects the
+    package with `windlass.verify.error.package-repository-identity-mismatch`; certificate and
+    descriptor mismatches use their narrower identity diagnostics.
+12. The signer identity is the Windlass reusable workflow identity, while `workflow.repository` is
+    the caller package repository. `workflow.path` is the certificate-bound caller workflow path,
+    not the reusable builder path.
+13. No unexpected `externalParameters` are present under strict matching. Removed groups and members
+    are rejected with `windlass.verify.error.external-parameters-unexpected`; missing required
+    members use `windlass.verify.error.external-parameters-incomplete`.
+14. The authenticated source manifest is not marked `private: true`. Packed name, version, files,
+    and consumer surface are recomputed from the verified tarball rather than signed as duplicate
+    external parameters.
+15. For `https://registry.npmjs.org/`, producer preflight requires that the package version was not
+    already present before publish and that the selected package identity already existed before
+    publish; first publication of a package identity is outside the initial npmjs
+    trusted-publishing-only profile. These pre-existing-state observations appear only as unsigned
+    `diagnostic_metadata.publish.package_identity_preexisting` and
+    `diagnostic_metadata.publish.package_version_preexisting`; consumer-side signed expectations for
+    them are retired.
+16. For non-npmjs registries, those preflight observations remain best-effort unsigned diagnostics
+    unless a later ADR defines that registry class. A custom-registry report, including
+    `custom-registry-preflight-inconclusive`, never establishes successful registry conformance or
+    changes the implicit buildType support boundary.
+17. Any emitted registry `package-url` output equals the URL independently reconstructed from the
+    publish resolution and authenticated manifest `name` and `version`. Consumers recompute that
+    resolution from the three signed raw publish inputs, manifest `publishConfig`, and documented
+    defaults. The URL is not a Package URL (`pkg:npm/...`) and is not a signed external parameter.
+18. Release expectations bind to the effective built ref, recomputed as `source.ref` when present
+    and `workflow.ref` otherwise, and to `built-source`. The `built-source` URI equals
+    `git+<workflow.repository>@<effective built ref>` and its `digest.gitCommit` is the verified
+    built commit. Its required `annotations.ref_type` is exactly `"tag"`. No `release.*`,
+    `source.repository`, `source.revision`, `source.ref_type`, `source.input_ref`, or
+    `source.invocation_*` member participates in this comparison.
+
+The complete closed external-parameter shape is:
+
+```json
+{
+  "source": { "ref": "refs/tags/v1.2.3" },
+  "workflow": {
+    "ref": "refs/heads/main",
+    "repository": "https://github.com/example/acme-widget",
+    "path": ".github/workflows/publish.yml"
+  },
+  "package": { "directory": "." },
+  "publish": {
+    "input_registry_url": null,
+    "input_dist_tag": null,
+    "input_access": null
+  },
+  "distribution": {
+    "release_asset_mode": false,
+    "linked_artifact_metadata": false
+  }
+}
+```
+
+The `source` group is present exactly when the caller supplied a non-empty `source-ref`; otherwise
+it is omitted rather than emitted as `null` or `{}`. The three publish members preserve raw
+non-empty caller strings and record omitted or ASCII-whitespace-only inputs as `null`. Workflow
+defaults and resolved values never replace those raw records. Missing required members use
+`windlass.verify.error.external-parameters-incomplete`; additional members use
+`windlass.verify.error.external-parameters-unexpected`. Duplicate JSON members are rejected before
+semantic validation.
+
+The closed schema explicitly rejects the former `workflow.sha` and `workflow.builder_id` members;
+the `runtime`, `package_manager`, `release`, `caller`, and `build` groups; `source.repository`,
+`source.revision`, `source.ref_type`, `source.input_ref`, `source.invocation_ref`,
+`source.invocation_revision`, and `source.event_name`; every `package` member other than
+`directory`; every `publish` member other than the three raw inputs; and
+`distribution.release_tag_supplied`, `distribution.provenance_sidecar`, and raw release tags. These
+removed representations are not relocated or accepted under aliases. The removed public
+`release-tag` and `provenance-sidecar` inputs are likewise rejected at the reusable-workflow call
+boundary.
 
 npmjs.com trusted publisher configuration is registry-side publish authorization policy. It is
 enforced by the producer-side publish gate and by npm during `npm publish`. Consumer-side policy
-does not reconstruct the remote registry configuration, but it requires signed
-`externalParameters.caller.workflow_filename` to equal the observed caller filename relevant to that
-trusted-publisher authorization; absence or mismatch fails with
-`windlass.verify.error.trusted-publisher-mismatch`.
+does not reconstruct the remote registry configuration. The trusted-publisher workflow filename is
+the basename of the certificate-bound `workflow.path`; absence or disagreement with the relevant
+caller identity fails with `windlass.verify.error.trusted-publisher-mismatch`. No `caller` group or
+duplicate filename field is signed.
 
-When manifest metadata selected `externalParameters.package_manager.name` and that manager's
-required lockfile is present, verifier policy treats that lockfile as the selected dependency
-lockfile. Any non-selected lockfiles recorded in
-`externalParameters.package_manager.ignored_lockfile_paths` are diagnostics only. A verifier must
-not reject otherwise valid provenance merely because another supported package-manager lockfile was
-present and recorded as ignored under that rule.
+Every manifest-dependent check uses mandatory offline evidence: one closed object containing exactly
+the strings `path` and `content_base64`. `path` is `package.json` for `package.directory: "."` and
+`<package.directory>/package.json` otherwise. `content_base64` is canonical standard RFC 4648 base64
+with required padding and no whitespace; decoded evidence is bounded to 16 MiB and parsed with the
+strict bounded manifest rules, including duplicate-member rejection. SHA-256 of the decoded original
+pre-script source bytes must equal `package-manifest.digest.sha256`, the encoded path must reproduce
+the descriptor URI fragment, the descriptor repository must equal `workflow.repository`, and its
+commit must equal `built-source.digest.gitCommit`. Missing, malformed, oversized, noncanonical, or
+mismatched evidence fails with `windlass.verify.error.package-manifest-evidence`. A network fetch,
+packed or build-mutated manifest substitution, or silently skipped manifest check is forbidden.
 
-When `externalParameters.package_manager.name` is `yarn`, verifier policy must additionally require:
+The name-keyed `lockfile` descriptor's annotations supply package-manager selection provenance:
+`package_manager`, `package_manager_root`, `selection_source`, `selection_manifest_path`,
+`selection_lockfile_path`, and `stale_non_selected_lockfiles`, exactly those six members. The
+selected lockfile is the verifier-relevant dependency graph input. Non-selected supported lockfiles
+recorded in `stale_non_selected_lockfiles` are diagnostics only, receive no descriptor or media
+type, and never cause rejection merely by existing. The URI commit equals
+`built-source.digest.gitCommit`, and the descriptor's `mediaType` is `application/json` for selected
+`package-lock.json` and `application/yaml` for selected `pnpm-lock.yaml` or supported Berry v4/v5
+`yarn.lock`. Descriptor defects fail with `windlass.verify.error.resolved-dependencies-lockfile`.
 
-- `externalParameters.package_manager.selection_source` is `packageManager` or
-  `devEngines.packageManager`;
-- `externalParameters.package_manager.version` is an exact SemVer version greater than or equal to
+When the lockfile annotation `package_manager` is `yarn`, verifier policy additionally requires:
+
+- `selection_source` is `packageManager` or `devEngines.packageManager`, never lockfile-only Yarn
+  inference;
+- the conditional `package-manager-distribution` is present exactly once and its
+  `annotations.package_manager` is `yarn`;
+- its `annotations.package_manager_version` is an exact SemVer version greater than or equal to
   `4.0.0` and lower than `6.0.0`, optionally followed by one integrity digest suffix;
-- `externalParameters.package_manager.yarn_install_mode` is `immutable`;
-- the name-keyed `lockfile` descriptor identifies the selected `yarn.lock`;
+- the name-keyed `lockfile` descriptor identifies the selected `yarn.lock` with
+  `mediaType: application/yaml`;
+- immutable installation remains fixed buildType behavior, with no `yarn_install_mode` signed field
+  or replacement consumer check; and
 - no policy accepts Yarn Classic 1.x, Yarn Berry v2, Yarn Berry v3, Yarn 6 or newer, lockfile-only
   Yarn inference, ambient global Yarn, or Corepack Known Good Release fallback.
 
-When `externalParameters.package_manager.version` carries an integrity digest suffix, verifier
-policy requires the suffix to be the closed `+<algorithm>.<hex>` form defined by the
+When the distribution annotation `package_manager_version` carries an integrity digest suffix,
+verifier policy requires the suffix to be the closed `+<algorithm>.<hex>` form defined by the
 [JS/TS npm build and pack](js-ts-npm-build-pack.md#integrity-digest-declarations) spec: `sha256`,
 `sha384`, or `sha512` with lowercase hex of exactly that algorithm's digest length, and no other
 build-metadata identifiers. A malformed suffix fails with
 `windlass.verify.error.package-manager-digest-malformed`. When the declared algorithm is `sha512`,
-the declared hex must equal the `package-manager-distribution` descriptor's `digest.sha512`; a
-disagreement fails with `windlass.verify.error.resolved-dependencies-package-manager-distribution`.
-Declared `sha256` or `sha384` digests cannot be recomputed from the recorded SHA-512 distribution
-evidence, so verifier policy accepts them as build-time-reconciled declared input (ADR 0092): the
-producer failed closed before install on any mismatch, and the suffix changes neither the
-descriptor's name and exact-version identity nor the recorded observed digest authority.
+the declared hex must equal the descriptor's `digest.sha512`; a disagreement fails with
+`windlass.verify.error.resolved-dependencies-package-manager-distribution`. Declared `sha256` or
+`sha384` digests cannot be recomputed from the recorded SHA-512 distribution evidence, so verifier
+policy accepts them as build-time-reconciled declared input (ADR 0092): the producer failed closed
+before install on any mismatch, and the suffix changes neither the descriptor's exact-version
+identity nor the recorded observed digest authority.
 
-For the v1 npm profile, verifier policy additionally requires the closed `distribution` and `caller`
-groups defined by the [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md) contract.
-The signed locations for the nine public inputs are `package.directory`,
-`publish.input_registry_url`, `publish.input_dist_tag`, `publish.input_access`, `source.input_ref`,
-`distribution.release_asset_mode`, `distribution.release_tag_supplied`,
-`distribution.provenance_sidecar`, and `distribution.linked_artifact_metadata`; the observed trusted
-publisher filename is `caller.workflow_filename`. Missing or unknown `distribution` or `caller`
-members fail with `windlass.verify.error.unexpected-external-parameters`. A signed normalized
-distribution value that disagrees with accepted public mode inputs fails with
-`windlass.verify.error.release-asset-mode-schema-error`; an unavailable or mismatched observed
-caller workflow filename fails with `windlass.verify.error.trusted-publisher-mismatch`.
+Consumers independently recompute publish settings from the three signed raw inputs and
+authenticated `publishConfig` using the public profile's validation and resolution contract:
 
-The closed `distribution` object has exactly `release_asset_mode`, `release_tag_supplied`,
-`provenance_sidecar`, and `linked_artifact_metadata`. The first, second, and fourth members are
-booleans; `provenance_sidecar` is `null` in npm-only mode and exactly `"required"` in release-asset
-mode. `release_tag_supplied` records suppliedness only; the effective tag remains in `release.ref`
-and `release.version_tag`. The closed `caller` object has exactly `workflow_filename`, the
-normalized observed caller workflow filename. A raw release tag in `distribution`, a sidecar value
-preserving omitted-versus-`required` spelling, or another distribution normalization disagreement
-fails with `windlass.verify.error.release-asset-mode-schema-error`; a missing or unknown group
-member fails with `windlass.verify.error.unexpected-external-parameters`.
+1. Empty raw inputs are omitted. Each non-empty input and corresponding manifest setting is
+   validated and normalized. If both are present and normalize differently, verification rejects the
+   conflict rather than preferring either source.
+2. The normalized caller value wins when present, otherwise the manifest value, otherwise the
+   documented default: `https://registry.npmjs.org/` for registry, `latest` for dist-tag, and no
+   `--access` option for access. Omitted access means `existing-package-access`, not permission to
+   create an identity or change access.
+3. The effective registry is absolute HTTPS with lowercase scheme and host, no userinfo, query,
+   fragment, default port `443`, or non-root path, and exactly one trailing slash. Non-empty access
+   is `public` or `restricted` and is never silently discarded.
+4. Manifest `publishConfig.registry`, `tag`, `access`, and `provenance` retain their existing
+   string/boolean policy types. `publishConfig.directory` and disabled provenance are rejected.
+   Other members do not fail solely by existing and never override exact bundle submission.
+5. The registry package-version URL is derived from that resolution and the authenticated name and
+   version under the public `package-url` rule. Resolved settings and the URL are not signed as
+   duplicate fields.
 
-The producer must emit `internalParameters` as exactly `{}`. Verification treats an absent field,
-explicit JSON `null`, and `{}` as equivalent empty values per the SLSA parsing rules. A nonempty
-object or any non-object, non-null value fails with
-`windlass.verify.error.unexpected-internal-parameters`.
+The closed `distribution` object has exactly two booleans, `release_asset_mode` and
+`linked_artifact_metadata`, which equal the accepted caller options. `release_tag_supplied` and
+`provenance_sidecar` are forbidden, not nullable or `"required"` members. Release-asset mode itself
+mandates the unchanged verified bundle sidecar and derives the existing Release target from the
+effective built tag. The standalone publisher's required `release-tag` input and internal handoff
+release-tag equality checks remain in force. A distribution value that disagrees with accepted
+public mode inputs fails with `windlass.verify.error.release-asset-mode-schema-error`; missing or
+unknown members use the closed external-parameter diagnostics above.
 
-`resolvedDependencies` is unordered and selected by `name`, never by array position. npm requires
-exactly three descriptors: `lockfile`, `node-runtime`, and `runner-image`. pnpm and Yarn require
-exactly four, adding one `package-manager-distribution`. An unknown descriptor name, including
-`npm-cli`, or any non-enumerated extra entry fails with
-`windlass.verify.error.resolved-dependencies-unexpected-entry`. A known manager-distribution
-descriptor that is missing, duplicated, forbidden for npm, malformed, uses the wrong authority, or
-disagrees with `externalParameters.package_manager` fails with
+For the npm profile, signed `runDetails.metadata.windlass_build_script_disposition` is required and
+is exactly `executed` or `skipped-absent`. The authenticated manifest determines whether
+`scripts.build` was declared: `executed` means that declared script ran, and `skipped-absent` means
+none was declared. A missing, unsupported, or manifest-inconsistent value fails with
+`windlass.verify.error.build-script-disposition-mismatch`. This field is signed run-outcome
+metadata, not diagnostic-only data. Package identity/version pre-existence observations are unsigned
+`diagnostic_metadata.publish` values only; their former consumer-side signed expectations are
+retired while producer preflights and mutation-entry convergence gates remain mandatory.
+
+The producer must emit `internalParameters` as a required closed object containing exactly one
+`github` member. That member is an object containing exactly the three strings `event_name`,
+`repository_id`, and `repository_owner_id`, constructed from GitHub-issued OIDC claims. An absent,
+`null`, empty, non-object, or otherwise malformed value; a missing or additional `github` member; a
+missing, additional, or non-string field; and actor fields such as `actor_id` or
+`triggering_actor_id` all fail with `windlass.verify.error.unexpected-internal-parameters`. Build
+Trigger must equal `event_name` or fail with `windlass.verify.error.build-trigger-mismatch`. The two
+numeric IDs must match the certificate and trusted policy. These comparisons occur before any
+registry or release mutation.
+
+`resolvedDependencies` is unordered and selected by `name`, never by array position. Duplicate names
+are rejected before lookup. npm requires exactly six descriptors: `invocation-source`,
+`built-source`, `package-manifest`, `lockfile`, `node-runtime`, and `runner-image`. pnpm and Yarn
+require exactly seven, adding one `package-manager-distribution`. Producer emission order is
+`invocation-source`, `built-source`, `package-manifest`, `lockfile`, `node-runtime`, the conditional
+distribution, then `runner-image`; semantic consumers accept any permutation of a valid set. An
+unknown descriptor name, including `npm-cli`, or any non-enumerated extra entry fails with
+`windlass.verify.error.resolved-dependencies-unexpected-entry`.
+
+`invocation-source` has exactly `name`, `uri`, and `digest`, with no annotations or `mediaType`. Its
+URI is `git+<workflow.repository>@<workflow.ref>` with no fragment, and its only digest member is a
+full 40-character lowercase `gitCommit` equal to the certificate Source Repository Digest. A
+missing, duplicate, malformed, or mismatched descriptor fails with
+`windlass.verify.error.resolved-dependencies-invocation-source`. `built-source` has exactly `name`,
+`uri`, `digest`, and `annotations`. Its URI uses the effective built ref, its only digest member is
+the verified built `gitCommit`, `annotations` contains exactly `ref_type: "tag"`, and `mediaType` is
+forbidden. Its failures use `windlass.verify.error.resolved-dependencies-built-source`. With no
+explicit `source.ref`, both source descriptors have identical URI and digest values under their
+distinct required names.
+
+`package-manifest` has exactly `name`, `uri`, `digest`, `mediaType`, and `annotations`. Its URI is
+`git+<workflow.repository>@<built-source.digest.gitCommit>#<encoded selected manifest path>`, its
+only digest is the original source bytes' `sha256`, `mediaType` is exactly `application/json`, and
+`annotations` contains exactly `workspace_root`, which is `null` for a standalone package or the
+validated repository-root-relative workspace root. `content` and `downloadLocation` are forbidden.
+Descriptor failures use `windlass.verify.error.resolved-dependencies-package-manifest`; evidence
+failures use `windlass.verify.error.package-manifest-evidence`.
+
+A manager-distribution descriptor that is missing, duplicated, forbidden for npm, malformed, uses
+the wrong authority or media type, or disagrees with the selected manager or version fails with
 `windlass.verify.error.resolved-dependencies-package-manager-distribution`. A missing, duplicated,
 malformed, digest-bearing, or mismatched `runner-image` fails with
 `windlass.verify.error.resolved-dependencies-runner-image`.
 
+Concrete non-runner descriptors use this closed media-type matrix; missing, wrong, or forbidden
+values fail the owning descriptor's diagnostic. `mediaType` is descriptive only and never selects a
+parser or permits a network repair.
+
+| Descriptor                     | Digest-covered representation                       | Required value     |
+| ------------------------------ | --------------------------------------------------- | ------------------ |
+| `package-manifest`             | Selected original `package.json` bytes              | `application/json` |
+| `lockfile`                     | Selected `package-lock.json` bytes                  | `application/json` |
+| `lockfile`                     | Selected `pnpm-lock.yaml` bytes                     | `application/yaml` |
+| `lockfile`                     | Selected supported Berry v4/v5 `yarn.lock` bytes    | `application/yaml` |
+| `node-runtime`                 | Exact compressed Node.js `.tar.gz` bytes            | `application/gzip` |
+| `package-manager-distribution` | Exact npm registry `.tgz` bytes                     | `application/gzip` |
+| `package-manager-distribution` | Exact current single `yarn.js` bytes                | `text/javascript`  |
+| `invocation-source`            | Git commit or tree identity                         | Forbidden          |
+| `built-source`                 | Git commit or tree identity                         | Forbidden          |
+| `runner-image`                 | Runner-image reported identity, not a byte artifact | Forbidden          |
+
+No generic or producer-selected media-type fallback is accepted. `application/gzip` never describes
+an extracted tree, and `text/javascript` never describes a containing registry tarball. No
+descriptor carries `content` or `downloadLocation`.
+
 The [node-runtime descriptor](js-ts-npm-provenance-publish.md#nodejs-runtime-descriptor) has exactly
-the embedded `linux-x64` artifact URI, exactly one lowercase compressed-tarball `digest.sha256`, and
-exactly the string annotations `digest_authority: "builder-pinned-record"` and
-`platform: "linux-x64"`. The authority is the repository-committed
-`internal/toolchainpins/node-runtime.json` trust anchor, not registry integrity or runtime signature
-verification. The descriptor covers the build-stage runtime and its bundled npm bytes, not the
+`name`, `uri`, `digest`, `mediaType`, and `annotations`: the embedded `linux-x64` artifact URI,
+exactly one lowercase compressed-tarball `digest.sha256`, `mediaType: application/gzip`, and exactly
+the string annotations `digest_authority: "builder-pinned-record"` and `platform: "linux-x64"`. The
+authority is the repository-committed `internal/toolchainpins/node-runtime.json` trust anchor, not
+registry integrity or runtime signature verification. The digest and media type cover the exact
+compressed build-stage runtime tarball and its bundled npm bytes, not the extracted tree or the
 separately provisioned publish-stage npm CLI. Before comparing accompanying expected metadata, the
 consumer must compare the received descriptor against the pin embedded for the applicable builder
 revision, so jointly corrupted descriptor and metadata values cannot pass. This does not require
 retrieval of historical pin records across builder releases.
 
 After successful strict JSON and structural decoding, an unknown top-level member on this
-descriptor, such as `mediaType` or a case-variant of a recognized member, is rejected with
+descriptor, such as `downloadLocation` or a case-variant of a recognized member, is rejected with
 `windlass.verify.error.resolved-dependencies-node-runtime`. The same diagnostic covers a missing or
-duplicate runtime descriptor, wrong URI, wrong, malformed, or extra digest member, missing, unknown,
-wrong-type, or wrong-value annotation, or exact metadata mismatch, using default diagnostic
-precedence. Strict JSON and structural decode errors retain their existing higher precedence and do
-not all map to this semantic diagnostic. This descriptor-local rejection does not change the common
-in-toto Statement envelope's tolerant handling of unrecognized fields or the build metadata
-artifact's strict closed-schema decoding. An embedded pin load failure is trusted input unavailable
-and uses `windlass.verify.error.input-unavailable` with exit code `2`, not the runtime-descriptor
-diagnostic.
+duplicate runtime descriptor, wrong URI, missing or wrong media type, wrong, malformed, or extra
+digest member, missing, unknown, wrong-type, or wrong-value annotation, or exact metadata mismatch,
+using default diagnostic precedence. Strict JSON and structural decode errors retain their existing
+higher precedence and do not all map to this semantic diagnostic. This descriptor-local rejection
+does not change the common in-toto Statement envelope's tolerant handling of unrecognized fields or
+the build metadata artifact's strict closed-schema decoding. An embedded pin load failure is trusted
+input unavailable and uses `windlass.verify.error.input-unavailable` with exit code `2`, not the
+runtime-descriptor diagnostic.
 
-The `runner-image` descriptor has no `digest`; its `uri` is the verbatim `Included Software` report
-URL read from `/imagegeneration/imagedata.json`, and its closed annotations are
-`deployment_version`, `image_os`, `image_version`, and `node_version` (ADR 0100). `image_version`
-carries the file's `Version:` line and is authoritative for the image identity; `deployment_version`
-carries the `$ImageVersion` environment value (or null) as non-authoritative control-plane
-deployment evidence, and is never compared against `image_version`. Capture must confirm the
-documented file shape and the exact observed `node --version` before predicate construction. Capture
-evidence unavailable at that stage fails with `windlass.verify.error.input-unavailable` and exit
-code `2`, with both observed environment operands in the diagnostic message; a constructed
-descriptor that violates this shape fails with the narrow runner-image diagnostic.
+The `runner-image` descriptor has exactly `name`, `uri`, and `annotations`, with no `digest`,
+`content`, `mediaType`, or `downloadLocation`. Its `uri` is the verbatim platform-supplied Included
+Software URI from one bounded local `/imagegeneration/imagedata.json` snapshot. Annotations are
+exactly `deployment_version` (the control-plane value or `null`), `operating_system` (the exact
+decoded `Operating System.detail` string), `image_version` (the exact full on-disk `Version:`
+string), and `runner_label` (the independently observed Actions label). `image_os`, `node_version`,
+and every additional annotation are rejected. The URI and full `image_version` form the sole
+reported-identity pair; `operating_system` is non-identifying context, and `deployment_version` is
+non-authoritative rollout evidence that need not equal `image_version`.
 
-`builder.version` is closed: it contains required lowercase `nodejs` and contains lowercase
-`corepack` only when Corepack supplied the selected manager. Missing or extra keys, wrong
+Producer and baseline consumer checks validate the supported URI/version projection offline: the
+first two numeric components of `image_version` must agree with the release-tag component in the
+captured URI. Neither value is rewritten or truncated. No DNS, HTTP, report, tag, release, or other
+network lookup is required or permitted as a fallback, and HTTP 404 does not reject valid local
+evidence. Baseline consumers validate the signed closed shape, annotation types and values, and the
+projection without requiring the raw snapshot or independently rechecking OS extraction. Producer
+capture failures, including missing, duplicate, malformed, empty, or whitespace-only OS
+groups/details and any environment substitution, fail closed before signing. `$ImageOS` is optional
+diagnostic-only context and is never required, compared, signed elsewhere, or used as a fallback.
+Unavailable local capture evidence uses `windlass.verify.error.input-unavailable` with exit code
+`2`; descriptor violations use `windlass.verify.error.resolved-dependencies-runner-image`.
+
+`builder.version` is closed: it contains required lowercase `nodejs` and `npm`, and contains
+lowercase `corepack` only when Corepack supplied the selected manager. `nodejs` is the single home
+for the observed Node.js version; `npm` records only the build-stage bundled npm from the pinned
+toolchain pair, never the separately provisioned publish-stage npm. Missing or extra keys, wrong
 conditional `corepack` presence, or an observed-version mismatch fails with
 `windlass.verify.error.builder-version-mismatch`. `builderDependencies` contains exactly one signing
 adapter descriptor: `pkg:golang/github.com/sigstore/sigstore-go@v1.3.0`, with exactly
@@ -598,29 +774,82 @@ adapter descriptor: `pkg:golang/github.com/sigstore/sigstore-go@v1.3.0`, with ex
 A missing, extra, malformed, wrong-role, or module/checksum-inconsistent descriptor fails with
 `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.
 
-The following valid npm-profile fragments show the closed v1 shapes. The runner-image URI is the
-verbatim platform-provided `Included Software` URL, not a reconstructed URL.
+The following valid npm-profile fragment shows the revised closed v1 shapes for a dispatch retry
+with direct npm. The digests stand for the actual values bound to the selected source, manifest,
+lockfile, runtime, and tarball bytes. The runner-image URI is the verbatim platform-provided
+Included Software URI, not a reconstructed URL.
 
 ```json
 {
-  "internalParameters": {},
+  "internalParameters": {
+    "github": {
+      "event_name": "workflow_dispatch",
+      "repository_id": "123456789",
+      "repository_owner_id": "987654321"
+    }
+  },
   "externalParameters": {
+    "source": { "ref": "refs/tags/v1.2.3" },
+    "workflow": {
+      "ref": "refs/heads/main",
+      "repository": "https://github.com/example/acme-widget",
+      "path": ".github/workflows/publish.yml"
+    },
+    "package": { "directory": "." },
+    "publish": {
+      "input_registry_url": null,
+      "input_dist_tag": null,
+      "input_access": null
+    },
     "distribution": {
       "release_asset_mode": false,
-      "release_tag_supplied": false,
-      "provenance_sidecar": null,
       "linked_artifact_metadata": false
-    },
-    "caller": { "workflow_filename": "release.yml" }
+    }
   },
   "resolvedDependencies": [
-    { "name": "lockfile" },
+    {
+      "name": "invocation-source",
+      "uri": "git+https://github.com/example/acme-widget@refs/heads/main",
+      "digest": { "gitCommit": "89abcdef0123456789abcdef0123456789abcdef" }
+    },
+    {
+      "name": "built-source",
+      "uri": "git+https://github.com/example/acme-widget@refs/tags/v1.2.3",
+      "digest": { "gitCommit": "0123456789abcdef0123456789abcdef01234567" },
+      "annotations": { "ref_type": "tag" }
+    },
+    {
+      "name": "package-manifest",
+      "uri": "git+https://github.com/example/acme-widget@0123456789abcdef0123456789abcdef01234567#package.json",
+      "digest": {
+        "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      },
+      "mediaType": "application/json",
+      "annotations": { "workspace_root": null }
+    },
+    {
+      "name": "lockfile",
+      "uri": "git+https://github.com/example/acme-widget@0123456789abcdef0123456789abcdef01234567#package-lock.json",
+      "digest": {
+        "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+      },
+      "mediaType": "application/json",
+      "annotations": {
+        "package_manager": "npm",
+        "package_manager_root": ".",
+        "selection_source": "lockfile",
+        "selection_manifest_path": null,
+        "selection_lockfile_path": "package-lock.json",
+        "stale_non_selected_lockfiles": []
+      }
+    },
     {
       "name": "node-runtime",
       "uri": "https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz",
       "digest": {
         "sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"
       },
+      "mediaType": "application/gzip",
       "annotations": {
         "digest_authority": "builder-pinned-record",
         "platform": "linux-x64"
@@ -628,18 +857,18 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
     },
     {
       "name": "runner-image",
-      "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+      "uri": "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md",
       "annotations": {
-        "deployment_version": "20260801.1.1",
-        "image_os": "ubuntu24",
-        "image_version": "20260801.1.0",
-        "node_version": "v24.22.1"
+        "deployment_version": "20261026.354.1",
+        "operating_system": "Ubuntu\n24.04.5\nLTS",
+        "image_version": "20261025.353.1",
+        "runner_label": "ubuntu-24.04"
       }
     }
   ],
   "runDetails": {
     "builder": {
-      "version": { "nodejs": "v24.22.1" },
+      "version": { "nodejs": "v24.22.1", "npm": "11.19.1" },
       "builderDependencies": [
         {
           "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
@@ -649,7 +878,10 @@ verbatim platform-provided `Included Software` URL, not a reconstructed URL.
       ]
     },
     "metadata": {
-      "invocationId": "https://github.com/example/acme-widget/actions/runs/123456789/attempts/2"
+      "invocationId": "https://github.com/example/acme-widget/actions/runs/123456789/attempts/2",
+      "startedOn": "2026-11-12T12:00:00Z",
+      "finishedOn": "2026-11-12T12:00:03Z",
+      "windlass_build_script_disposition": "executed"
     }
   }
 }
@@ -663,13 +895,13 @@ because the runner image carries a digest:
   "resolvedDependencies": [
     {
       "name": "runner-image",
-      "uri": "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+      "uri": "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md",
       "digest": { "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" },
       "annotations": {
-        "deployment_version": "20260801.1.1",
-        "image_os": "ubuntu24",
-        "image_version": "20260801.1.0",
-        "node_version": "v24.22.1"
+        "deployment_version": "20261026.354.1",
+        "operating_system": "Ubuntu\n24.04.5\nLTS",
+        "image_version": "20261025.353.1",
+        "runner_label": "ubuntu-24.04"
       }
     }
   ]
@@ -700,9 +932,27 @@ the asset with the narrow diagnostic from those sections. The verifier then must
    policy. For the initial npm composition, this is the npm Package URL, not the release asset name.
 8. The selected producer policy binds the release asset name to the verified producer artifact. For
    the initial npm composition, the release asset name must match the pack-produced tarball filename
-   recorded in producer provenance and handoff fields.
+   in verified pack output and the digest-verified handoff. No external-parameter tarball-name field
+   supplies or replaces that binding.
 9. The producer `subject[0].digest.sha256` matches the downloaded asset bytes.
 10. The publisher did not generate or re-sign the provenance.
+11. `source-repository` equals `externalParameters.workflow.repository`, the normalized repository
+    in authenticated manifest evidence, and both Git source descriptors' URI repository components.
+    `source-revision` equals `built-source.digest.gitCommit`; neither value comes from removed
+    `source.repository` or `source.revision` members.
+12. The effective built ref is `externalParameters.source.ref` when present and
+    `externalParameters.workflow.ref` otherwise. The standalone publisher's required `release-tag`
+    input and the `built-source` URI ref component equal that full `refs/tags/<tag-name>` ref, and
+    the target is the existing Release for that tag in the caller repository.
+13. Required `manifest-evidence` binds the original selected manifest bytes to
+    `package-manifest.digest.sha256`, its URI path and built-source commit, and
+    `workflow.repository`. Missing, malformed, oversized, or mismatched evidence fails before
+    Release mutation with `windlass.verify.error.package-manifest-evidence`, with no network
+    fallback or skipped check.
+14. Authenticated manifest name and version match the npm Package URL subject and packed tarball
+    identity, and manifest `publishConfig` satisfies the raw-input resolution and producer-policy
+    checks. The revised closed external-parameter and dependency shapes are verified as in the npm
+    package policy above.
 
 For publication-state or same-run convergence checks, the GitHub Release asset `digest` is the sole
 authoritative remote binding. Downloaded bytes and locally computed hashes are diagnostic evidence
@@ -831,10 +1081,16 @@ Run the steps in this order:
    into the post-processor's typed JSON model. Missing, duplicate, or malformed certificate values
    fail with `windlass.verify.error.signer-identity-claim-missing`.
 6. In the JSON post-processor, compare the exact issuer; SAN and Build Signer URI; Build Signer
-   Digest; source URI, numeric repository IDs, digest, and ref; Run Invocation URI;
-   `metadata.invocationId`; and runner environment against the policy inputs. A mismatch fails with
-   the diagnostic assigned to that binding. Do not read `github.workflow_sha`, workflow logs,
-   unsigned outputs, or artifact names to fill a missing certificate claim.
+   Digest; Source Repository URI with `workflow.repository`, normalized manifest repository, and
+   both source descriptors; Source Repository Digest with `invocation-source.digest.gitCommit`;
+   Source Repository Ref with `workflow.ref` and the invocation-source URI; numeric repository IDs
+   with `internalParameters.github`; Build Trigger with `internalParameters.github.event_name`;
+   Build Config URI with `workflow.path`; Run Invocation URI with `metadata.invocationId`; and
+   runner environment against the policy inputs. Compare built-release expectations with the
+   effective built ref and `built-source`, never with invocation claims or removed source/release
+   members. A mismatch fails with the diagnostic assigned to that binding. Do not read
+   `github.workflow_sha`, workflow logs, unsigned outputs, or artifact names to fill a missing
+   certificate claim.
 7. Verify the bundle-contained SCT, Rekor inclusion proof, SET, and SET-covered integrated time
    against the governed root. This step uses only local bundle and root bytes and fails with the
    applicable transparency or signing-time diagnostic. An RFC 3161 timestamp, when present, is
@@ -844,8 +1100,10 @@ Run the steps in this order:
    fields enter the ADR 0062 policy intersection. An unauthenticated manifest fails with
    `windlass.verify.error.release-manifest-mismatch` and contributes no policy values.
 9. Compute the field-by-field intersection of authenticated manifest expectations and explicit
-   policy, then validate Statement structure, `predicateType`, `builder.id`, `buildType`, strict
-   `externalParameters`, subject identity, and artifact digests. A conflict fails with
+   policy, then validate Statement structure, `predicateType`, `builder.id`, `buildType`, the
+   minimized closed `externalParameters`, the required `internalParameters.github` triple, subject
+   identity, artifact digests, the six/seven name-keyed descriptors and media-type matrix, offline
+   manifest evidence, and the signed build-script disposition. A conflict fails with
    `windlass.verify.error.trusted-producer-policy-conflict`; semantic or digest failures use the
    narrower registered diagnostic.
 10. Serialize the diagnostic report defined below. Acceptance occurs only when every required check
@@ -886,13 +1144,18 @@ slsa-verifier verify-artifact \
   --builder-id <windlass-builder-id>
 ```
 
-`--source-uri` is the package source repository recorded in `externalParameters.source.repository`.
-`--builder-id` is the SHA-pinned Windlass reusable workflow identity from `runDetails.builder.id`.
-This command may verify the SLSA provenance structure but may not enforce all Windlass-specific
-policy checks such as strict `externalParameters` and release manifest mapping. The remote npm
-trusted-publisher configuration object is a producer-side registry authorization precondition, but
-the signed `caller.workflow_filename` is a consumer-verified provenance field enforced under the npm
-package verification policy.
+`--source-uri` is the package source repository recorded in
+`externalParameters.workflow.repository`. `--builder-id` is the SHA-pinned Windlass reusable
+workflow identity from `runDetails.builder.id`. When a compatible tool exposes a source-tag or
+source-ref constraint, that expectation is the effective built ref (`source.ref` when present,
+otherwise `workflow.ref`) and must equal the `built-source` URI ref. A source-revision constraint is
+`built-source.digest.gitCommit`. Invocation certificate comparisons remain separate and never
+substitute for these built-source expectations. This command may verify the SLSA provenance
+structure but may not enforce all Windlass-specific policy checks such as strict
+`externalParameters`, offline manifest evidence, and release manifest mapping. The remote npm
+trusted-publisher configuration object is a producer-side registry authorization precondition;
+consumer verification derives its workflow filename from the certificate-bound `workflow.path`
+rather than a removed `caller` field.
 
 ## Fixture taxonomy
 
@@ -910,6 +1173,7 @@ closed schema; unknown members and values that fail this schema fail the fixture
     "surface",
     "artifact",
     "provenance",
+    "manifest-evidence",
     "release-manifest",
     "expected-result",
     "expected-failure-category",
@@ -923,6 +1187,7 @@ closed schema; unknown members and values that fail this schema fail the fixture
     "surface": { "enum": ["npm", "publisher", "composition", "release-manifest"] },
     "artifact": { "type": "string", "minLength": 1 },
     "provenance": { "type": "string", "minLength": 1 },
+    "manifest-evidence": { "type": ["string", "null"] },
     "release-manifest": { "type": ["string", "null"] },
     "expected-result": { "enum": ["pass", "fail"] },
     "expected-failure-category": { "type": ["string", "null"] },
@@ -938,19 +1203,28 @@ An `accepted` fixture has `expected-result: "pass"`, `expected-failure-category:
 non-null failure category, and its corresponding non-null canonical primary ID. Every fixture must
 include:
 
-| Field                       | Description                                                    |
-| --------------------------- | -------------------------------------------------------------- |
-| `name`                      | Unique fixture name.                                           |
-| `type`                      | `accepted` or `rejected`.                                      |
-| `surface`                   | `npm`, `publisher`, `composition`, or `release-manifest`.      |
-| `artifact`                  | Path to the artifact.                                          |
-| `provenance`                | Path to the provenance bundle.                                 |
-| `release-manifest`          | Path to the release manifest, if applicable.                   |
-| `expected-result`           | `pass` or `fail`.                                              |
-| `expected-failure-category` | Required for `rejected` fixtures.                              |
-| `expected-primary-id`       | Required stable primary diagnostic ID for a rejected fixture.  |
-| `expected-secondary-ids`    | Ordered independent secondary diagnostic IDs, when applicable. |
-| `covered-requirement`       | Spec or ADR requirement covered by the fixture.                |
+| Field                       | Description                                                                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                      | Unique fixture name.                                                                                                                    |
+| `type`                      | `accepted` or `rejected`.                                                                                                               |
+| `surface`                   | `npm`, `publisher`, `composition`, or `release-manifest`.                                                                               |
+| `artifact`                  | Path to the artifact.                                                                                                                   |
+| `provenance`                | Path to the provenance bundle.                                                                                                          |
+| `manifest-evidence`         | Path to the closed offline manifest-evidence object for npm, publisher, and composition fixtures; `null` for release-manifest fixtures. |
+| `release-manifest`          | Path to the release manifest, if applicable.                                                                                            |
+| `expected-result`           | `pass` or `fail`.                                                                                                                       |
+| `expected-failure-category` | Required for `rejected` fixtures.                                                                                                       |
+| `expected-primary-id`       | Required stable primary diagnostic ID for a rejected fixture.                                                                           |
+| `expected-secondary-ids`    | Ordered independent secondary diagnostic IDs, when applicable.                                                                          |
+| `covered-requirement`       | Spec or ADR requirement covered by the fixture.                                                                                         |
+
+For npm, publisher, and composition fixtures, `manifest-evidence` resolves to exactly one closed
+JSON object with `path` and `content_base64`. The harness verifies that evidence against the signed
+`package-manifest` descriptor before any manifest-dependent check. A missing required path, an
+additional or duplicate member, malformed evidence, or a digest/path/repository/commit mismatch is a
+rejected fixture with primary ID `windlass.verify.error.package-manifest-evidence`, not a missing
+optional input. The harness must prove that no network fallback occurs. Release-manifest fixtures
+use `null` because their predicate has no npm package-manifest evidence contract.
 
 The npm PURL-derivation compatibility fixture family required by the
 [JS/TS npm provenance and publish specification](js-ts-npm-provenance-publish.md#npm-package-subject-naming)
@@ -1083,12 +1357,19 @@ and exits `2`; a fixture that proves its condition but emits another primary ID 
 | `windlass.verify.error.package-repository-identity-mismatch`               | Raw repository metadata is missing, malformed, or normalizes to another source.                                                                                                                                                                                                                                                                                                                                                                        |
 | `windlass.verify.error.unregistered-producer-build-type`                   | A producer `buildType` is absent from the closed publisher policy registry.                                                                                                                                                                                                                                                                                                                                                                            |
 | `windlass.verify.error.verification-mode-invalid`                          | Invocation mode is absent, multiple, conflicting, or incompatible with trust-root shape.                                                                                                                                                                                                                                                                                                                                                               |
-| `windlass.verify.error.unexpected-internal-parameters`                     | `internalParameters` is a nonempty object or a non-object, non-null value.                                                                                                                                                                                                                                                                                                                                                                             |
+| `windlass.verify.error.unexpected-internal-parameters`                     | `internalParameters` is absent, `null`, empty, malformed, or does not contain exactly the closed `github` object with three string fields `event_name`, `repository_id`, and `repository_owner_id`.                                                                                                                                                                                                                                                    |
+| `windlass.verify.error.build-trigger-mismatch`                             | The certificate Build Trigger differs from `internalParameters.github.event_name`.                                                                                                                                                                                                                                                                                                                                                                     |
+| `windlass.verify.error.build-config-uri-mismatch`                          | The certificate Build Config URI does not identify the caller `workflow.path`, or the reusable builder path is substituted for it.                                                                                                                                                                                                                                                                                                                     |
 | `windlass.verify.error.resolved-dependencies-unexpected-entry`             | An unknown descriptor name or non-enumerated dependency entry is present.                                                                                                                                                                                                                                                                                                                                                                              |
-| `windlass.verify.error.resolved-dependencies-node-runtime`                 | After structural decoding, the node-runtime descriptor is missing, duplicated, has an unknown top-level member, has a wrong URI, has a wrong, malformed, or extra digest member, has a missing, unknown, wrong-type, or wrong-value annotation, or mismatches exact expected metadata.                                                                                                                                                                 |
-| `windlass.verify.error.resolved-dependencies-package-manager-distribution` | The known conditional manager-distribution descriptor is missing, duplicated, forbidden, or malformed.                                                                                                                                                                                                                                                                                                                                                 |
-| `windlass.verify.error.resolved-dependencies-runner-image`                 | The runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched.                                                                                                                                                                                                                                                                                                                                                          |
-| `windlass.verify.error.builder-version-mismatch`                           | Closed `builder.version` keys or observed versions are invalid.                                                                                                                                                                                                                                                                                                                                                                                        |
+| `windlass.verify.error.resolved-dependencies-invocation-source`            | The invocation-source descriptor is missing, duplicated, malformed, wrongly typed, or inconsistent with `workflow.ref`, `workflow.repository`, or the certificate invocation digest.                                                                                                                                                                                                                                                                   |
+| `windlass.verify.error.resolved-dependencies-built-source`                 | The built-source descriptor is missing, duplicated, malformed, or inconsistent with the effective built ref, verified built commit, repository, or required `ref_type: "tag"` annotation.                                                                                                                                                                                                                                                              |
+| `windlass.verify.error.resolved-dependencies-package-manifest`             | The package-manifest descriptor is missing, duplicated, malformed, wrongly typed, or inconsistent with its source identity, path, SHA-256, media type, or `workspace_root`.                                                                                                                                                                                                                                                                            |
+| `windlass.verify.error.package-manifest-evidence`                          | Required offline original-manifest evidence is missing, malformed, oversized, noncanonical, or mismatched in digest, path, repository, or built commit.                                                                                                                                                                                                                                                                                                |
+| `windlass.verify.error.build-script-disposition-mismatch`                  | Required signed `runDetails.metadata.windlass_build_script_disposition` is missing, unsupported, or inconsistent with authenticated manifest evidence.                                                                                                                                                                                                                                                                                                 |
+| `windlass.verify.error.resolved-dependencies-node-runtime`                 | After structural decoding, the node-runtime descriptor is missing, duplicated, has an unknown top-level member, wrong URI, missing or wrong media type, wrong, malformed, or extra digest member, missing, unknown, wrong-type, or wrong-value annotation, or mismatches exact expected metadata.                                                                                                                                                      |
+| `windlass.verify.error.resolved-dependencies-package-manager-distribution` | The known conditional manager-distribution descriptor is missing, duplicated, forbidden, malformed, or has a wrong authority, media type, manager, or version.                                                                                                                                                                                                                                                                                         |
+| `windlass.verify.error.resolved-dependencies-runner-image`                 | The runner-image descriptor is missing, duplicated, malformed, digest-bearing, projection-mismatched, snapshot-inconsistent, or carries forbidden members such as `mediaType`, `image_os`, or `node_version`.                                                                                                                                                                                                                                          |
+| `windlass.verify.error.builder-version-mismatch`                           | Closed `builder.version` keys or observed versions are invalid, including missing `nodejs` or `npm` and incorrect conditional `corepack`.                                                                                                                                                                                                                                                                                                              |
 | `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or dependency-inconsistent.                                                                                                                                                                                                                                                                                                                                                  |
 | `windlass.verify.error.mutation-queue-overflow`                            | GitHub rejects an arrival beyond 100 pending executions in one mutation concurrency group.                                                                                                                                                                                                                                                                                                                                                             |
 | `windlass.verify.error.npm-oidc-exchange-indeterminate`                    | The npm OIDC token exchange surface is unreadable or erroring, including HTTP `5xx`, a malformed response, or a success body violating the pinned exchange response contract (an unknown or missing member, a wrong `token_type`, or an invalid or inverted timestamp), so trusted-publisher configuration cannot be classified; the run fails as `indeterminate` even though the exchange mints only a short-lived publish token and mutates nothing. |
@@ -1098,17 +1379,18 @@ and exits `2`; a fixture that proves its condition but emits another primary ID 
 
 Expanded ownership for existing IDs is fixed as follows: `run-invocation-uri-invalid` owns a
 malformed or missing URI and inequality between `metadata.invocationId` and Fulcio OID `.21`;
-`unexpected-external-parameters` owns missing or unknown closed `distribution` and `caller` members;
+`external-parameters-unexpected` owns removed or unknown closed external-parameter members;
 `release-asset-mode-schema-error` owns a signed normalized distribution value that disagrees with an
-accepted public mode input; `trusted-publisher-mismatch` owns unavailable or mismatched observed
-caller workflow filename, trusted-publisher configuration or authentication rejection at the early
-OIDC exchange preflight (HTTP `401` or `404`), and residual publish-time authorization rejections
-(npm `E404` or `ENEEDAUTH`) mapped into this taxonomy under ADR 0076; `verification-network-call`
-owns any offline network attempt as well as its existing log-query prohibition;
-`ungoverned-trust-root` owns online TUF authentication failure, online pin fallback, and pinned-root
-digest or repository mismatch; `stale-pinned-trust-root` owns a pin used after `refresh_before`; and
-`input-unavailable` owns producer capture evidence unavailable before candidate predicate
-construction. These ownership rules do not change their existing severity or exit mappings.
+accepted public mode input; `trusted-publisher-mismatch` owns an unavailable or mismatched caller
+filename derived from `workflow.path`, trusted-publisher configuration or authentication rejection
+at the early OIDC exchange preflight (HTTP `401` or `404`), and residual publish-time authorization
+rejections (npm `E404` or `ENEEDAUTH`) mapped into this taxonomy under ADR 0076;
+`verification-network-call` owns any offline network attempt as well as its existing log-query
+prohibition; `ungoverned-trust-root` owns online TUF authentication failure, online pin fallback,
+and pinned-root digest or repository mismatch; `stale-pinned-trust-root` owns a pin used after
+`refresh_before`; and `input-unavailable` owns producer capture evidence unavailable before
+candidate predicate construction. These ownership rules do not change their existing severity or
+exit mappings.
 
 ### Machine-readable serialization
 
@@ -1172,11 +1454,20 @@ identifiers such as an OID, bundle path, artifact digest, or certificate fingerp
 #### Producer diagnostic metadata extension
 
 `diagnostic_metadata`, when present, is a closed object containing only the optional closed
-`package_manifest` object and the optional `publish_npm_version` member defined below. It records
-raw, non-trust package metadata for diagnostic reports. It does not change verifier policy,
-publication policy, or provenance. In particular, no raw package metadata belongs in SLSA
-`internalParameters` or `externalParameters`; the separately normalized
-`externalParameters.package.repository` value is defined by the npm producer specification.
+`package_manifest` object, the optional `publish_npm_version` member, and the optional closed
+`publish` object defined below. It records raw, non-trust package metadata and preflight
+observations for diagnostic reports. It does not change verifier policy, publication policy, or
+provenance. Diagnostic-only data stays out of signed parameters. Manifest-derived policy instead
+uses the authenticated offline manifest evidence and the minimized external-parameter recompute
+rules; no raw package metadata is placed in `internalParameters` or duplicated in
+`externalParameters`.
+
+The npm profile's signed `runDetails.metadata.windlass_build_script_disposition` is not diagnostic
+metadata: it is a required signed run-outcome field whose value must agree with authenticated
+manifest evidence. Conversely, `publish.package_identity_preexisting` and
+`publish.package_version_preexisting` are demoted to unsigned diagnostic observations only. Their
+consumer-side signed expectations are retired; the accepted builder revision's mandatory preflight
+and mutation-entry convergence gates remain the enforcement mechanism.
 
 `package_manifest` may contain only the following members. Absent source fields are omitted. `null`,
 credentials, tokens, unknown members, and duplicate JSON members fail with
@@ -1196,15 +1487,24 @@ rather than normalizing an object to a string or a string to an object. A field 
 type, an unknown object member, an empty credential-bearing URL, a token-like member or value, or a
 duplicate member is invalid and fails with `windlass.verify.error.diagnostics-contract-invalid`.
 
+The optional `publish` object may contain only `package_identity_preexisting` and
+`package_version_preexisting`. Each is an optional boolean or `null`: `true` or `false` records a
+tokenless preflight observation proved at that time, and `null` records that the observation was
+unavailable or inconclusive. Unknown members, non-boolean/non-null values, and duplicate members
+fail with `windlass.verify.error.diagnostics-contract-invalid`. These values are not signed and do
+not authenticate historical registry state, establish custom-registry conformance, or create a
+replacement consumer trust input. The unsupported-but-not-blocked registry boundary is implicit
+buildType behavior, not a signed `publish.custom_registry_support` assertion.
+
 `publish_npm_version`, when present, is a string holding the exact three-part SemVer version of the
 publish-stage npm CLI observed by the publish job (see the
 [JS/TS npm provenance and publish specification](js-ts-npm-provenance-publish.md#publish-stage-npm-pin-validation)).
 It is non-trust observational metadata: the trust claim is the pin validation itself
 (`windlass.verify.error.publish-npm-pin-mismatch` on failure), and this member is never merged into
-the build-time `externalParameters.runtime.npm_version` record. It is recorded on the publish job's
-outcome report, success or failure, whenever the publish npm version was observed. A `null` value, a
-non-string value, or a value that is not an exact three-part SemVer version fails with
-`windlass.verify.error.diagnostics-contract-invalid`.
+the build-stage bundled npm record at `runDetails.builder.version.npm`. It is recorded on the
+publish job's outcome report, success or failure, whenever the publish npm version was observed. A
+`null` value, a non-string value, or a value that is not an exact three-part SemVer version fails
+with `windlass.verify.error.diagnostics-contract-invalid`.
 
 Valid diagnostic metadata example:
 
@@ -1224,6 +1524,10 @@ Valid diagnostic metadata example:
       "keywords": ["example", "widget"],
       "author": { "name": "Example Maintainer", "email": "maintainer@example.com" },
       "homepage": "https://example.com/acme-widget"
+    },
+    "publish": {
+      "package_identity_preexisting": true,
+      "package_version_preexisting": false
     }
   }
 }
@@ -1257,9 +1561,9 @@ Valid warning-only example:
       "id": "windlass.verify.warning.stale-non-selected-lockfile",
       "severity": "warning",
       "category": "stale-non-selected-lockfile",
-      "check": "externalParameters.package_manager.ignored_lockfile_paths",
+      "check": "resolvedDependencies.lockfile.annotations.stale_non_selected_lockfiles",
       "message": "A non-selected pnpm lockfile was recorded.",
-      "field": "externalParameters.package_manager.ignored_lockfile_paths",
+      "field": "resolvedDependencies.lockfile.annotations.stale_non_selected_lockfiles",
       "actual": ["pnpm-lock.yaml"],
       "evidence": { "bundle": "package.tgz.intoto.jsonl" }
     }
@@ -1346,194 +1650,210 @@ of any error. Violating this mapping fails the fixture harness with
 Every accepted fixture has `expected-primary-id: null`; every rejected mutation contract in TDD
 usage declares its non-null `expected-primary-id` explicitly.
 
-| Name                                                | Surface          | Description                                                               |
-| --------------------------------------------------- | ---------------- | ------------------------------------------------------------------------- |
-| `npm-valid-release`                                 | npm              | Valid npm package tarball with matching Windlass provenance.              |
-| `npm-valid-scoped-package-url`                      | npm              | Valid scoped npm package with registry package-version URL.               |
-| `npm-actions-attest-custom-bundle-valid`            | npm              | Custom-mode emitted bundle is accepted as npm provenance file.            |
-| `npm-resolved-lockfile-valid`                       | npm              | Selected lockfile descriptor matches path, digest, and manager.           |
-| `npm-resolved-lockfile-stale-valid`                 | npm              | Stale non-selected lockfiles are recorded as diagnostics only.            |
-| `npm-release-asset-mode-valid`                      | npm              | Public npm workflow release-asset mode uploads tarball + sidecar.         |
-| `npm-release-asset-linked-metadata-valid`           | npm              | Release-asset mode creates linked artifact metadata when enabled.         |
-| `package-repository-forms-valid`                    | npm              | Every accepted raw form normalizes to the caller source identity.         |
-| `diagnostic-package-manifest-valid`                 | npm              | Safe-listed raw metadata is reported through `diagnostic_metadata`.       |
-| `publisher-valid-upload`                            | publisher        | Valid producer handoff leading to release asset and sidecar.              |
-| `publisher-mutable-target-valid`                    | publisher        | A mutable or draft target accepts the required asset set.                 |
-| `publisher-immutable-same-run-valid`                | publisher        | Complete digest-proven same-`run_id` assets converge read-only.           |
-| `composition-valid-npm-tarball`                     | composition      | npm tarball successfully composes with publisher.                         |
-| `composition-mutable-target-valid`                  | composition      | A mutable or draft target permits the composed publication path.          |
-| `composition-immutable-same-run-valid`              | composition      | A complete verified same-`run_id` target converges read-only.             |
-| `release-manifest-valid`                            | release-manifest | Signed manifest with valid producer and publisher mappings.               |
-| `release-manifest-mutable-target-valid`             | release-manifest | A mutable or draft target accepts the manifest pair.                      |
-| `release-manifest-immutable-same-run-valid`         | release-manifest | A complete verified same-`run_id` manifest pair converges read-only.      |
-| `registered-npm-build-type-valid`                   | publisher        | The registered npm producer `buildType` selects its fixed policy.         |
-| `npm-maximal-identity-valid`                        | npm              | All six ADR 0068 identity bindings match immutable policy keys.           |
-| `npm-offline-transparency-valid`                    | npm              | SCT, Rekor proof, SET, and signing time verify without log calls.         |
-| `release-manifest-pinned-root-valid`                | release-manifest | Authenticated fresh pin verifies the manifest bundle offline.             |
-| `npm-resolved-dependencies-npm-valid`               | npm              | Exactly three entries: lockfile, exact node-runtime, and runner image.    |
-| `npm-resolved-dependencies-pnpm-valid`              | npm              | Exactly four entries, including one registry-integrity pnpm distribution. |
-| `npm-resolved-dependencies-yarn-valid`              | npm              | Exactly four entries, including one download-hash Yarn distribution.      |
-| `npm-resolved-dependencies-reordered-valid`         | npm              | A valid closed set is accepted in a different array order by name.        |
-| `npm-builder-version-direct-npm-valid`              | npm              | Closed builder version contains `nodejs` only.                            |
-| `npm-builder-version-corepack-valid`                | npm              | Closed builder version contains `nodejs` and conditional `corepack`.      |
-| `npm-builder-signing-adapter-valid`                 | npm              | Exactly one governed `sigstore-go` signing-adapter dependency.            |
-| `npm-go-signer-bundle-valid`                        | npm              | Go signer payload exactly matches the preassembled Statement.             |
-| `npm-external-parameters-distribution-caller-valid` | npm              | Closed distribution and caller groups complete the nine-input mapping.    |
-| `npm-source-ref-dispatch-retry-valid`               | npm              | Built tag identity with a signed invocation record for the dispatch ref.  |
-| `npm-source-ref-omitted-valid`                      | npm              | Omitted `source-ref`: no invocation record; single-identity contract.     |
-| `npm-internal-parameters-empty-valid`               | npm              | `internalParameters` is exactly `{}`.                                     |
-| `npm-invocation-id-certificate-uri-valid`           | npm              | `metadata.invocationId` byte-equals Fulcio OID `.21`.                     |
-| `trust-root-online-tuf-valid`                       | npm              | Online mode authenticates current TUF metadata without a pin.             |
-| `trust-root-offline-pinned-valid`                   | npm              | Offline mode uses a fresh pinned root without network access.             |
+| Name                                                | Surface          | Description                                                                                                  |
+| --------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| `npm-valid-release`                                 | npm              | Valid npm package tarball with matching Windlass provenance.                                                 |
+| `npm-valid-scoped-package-url`                      | npm              | Valid scoped npm package with a package-version URL recomputed from raw inputs and manifest evidence.        |
+| `npm-actions-attest-custom-bundle-valid`            | npm              | Custom-mode emitted bundle is accepted as npm provenance file.                                               |
+| `npm-resolved-lockfile-valid`                       | npm              | Selected lockfile descriptor matches built commit, path, digest, manager, and media type.                    |
+| `npm-resolved-lockfile-stale-valid`                 | npm              | Stale non-selected lockfiles are recorded as descriptor diagnostics only.                                    |
+| `npm-release-asset-mode-valid`                      | npm              | Public npm workflow release-asset mode uploads tarball + mandatory sidecar to the effective built tag.       |
+| `npm-release-asset-linked-metadata-valid`           | npm              | Release-asset mode creates linked artifact metadata when enabled.                                            |
+| `package-repository-forms-valid`                    | npm              | Every accepted raw manifest form normalizes to `workflow.repository` and both source descriptors.            |
+| `diagnostic-package-manifest-valid`                 | npm              | Safe-listed raw metadata is reported through unsigned `diagnostic_metadata`.                                 |
+| `diagnostic-publish-preexisting-valid`              | npm              | Proved and inconclusive pre-existing-state observations remain unsigned diagnostic metadata only.            |
+| `publisher-valid-upload`                            | publisher        | Valid producer handoff leading to release asset and sidecar.                                                 |
+| `publisher-mutable-target-valid`                    | publisher        | A mutable or draft target accepts the required asset set.                                                    |
+| `publisher-immutable-same-run-valid`                | publisher        | Complete digest-proven same-`run_id` assets converge read-only.                                              |
+| `composition-valid-npm-tarball`                     | composition      | npm tarball successfully composes with publisher.                                                            |
+| `composition-mutable-target-valid`                  | composition      | A mutable or draft target permits the composed publication path.                                             |
+| `composition-immutable-same-run-valid`              | composition      | A complete verified same-`run_id` target converges read-only.                                                |
+| `release-manifest-valid`                            | release-manifest | Signed manifest with valid producer and publisher mappings.                                                  |
+| `release-manifest-mutable-target-valid`             | release-manifest | A mutable or draft target accepts the manifest pair.                                                         |
+| `release-manifest-immutable-same-run-valid`         | release-manifest | A complete verified same-`run_id` manifest pair converges read-only.                                         |
+| `registered-npm-build-type-valid`                   | publisher        | The registered npm producer `buildType` selects its fixed policy.                                            |
+| `npm-maximal-identity-valid`                        | npm              | All applicable identity bindings, including Build Trigger and Build Config URI, match immutable policy keys. |
+| `npm-offline-transparency-valid`                    | npm              | SCT, Rekor proof, SET, and signing time verify without log calls.                                            |
+| `release-manifest-pinned-root-valid`                | release-manifest | Authenticated fresh pin verifies the manifest bundle offline.                                                |
+| `npm-resolved-dependencies-npm-valid`               | npm              | Exactly six entries with both source roles, manifest, lockfile, runtime, and runner image.                   |
+| `npm-resolved-dependencies-pnpm-valid`              | npm              | Exactly seven entries, including one registry-integrity pnpm distribution.                                   |
+| `npm-resolved-dependencies-yarn-valid`              | npm              | Exactly seven entries, including one download-hash Yarn distribution.                                        |
+| `npm-resolved-dependencies-reordered-valid`         | npm              | A valid closed set is accepted in a different array order by name.                                           |
+| `npm-media-type-matrix-valid`                       | npm              | Every required and forbidden media-type matrix row matches its digest-covered representation.                |
+| `npm-package-manifest-evidence-valid`               | npm              | Offline original-manifest evidence binds to the package-manifest descriptor without network access.          |
+| `npm-build-script-disposition-executed-valid`       | npm              | Signed `executed` disposition agrees with an authenticated manifest declaring `scripts.build`.               |
+| `npm-build-script-disposition-skipped-absent-valid` | npm              | Signed `skipped-absent` disposition agrees with a manifest without `scripts.build`.                          |
+| `npm-runner-image-metadata-valid`                   | npm              | Verbatim URI, full image version, multiline OS detail, nullable deployment, and runner label are accepted.   |
+| `npm-builder-version-direct-npm-valid`              | npm              | Closed builder version contains required `nodejs` and bundled `npm`, without `corepack`.                     |
+| `npm-builder-version-corepack-valid`                | npm              | Closed builder version contains `nodejs`, `npm`, and conditional `corepack`.                                 |
+| `npm-builder-signing-adapter-valid`                 | npm              | Exactly one governed `sigstore-go` signing-adapter dependency.                                               |
+| `npm-go-signer-bundle-valid`                        | npm              | Go signer payload exactly matches the preassembled Statement.                                                |
+| `npm-external-parameters-minimized-valid`           | npm              | Optional source plus required workflow, package, raw publish, and two-boolean distribution groups.           |
+| `npm-publish-resolution-recompute-valid`            | npm              | Registry, dist-tag, access, and package URL recompute from raw inputs, publishConfig, and defaults.          |
+| `npm-source-ref-dispatch-retry-valid`               | npm              | Caller selector and built tag coexist with distinct workflow and invocation-source invocation identity.      |
+| `npm-source-ref-omitted-valid`                      | npm              | Source group is omitted and both required source descriptors carry identical URI and digest values.          |
+| `npm-internal-parameters-github-valid`              | npm              | Closed GitHub object contains exactly the event, repository ID, and owner ID strings.                        |
+| `npm-invocation-id-certificate-uri-valid`           | npm              | `metadata.invocationId` byte-equals Fulcio OID `.21`.                                                        |
+| `trust-root-online-tuf-valid`                       | npm              | Online mode authenticates current TUF metadata without a pin.                                                |
+| `trust-root-offline-pinned-valid`                   | npm              | Offline mode uses a fresh pinned root without network access.                                                |
 
 ## Rejected fixture categories
 
-| Category                                             | Description                                                                                                                                                                                                                                      |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `digest-mismatch`                                    | Artifact digest does not match the provenance subject digest.                                                                                                                                                                                    |
-| `signature-mismatch`                                 | Bundle signature is invalid or missing.                                                                                                                                                                                                          |
-| `signer-mismatch`                                    | Signer identity is not trusted.                                                                                                                                                                                                                  |
-| `issuer-mismatch`                                    | Certificate OIDC issuer is not the exact GitHub Actions issuer.                                                                                                                                                                                  |
-| `signer-workflow-path-mismatch`                      | SAN or Build Signer URI does not identify the exact expected workflow path.                                                                                                                                                                      |
-| `signer-workflow-sha-mismatch`                       | Build Signer Digest does not equal the manifest/policy workflow SHA.                                                                                                                                                                             |
-| `signer-identity-claim-missing`                      | Required semantic signer or source identity cannot be proven from verified bundle data.                                                                                                                                                          |
-| `source-numeric-id-mismatch`                         | Source repository or owner numeric ID is missing, malformed, or mismatched.                                                                                                                                                                      |
-| `source-digest-mismatch`                             | Certificate Source Repository Digest differs from the signed invocation record revision.                                                                                                                                                         |
-| `source-ref-mismatch`                                | Certificate Source Repository Ref differs from the signed invocation record ref.                                                                                                                                                                 |
-| `source-ref-invalid`                                 | A supplied `source-ref` is not a full tag ref, does not resolve, mismatches the version, or conflicts with the invocation tag.                                                                                                                   |
-| `run-invocation-uri-invalid`                         | Run Invocation URI is missing, malformed, or identifies another repository.                                                                                                                                                                      |
-| `self-hosted-runner`                                 | Runner identity is missing, unknown, caller-asserted, or not GitHub-hosted.                                                                                                                                                                      |
-| `missing-rekor-entry`                                | Bundle lacks a valid bundle-contained Rekor inclusion proof or SET binding.                                                                                                                                                                      |
-| `missing-sct`                                        | Fulcio certificate lacks a valid embedded SCT.                                                                                                                                                                                                   |
-| `signature-time-violation`                           | SET-covered integrated time is invalid or outside certificate validity.                                                                                                                                                                          |
-| `ungoverned-trust-root`                              | Trust root is not the authenticated Sigstore public good TUF root or allowed pin.                                                                                                                                                                |
-| `stale-pinned-trust-root`                            | Offline pinned trusted root is used after its documented `refresh_before` deadline.                                                                                                                                                              |
-| `legacy-trust-root-override`                         | A forbidden per-component Sigstore environment override can affect verification.                                                                                                                                                                 |
-| `verification-network-call`                          | Required verification attempts to query Rekor, Fulcio, or a log operator.                                                                                                                                                                        |
-| `policy-schema-invalid`                              | Explicit policy or manifest expectation is missing, malformed, or contains unknown fields.                                                                                                                                                       |
-| `diagnostics-contract-invalid`                       | Machine-readable diagnostics violate the ID, shape, order, severity, or exit-code contract.                                                                                                                                                      |
-| `input-unavailable`                                  | A required local artifact, bundle, policy, manifest, or trusted-root input is unreadable.                                                                                                                                                        |
-| `verifier-execution-failure`                         | The verifier cannot execute a requested check and therefore produces no acceptance result.                                                                                                                                                       |
-| `duplicate-json-member`                              | Signed Statement, bundle, or DSSE JSON contains duplicate object member names.                                                                                                                                                                   |
-| `actions-attest-adapter-contract`                    | Exact DSSE payload, emitted bundle, or npm provenance-file compatibility is invalid.                                                                                                                                                             |
-| `wrong-producer-signer`                              | Producer signer repo, workflow path, ref, or issuer is not trusted.                                                                                                                                                                              |
-| `wrong-predicate-type`                               | `predicateType` is not SLSA provenance v1.                                                                                                                                                                                                       |
-| `wrong-manifest-predicate-type`                      | Release manifest `predicateType` is not the ADR 0054 predicate URI.                                                                                                                                                                              |
-| `wrong-builder-id`                                   | `builder.id` is not trusted or uses a non-SHA reference.                                                                                                                                                                                         |
-| `wrong-build-type`                                   | `buildType` is not the canonical profile URI.                                                                                                                                                                                                    |
-| `subject-cardinality-error`                          | Provenance contains zero subjects or multiple subjects.                                                                                                                                                                                          |
-| `npm-purl-subject-mismatch`                          | npm provenance subject is missing, malformed, or not the expected Package URL.                                                                                                                                                                   |
-| `tarball-filename-subject-rejected`                  | npm provenance uses the tarball filename as the Statement subject.                                                                                                                                                                               |
-| `missing-subject-sha512`                             | npm provenance subject omits the required tarball SHA-512 digest.                                                                                                                                                                                |
-| `missing-subject-sha256`                             | Provenance subject omits the required tarball SHA-256 digest.                                                                                                                                                                                    |
-| `unexpected-external-parameters`                     | `externalParameters` contains unexpected fields under strict matching.                                                                                                                                                                           |
-| `source-identity-mismatch`                           | Source repository or revision does not match policy.                                                                                                                                                                                             |
-| `release-ref-mismatch`                               | Source ref, release ref, built ref, or version tag do not identify the same tag.                                                                                                                                                                 |
-| `source-repository-canonicalization-error`           | Source repository URL is non-canonical, ambiguous, or malformed.                                                                                                                                                                                 |
-| `trusted-publisher-mismatch`                         | Producer-side npm trusted publishing caller identity or OIDC permission is wrong.                                                                                                                                                                |
-| `package-identity-mismatch`                          | npm package name or version does not match.                                                                                                                                                                                                      |
-| `package-url-mismatch`                               | npm registry package-version URL is malformed or does not match registry/name/version.                                                                                                                                                           |
-| `unsupported-initial-publication`                    | Selected package identity does not already exist on npmjs.                                                                                                                                                                                       |
-| `package-version-mismatch`                           | Tag version does not match `package.json` version.                                                                                                                                                                                               |
-| `package-directory-mismatch`                         | `externalParameters.package.directory` does not match expected.                                                                                                                                                                                  |
-| `package-manager-selection-path-mismatch`            | Package-manager selection path is missing or wrong in provenance.                                                                                                                                                                                |
-| `private-package`                                    | Selected package manifest has `private: true`.                                                                                                                                                                                                   |
-| `publish-intent-conflict`                            | Workflow publish input conflicts with source `publishConfig`.                                                                                                                                                                                    |
-| `invalid-publish-input`                              | Non-empty workflow publish input has an unsupported value or format.                                                                                                                                                                             |
-| `empty-publish-input-fallback`                       | Empty workflow input failed to fall back to source `publishConfig`.                                                                                                                                                                              |
-| `already-published-version`                          | Selected package name/version already exists before publish.                                                                                                                                                                                     |
-| `workspace-resolution-mismatch`                      | Workspace root, package manager root, or lockfile policy is wrong.                                                                                                                                                                               |
-| `workspace-pattern-base-mismatch`                    | Workspace patterns were evaluated against the wrong base directory.                                                                                                                                                                              |
-| `workspace-command-mismatch`                         | Workspace package targeting command can affect the wrong package.                                                                                                                                                                                |
-| `package-manager-manifest-shape-error`               | `devEngines.packageManager` uses an unsupported shape, member, or release version form.                                                                                                                                                          |
-| `package-manager-digest-malformed`                   | A declared package-manager integrity digest suffix violates the closed `+<algorithm>.<hex>` grammar or appears on an npm descriptor.                                                                                                             |
-| `package-manager-digest-mismatch`                    | A declared package-manager integrity digest disagrees with the acquired distribution bytes before install.                                                                                                                                       |
-| `unsupported-yarn-version`                           | Yarn is Classic 1.x, Berry v2, Berry v3, non-exact, or inferred from `yarn.lock` without manifest metadata.                                                                                                                                      |
-| `pnpm-version-unsupported`                           | Consumer manifest pins a pnpm version outside the supported `[10.0.0, 12.0.0)` range while Corepack is the production provisioning path.                                                                                                         |
-| `yarn-version-unsupported`                           | Consumer manifest metadata pins Yarn 6 or newer while Corepack is the production provisioning path.                                                                                                                                              |
-| `resolved-dependencies-lockfile`                     | Selected lockfile `resolvedDependencies` descriptor is missing, malformed, or mismatched.                                                                                                                                                        |
-| `release-asset-mode-schema-error`                    | Public npm release-asset mode input or output schema is invalid.                                                                                                                                                                                 |
-| `release-asset-mode-disabled-conflict`               | Release-asset-only inputs are supplied while release-asset mode is disabled.                                                                                                                                                                     |
-| `release-asset-mode-permission-error`                | Caller or internal job permissions are missing or combine separated authorities.                                                                                                                                                                 |
-| `release-asset-target-error`                         | Effective release tag or target release is missing, malformed, or outside the caller repo.                                                                                                                                                       |
-| `runtime-policy-mismatch`                            | Runner or Node.js version does not match policy.                                                                                                                                                                                                 |
-| `excessive-publish-permission`                       | npmjs publish job requests permissions outside the initial boundary.                                                                                                                                                                             |
-| `npm-version-too-old`                                | npm CLI version is below `11.5.1` for trusted publishing.                                                                                                                                                                                        |
-| `release-manifest-mismatch`                          | Release manifest mapping does not match the provenance.                                                                                                                                                                                          |
-| `trusted-producer-policy-conflict`                   | Explicit verifier policy and signed release manifest policy cannot both be satisfied.                                                                                                                                                            |
-| `manifest-predicate-mismatch`                        | Signed Statement predicate differs from canonical manifest JSON.                                                                                                                                                                                 |
-| `manifest-digest-mismatch`                           | Statement subject digest differs from canonical manifest JSON bytes.                                                                                                                                                                             |
-| `manifest-trigger-mismatch`                          | Release manifest workflow did not run from the expected protected SemVer tag.                                                                                                                                                                    |
-| `manifest-tag-peel-mismatch`                         | Release tag cannot be peeled to the expected terminal commit.                                                                                                                                                                                    |
-| `manifest-entrypoint-mismatch`                       | Release manifest signer workflow path is not the fixed production entrypoint.                                                                                                                                                                    |
-| `manifest-caller-override`                           | Caller-controlled input changed a signed manifest trust field.                                                                                                                                                                                   |
-| `manifest-workflow-sha-mismatch`                     | Schema v1 workflow SHA does not equal the release tag target commit.                                                                                                                                                                             |
-| `manifest-entry-order-mismatch`                      | Release manifest producer or publisher arrays are not in canonical sorted order.                                                                                                                                                                 |
-| `manifest-generated-at-invalid`                      | `generated_at` is not a fixed-form UTC timestamp.                                                                                                                                                                                                |
-| `manifest-handoff-basename-mismatch`                 | Manifest handoff artifact contains an unexpected payload basename.                                                                                                                                                                               |
-| `manifest-signing-input-mismatch`                    | Manifest signing input metadata is malformed or does not bind verified signing inputs.                                                                                                                                                           |
-| `manifest-partial-json-uploaded`                     | Plain manifest JSON uploaded but signed bundle upload failed.                                                                                                                                                                                    |
-| `manifest-indeterminate-json-upload`                 | Manifest upload state cannot be determined after an ambiguous upload attempt.                                                                                                                                                                    |
-| `manifest-remote-digest-unproven`                    | Same-name remote manifest asset exists but SHA-256 equality cannot be proven.                                                                                                                                                                    |
-| `release-target-immutable`                           | An immutable target lacks a complete, verified same-`run_id` required asset set.                                                                                                                                                                 |
-| `bundle-byte-format-mismatch`                        | Signed bundle bytes were extracted, reserialized, wrapped, or otherwise changed.                                                                                                                                                                 |
-| `missing-producer-provenance`                        | Publisher receives an artifact without producer provenance.                                                                                                                                                                                      |
-| `raw-artifact-bypass`                                | Raw caller artifact bypasses producer verification.                                                                                                                                                                                              |
-| `handoff-schema-mismatch`                            | Cross-job artifact handoff omits or changes required core fields.                                                                                                                                                                                |
-| `composition-handoff-substitution`                   | Composition mapping trusts public outputs or deterministic names.                                                                                                                                                                                |
-| `publisher-handoff-field-error`                      | Publisher handoff uses missing, stale, or malformed field names.                                                                                                                                                                                 |
-| `release-asset-binding-mismatch`                     | Producer policy cannot bind release asset name to verified producer artifact bytes.                                                                                                                                                              |
-| `linked-artifact-settings-mismatch`                  | Linked artifact settings do not match the target repository, release tag, or download URL.                                                                                                                                                       |
-| `linked-artifact-locator-mismatch`                   | Linked artifact locator outputs are missing, set in the wrong state, or malformed.                                                                                                                                                               |
-| `publisher-workflow-schema-error`                    | Publisher exposes or accepts unsupported public workflow inputs or secrets.                                                                                                                                                                      |
-| `publisher-permission-boundary-violation`            | Publisher job permissions combine authorities that must stay separate.                                                                                                                                                                           |
-| `native-locator-malformed`                           | Native provenance locator is not valid diagnostic metadata.                                                                                                                                                                                      |
-| `native-locator-digest-mismatch`                     | Native provenance locator digest differs from the sidecar bundle digest.                                                                                                                                                                         |
-| `sidecar-mismatch`                                   | Sidecar bundle does not match the primary asset's provenance.                                                                                                                                                                                    |
-| `sidecar-digest-mismatch`                            | `sidecar-digest` does not equal the verified producer bundle SHA-256.                                                                                                                                                                            |
-| `sidecar-upload-partial-failure`                     | Primary release asset uploaded but sidecar upload failed afterward.                                                                                                                                                                              |
-| `publisher-indeterminate-primary-upload`             | Primary release asset upload state cannot be determined after an ambiguous upload.                                                                                                                                                               |
-| `publisher-remote-digest-unproven`                   | Same-name remote release asset exists but SHA-256 equality cannot be proven.                                                                                                                                                                     |
-| `duplicate-release-asset`                            | Release asset name already exists.                                                                                                                                                                                                               |
-| `duplicate-sidecar-asset`                            | Deterministic sidecar asset name already exists before upload.                                                                                                                                                                                   |
-| `registry-linkage-mismatch`                          | Published package does not match the provenance registry metadata.                                                                                                                                                                               |
-| `custom-registry-token-required`                     | Custom registry metadata or publish response proves a token or OTP is required.                                                                                                                                                                  |
-| `custom-registry-provenance-weakened`                | Custom registry publish omits, rewrites, re-signs, substitutes, or auto-generates provenance.                                                                                                                                                    |
-| `custom-registry-tokenless-auth-failed`              | Tokenless authentication fails at the custom-registry authentication or publish boundary.                                                                                                                                                        |
-| `custom-registry-access-option-rejected`             | Custom registry rejects caller `access` during tokenless publish without proving token/OTP need.                                                                                                                                                 |
-| `custom-registry-provenance-submission-rejected`     | Registry rejects the exact external provenance file.                                                                                                                                                                                             |
-| `custom-registry-linkage-metadata-absent`            | Required linkage metadata is absent after custom-registry publication.                                                                                                                                                                           |
-| `custom-registry-digest-semantics-mismatch`          | Registry digest evidence is absent, malformed, incompatible, or mismatched.                                                                                                                                                                      |
-| `package-repository-identity-mismatch`               | Raw package repository metadata is missing, malformed, or normalizes to another repository.                                                                                                                                                      |
-| `unregistered-producer-build-type`                   | Producer `buildType` is unknown to the closed publisher policy registry.                                                                                                                                                                         |
-| `verification-mode-invalid`                          | Invocation mode is absent, multiple, conflicting, or incompatible with trust-root shape.                                                                                                                                                         |
-| `unexpected-internal-parameters`                     | `internalParameters` is a nonempty object or a non-object, non-null value.                                                                                                                                                                       |
-| `resolved-dependencies-unexpected-entry`             | A dependency descriptor has an unknown name or is a non-enumerated extra entry.                                                                                                                                                                  |
-| `resolved-dependencies-node-runtime`                 | After structural decoding, the node-runtime descriptor is missing, duplicated, has an unknown top-level member, has a wrong URI, has a wrong, malformed, or extra digest member, has invalid annotations, or mismatches exact expected metadata. |
-| `resolved-dependencies-package-manager-distribution` | The known conditional manager-distribution descriptor is missing, duplicated, forbidden, or malformed.                                                                                                                                           |
-| `resolved-dependencies-runner-image`                 | The runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched.                                                                                                                                                    |
-| `builder-version-mismatch`                           | Closed `builder.version` keys or observed versions are invalid.                                                                                                                                                                                  |
-| `builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or dependency-inconsistent.                                                                                                                                            |
-| `mutation-queue-overflow`                            | GitHub rejects an arrival beyond 100 pending executions in one mutation concurrency group.                                                                                                                                                       |
-| `npm-oidc-exchange-indeterminate`                    | npm OIDC token exchange is unreadable or errors with HTTP `5xx` or a malformed response before registry mutation.                                                                                                                                |
-| `oidc-capability-unavailable`                        | Caller lacks OIDC capability because the id-token request token is absent or the id-token request fails.                                                                                                                                         |
-| `mutation-permission-denied`                         | First mutating call receives definitive HTTP `403` or `401`, proving no mutation occurred.                                                                                                                                                       |
-| `publish-rejected-unprocessable`                     | npm rejected the publication as unprocessable and no committed publication was observed within the reduced read-back window.                                                                                                                     |
-| `prepublish-registry-metadata-required`              | Workflow required post-publish registry metadata before publish.                                                                                                                                                                                 |
-| `release-version-semver-mismatch`                    | Release manifest version or tag is not valid SemVer 2.0.0.                                                                                                                                                                                       |
-| `trusted-core-boundary-violation`                    | Trusted policy/provenance logic depends on profile ecosystem tooling.                                                                                                                                                                            |
-| `npm-provision-download`                             | The pinned publish-stage npm tarball cannot be downloaded before provisioning completes.                                                                                                                                                         |
-| `npm-provision-digest-mismatch`                      | The downloaded publish-stage npm tarball digest differs from the pinned SHA-512.                                                                                                                                                                 |
-| `npm-provision-archive-unsafe`                       | The publish-stage npm tarball has no single `package/` root or contains absolute, parent-traversing, link, or special-file entries.                                                                                                              |
-| `npm-provision-version-mismatch`                     | The extracted publish-stage npm tree reports a version different from the pin.                                                                                                                                                                   |
-| `node-runtime-provision-download`                    | The pinned Node.js runtime tarball cannot be downloaded before provisioning completes.                                                                                                                                                           |
-| `node-runtime-provision-digest-mismatch`             | The downloaded Node.js runtime tarball digest differs from the pinned SHA-256.                                                                                                                                                                   |
-| `node-runtime-provision-archive-unsafe`              | The Node.js runtime tarball has no single `node-v<version>-<platform>/` root or contains absolute, parent-traversing, hardlink, device, or FIFO entries.                                                                                         |
-| `node-runtime-provision-layout-violation`            | The extracted Node.js runtime tree deviates from the exact official layout or the documented in-root symlink set.                                                                                                                                |
-| `node-runtime-provision-version-mismatch`            | The extracted runtime tree does not identify the recorded pair because its root version or bundled npm manifest is missing, malformed, or mismatched.                                                                                            |
-| `publish-npm-pin-mismatch`                           | The publish job's npm version differs from the publish allowlist pin.                                                                                                                                                                            |
-| `toolchain-pair-mismatch`                            | The observed Node.js or bundled npm version differs from the pinned build toolchain pair.                                                                                                                                                        |
-| `toolchain-pin-drift`                                | The publish npm pin or Node.js toolchain record (pair and runtime artifact pin) disagrees with its human-readable specification table.                                                                                                           |
+| Category                                             | Description                                                                                                                                                                            |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `build-config-uri-mismatch`                          | Build Config URI does not match caller `workflow.path`, or uses the reusable builder path.                                                                                             |
+| `build-script-disposition-mismatch`                  | Signed build-script disposition is missing, unsupported, or inconsistent with authenticated manifest evidence.                                                                         |
+| `build-trigger-mismatch`                             | Build Trigger differs from `internalParameters.github.event_name`.                                                                                                                     |
+| `package-manifest-evidence`                          | Offline manifest evidence is missing, malformed, oversized, noncanonical, or mismatched in digest, path, repository, or built commit.                                                  |
+| `resolved-dependencies-invocation-source`            | Invocation-source descriptor is missing, duplicated, malformed, wrongly typed, or inconsistent with workflow or certificate invocation identity.                                       |
+| `resolved-dependencies-built-source`                 | Built-source descriptor is missing, duplicated, malformed, or inconsistent with effective built ref, built commit, repository, or required tag annotation.                             |
+| `resolved-dependencies-package-manifest`             | Package-manifest descriptor is missing, duplicated, malformed, wrongly typed, or inconsistent with its source identity, path, digest, media type, or workspace root.                   |
+| `digest-mismatch`                                    | Artifact digest does not match the provenance subject digest.                                                                                                                          |
+| `signature-mismatch`                                 | Bundle signature is invalid or missing.                                                                                                                                                |
+| `signer-mismatch`                                    | Signer identity is not trusted.                                                                                                                                                        |
+| `issuer-mismatch`                                    | Certificate OIDC issuer is not the exact GitHub Actions issuer.                                                                                                                        |
+| `signer-workflow-path-mismatch`                      | SAN or Build Signer URI does not identify the exact expected workflow path.                                                                                                            |
+| `signer-workflow-sha-mismatch`                       | Build Signer Digest does not equal the manifest/policy workflow SHA.                                                                                                                   |
+| `signer-identity-claim-missing`                      | Required semantic signer or source identity cannot be proven from verified bundle data.                                                                                                |
+| `source-numeric-id-mismatch`                         | Source repository or owner numeric ID is missing, malformed, or mismatched.                                                                                                            |
+| `source-digest-mismatch`                             | Certificate Source Repository Digest differs from `invocation-source.digest.gitCommit`.                                                                                                |
+| `source-ref-mismatch`                                | Certificate Source Repository Ref differs from `workflow.ref` or the invocation-source URI ref component.                                                                              |
+| `source-ref-invalid`                                 | A supplied `source-ref` is not a full tag ref, does not resolve, mismatches the version, or conflicts with the invocation tag.                                                         |
+| `run-invocation-uri-invalid`                         | Run Invocation URI is missing, malformed, or identifies another repository.                                                                                                            |
+| `self-hosted-runner`                                 | Runner identity is missing, unknown, caller-asserted, or not GitHub-hosted.                                                                                                            |
+| `missing-rekor-entry`                                | Bundle lacks a valid bundle-contained Rekor inclusion proof or SET binding.                                                                                                            |
+| `missing-sct`                                        | Fulcio certificate lacks a valid embedded SCT.                                                                                                                                         |
+| `signature-time-violation`                           | SET-covered integrated time is invalid or outside certificate validity.                                                                                                                |
+| `ungoverned-trust-root`                              | Trust root is not the authenticated Sigstore public good TUF root or allowed pin.                                                                                                      |
+| `stale-pinned-trust-root`                            | Offline pinned trusted root is used after its documented `refresh_before` deadline.                                                                                                    |
+| `legacy-trust-root-override`                         | A forbidden per-component Sigstore environment override can affect verification.                                                                                                       |
+| `verification-network-call`                          | Required verification attempts to query Rekor, Fulcio, or a log operator.                                                                                                              |
+| `policy-schema-invalid`                              | Explicit policy or manifest expectation is missing, malformed, or contains unknown fields.                                                                                             |
+| `diagnostics-contract-invalid`                       | Machine-readable diagnostics violate the ID, shape, order, severity, or exit-code contract.                                                                                            |
+| `input-unavailable`                                  | A required local artifact, bundle, policy, manifest, or trusted-root input is unreadable.                                                                                              |
+| `verifier-execution-failure`                         | The verifier cannot execute a requested check and therefore produces no acceptance result.                                                                                             |
+| `duplicate-json-member`                              | Signed Statement, bundle, or DSSE JSON contains duplicate object member names.                                                                                                         |
+| `actions-attest-adapter-contract`                    | Exact DSSE payload, emitted bundle, or npm provenance-file compatibility is invalid.                                                                                                   |
+| `wrong-producer-signer`                              | Producer signer repo, workflow path, ref, or issuer is not trusted.                                                                                                                    |
+| `wrong-predicate-type`                               | `predicateType` is not SLSA provenance v1.                                                                                                                                             |
+| `wrong-manifest-predicate-type`                      | Release manifest `predicateType` is not the ADR 0054 predicate URI.                                                                                                                    |
+| `wrong-builder-id`                                   | `builder.id` is not trusted or uses a non-SHA reference.                                                                                                                               |
+| `wrong-build-type`                                   | `buildType` is not the canonical profile URI.                                                                                                                                          |
+| `subject-cardinality-error`                          | Provenance contains zero subjects or multiple subjects.                                                                                                                                |
+| `npm-purl-subject-mismatch`                          | npm provenance subject is missing, malformed, or not the expected Package URL.                                                                                                         |
+| `tarball-filename-subject-rejected`                  | npm provenance uses the tarball filename as the Statement subject.                                                                                                                     |
+| `missing-subject-sha512`                             | npm provenance subject omits the required tarball SHA-512 digest.                                                                                                                      |
+| `missing-subject-sha256`                             | Provenance subject omits the required tarball SHA-256 digest.                                                                                                                          |
+| `external-parameters-incomplete`                     | Required closed external-parameter group or member is missing.                                                                                                                         |
+| `external-parameters-unexpected`                     | Removed or unknown external-parameter group or member is present under the revised closed schema.                                                                                      |
+| `unexpected-external-parameters`                     | `externalParameters` contains unexpected fields under strict matching.                                                                                                                 |
+| `source-identity-mismatch`                           | Source repository or revision does not match policy.                                                                                                                                   |
+| `release-ref-mismatch`                               | Effective built ref, built-source URI ref, standalone publisher release tag, or expected version tag disagree.                                                                         |
+| `source-repository-canonicalization-error`           | Source repository URL is non-canonical, ambiguous, or malformed.                                                                                                                       |
+| `trusted-publisher-mismatch`                         | Producer-side npm trusted publishing caller identity or OIDC permission is wrong.                                                                                                      |
+| `package-identity-mismatch`                          | npm package name or version does not match.                                                                                                                                            |
+| `package-url-mismatch`                               | npm registry package-version URL is malformed or does not match registry/name/version.                                                                                                 |
+| `unsupported-initial-publication`                    | Selected package identity does not already exist on npmjs.                                                                                                                             |
+| `package-version-mismatch`                           | Tag version does not match `package.json` version.                                                                                                                                     |
+| `package-directory-mismatch`                         | `externalParameters.package.directory` does not match expected.                                                                                                                        |
+| `package-manager-selection-path-mismatch`            | Package-manager selection path is missing or wrong in provenance.                                                                                                                      |
+| `private-package`                                    | Selected package manifest has `private: true`.                                                                                                                                         |
+| `publish-intent-conflict`                            | Workflow publish input conflicts with source `publishConfig`.                                                                                                                          |
+| `invalid-publish-input`                              | Non-empty workflow publish input has an unsupported value or format.                                                                                                                   |
+| `empty-publish-input-fallback`                       | Empty workflow input failed to fall back to source `publishConfig`.                                                                                                                    |
+| `already-published-version`                          | Selected package name/version already exists before publish.                                                                                                                           |
+| `workspace-resolution-mismatch`                      | Workspace root, package manager root, or lockfile policy is wrong.                                                                                                                     |
+| `workspace-pattern-base-mismatch`                    | Workspace patterns were evaluated against the wrong base directory.                                                                                                                    |
+| `workspace-command-mismatch`                         | Workspace package targeting command can affect the wrong package.                                                                                                                      |
+| `package-manager-manifest-shape-error`               | `devEngines.packageManager` uses an unsupported shape, member, or release version form.                                                                                                |
+| `package-manager-digest-malformed`                   | A declared package-manager integrity digest suffix violates the closed `+<algorithm>.<hex>` grammar or appears on an npm descriptor.                                                   |
+| `package-manager-digest-mismatch`                    | A declared package-manager integrity digest disagrees with the acquired distribution bytes before install.                                                                             |
+| `unsupported-yarn-version`                           | Yarn is Classic 1.x, Berry v2, Berry v3, non-exact, or inferred from `yarn.lock` without manifest metadata.                                                                            |
+| `pnpm-version-unsupported`                           | Consumer manifest pins a pnpm version outside the supported `[10.0.0, 12.0.0)` range while Corepack is the production provisioning path.                                               |
+| `yarn-version-unsupported`                           | Consumer manifest metadata pins Yarn 6 or newer while Corepack is the production provisioning path.                                                                                    |
+| `resolved-dependencies-lockfile`                     | Selected lockfile `resolvedDependencies` descriptor is missing, malformed, or mismatched.                                                                                              |
+| `release-asset-mode-schema-error`                    | Public npm release-asset mode input or output schema is invalid.                                                                                                                       |
+| `release-asset-mode-disabled-conflict`               | Release-asset-only inputs are supplied while release-asset mode is disabled.                                                                                                           |
+| `release-asset-mode-permission-error`                | Caller or internal job permissions are missing or combine separated authorities.                                                                                                       |
+| `release-asset-target-error`                         | Effective release tag or target release is missing, malformed, or outside the caller repo.                                                                                             |
+| `runtime-policy-mismatch`                            | Runner or Node.js version does not match policy.                                                                                                                                       |
+| `excessive-publish-permission`                       | npmjs publish job requests permissions outside the initial boundary.                                                                                                                   |
+| `npm-version-too-old`                                | npm CLI version is below `11.5.1` for trusted publishing.                                                                                                                              |
+| `release-manifest-mismatch`                          | Release manifest mapping does not match the provenance.                                                                                                                                |
+| `trusted-producer-policy-conflict`                   | Explicit verifier policy and signed release manifest policy cannot both be satisfied.                                                                                                  |
+| `manifest-predicate-mismatch`                        | Signed Statement predicate differs from canonical manifest JSON.                                                                                                                       |
+| `manifest-digest-mismatch`                           | Statement subject digest differs from canonical manifest JSON bytes.                                                                                                                   |
+| `manifest-trigger-mismatch`                          | Release manifest workflow did not run from the expected protected SemVer tag.                                                                                                          |
+| `manifest-tag-peel-mismatch`                         | Release tag cannot be peeled to the expected terminal commit.                                                                                                                          |
+| `manifest-entrypoint-mismatch`                       | Release manifest signer workflow path is not the fixed production entrypoint.                                                                                                          |
+| `manifest-caller-override`                           | Caller-controlled input changed a signed manifest trust field.                                                                                                                         |
+| `manifest-workflow-sha-mismatch`                     | Schema v1 workflow SHA does not equal the release tag target commit.                                                                                                                   |
+| `manifest-entry-order-mismatch`                      | Release manifest producer or publisher arrays are not in canonical sorted order.                                                                                                       |
+| `manifest-generated-at-invalid`                      | `generated_at` is not a fixed-form UTC timestamp.                                                                                                                                      |
+| `manifest-handoff-basename-mismatch`                 | Manifest handoff artifact contains an unexpected payload basename.                                                                                                                     |
+| `manifest-signing-input-mismatch`                    | Manifest signing input metadata is malformed or does not bind verified signing inputs.                                                                                                 |
+| `manifest-partial-json-uploaded`                     | Plain manifest JSON uploaded but signed bundle upload failed.                                                                                                                          |
+| `manifest-indeterminate-json-upload`                 | Manifest upload state cannot be determined after an ambiguous upload attempt.                                                                                                          |
+| `manifest-remote-digest-unproven`                    | Same-name remote manifest asset exists but SHA-256 equality cannot be proven.                                                                                                          |
+| `release-target-immutable`                           | An immutable target lacks a complete, verified same-`run_id` required asset set.                                                                                                       |
+| `bundle-byte-format-mismatch`                        | Signed bundle bytes were extracted, reserialized, wrapped, or otherwise changed.                                                                                                       |
+| `missing-producer-provenance`                        | Publisher receives an artifact without producer provenance.                                                                                                                            |
+| `raw-artifact-bypass`                                | Raw caller artifact bypasses producer verification.                                                                                                                                    |
+| `handoff-schema-mismatch`                            | Cross-job artifact handoff omits or changes required core fields.                                                                                                                      |
+| `composition-handoff-substitution`                   | Composition mapping trusts public outputs or deterministic names.                                                                                                                      |
+| `publisher-handoff-field-error`                      | Publisher handoff uses missing, stale, or malformed field names.                                                                                                                       |
+| `release-asset-binding-mismatch`                     | Producer policy cannot bind release asset name to verified producer artifact bytes.                                                                                                    |
+| `linked-artifact-settings-mismatch`                  | Linked artifact settings do not match the target repository, release tag, or download URL.                                                                                             |
+| `linked-artifact-locator-mismatch`                   | Linked artifact locator outputs are missing, set in the wrong state, or malformed.                                                                                                     |
+| `publisher-workflow-schema-error`                    | Publisher exposes or accepts unsupported public workflow inputs or secrets.                                                                                                            |
+| `publisher-permission-boundary-violation`            | Publisher job permissions combine authorities that must stay separate.                                                                                                                 |
+| `native-locator-malformed`                           | Native provenance locator is not valid diagnostic metadata.                                                                                                                            |
+| `native-locator-digest-mismatch`                     | Native provenance locator digest differs from the sidecar bundle digest.                                                                                                               |
+| `sidecar-mismatch`                                   | Sidecar bundle does not match the primary asset's provenance.                                                                                                                          |
+| `sidecar-digest-mismatch`                            | `sidecar-digest` does not equal the verified producer bundle SHA-256.                                                                                                                  |
+| `sidecar-upload-partial-failure`                     | Primary release asset uploaded but sidecar upload failed afterward.                                                                                                                    |
+| `publisher-indeterminate-primary-upload`             | Primary release asset upload state cannot be determined after an ambiguous upload.                                                                                                     |
+| `publisher-remote-digest-unproven`                   | Same-name remote release asset exists but SHA-256 equality cannot be proven.                                                                                                           |
+| `duplicate-release-asset`                            | Release asset name already exists.                                                                                                                                                     |
+| `duplicate-sidecar-asset`                            | Deterministic sidecar asset name already exists before upload.                                                                                                                         |
+| `registry-linkage-mismatch`                          | Published package does not match the provenance registry metadata.                                                                                                                     |
+| `custom-registry-token-required`                     | Custom registry metadata or publish response proves a token or OTP is required.                                                                                                        |
+| `custom-registry-provenance-weakened`                | Custom registry publish omits, rewrites, re-signs, substitutes, or auto-generates provenance.                                                                                          |
+| `custom-registry-tokenless-auth-failed`              | Tokenless authentication fails at the custom-registry authentication or publish boundary.                                                                                              |
+| `custom-registry-access-option-rejected`             | Custom registry rejects caller `access` during tokenless publish without proving token/OTP need.                                                                                       |
+| `custom-registry-provenance-submission-rejected`     | Registry rejects the exact external provenance file.                                                                                                                                   |
+| `custom-registry-linkage-metadata-absent`            | Required linkage metadata is absent after custom-registry publication.                                                                                                                 |
+| `custom-registry-digest-semantics-mismatch`          | Registry digest evidence is absent, malformed, incompatible, or mismatched.                                                                                                            |
+| `package-repository-identity-mismatch`               | Raw package repository metadata is missing, malformed, or normalizes to another repository.                                                                                            |
+| `unregistered-producer-build-type`                   | Producer `buildType` is unknown to the closed publisher policy registry.                                                                                                               |
+| `verification-mode-invalid`                          | Invocation mode is absent, multiple, conflicting, or incompatible with trust-root shape.                                                                                               |
+| `unexpected-internal-parameters`                     | `internalParameters` is absent, null, empty, malformed, or lacks the exact closed three-string GitHub object.                                                                          |
+| `resolved-dependencies-unexpected-entry`             | A dependency descriptor has an unknown name or is a non-enumerated extra entry.                                                                                                        |
+| `resolved-dependencies-node-runtime`                 | Node-runtime descriptor is missing, duplicated, malformed, has an unknown member, wrong URI, missing or wrong media type, wrong digest or annotations, or mismatches the embedded pin. |
+| `resolved-dependencies-package-manager-distribution` | Manager-distribution descriptor is missing, duplicated, forbidden, malformed, or has wrong authority, media type, manager, or version.                                                 |
+| `resolved-dependencies-runner-image`                 | Runner-image descriptor is missing, duplicated, malformed, digest-bearing, projection-mismatched, or carries forbidden members such as `mediaType`, `image_os`, or `node_version`.     |
+| `builder-version-mismatch`                           | Closed `builder.version` keys or observed versions are invalid, including missing `nodejs` or `npm` and wrong conditional `corepack`.                                                  |
+| `builder-dependencies-signing-adapter-mismatch`      | The sole signing-adapter builder dependency is missing, extra, malformed, or dependency-inconsistent.                                                                                  |
+| `mutation-queue-overflow`                            | GitHub rejects an arrival beyond 100 pending executions in one mutation concurrency group.                                                                                             |
+| `npm-oidc-exchange-indeterminate`                    | npm OIDC token exchange is unreadable or errors with HTTP `5xx` or a malformed response before registry mutation.                                                                      |
+| `oidc-capability-unavailable`                        | Caller lacks OIDC capability because the id-token request token is absent or the id-token request fails.                                                                               |
+| `mutation-permission-denied`                         | First mutating call receives definitive HTTP `403` or `401`, proving no mutation occurred.                                                                                             |
+| `publish-rejected-unprocessable`                     | npm rejected the publication as unprocessable and no committed publication was observed within the reduced read-back window.                                                           |
+| `prepublish-registry-metadata-required`              | Workflow required post-publish registry metadata before publish.                                                                                                                       |
+| `release-version-semver-mismatch`                    | Release manifest version or tag is not valid SemVer 2.0.0.                                                                                                                             |
+| `trusted-core-boundary-violation`                    | Trusted policy/provenance logic depends on profile ecosystem tooling.                                                                                                                  |
+| `npm-provision-download`                             | The pinned publish-stage npm tarball cannot be downloaded before provisioning completes.                                                                                               |
+| `npm-provision-digest-mismatch`                      | The downloaded publish-stage npm tarball digest differs from the pinned SHA-512.                                                                                                       |
+| `npm-provision-archive-unsafe`                       | The publish-stage npm tarball has no single `package/` root or contains absolute, parent-traversing, link, or special-file entries.                                                    |
+| `npm-provision-version-mismatch`                     | The extracted publish-stage npm tree reports a version different from the pin.                                                                                                         |
+| `node-runtime-provision-download`                    | The pinned Node.js runtime tarball cannot be downloaded before provisioning completes.                                                                                                 |
+| `node-runtime-provision-digest-mismatch`             | The downloaded Node.js runtime tarball digest differs from the pinned SHA-256.                                                                                                         |
+| `node-runtime-provision-archive-unsafe`              | The Node.js runtime tarball has no single `node-v<version>-<platform>/` root or contains absolute, parent-traversing, hardlink, device, or FIFO entries.                               |
+| `node-runtime-provision-layout-violation`            | The extracted Node.js runtime tree deviates from the exact official layout or the documented in-root symlink set.                                                                      |
+| `node-runtime-provision-version-mismatch`            | The extracted runtime tree does not identify the recorded pair because its root version or bundled npm manifest is missing, malformed, or mismatched.                                  |
+| `publish-npm-pin-mismatch`                           | The publish job's npm version differs from the publish allowlist pin.                                                                                                                  |
+| `toolchain-pair-mismatch`                            | The observed Node.js or bundled npm version differs from the pinned build toolchain pair.                                                                                              |
+| `toolchain-pin-drift`                                | The publish npm pin or Node.js toolchain record (pair and runtime artifact pin) disagrees with its human-readable specification table.                                                 |
 
 ## Error categories
 
@@ -1553,25 +1873,25 @@ Fixtures drive implementation:
 
 ### Node.js runtime semantic fixtures
 
-The closed runtime-descriptor contract has these thirteen accepted and rejected semantic fixtures.
-Each rejected fixture starts from structurally valid input so its expected primary ID proves the
-semantic rule rather than an earlier strict JSON or structural decode failure.
+The closed dependency-descriptor contract has these accepted and rejected semantic fixtures. Each
+rejected fixture starts from structurally valid input so its expected primary ID proves the semantic
+rule rather than an earlier strict JSON or structural decode failure.
 
-| Fixture name                                              | Result   | Required behavior or expected primary ID                                                                                                      |
-| --------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm-resolved-dependencies-npm-valid`                     | accepted | npm has exactly lockfile, exact node-runtime, and runner-image entries.                                                                       |
-| `npm-resolved-dependencies-pnpm-valid`                    | accepted | pnpm has those three entries plus exactly one registry-integrity package-manager distribution.                                                |
-| `npm-resolved-dependencies-yarn-valid`                    | accepted | Yarn has those three entries plus exactly one download-hash package-manager distribution.                                                     |
-| `npm-resolved-dependencies-reordered-valid`               | accepted | A semantically valid set in a different array order is accepted by descriptor name.                                                           |
-| `npm-resolved-dependencies-node-runtime-missing`          | rejected | Missing runtime descriptor: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                       |
-| `npm-resolved-dependencies-node-runtime-duplicate`        | rejected | Duplicate runtime descriptor: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                     |
-| `npm-resolved-dependencies-node-runtime-wrong-uri`        | rejected | URI differs from the embedded pin: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                |
-| `npm-resolved-dependencies-node-runtime-wrong-digest`     | rejected | Well-formed SHA-256 differs from the embedded pin: `windlass.verify.error.resolved-dependencies-node-runtime`.                                |
-| `npm-resolved-dependencies-node-runtime-malformed-digest` | rejected | Digest is malformed or has an extra member: `windlass.verify.error.resolved-dependencies-node-runtime`.                                       |
-| `npm-resolved-dependencies-node-runtime-annotations`      | rejected | Missing, unknown, wrong-type, or wrong-value annotation: `windlass.verify.error.resolved-dependencies-node-runtime`.                          |
-| `npm-resolved-dependencies-node-runtime-unknown-member`   | rejected | Unknown top-level member such as `mediaType` or a case-variant recognized member: `windlass.verify.error.resolved-dependencies-node-runtime`. |
-| `npm-resolved-dependencies-unknown-entry`                 | rejected | Unknown name, including `npm-cli`: `windlass.verify.error.resolved-dependencies-unexpected-entry`.                                            |
-| `npm-resolved-dependencies-npm-manager-distribution`      | rejected | npm carries package-manager-distribution: `windlass.verify.error.resolved-dependencies-package-manager-distribution`.                         |
+| Fixture name                                              | Result   | Required behavior or expected primary ID                                                                                                                                           |
+| --------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm-resolved-dependencies-npm-valid`                     | accepted | npm has exactly six entries: invocation-source, built-source, package-manifest, lockfile, node-runtime, and runner-image.                                                          |
+| `npm-resolved-dependencies-pnpm-valid`                    | accepted | pnpm has exactly seven entries, adding one registry-integrity package-manager distribution with the required media type.                                                           |
+| `npm-resolved-dependencies-yarn-valid`                    | accepted | Yarn has exactly seven entries, adding one download-hash package-manager distribution with its actual representation's media type.                                                 |
+| `npm-resolved-dependencies-reordered-valid`               | accepted | A semantically valid set in a different array order is accepted by descriptor name.                                                                                                |
+| `npm-resolved-dependencies-node-runtime-missing`          | rejected | Missing runtime descriptor: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                                                            |
+| `npm-resolved-dependencies-node-runtime-duplicate`        | rejected | Duplicate runtime descriptor: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                                                          |
+| `npm-resolved-dependencies-node-runtime-wrong-uri`        | rejected | URI differs from the embedded pin: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                                                     |
+| `npm-resolved-dependencies-node-runtime-wrong-digest`     | rejected | Well-formed SHA-256 differs from the embedded pin: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                                     |
+| `npm-resolved-dependencies-node-runtime-malformed-digest` | rejected | Digest is malformed or has an extra member: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                                            |
+| `npm-resolved-dependencies-node-runtime-annotations`      | rejected | Missing, unknown, wrong-type, or wrong-value annotation: `windlass.verify.error.resolved-dependencies-node-runtime`.                                                               |
+| `npm-resolved-dependencies-node-runtime-unknown-member`   | rejected | Unknown top-level member such as `downloadLocation` or a case-variant recognized member, or missing/wrong `mediaType`: `windlass.verify.error.resolved-dependencies-node-runtime`. |
+| `npm-resolved-dependencies-unknown-entry`                 | rejected | Unknown name, including `npm-cli`: `windlass.verify.error.resolved-dependencies-unexpected-entry`.                                                                                 |
+| `npm-resolved-dependencies-npm-manager-distribution`      | rejected | npm carries package-manager-distribution: `windlass.verify.error.resolved-dependencies-package-manager-distribution`.                                                              |
 
 Hermetic semantic Go tests must execute every accepted and rejected fixture and assert its result
 and, for rejection, exact primary ID. `fixture-check` alone validates governed fixture registration,
@@ -1584,36 +1904,44 @@ back to source `publishConfig`, while non-empty invalid values fail validation a
 that differ from source `publishConfig` fail with `publish-intent-conflict`.
 
 The package URL fixture set must include unscoped and scoped npm package identities. Scoped package
-fixtures must prove that `@scope/name` is emitted as an npm registry package-version URL such as
-`https://registry.npmjs.org/%40scope%2Fname/<version>`, that `pkg:npm/...` PURLs are rejected for
-the public `package-url` output and `externalParameters.package.package_url`, and that the
-reconstructed URL matches `externalParameters.publish.resolved_registry_url`,
-`externalParameters.package.name`, and `externalParameters.package.version`.
+fixtures must prove that `@scope/name` produces an npm registry package-version URL such as
+`https://registry.npmjs.org/%40scope%2Fname/<version>`, and that the reconstructed URL uses the
+publish resolution derived from the three raw publish inputs, authenticated `publishConfig`, and
+defaults plus the authenticated manifest `name` and `version`. A `pkg:npm/...` PURL is rejected for
+the public `package-url` output. A removed `externalParameters.package.package_url`, `package.name`,
+`package.version`, or `publish.resolved_registry_url` member is rejected under the closed schema
+rather than used for this check.
 
 The npm provenance subject fixture set must prove ADR 0064's Package URL subject contract. Accepted
 fixtures must include unscoped and scoped package subjects such as `pkg:npm/left-pad@1.3.0` and
 `pkg:npm/%40windlass/slsa-builder@1.2.3`, with `subject[0].digest.sha512` and
 `subject[0].digest.sha256` both matching the same tarball bytes. Rejected fixtures must cover a
 tarball-filename subject, malformed PURL, package name or version mismatch, missing `sha512`,
-missing `sha256`, SHA-512 mismatch, SHA-256 mismatch, zero subjects, multiple subjects, and a PURL
-incorrectly placed in the public `package-url` output or `externalParameters.package.package_url`.
-These failures use `npm-purl-subject-mismatch`, `tarball-filename-subject-rejected`,
-`missing-subject-sha512`, `missing-subject-sha256`, `digest-mismatch`, `package-url-mismatch`, or
-`subject-cardinality-error` as applicable.
+missing `sha256`, SHA-512 mismatch, SHA-256 mismatch, zero subjects, multiple subjects, a PURL
+incorrectly placed in the public `package-url` output, and a removed
+`externalParameters.package.package_url` member presented as its replacement. These failures use
+`npm-purl-subject-mismatch`, `tarball-filename-subject-rejected`, `missing-subject-sha512`,
+`missing-subject-sha256`, `digest-mismatch`, `package-url-mismatch`, or `subject-cardinality-error`
+as applicable.
 
-The release-ref fixture set must prove that `externalParameters.source.ref`,
-`externalParameters.release.ref`, and the runtime-accepted ref are identical full tag refs, and that
-`externalParameters.release.version_tag` reconstructs that same ref. Fixtures with a short tag,
-branch ref, pull request ref, mismatched source/release refs, or mismatched version tag must fail
-with `release-ref-mismatch`.
+The release-ref fixture set must prove that the effective built ref is `source.ref` when present and
+`workflow.ref` otherwise, that the `built-source` URI carries that same full tag ref, and that
+`built-source.digest.gitCommit` is the verified built commit. The internal handoff and standalone
+publisher `release-tag` retain their independent equality checks against that identity. Fixtures
+with a short tag, branch ref, pull request ref, selector/tag conflict, built-source URI or commit
+mismatch, or standalone release-tag mismatch fail with `release-ref-mismatch` or the narrower
+built-source diagnostic. Removed `externalParameters.release.ref`, `release.version_tag`,
+`source.repository`, `source.revision`, `source.ref_type`, `source.input_ref`, and
+`source.invocation_*` members are rejected under the closed schema rather than compared.
 
 The custom-registry fixture set must prove that non-npmjs package identity and package version
 preflight checks are best-effort diagnostics. A tokenless metadata check that cannot prove state
-records `publish.package_identity_preexisting` or `publish.package_version_preexisting` as `null`,
-sets `publish.custom_registry_support` to `unsupported-but-not-blocked`, emits
-`custom-registry-preflight-inconclusive`, and exits `0`. Synthetic custom-registry fixtures test
-only this warning behavior and fail-clearly behavior. They never establish successful registry
-conformance.
+records unsigned `diagnostic_metadata.publish.package_identity_preexisting` or
+`diagnostic_metadata.publish.package_version_preexisting` as `null` and emits
+`custom-registry-preflight-inconclusive` with exit `0`. The unsupported-but-not-blocked boundary is
+implicit buildType behavior, not a signed `publish.custom_registry_support` member. Synthetic
+custom-registry fixtures test only this warning behavior and fail-clearly behavior. They never
+establish successful registry conformance or consumer trust in unsigned observations.
 
 Rejected custom-registry fixtures must cover token or OTP requirement detected before mutation,
 tokenless OIDC or equivalent authentication failure at the authentication or publish boundary, exact
@@ -1634,38 +1962,52 @@ The v1 provenance contract rejected fixture set must cover these isolated mutati
 fixture declares the listed value as `expected-primary-id`; independently provable secondary errors
 follow the diagnostics ordering rules.
 
-| Mutation                                                                                                   | Expected primary ID                                  |
-| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Runtime descriptor is missing, duplicated, has an unknown top-level member, is malformed, or is mismatched | `resolved-dependencies-node-runtime`                 |
-| npm emits `package-manager-distribution`                                                                   | `resolved-dependencies-package-manager-distribution` |
-| pnpm or Yarn omits `package-manager-distribution`                                                          | `resolved-dependencies-package-manager-distribution` |
-| pnpm uses `download-hash` or Yarn uses `registry-integrity`                                                | `resolved-dependencies-package-manager-distribution` |
-| Descriptor manager or version differs from `externalParameters.package_manager`                            | `resolved-dependencies-package-manager-distribution` |
-| Runner image is absent or contains `digest`                                                                | `resolved-dependencies-runner-image`                 |
-| Unknown descriptor or generated transitive package entry                                                   | `resolved-dependencies-unexpected-entry`             |
-| `builder.version.nodejs` is missing                                                                        | `builder-version-mismatch`                           |
-| `corepack` is missing when used or present for npm                                                         | `builder-version-mismatch`                           |
-| `builder.version` has an unknown key                                                                       | `builder-version-mismatch`                           |
-| Signing-adapter descriptor is missing or extra                                                             | `builder-dependencies-signing-adapter-mismatch`      |
-| Adapter URI, module version, or checksum disagrees                                                         | `builder-dependencies-signing-adapter-mismatch`      |
-| Adapter `role` annotation is wrong                                                                         | `builder-dependencies-signing-adapter-mismatch`      |
-| `distribution` or `caller` member is missing or unknown                                                    | `unexpected-external-parameters`                     |
-| Raw release tag is duplicated into `distribution`                                                          | `release-asset-mode-schema-error`                    |
-| Observed caller filename is unavailable or mismatched                                                      | `trusted-publisher-mismatch`                         |
-| `internalParameters` is nonempty                                                                           | `unexpected-internal-parameters`                     |
-| Invocation URI is malformed or differs from OID `.21`                                                      | `run-invocation-uri-invalid`                         |
-| Verification mode is absent, conflicting, or root-shape-inconsistent                                       | `verification-mode-invalid`                          |
-| Online TUF failure attempts pin fallback                                                                   | `ungoverned-trust-root`                              |
-| Offline mode attempts TUF or another network call                                                          | `verification-network-call`                          |
-| Offline pin is stale                                                                                       | `stale-pinned-trust-root`                            |
+| Mutation                                                                                                                         | Expected primary ID                                  |
+| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Invocation-source is missing, duplicated, malformed, has `mediaType`, or disagrees with workflow/certificate invocation identity | `resolved-dependencies-invocation-source`            |
+| Built-source is missing, duplicated, malformed, has `mediaType`, or disagrees with effective ref, commit, repository, or tag     | `resolved-dependencies-built-source`                 |
+| Package-manifest is missing, duplicated, malformed, or has wrong source, path, digest, media type, or workspace root             | `resolved-dependencies-package-manifest`             |
+| Offline manifest evidence is absent, malformed, oversized, noncanonical, or mismatched                                           | `package-manifest-evidence`                          |
+| Selected lockfile has missing, wrong, or representation-inconsistent `mediaType`                                                 | `resolved-dependencies-lockfile`                     |
+| Runtime descriptor is missing, duplicated, has an unknown member, wrong media type, or mismatches the pin                        | `resolved-dependencies-node-runtime`                 |
+| npm emits `package-manager-distribution`                                                                                         | `resolved-dependencies-package-manager-distribution` |
+| pnpm or Yarn omits `package-manager-distribution`                                                                                | `resolved-dependencies-package-manager-distribution` |
+| pnpm uses `download-hash` or Yarn uses `registry-integrity`                                                                      | `resolved-dependencies-package-manager-distribution` |
+| Distribution manager/version disagrees with lockfile evidence or its media type misstates the digest-covered bytes               | `resolved-dependencies-package-manager-distribution` |
+| Runner image is absent, contains `digest`/`mediaType`, carries `image_os`/`node_version`, or fails URI/version projection        | `resolved-dependencies-runner-image`                 |
+| Unknown descriptor or generated transitive package entry                                                                         | `resolved-dependencies-unexpected-entry`             |
+| `builder.version.nodejs` or `builder.version.npm` is missing                                                                     | `builder-version-mismatch`                           |
+| `corepack` is missing when used or present for npm                                                                               | `builder-version-mismatch`                           |
+| `builder.version` has an unknown key                                                                                             | `builder-version-mismatch`                           |
+| Signing-adapter descriptor is missing or extra                                                                                   | `builder-dependencies-signing-adapter-mismatch`      |
+| Adapter URI, module version, or checksum disagrees                                                                               | `builder-dependencies-signing-adapter-mismatch`      |
+| Adapter `role` annotation is wrong                                                                                               | `builder-dependencies-signing-adapter-mismatch`      |
+| Required external-parameter member is missing                                                                                    | `external-parameters-incomplete`                     |
+| Removed workflow builder, runtime, package-manager, release, caller, build, source, package, publish, or distribution member     | `external-parameters-unexpected`                     |
+| `distribution.release_tag_supplied`, `distribution.provenance_sidecar`, or a raw release tag appears                             | `external-parameters-unexpected`                     |
+| Public `release-tag` or `provenance-sidecar` input is supplied                                                                   | `release-asset-mode-schema-error`                    |
+| Trusted-publisher filename derived from `workflow.path` is unavailable or mismatched                                             | `trusted-publisher-mismatch`                         |
+| `internalParameters` is absent, null, empty, malformed, or not the exact three-string GitHub object                              | `unexpected-internal-parameters`                     |
+| Build Trigger differs from `internalParameters.github.event_name`                                                                | `build-trigger-mismatch`                             |
+| Build Config URI differs from caller `workflow.path` or uses the reusable builder path                                           | `build-config-uri-mismatch`                          |
+| Signed build-script disposition is missing, unsupported, or manifest-inconsistent                                                | `build-script-disposition-mismatch`                  |
+| Normalized manifest repository differs from workflow, certificate, or either source descriptor                                   | `package-repository-identity-mismatch`               |
+| Selector suppliedness/spelling is invalid, source is empty, or tag conflicts with invocation                                     | `source-ref-invalid`                                 |
+| Invocation URI is malformed or differs from OID `.21`                                                                            | `run-invocation-uri-invalid`                         |
+| Verification mode is absent, conflicting, or root-shape-inconsistent                                                             | `verification-mode-invalid`                          |
+| Online TUF failure attempts pin fallback                                                                                         | `ungoverned-trust-root`                              |
+| Offline mode attempts TUF, manifest retrieval, or another network call                                                           | `verification-network-call`                          |
+| Offline pin is stale                                                                                                             | `stale-pinned-trust-root`                            |
 
 The package repository fixture set must cover accepted shorthand `owner/repository` and
 `github:owner/repository`, HTTPS, `git+https`, `git://`, SCP-like SSH, `ssh://`, and object-form
-repository values. It must also cover malformed forms, a missing repository, and a normalized value
-that differs from the observed source repository. Each rejection fails before pack with
-`package-repository-identity-mismatch`. Fixtures for the diagnostics report must preserve each
-safe-listed source JSON form, omit absent fields, and reject `null`, credentials, tokens, unknown
-members, and duplicate members with `diagnostics-contract-invalid`.
+repository values in authenticated manifest evidence. It must also cover malformed forms, a missing
+repository, and a normalized value that differs from `workflow.repository`, the certificate Source
+Repository URI, or either source descriptor's repository component. Manifest-repository rejection
+uses `package-repository-identity-mismatch`; certificate and descriptor mismatches use their
+narrower identity diagnostics. Fixtures for the diagnostics report must preserve each safe-listed
+source JSON form, omit absent fields, and reject `null`, credentials, tokens, unknown members, and
+duplicate members with `diagnostics-contract-invalid`.
 
 The producer-policy registry fixture set must accept the registered npm `buildType`, reject an
 unknown `buildType` with `unregistered-producer-build-type`, and reject every caller override or
@@ -1721,13 +2063,14 @@ The Yarn support fixture set must prove ADR 0063's stable boundary. Accepted fix
 root package and workspace package selected by top-level exact `packageManager` values such as
 `yarn@4.0.0` or another exact version lower than `6.0.0`, and a package selected by an exact
 `devEngines.packageManager` Yarn descriptor (ADR 0091), with `yarn.lock`, Corepack exact-version
-execution, and `package_manager.yarn_install_mode: "immutable"` in provenance. Rejected fixtures
-must cover `yarn@1.x`, `yarn@2.x`, `yarn@3.x`, `yarn@6.x` or newer, Yarn version ranges, Yarn tags,
-Yarn URL descriptors, missing `packageManager` with only `yarn.lock`, Corepack Known Good Release
-fallback, and ambient global Yarn execution. Unsupported Yarn generation, descriptor, or
-selection-source failures use `unsupported-yarn-version`, and Yarn 6 or newer pins use
-`yarn-version-unsupported`, unless the failure is more specifically a malformed manifest shape,
-lockfile mismatch, or Corepack enforcement error.
+execution, `application/yaml` lockfile media type, and immutable installation as fixed buildType
+behavior rather than a signed parameter. Rejected fixtures must cover `yarn@1.x`, `yarn@2.x`,
+`yarn@3.x`, `yarn@6.x` or newer, Yarn version ranges, Yarn tags, Yarn URL descriptors, missing
+`packageManager` with only `yarn.lock`, Corepack Known Good Release fallback, and ambient global
+Yarn execution. Unsupported Yarn generation, descriptor, or selection-source failures use
+`unsupported-yarn-version`, and Yarn 6 or newer pins use `yarn-version-unsupported`, unless the
+failure is more specifically a malformed manifest shape, lockfile mismatch, or Corepack enforcement
+error.
 
 The npm Go-signer fixture set must prove the ADR 0077 contract. The accepted production fixture must
 be a bundle named `<package-tarball-name>.intoto.jsonl` with GitHub Actions OIDC identity, a Fulcio
@@ -1763,34 +2106,42 @@ signer defect, a follow-up ADR must evaluate remediation or rollback.
 
 The signer identity fixture set must prove semantic GitHub Actions identity binding rather than
 artifact-name or log-based inference. Accepted npm producer fixtures must show a bundle whose signer
-workflow repository, workflow path, workflow SHA, source repository, source ref, source revision,
-numeric repository and owner IDs, Run Invocation URI, GitHub-hosted runner identity, and predicate
-type all match the signed Statement and trusted policy. Rejected npm fixtures must cover a wrong
-reusable workflow path, a signer workflow SHA that differs from both `runDetails.builder.id` and the
-manifest `workflow_sha`, a correct Windlass signer with a mismatched caller source repository, a
-name-matching source repository whose repository or owner numeric ID differs, a correct caller
-source identity with an untrusted Windlass signer, a missing or malformed Run Invocation URI, a
-self-hosted runner, and a tool output that omits a required semantic identity field. Accepted
-release manifest fixtures must show signer repository, signer workflow path, protected tag ref,
-peeled release commit SHA, source repository, numeric repository and owner IDs, source ref, source
-revision, Run Invocation URI, GitHub-hosted runner identity, and predicate type matching the
-manifest expectation. Rejected release manifest fixtures must cover branch-ref signing, signer
-workflow path mismatch, release tag/ref mismatch, release commit mismatch, numeric-ID mismatch, and
-missing semantic identity fields. Wrong values fail with the narrow ADR 0068 diagnostic; absent
-unverifiable identity fields fail with `signer-identity-claim-missing`.
+workflow repository, workflow path, workflow SHA, caller workflow `{ref, repository, path}`,
+invocation-source URI and commit, effective built ref and built-source commit, numeric repository
+and owner IDs, Build Trigger, Build Config URI, Run Invocation URI, GitHub-hosted runner identity,
+and predicate type all match the signed Statement and trusted policy. Rejected npm fixtures must
+cover a wrong reusable workflow path, a signer workflow SHA that differs from both
+`runDetails.builder.id` and the manifest `workflow_sha`, caller/builder path confusion, a Source
+Repository Ref or Digest mismatch against workflow/invocation-source, an effective built ref or
+built-source commit mismatch, Build Trigger or Build Config URI mismatch, a correct Windlass signer
+with a mismatched caller source repository, a name-matching source repository whose repository or
+owner numeric ID differs, a correct caller source identity with an untrusted Windlass signer, a
+missing or malformed Run Invocation URI, a self-hosted runner, and a tool output that omits a
+required semantic identity field. Accepted release manifest fixtures must show signer repository,
+signer workflow path, protected tag ref, peeled release commit SHA, source repository, numeric
+repository and owner IDs, source ref, source revision, Run Invocation URI, GitHub-hosted runner
+identity, and predicate type matching the manifest expectation. Rejected release manifest fixtures
+must cover branch-ref signing, signer workflow path mismatch, release tag/ref mismatch, release
+commit mismatch, numeric-ID mismatch, and missing semantic identity fields. Wrong values fail with
+the narrow ADR 0068 diagnostic; absent unverifiable identity fields fail with
+`signer-identity-claim-missing`.
 
-The mandatory ADR 0068 rejection fixtures are:
+The mandatory identity rejection fixtures are:
 
-| Fixture name                             | Mutation                                                                                           | Expected diagnostic             |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `identity-issuer-mismatch`               | Issuer differs from `https://token.actions.githubusercontent.com` by host, path, or normalization. | `issuer-mismatch`               |
-| `identity-workflow-path-mismatch`        | URI SAN or Build Signer URI names another workflow while all other claims match.                   | `signer-workflow-path-mismatch` |
-| `identity-workflow-sha-mismatch`         | Build Signer Digest differs from manifest/policy `workflow_sha`.                                   | `signer-workflow-sha-mismatch`  |
-| `identity-source-repository-id-mismatch` | Source repository name/URI matches but OID `.15` differs.                                          | `source-numeric-id-mismatch`    |
-| `identity-source-owner-id-mismatch`      | Source owner name/URI matches but OID `.17` differs.                                               | `source-numeric-id-mismatch`    |
-| `identity-run-invocation-missing`        | Run Invocation URI extension is absent.                                                            | `run-invocation-uri-invalid`    |
-| `identity-run-invocation-malformed`      | Run Invocation URI has another repository, zero/non-decimal IDs, query, fragment, or userinfo.     | `run-invocation-uri-invalid`    |
-| `identity-self-hosted-runner`            | Platform-signed runner environment identifies a self-hosted runner.                                | `self-hosted-runner`            |
+| Fixture name                             | Mutation                                                                                           | Expected diagnostic                       |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `identity-issuer-mismatch`               | Issuer differs from `https://token.actions.githubusercontent.com` by host, path, or normalization. | `issuer-mismatch`                         |
+| `identity-workflow-path-mismatch`        | URI SAN or Build Signer URI names another workflow while all other claims match.                   | `signer-workflow-path-mismatch`           |
+| `identity-workflow-sha-mismatch`         | Build Signer Digest differs from manifest/policy `workflow_sha`.                                   | `signer-workflow-sha-mismatch`            |
+| `identity-source-repository-id-mismatch` | Source repository name/URI matches but OID `.15` differs.                                          | `source-numeric-id-mismatch`              |
+| `identity-source-owner-id-mismatch`      | Source owner name/URI matches but OID `.17` differs.                                               | `source-numeric-id-mismatch`              |
+| `identity-run-invocation-missing`        | Run Invocation URI extension is absent.                                                            | `run-invocation-uri-invalid`              |
+| `identity-run-invocation-malformed`      | Run Invocation URI has another repository, zero/non-decimal IDs, query, fragment, or userinfo.     | `run-invocation-uri-invalid`              |
+| `identity-self-hosted-runner`            | Platform-signed runner environment identifies a self-hosted runner.                                | `self-hosted-runner`                      |
+| `identity-invocation-source-mismatch`    | Invocation-source URI or digest disagrees with workflow or certificate invocation identity.        | `resolved-dependencies-invocation-source` |
+| `identity-built-source-mismatch`         | Built-source URI, commit, or tag annotation disagrees with effective built identity.               | `resolved-dependencies-built-source`      |
+| `identity-build-trigger-mismatch`        | Build Trigger differs from `internalParameters.github.event_name`.                                 | `build-trigger-mismatch`                  |
+| `identity-build-config-uri-mismatch`     | Build Config URI differs from caller `workflow.path` or names the reusable builder path.           | `build-config-uri-mismatch`               |
 
 Each fixture changes only the named condition from `npm-maximal-identity-valid`. Every fixture is a
 hard failure; no fixture may pass because a repository name, `builder.id`, workflow log, or unsigned
@@ -1825,33 +2176,38 @@ exactly one selected lockfile `ResourceDescriptor` and no generated transitive d
 Accepted fixtures must cover manifest-selected npm with `package-lock.json`, manifest-selected pnpm
 with `pnpm-lock.yaml`, manifest-selected Yarn Berry v4 or v5 from top-level `packageManager` with
 `yarn.lock`, and lockfile-inferred npm with `package-lock.json`. Accepted stale-lockfile fixtures
-must record stale non-selected lockfiles in both
-`externalParameters.package_manager.ignored_lockfile_paths` and the `lockfile` descriptor's
+must record stale non-selected lockfiles only in the lockfile descriptor's
 `annotations.stale_non_selected_lockfiles` while keeping the selected lockfile descriptor as the
-only dependency graph input. These existing lockfile fixtures run within the enumerated name-keyed
-set: npm has exactly three entries (`lockfile`, `node-runtime`, and `runner-image`); pnpm and Yarn
-have exactly four, adding one `package-manager-distribution`. Rejected fixtures must cover a missing
-descriptor, extra descriptor entries, full dependency-list entries, digest mismatch, URI source or
-revision mismatch, fragment path outside the repository, descriptor path that names a stale or
-non-selected lockfile, missing stale-lockfile diagnostics, unknown annotation members, and treating
-a stale non-selected lockfile as the selected dependency graph input. These failures use
-`resolved-dependencies-lockfile`; unknown extra entries use
-`resolved-dependencies-unexpected-entry`; known node-runtime, package-manager distribution, and
-runner-image defects use their respective narrow diagnostics.
+only dependency graph input. The selected lockfile URI commit equals
+`built-source.digest.gitCommit`, and its media type is `application/json` for npm or
+`application/yaml` for pnpm/Berry. These lockfile fixtures run within the enumerated name-keyed set:
+npm has exactly six entries, and pnpm and Yarn have exactly seven, adding one
+`package-manager-distribution`. Rejected fixtures must cover a missing descriptor, extra descriptor
+entries, full dependency-list entries, digest mismatch, URI repository or built-revision mismatch,
+invocation-commit substitution, missing or wrong media type, fragment path outside the repository,
+descriptor path that names a stale or non-selected lockfile, missing stale-lockfile diagnostics,
+unknown annotation members, and treating a stale non-selected lockfile as the selected dependency
+graph input. These failures use `resolved-dependencies-lockfile`; unknown extra entries use
+`resolved-dependencies-unexpected-entry`; source, manifest, runtime, distribution, and runner
+defects use their respective narrow diagnostics.
 
 The public npm release-asset mode fixture set must prove that
-`.github/workflows/js-ts-npm-package-slsa3.yml` has one public npm entrypoint with two modes.
-Accepted fixtures must cover npm-only mode, release-asset mode with mandatory provenance sidecar
-upload, and release-asset mode with linked artifact metadata enabled. Rejected fixtures must cover
-release-asset-only inputs while `release-asset-mode` is `false`, non-empty or malformed
-`release-tag` values that do not equal the current package version tag, missing existing GitHub
-Release targets, sidecar disable or rename attempts, linked metadata enabled without
+`.github/workflows/js-ts-npm-package-slsa3.yml` has one public npm entrypoint with two modes and
+exactly seven public inputs. Accepted fixtures must cover npm-only mode, release-asset mode with
+mandatory provenance sidecar upload to the existing Release for the effective built tag, and
+release-asset mode with linked artifact metadata enabled. Rejected fixtures must cover
+release-asset-only inputs while `release-asset-mode` is `false`, removed public `release-tag` and
+`provenance-sidecar` inputs at the workflow call boundary, signed
+`distribution.release_tag_supplied` or `distribution.provenance_sidecar` members, a Release target
+that disagrees with the effective built ref or `built-source` URI, missing existing GitHub Release
+targets, sidecar disable or rename attempts, linked metadata enabled without
 `artifact-metadata: write`, release-asset mode without caller `contents: write`, and internal jobs
 that combine release mutation, signing, package publishing, mapping, or metadata authorities. Schema
-failures use `release-asset-mode-schema-error`; disabled-mode conflicts use
-`release-asset-mode-disabled-conflict`; missing or excessive permissions use
-`release-asset-mode-permission-error`; target selection failures use `release-asset-target-error`
-unless a narrower publisher category applies.
+failures use `release-asset-mode-schema-error` or `external-parameters-unexpected` as applicable;
+disabled-mode conflicts use `release-asset-mode-disabled-conflict`; missing or excessive permissions
+use `release-asset-mode-permission-error`; target selection failures use
+`release-asset-target-error` unless a narrower publisher category applies. The standalone publisher
+release-tag and internal handoff tag checks remain covered and are not removed.
 
 The public npm release-asset mode fixture set must also prove that release-asset outputs are
 publication result handles only. Accepted outputs include package identity, npm tarball digests,
@@ -1898,8 +2254,9 @@ The npm signing permissions fixture must likewise prove `contents: read`, `id-to
 
 The trusted-publisher fixture set is producer-side: it must prove that missing caller OIDC
 permission or npmjs.com trusted publisher mismatch fails before registry mutation and never falls
-back to token publish. These fixtures must not require adding caller trusted publisher settings to
-the signed SLSA `externalParameters` schema.
+back to token publish. Consumer and producer fixtures derive the checked workflow filename from the
+certificate-bound `workflow.path`; no `caller` group or signed trusted-publisher configuration is
+added to `externalParameters`.
 
 The ADR 0076 trusted-publisher preflight fixture set must include an exchange-preflight failure
 matrix: HTTP `401` and `404` each produce `trusted-publisher-mismatch`; HTTP `5xx` and a malformed
@@ -2143,27 +2500,38 @@ predicate type.
 Each row names one primary diagnostic. The normative sources define the shape; this verifier policy
 defines the accepted and rejected fixture contracts.
 
-| Requirement                    | Normative section                                                                                                  | Accepted fixture                                    | Rejected fixture                                                                                          | Primary diagnostic                                   |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| npm dependency set             | [npm dependency schema](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema)                      | `npm-resolved-dependencies-npm-valid`               | `npm-resolved-dependencies-npm-manager-distribution`                                                      | `resolved-dependencies-package-manager-distribution` |
-| Node.js runtime                | [Node.js runtime descriptor](js-ts-npm-provenance-publish.md#nodejs-runtime-descriptor)                            | `npm-resolved-dependencies-reordered-valid`         | `npm-resolved-dependencies-node-runtime-missing`, `npm-resolved-dependencies-node-runtime-unknown-member` | `resolved-dependencies-node-runtime`                 |
-| pnpm distribution              | [Package-manager distribution descriptor](js-ts-npm-provenance-publish.md#package-manager-distribution-descriptor) | `npm-resolved-dependencies-pnpm-valid`              | pnpm distribution missing or uses `download-hash`                                                         | `resolved-dependencies-package-manager-distribution` |
-| Yarn distribution              | [Package-manager distribution descriptor](js-ts-npm-provenance-publish.md#package-manager-distribution-descriptor) | `npm-resolved-dependencies-yarn-valid`              | Yarn distribution missing or uses `registry-integrity`                                                    | `resolved-dependencies-package-manager-distribution` |
-| Unknown dependency             | [npm dependency schema](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema)                      | `npm-resolved-dependencies-npm-valid`               | `npm-resolved-dependencies-unknown-entry`                                                                 | `resolved-dependencies-unexpected-entry`             |
-| Runner image                   | [Runner-image descriptor](js-ts-npm-provenance-publish.md#runner-image-descriptor)                                 | `npm-resolved-dependencies-npm-valid`               | runner absent, digest-bearing, or mismatched                                                              | `resolved-dependencies-runner-image`                 |
-| Capture availability           | [Runner image capture](js-ts-npm-build-pack.md#runner-image-capture)                                               | `npm-resolved-dependencies-npm-valid`               | runner or manager capture or embedded runtime pin unavailable                                             | `input-unavailable`                                  |
-| Distribution and caller groups | [Closed schema rules](js-ts-npm-provenance-publish.md#closed-schema-rules)                                         | `npm-external-parameters-distribution-caller-valid` | missing or unknown group member                                                                           | `unexpected-external-parameters`                     |
-| Mode normalization             | [Optional input rules](js-ts-npm-package-profile.md#optional-input-rules)                                          | `npm-external-parameters-distribution-caller-valid` | normalized distribution disagrees with public mode input                                                  | `release-asset-mode-schema-error`                    |
-| Caller filename                | [Caller trusted publishing requirements](js-ts-npm-package-profile.md#caller-trusted-publishing-requirements)      | `npm-external-parameters-distribution-caller-valid` | observed filename unavailable or mismatched                                                               | `trusted-publisher-mismatch`                         |
-| Empty internal parameters      | [internalParameters](slsa-provenance-v1.md#internalparameters)                                                     | `npm-internal-parameters-empty-valid`               | nonempty object or non-object, non-null value                                                             | `unexpected-internal-parameters`                     |
-| Builder direct-npm version     | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-version-direct-npm-valid`              | missing `nodejs` or npm-only `corepack`                                                                   | `builder-version-mismatch`                           |
-| Builder Corepack version       | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-version-corepack-valid`                | missing conditional `corepack` or observed mismatch                                                       | `builder-version-mismatch`                           |
-| Signing adapter                | [builder](slsa-provenance-v1.md#builder)                                                                           | `npm-builder-signing-adapter-valid`                 | missing, extra, wrong-role, or module/checksum-inconsistent adapter                                       | `builder-dependencies-signing-adapter-mismatch`      |
-| Invocation identity            | [metadata](slsa-provenance-v1.md#metadata)                                                                         | `npm-invocation-id-certificate-uri-valid`           | malformed URI or OID `.21` inequality                                                                     | `run-invocation-uri-invalid`                         |
-| Online trust root              | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-online-tuf-valid`                       | TUF failure followed by pin fallback                                                                      | `ungoverned-trust-root`                              |
-| Offline network isolation      | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-offline-pinned-valid`                   | offline network attempt                                                                                   | `verification-network-call`                          |
-| Offline pin freshness          | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-offline-pinned-valid`                   | offline stale pin                                                                                         | `stale-pinned-trust-root`                            |
-| Invocation mode                | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                  | `trust-root-online-tuf-valid`                       | mode absent, conflicting, or root-shape-inconsistent                                                      | `verification-mode-invalid`                          |
+| Requirement                   | Normative section                                                                                                                | Accepted fixture                                                                                   | Rejected fixture                                                                                          | Primary diagnostic                                   |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| npm dependency set            | [npm dependency schema](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema)                                    | `npm-resolved-dependencies-npm-valid`                                                              | `npm-resolved-dependencies-npm-manager-distribution`                                                      | `resolved-dependencies-package-manager-distribution` |
+| Invocation source             | [Git source descriptors](slsa-provenance-v1.md#git-source-descriptors)                                                           | `npm-source-ref-dispatch-retry-valid`                                                              | `identity-invocation-source-mismatch`                                                                     | `resolved-dependencies-invocation-source`            |
+| Built source                  | [Git source descriptors](slsa-provenance-v1.md#git-source-descriptors)                                                           | `npm-source-ref-omitted-valid`                                                                     | `identity-built-source-mismatch`                                                                          | `resolved-dependencies-built-source`                 |
+| Package manifest              | [Package-manifest descriptor](js-ts-npm-provenance-publish.md#package-manifest-descriptor)                                       | `npm-package-manifest-evidence-valid`                                                              | package-manifest source, path, digest, type, or workspace-root mismatch                                   | `resolved-dependencies-package-manifest`             |
+| Offline manifest evidence     | [Offline manifest evidence](js-ts-npm-provenance-publish.md#offline-manifest-evidence)                                           | `npm-package-manifest-evidence-valid`                                                              | missing, malformed, oversized, or mismatched evidence                                                     | `package-manifest-evidence`                          |
+| Media-type matrix             | [Deterministic media types](slsa-provenance-v1.md#deterministic-media-types)                                                     | `npm-media-type-matrix-valid`                                                                      | package-manifest mediaType missing or wrong; other rows cover remaining descriptors                       | `resolved-dependencies-package-manifest`             |
+| Node.js runtime               | [Node.js runtime descriptor](js-ts-npm-provenance-publish.md#nodejs-runtime-descriptor)                                          | `npm-resolved-dependencies-reordered-valid`                                                        | `npm-resolved-dependencies-node-runtime-missing`, `npm-resolved-dependencies-node-runtime-unknown-member` | `resolved-dependencies-node-runtime`                 |
+| pnpm distribution             | [Package-manager distribution descriptor](js-ts-npm-provenance-publish.md#package-manager-distribution-descriptor)               | `npm-resolved-dependencies-pnpm-valid`                                                             | pnpm distribution missing or uses `download-hash`                                                         | `resolved-dependencies-package-manager-distribution` |
+| Yarn distribution             | [Package-manager distribution descriptor](js-ts-npm-provenance-publish.md#package-manager-distribution-descriptor)               | `npm-resolved-dependencies-yarn-valid`                                                             | Yarn distribution missing or uses `registry-integrity`                                                    | `resolved-dependencies-package-manager-distribution` |
+| Unknown dependency            | [npm dependency schema](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema)                                    | `npm-resolved-dependencies-npm-valid`                                                              | `npm-resolved-dependencies-unknown-entry`                                                                 | `resolved-dependencies-unexpected-entry`             |
+| Runner image                  | [Runner-image descriptor](js-ts-npm-provenance-publish.md#runner-image-descriptor)                                               | `npm-runner-image-metadata-valid`                                                                  | runner absent, digest/media-type bearing, `image_os`, or projection mismatch                              | `resolved-dependencies-runner-image`                 |
+| Capture availability          | [Runner image capture](js-ts-npm-build-pack.md#runner-image-capture)                                                             | `npm-runner-image-metadata-valid`                                                                  | runner or manager capture or embedded runtime pin unavailable                                             | `input-unavailable`                                  |
+| Minimized external parameters | [Closed schema rules](js-ts-npm-provenance-publish.md#closed-schema-rules)                                                       | `npm-external-parameters-minimized-valid`                                                          | removed group or member present                                                                           | `external-parameters-unexpected`                     |
+| Publish resolution            | [Manifest-derived checks and publish resolution](js-ts-npm-provenance-publish.md#manifest-derived-checks-and-publish-resolution) | `npm-publish-resolution-recompute-valid`                                                           | raw-input/manifest conflict or invalid recomputation                                                      | `publish-intent-conflict`                            |
+| Distribution modes            | [Optional input rules](js-ts-npm-package-profile.md#optional-input-rules)                                                        | `npm-release-asset-mode-valid`                                                                     | normalized distribution disagrees with public mode input                                                  | `release-asset-mode-schema-error`                    |
+| Removed public release inputs | [Seven-input completeness mapping](js-ts-npm-provenance-publish.md#seven-input-completeness-mapping)                             | `npm-external-parameters-minimized-valid`                                                          | public release-tag or provenance-sidecar input supplied                                                   | `release-asset-mode-schema-error`                    |
+| Removed distribution members  | [Seven-input completeness mapping](js-ts-npm-provenance-publish.md#seven-input-completeness-mapping)                             | `npm-external-parameters-minimized-valid`                                                          | release_tag_supplied or provenance_sidecar signed projection                                              | `external-parameters-unexpected`                     |
+| Caller filename               | [Caller trusted publishing requirements](js-ts-npm-package-profile.md#caller-trusted-publishing-requirements)                    | `npm-external-parameters-minimized-valid`                                                          | filename derived from workflow.path unavailable or mismatched                                             | `trusted-publisher-mismatch`                         |
+| GitHub internal parameters    | [internalParameters](slsa-provenance-v1.md#internalparameters)                                                                   | `npm-internal-parameters-github-valid`                                                             | absent, null, empty, or wrong-shaped GitHub triple                                                        | `unexpected-internal-parameters`                     |
+| Build Trigger                 | [Fulcio claims and maximal identity binding](#fulcio-claims-and-maximal-identity-binding)                                        | `npm-maximal-identity-valid`                                                                       | `identity-build-trigger-mismatch`                                                                         | `build-trigger-mismatch`                             |
+| Build Config URI              | [Fulcio claims and maximal identity binding](#fulcio-claims-and-maximal-identity-binding)                                        | `npm-maximal-identity-valid`                                                                       | `identity-build-config-uri-mismatch`                                                                      | `build-config-uri-mismatch`                          |
+| Build-script disposition      | [metadata](slsa-provenance-v1.md#metadata)                                                                                       | `npm-build-script-disposition-executed-valid`, `npm-build-script-disposition-skipped-absent-valid` | missing, unsupported, or manifest-inconsistent disposition                                                | `build-script-disposition-mismatch`                  |
+| Builder direct-npm version    | [builder](slsa-provenance-v1.md#builder)                                                                                         | `npm-builder-version-direct-npm-valid`                                                             | missing `nodejs`/`npm` or npm-only `corepack`                                                             | `builder-version-mismatch`                           |
+| Builder Corepack version      | [builder](slsa-provenance-v1.md#builder)                                                                                         | `npm-builder-version-corepack-valid`                                                               | missing conditional `corepack` or observed mismatch                                                       | `builder-version-mismatch`                           |
+| Signing adapter               | [builder](slsa-provenance-v1.md#builder)                                                                                         | `npm-builder-signing-adapter-valid`                                                                | missing, extra, wrong-role, or module/checksum-inconsistent adapter                                       | `builder-dependencies-signing-adapter-mismatch`      |
+| Invocation identity           | [metadata](slsa-provenance-v1.md#metadata)                                                                                       | `npm-invocation-id-certificate-uri-valid`                                                          | malformed URI or OID `.21` inequality                                                                     | `run-invocation-uri-invalid`                         |
+| Online trust root             | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                                | `trust-root-online-tuf-valid`                                                                      | TUF failure followed by pin fallback                                                                      | `ungoverned-trust-root`                              |
+| Offline network isolation     | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                                | `trust-root-offline-pinned-valid`                                                                  | offline network attempt, including manifest retrieval                                                     | `verification-network-call`                          |
+| Offline pin freshness         | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                                | `trust-root-offline-pinned-valid`                                                                  | offline stale pin                                                                                         | `stale-pinned-trust-root`                            |
+| Invocation mode               | [Sigstore trust-root acquisition](#sigstore-trust-root-acquisition-and-freshness)                                                | `trust-root-online-tuf-valid`                                                                      | mode absent, conflicting, or root-shape-inconsistent                                                      | `verification-mode-invalid`                          |
 
 ## Future standalone verifier decision boundary
 
@@ -2186,6 +2554,21 @@ Before declaring a release ready, verify that:
 - No standalone verifier CLI is promised for the initial profile.
 - Exactly one invocation mode is selected, and its trust-root behavior satisfies the online or
   offline mode contract.
-- npm provenance has the closed `distribution` and `caller` groups, exactly empty
-  `internalParameters`, the manager-dependent name-keyed dependency set, closed `builder.version`,
-  one signing-adapter dependency, and `metadata.invocationId` equal to Fulcio OID `.21`.
+- npm provenance has the minimized closed external-parameter shape, with optional caller
+  `source.ref` and required `workflow`, `package.directory`, three raw publish inputs, and exactly
+  two distribution booleans. Removed external-parameter members and removed public release inputs
+  are rejected.
+- `internalParameters.github` contains exactly `event_name`, `repository_id`, and
+  `repository_owner_id` as strings; Build Trigger and Build Config URI match that event and caller
+  `workflow.path`; invocation claims bind to `workflow` and `invocation-source`; built-release
+  expectations bind to the effective built ref and `built-source`.
+- The dependency set has exactly six entries for npm and seven for pnpm/Yarn, including both source
+  roles, `package-manifest`, lockfile, runtime, conditional distribution, and runner image. Every
+  descriptor satisfies its closed shape and the media-type matrix; runner `image_os` is rejected.
+- Offline original-manifest evidence is present and bound to `package-manifest` and `built-source`;
+  package identity, repository, publish resolution, and build-script disposition are recomputed from
+  it without network fallback.
+- `builder.version` contains `nodejs`, `npm`, and conditional `corepack`; exactly one
+  signing-adapter dependency is present; signed
+  `runDetails.metadata.windlass_build_script_disposition` agrees with the manifest; and
+  `metadata.invocationId` equals Fulcio OID `.21`.

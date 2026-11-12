@@ -134,6 +134,9 @@ var errorCategories = strings.Fields(`
 actions-attest-adapter-contract
 already-published-version
 build-type-not-canonical
+build-config-uri-mismatch
+build-script-disposition-mismatch
+build-trigger-mismatch
 builder-dependencies-signing-adapter-mismatch
 builder-id-not-immutable
 builder-version-mismatch
@@ -207,6 +210,7 @@ package-manager-digest-mismatch
 package-manager-manifest-shape-error
 package-manager-selection-path-mismatch
 package-manager-version-required
+package-manifest-evidence
 package-manifest-invalid
 package-metadata-required
 package-pack-failed
@@ -242,9 +246,12 @@ release-ref-mismatch
 release-target-immutable
 release-version-semver-mismatch
 required-lockfile-missing
+resolved-dependencies-built-source
+resolved-dependencies-invocation-source
 resolved-dependencies-lockfile
 resolved-dependencies-node-runtime
 resolved-dependencies-package-manager-distribution
+resolved-dependencies-package-manifest
 resolved-dependencies-runner-image
 resolved-dependencies-unexpected-entry
 run-invocation-uri-invalid
