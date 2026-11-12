@@ -1,0 +1,23 @@
+docs/decisions/README.md
+  s_636baadbb9f5f6::t_bf12c7b575a5f0 215
+docs/architecture/slsa-provenance-v1.md
+  s_636baadbb9f5f6::t_eb3b969c9a73c0 302-303
+internal/npmprofile/manifest_evidence.go
+  s_636baadbb9f5f6::t_aeeacf0c5eea1c 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3fceb50a06edab1af56dccef7ee9bcdb27dd4785",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
