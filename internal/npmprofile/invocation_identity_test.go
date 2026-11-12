@@ -149,7 +149,7 @@ func TestNPMBuilderMigrationGuard(t *testing.T) {
 		{
 			name:      "different well-formed Windlass filename rejected",
 			builderID: "https://github.com/windlasstech/slsa-builder/.github/workflows/other-windlass.yml@" + testSourceSHA,
-			wantID:    "windlass.verify.error.builder-id-not-immutable",
+			wantID:    "windlass.verify.error.wrong-builder-id",
 		},
 		{
 			name:      "well-formed but unauthorized builder SHA rejected",

@@ -43,6 +43,7 @@ const (
 	IDSourceIdentityMismatch            DiagnosticID = "windlass.verify.error.source-identity-mismatch"
 	IDSourceNumericIDMismatch           DiagnosticID = "windlass.verify.error.source-numeric-id-mismatch"
 	IDSourceRefMismatch                 DiagnosticID = "windlass.verify.error.source-ref-mismatch"
+	IDWrongBuilderID                    DiagnosticID = "windlass.verify.error.wrong-builder-id"
 )
 
 // ValidationError carries the stable diagnostic ID for a failed identity check.

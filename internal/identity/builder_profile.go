@@ -13,7 +13,7 @@ func ValidateBuilderIDForWorkflow(builderID, workflowPath string) error {
 		return err
 	}
 	if builderID != canonical {
-		return validationError(IDBuilderIDNotImmutable, "builder.id", "builder ID does not use the authorized profile workflow path")
+		return validationError(IDWrongBuilderID, "builder.id", "builder ID does not use the authorized profile workflow path")
 	}
 	return nil
 }
