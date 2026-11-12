@@ -1,0 +1,51 @@
+internal/npmprofile/manifest_snapshot_test.go
+  s_9a895e4a9c1c9b::t_37dafe521a8368 1-121
+internal/npmprofile/workspace.go
+  s_9a895e4a9c1c9b::t_9decbf7b693a11 14,16-20
+  s_9a895e4a9c1c9b::t_69b0bd8ce967ec 56,62-66,68-77,79
+internal/npmprofile/workflow_metadata_source_ref_test.go
+  s_9a895e4a9c1c9b::t_8b7e6fe77619f6 22,86
+internal/npmprofile/selection.go
+  s_9a895e4a9c1c9b::t_9bf358f26ff7e7 38
+internal/npmprofile/types.go
+  s_9a895e4a9c1c9b::t_58e89ca93a4778 52-57,68
+  s_9a895e4a9c1c9b::t_f0fe2a463d3db0 140
+internal/npmprofile/workflow_metadata_test.go
+  s_9a895e4a9c1c9b::t_a31d5f67838d2c 123
+  s_9a895e4a9c1c9b::t_1a84e4241976aa 28
+internal/npmprofile/resolution.go
+  s_9a895e4a9c1c9b::t_3e4b3495126c6a 151-155,157,161-164
+  s_9a895e4a9c1c9b::t_1b5a067614a9a1 166-168,170
+  s_9a895e4a9c1c9b::t_c4e75f940bcce2 26-30,49,58,67-68
+  s_c03c648a6239ec::t_21d39939f9eece 165
+internal/npmprofile/workflow_metadata_intent_test.go
+  s_9a895e4a9c1c9b::t_f4516b7afa75d2 69-73
+  s_9a895e4a9c1c9b::t_b475b7175b6af8 164-165
+  s_9a895e4a9c1c9b::t_66543e673a8d85 174
+internal/npmprofile/build_pack.go
+  s_9a895e4a9c1c9b::t_438362c6e8c7b4 69,71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "18d02f9e623d0b009c9160a2cb32cbafafa77c46",
+  "prompts": {},
+  "sessions": {
+    "s_9a895e4a9c1c9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e327896faffeyne6GqKvfzirOv",
+        "model": "unknown"
+      },
+      "human_author": null
+    },
+    "s_c03c648a6239ec": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
