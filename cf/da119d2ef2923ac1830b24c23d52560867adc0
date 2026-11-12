@@ -1,0 +1,21 @@
+CHANGELOG.md
+  s_636baadbb9f5f6::t_224e1d2748f81b 126
+  s_636baadbb9f5f6::t_3abbbe1a02ec53 128-135
+  s_636baadbb9f5f6::t_41cb80916b604b 136-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cfda119d2ef2923ac1830b24c23d52560867adc0",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
