@@ -1,0 +1,14 @@
+CHANGELOG.md
+  h_495200fbbeca45 126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7a7c11b9145afabcae74e1034c27bb32e20b80a",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
