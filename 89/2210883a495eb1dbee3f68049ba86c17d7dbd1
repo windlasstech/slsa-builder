@@ -1,0 +1,20 @@
+internal/fixture/evidence_test.go
+  s_636baadbb9f5f6::t_4363ee0503143a 149-151
+  s_636baadbb9f5f6::t_84475105c89ee1 138-148,152-166
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "892210883a495eb1dbee3f68049ba86c17d7dbd1",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
