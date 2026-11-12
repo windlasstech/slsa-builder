@@ -94,6 +94,11 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 	if !validRunnerSoftwareURI(capture.IncludedSoftwareURL) {
 		return RunnerCapture{}, runnerCaptureError("runner image metadata has a malformed Included Software URI", imageOS, deploymentVersion)
 	}
+	releaseTag, _ := runnerImageReleaseProjection(capture.ImageVersion)
+	releaseURI, err := url.Parse(capture.ImageReleaseURL)
+	if !validRunnerReleaseURI(capture.ImageReleaseURL) || err != nil || !strings.HasSuffix(releaseURI.Path, "/"+releaseTag) {
+		return RunnerCapture{}, runnerCaptureError("runner image metadata has a malformed or version-disagreeing Image Release URI", imageOS, deploymentVersion)
+	}
 
 	seenOperatingSystem := false
 	for _, group := range groups {
@@ -128,6 +133,21 @@ func runnerImageReleaseProjection(version string) (string, bool) {
 
 func validRunnerSoftwareURI(value string) bool {
 	parsed, err := url.Parse(value)
+	// RawPath must be empty: the signed descriptor carries the verbatim URI,
+	// so percent-encoded variants are not interchangeable with the plain form.
 	return err == nil && parsed.Scheme == "https" && parsed.Host == "github.com" && parsed.User == nil &&
-		parsed.RawQuery == "" && parsed.Fragment == "" && strings.HasPrefix(parsed.Path, "/actions/runner-images/")
+		parsed.RawQuery == "" && parsed.Fragment == "" && parsed.RawPath == "" && strings.HasPrefix(parsed.Path, "/actions/runner-images/")
+}
+
+// validRunnerReleaseURI accepts the platform's release reference, whose tag
+// segment is percent-encoded (ubuntu24%2F20261025.353) in real metadata.
+func validRunnerReleaseURI(value string) bool {
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme != "https" || parsed.Host != "github.com" || parsed.User != nil ||
+		parsed.RawQuery != "" || parsed.Fragment != "" {
+		return false
+	}
+	segments := strings.Split(parsed.Path, "/")
+	return len(segments) == 7 && segments[0] == "" && segments[1] == "actions" && segments[2] == "runner-images" &&
+		segments[3] == "releases" && segments[4] == "tag" && segments[5] != "" && segments[6] != ""
 }

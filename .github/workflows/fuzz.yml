@@ -60,6 +60,8 @@ jobs:
           - package: internal/signing
             target: FuzzBindOIDCSignerIdentity
           - package: internal/npmprofile
+            target: FuzzParseRunnerMetadata
+          - package: internal/npmprofile
             target: FuzzParseCallerWorkflowPath
           - package: internal/npmprofile
             target: FuzzNPMPackagePURL

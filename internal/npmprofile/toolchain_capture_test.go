@@ -98,6 +98,33 @@ func TestCaptureRunnerEnvironment(t *testing.T) {
 const runnerSoftwareURL = "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md"
 const runnerReleaseURL = "https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353"
 
+func TestParseRunnerMetadataRejectsNonCanonicalURIs(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct{ name, detail string }{
+		{name: "percent-encoded included software URI", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme%2Emd\n" +
+			"Image Release: " + runnerReleaseURL},
+		{name: "included software URI with query", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: " + runnerSoftwareURL + "?raw=1\n" +
+			"Image Release: " + runnerReleaseURL},
+		{name: "http image release", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: " + runnerSoftwareURL + "\n" +
+			"Image Release: http://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353"},
+		{name: "image release missing version segment", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: " + runnerSoftwareURL + "\n" +
+			"Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24"},
+		{name: "image release tag disagrees with image version", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: " + runnerSoftwareURL + "\n" +
+			"Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.354"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := parseRunnerMetadata(runnerMetadataDocument(t, test.detail), "ubuntu24", "")
+			requireNPMDiagnostic(t, err, "windlass.verify.error.input-unavailable")
+		})
+	}
+}
+
 func runnerMetadataDocument(t *testing.T, detail string) []byte {
 	t.Helper()
 	encoded, err := json.Marshal([]map[string]string{
