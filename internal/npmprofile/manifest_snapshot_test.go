@@ -50,7 +50,7 @@ func TestAnalyzeCapturesOriginalManifestSnapshot(t *testing.T) {
 	}
 }
 
-func TestBuildPackUsesPreBuildManifestSnapshot(t *testing.T) {
+func TestBuildPackRejectsPostCaptureManifestMutation(t *testing.T) {
 	// Given analysis of a package that declared a build script before any tool ran.
 	clearToolchainRootEnvironment(t)
 	installFakeToolchain(t)
@@ -65,21 +65,17 @@ func TestBuildPackUsesPreBuildManifestSnapshot(t *testing.T) {
 	// When a post-capture mutation removes the script and the build runs.
 	removeBuildScript(t, repository)
 	fetcher, _ := fakeDistributionFetcher(t)
-	result, err := BuildPack(t.Context(), BuildPackConfig{
+	_, err := BuildPack(t.Context(), BuildPackConfig{
 		Selection:          selection,
 		OutputDirectory:    t.TempDir(),
 		ArtifactName:       "artifact",
 		ExternalParameters: []byte(`{}`),
 		fetcher:            fetcher,
 	})
-	if err != nil {
-		t.Fatalf("BuildPack() error: %v", err)
-	}
 
-	// Then detection and disposition still describe the captured manifest.
-	if !result.BuildScript.Present || result.BuildScript.Result != BuildScriptExecuted {
-		t.Fatalf("build script = %#v, want present and executed from the original snapshot", result.BuildScript)
-	}
+	// Then the drift guard rejects the run: the on-disk manifest no longer
+	// equals the snapshot that supplies the signed disposition evidence.
+	requireNPMDiagnostic(t, err, IDSourceManifestDrift)
 }
 
 func TestResolveWorkflowPublishIntentUsesCapturedManifest(t *testing.T) {

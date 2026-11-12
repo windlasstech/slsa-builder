@@ -56,6 +56,60 @@ func TestBuildPackFlowFailuresCleanOutputs(t *testing.T) {
 	}
 }
 
+func TestBuildPackRejectsSourceManifestDrift(t *testing.T) {
+	// These cases replace PATH and therefore must remain serial.
+	const original = `{"name":"example","version":"1.0.0","packageManager":"npm@11.5.1","repository":"windlasstech/slsa-builder","scripts":{"build":"ignored"}}`
+	mutated := `{"name":"example","version":"1.0.0","packageManager":"npm@11.5.1","repository":"windlasstech/slsa-builder","scripts":{"build":"ignored"},"description":"mutated"}`
+	for _, test := range []struct {
+		name        string
+		mutateEarly bool
+		npmScript   string
+	}{
+		{name: "pre-install drift", mutateEarly: true},
+		{name: "build script drift", npmScript: "run) printf '%s' '" + mutated + "' > package.json; exit 0;;"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			clearToolchainRootEnvironment(t)
+			installFakeToolchain(t)
+			t.Setenv("ImageOS", "")
+			t.Setenv("ImageVersion", "")
+			npm, err := exec.LookPath("npm")
+			if err != nil {
+				t.Fatal(err)
+			}
+			root := createRepository(t, map[string]string{
+				"package.json":      original,
+				"package-lock.json": `{}`,
+			})
+			selection := analyze(t, root, ".")
+			if test.mutateEarly {
+				if writeErr := os.WriteFile(filepath.Join(root, "package.json"), []byte(mutated), 0o600); writeErr != nil {
+					t.Fatal(writeErr)
+				}
+			}
+			npmCase := test.npmScript
+			if npmCase != "" {
+				npmCase += "\n"
+			}
+			npmCase += "run) exit 0;;\n"
+			script := "#!/bin/sh\ncase \"$1\" in\n--version) printf '11.5.1';;\nci) exit 0;;\n" + npmCase +
+				"pack)\ndestination=\"\"\nwhile [ \"$#\" -gt 0 ]; do\n" +
+				"if [ \"$1\" = \"--pack-destination\" ]; then destination=\"$2\"; shift 2; continue; fi\nshift\ndone\n" +
+				"[ -n \"$destination\" ] || exit 1\n" +
+				"work=$(mktemp -d)\nmkdir \"$work/package\"\ncp package.json \"$work/package/\"\n" +
+				"COPYFILE_DISABLE=1 tar -czf \"$destination/example-1.0.0.tgz\" -C \"$work\" package/package.json\nrm -rf \"$work\"\nexit 0;;\n*)\nexit 1;;\nesac\nexit 0\n"
+			writeScript(t, filepath.Dir(npm), "npm", script)
+			output := t.TempDir()
+			_, err = BuildPack(t.Context(), BuildPackConfig{Selection: selection, OutputDirectory: output, ArtifactName: "artifact", ExternalParameters: []byte(`{}`)})
+			requireNPMDiagnostic(t, err, "windlass.verify.error.source-manifest-drift")
+			entries, readErr := os.ReadDir(output)
+			if readErr != nil || len(entries) != 0 {
+				t.Fatalf("drift build outputs = %v, %v; want empty directory", entries, readErr)
+			}
+		})
+	}
+}
+
 func TestBuildPackInvalidYarnOutputName(t *testing.T) {
 	t.Parallel()
 	selection := Result{}

@@ -37,7 +37,7 @@ func buildRegistry() map[string]Definition {
 		"package-resolution-invalid", "package-manager-conflict", "package-manager-version-required",
 		"package-manager-digest-malformed", "package-manager-digest-mismatch",
 		"yarn-selection-invalid", "required-lockfile-missing", "package-repository-identity-mismatch",
-		"pnpm-version-unsupported", "yarn-version-unsupported")
+		"pnpm-version-unsupported", "yarn-version-unsupported", "source-manifest-drift")
 
 	setPrecedence(definitions, 1,
 		"diagnostics-contract-invalid", "digest-encoding-invalid", "digest-mismatch",
@@ -270,6 +270,7 @@ signer-workflow-path-mismatch
 signer-workflow-sha-mismatch
 source-digest-mismatch
 source-identity-mismatch
+source-manifest-drift
 source-numeric-id-mismatch
 source-ref-invalid
 source-ref-mismatch

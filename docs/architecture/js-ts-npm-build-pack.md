@@ -244,6 +244,15 @@ selected `package.json` fails before install with `windlass.verify.error.package
 and exit code `1`; the profile must not construct a predicate from partial or substituted manifest
 evidence.
 
+The snapshot is also the integrity boundary for the build itself: the profile re-reads the selected
+`package.json` immediately before install and immediately before pack, and fails closed with
+`windlass.verify.error.source-manifest-drift` and exit code `1` when the on-disk bytes differ from
+the original snapshot, emitting no tarball or build metadata. Pack-time behavior stays outside this
+boundary: package managers legitimately rewrite fields at pack time (workspace protocol resolution,
+`publishConfig` overrides), and a caller-declared `prepack` script can modify the manifest during
+pack. The packed manifest therefore never serves as evidence; the packed artifact remains bounded by
+the packed identity and consumer-surface validations, and the tarball as a whole is digest-bound.
+
 ## Package manager selection
 
 The profile selects the package manager from the selected package manifest first, then from the
@@ -1236,6 +1245,7 @@ must emit the canonical diagnostic ID.
 | Failure condition                                                                                                                                                                                                                                                                  | Diagnostic ID                                                              | Stable fixture alias                                 | Phase        | Exit code | `mutation_possible` |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------- | ------------ | --------- | ------------------- |
 | The selected `package.json` is missing or invalid.                                                                                                                                                                                                                                 | `windlass.verify.error.package-manifest-invalid`                           | `package-manifest-invalid`                           | policy       | `1`       | `false`             |
+| The on-disk selected `package.json` differs from the original source-manifest snapshot before install or before pack.                                                                                                                                                              | `windlass.verify.error.source-manifest-drift`                              | `source-manifest-drift`                              | policy       | `1`       | `false`             |
 | The selected source manifest has no `name` or `version`.                                                                                                                                                                                                                           | `windlass.verify.error.package-metadata-required`                          | `package-metadata-required`                          | policy       | `1`       | `false`             |
 | The selected source manifest sets `private` to `true`.                                                                                                                                                                                                                             | `windlass.verify.error.package-private`                                    | `package-private`                                    | policy       | `1`       | `false`             |
 | `package-directory` resolves outside the repository, is not a directory, or does not identify exactly one selected package.                                                                                                                                                        | `windlass.verify.error.package-resolution-invalid`                         | `package-resolution-invalid`                         | policy       | `1`       | `false`             |

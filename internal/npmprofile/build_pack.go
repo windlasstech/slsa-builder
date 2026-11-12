@@ -1,6 +1,7 @@
 package npmprofile
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -70,6 +71,9 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 	if err != nil {
 		return BuildPackResult{}, fmt.Errorf("decode original source-manifest snapshot: %w", err)
 	}
+	if err := verifySourceManifestCurrent(config.Selection.Package); err != nil {
+		return BuildPackResult{}, err
+	}
 	buildScript := BuildScriptCapture{Present: manifest.Scripts != nil && manifest.Scripts["build"] != "", Result: BuildScriptSkippedAbsent}
 
 	if err := runManagerCommand(ctx, config.Selection, managerPath, environment, installArguments(config.Selection.Manager.Name)); err != nil {
@@ -80,6 +84,9 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 			return BuildPackResult{}, fmt.Errorf("run declared build script: %w", err)
 		}
 		buildScript.Result = BuildScriptExecuted
+	}
+	if err := verifySourceManifestCurrent(config.Selection.Package); err != nil {
+		return BuildPackResult{}, err
 	}
 	if err := runManagerCommand(ctx, config.Selection, managerPath, environment, packArguments(config.Selection, packageOutput)); err != nil {
 		return BuildPackResult{}, fmt.Errorf("pack selected package: %w", err)
@@ -436,4 +443,17 @@ func writeBuildMetadata(path string, metadata BuildMetadata) error {
 
 func npmTarballName(name, version string) string {
 	return strings.ReplaceAll(strings.TrimPrefix(name, "@"), "/", "-") + "-" + version + ".tgz"
+}
+
+// verifySourceManifestCurrent fails closed when the on-disk selected manifest
+// no longer equals the original snapshot recorded as signed evidence.
+func verifySourceManifestCurrent(pkg Package) error {
+	current, err := readRegularNonSymlink(filepath.Join(pkg.RealDirectory, "package.json"))
+	if err != nil {
+		return npmValidationError(IDSourceManifestDrift, "package.json", "selected package manifest is unreadable after the original snapshot")
+	}
+	if !bytes.Equal(current, pkg.SourceManifest.Content) {
+		return npmValidationError(IDSourceManifestDrift, "package.json", "selected package manifest changed after the original snapshot")
+	}
+	return nil
 }
