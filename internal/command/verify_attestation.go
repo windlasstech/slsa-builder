@@ -40,13 +40,14 @@ func (verifyAttestationCommand) Execute(ctx context.Context, args []string, out 
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			_, writeErr := fmt.Fprintln(out, "Internal workflow command. Usage: slsa-builder-internal verify-attestation --bundle <json> --policy <json> --identity <json> --statement <json> [--pinned-root <json>] [--github-output <path>]")
+			_, writeErr := fmt.Fprintln(out, "Internal workflow command. Usage: slsa-builder-internal verify-attestation --bundle <json> --policy <json> --identity <json> --statement <json> --manifest-evidence <json> --tarball <path> [--pinned-root <json>] [--github-output <path>]")
 			return writeErr
 		}
 		return err
 	}
-	if flags.NArg() != 0 || *bundlePath == "" || *policyPath == "" || *identityPath == "" || *statementPath == "" {
-		return errors.New("--bundle, --policy, --identity, and --statement are required with no positional arguments")
+	if flags.NArg() != 0 || *bundlePath == "" || *policyPath == "" || *identityPath == "" || *statementPath == "" ||
+		*manifestEvidencePath == "" || *tarballPath == "" {
+		return errors.New("--bundle, --policy, --identity, --statement, --manifest-evidence, and --tarball are required with no positional arguments")
 	}
 
 	bundleBytes, err := readRegularFile(*bundlePath)

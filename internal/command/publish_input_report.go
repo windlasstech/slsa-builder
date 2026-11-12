@@ -4,13 +4,13 @@ import (
 	"io"
 
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
-	"github.com/windlasstech/slsa-builder/internal/npmprofile"
+	"github.com/windlasstech/slsa-builder/internal/handoff"
 )
 
 func writePublishInputRejection(out io.Writer, reportPath string, cause error) error {
 	id := diagnosticIDOf(cause)
 	if id == "" {
-		id = npmprofile.IDPackageManifestEvidence
+		id = string(handoff.HandoffSchemaMismatchID)
 	}
 	entry, err := diagnostic.New(id, "npm.publish.metadata", RedactSecrets(cause.Error()))
 	if err != nil {

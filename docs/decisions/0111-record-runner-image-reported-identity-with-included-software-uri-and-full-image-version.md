@@ -70,7 +70,7 @@ metadata snapshot:
   `https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md`.
 - Separate control-plane deployment `ImageVersion`: `20261026.354.1`.
 
-As observed on 12026-11-12, the 353 report and release return HTTP 404, while the 354 report is
+As observed on 12026-11-11, the 353 report and release return HTTP 404, while the 354 report is
 available. The local evidence therefore identifies the image that actually hosted the build even
 though its public report and release are not retrievable. Treating HTTP availability as an identity
 check would discard that valid evidence or substitute the deployment's different image version.
@@ -468,7 +468,7 @@ URI and full version.
   generator uses the full version's major/minor components for the Included Software and Image
   Release references and drops the patch component. For the observed values, the URI carries
   `20261025.353`, while the local `Version:` line carries `20261025.353.1`.
-- At the time-bounded observation on 12026-11-12, the
+- At the time-bounded observation on 12026-11-11, the
   [353 Included Software report](https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md)
   and [353 release](https://github.com/actions/runner-images/releases/tag/ubuntu24/20261025.353)
   returned HTTP 404, while the

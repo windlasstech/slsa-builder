@@ -54,7 +54,7 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			_, writeErr := fmt.Fprintln(out, "Usage: slsa-builder-internal npm-profile-sign --metadata-artifact-dir <dir> --metadata-sha256 <hex> --metadata-artifact-name <name> --tarball-artifact-dir <dir> --tarball-sha256 <hex> --tarball-artifact-name <name> --node-version <version> [--corepack-version <version>] --output-directory <dir>")
+			_, writeErr := fmt.Fprintln(out, "Usage: slsa-builder-internal npm-profile-sign --metadata-artifact-dir <dir> --metadata-sha256 <hex> --metadata-artifact-name <name> --tarball-artifact-dir <dir> --tarball-sha256 <hex> --tarball-artifact-name <name> --node-version <version> --npm-version <version> [--corepack-version <version>] --output-directory <dir>")
 			return writeErr
 		}
 		return err

@@ -19,8 +19,16 @@ layered on top of this common contract.
   [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
   [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md),
-  and
-  [0100](../decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)
+  [0100](../decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md),
+  [0103](../decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md),
+  [0104](../decisions/0104-remove-redundant-external-parameter-builder-record.md),
+  [0105](../decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md),
+  [0106](../decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md),
+  [0107](../decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md),
+  [0109](../decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md),
+  [0110](../decisions/0110-record-deterministic-media-types-for-non-runner-dependencies.md),
+  [0111](../decisions/0111-record-runner-image-reported-identity-with-included-software-uri-and-full-image-version.md),
+  and [0112](../decisions/0112-record-runner-image-operating-system-from-on-disk-metadata.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
