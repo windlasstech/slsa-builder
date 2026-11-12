@@ -1,0 +1,32 @@
+internal/npmprofile/workflow_metadata_intent_test.go
+  s_636baadbb9f5f6::t_d2f90e86a7fdf5 161-164,166,168-183
+  s_636baadbb9f5f6::t_299000d6874eb7 165,167
+internal/command/npm_profile_build.go
+  s_636baadbb9f5f6::t_667279357e0e4b 179
+internal/npmprofile/workflow_metadata.go
+  s_c03c648a6239ec::t_877fcf674867ca 42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f0a1e1bbab592e2a4380cfe3e95bfc4aaf7a5901",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_c03c648a6239ec": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
