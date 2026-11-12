@@ -1,0 +1,24 @@
+internal/attestation/invocation_identity_test.go
+  s_636baadbb9f5f6::t_ef119f44118d18 22
+internal/attestation/verify.go
+  s_636baadbb9f5f6::t_68e2e108b6436a 44
+docs/architecture/verification-policy-and-fixtures.md
+  s_636baadbb9f5f6::t_e72cf0c1d5d03c 343
+  s_636baadbb9f5f6::t_1f1d82aa62be49 366
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9d8def4de47832924a035a18eb3066927eb1314",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
