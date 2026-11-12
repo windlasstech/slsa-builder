@@ -1,0 +1,25 @@
+internal/npmprofile/producer_evidence_test.go
+  s_636baadbb9f5f6::t_db1a6edeb48da6 5
+  s_636baadbb9f5f6::t_3a19a25bf7e2c3 128
+  s_636baadbb9f5f6::t_c39850bfb6daaf 90-92
+  s_636baadbb9f5f6::t_03318c5c060e9c 129-134
+  s_636baadbb9f5f6::t_5237681acd67dc 1-4,6-7,9-89,93-95,113-127,135-154
+  s_636baadbb9f5f6::t_0129573ae13516 8
+  s_636baadbb9f5f6::t_b8878ef929bb51 96-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3fea64e49a0118d43ba0b92c2d21ce40c6ea0041",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
