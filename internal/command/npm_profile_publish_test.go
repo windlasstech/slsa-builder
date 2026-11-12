@@ -1,7 +1,9 @@
 package command
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"os"
@@ -155,24 +157,23 @@ func TestNPMProfilePublishInputClassification(t *testing.T) {
 		}
 	})
 
-	t.Run("packed artifact digest mismatch keeps its diagnostic in the report", func(t *testing.T) {
-		tampered := append(append([]byte{}, tarball...), 0x00)
+	t.Run("handoff record digests disagreeing with the authenticated metadata keep their diagnostic in the report", func(t *testing.T) {
+		other := buildPublishTestTarball(t, []byte(`{"name":"@windlass/slsa-builder","version":"1.2.4","repository":"example/project"}`))
 		reportPath := filepath.Join(t.TempDir(), "report.json")
-		tarballDir := oneFileDirectory(t, "package.tgz", tarball)
+		tarballDir := oneFileDirectory(t, "package.tgz", other)
 		args := publishArgs(t, tarballDir, oneFileDirectory(t, "package.tgz.intoto.jsonl", bundle),
 			reportPath, filepath.Join(t.TempDir(), "out"), tarball, bundle)
-		// The handoff digests match the tampered file, but the authenticated
-		// metadata still records the original artifact digests.
+		// The on-disk bytes and the handoff record agree with each other but
+		// not with the authenticated metadata, so the identity binding rejects
+		// before packed-artifact verification runs. Packed-artifact digest
+		// verification itself is covered directly in the npmprofile tests.
 		for index, arg := range args {
 			switch arg {
 			case "--tarball-sha256":
-				args[index+1] = digest.SumSHA256(tampered).String()
+				args[index+1] = digest.SumSHA256(other).String()
 			case "--tarball-sha512":
-				args[index+1] = digest.SumSHA512(tampered).String()
+				args[index+1] = digest.SumSHA512(other).String()
 			}
-		}
-		if err := os.WriteFile(filepath.Join(tarballDir, "package.tgz"), tampered, 0o600); err != nil {
-			t.Fatal(err)
 		}
 		err := NewNPMProfilePublishCommand().Execute(context.Background(), args, &bytes.Buffer{})
 		if !errors.Is(err, ErrVerificationFailure) {
@@ -183,6 +184,42 @@ func TestNPMProfilePublishInputClassification(t *testing.T) {
 			t.Fatalf("digest mismatch report = %#v, %v", report, readErr)
 		}
 	})
+
+	t.Run("truncated packed artifact reports the pack failure diagnostic", func(t *testing.T) {
+		truncated := tarball[:len(tarball)-16]
+		reportPath := filepath.Join(t.TempDir(), "report.json")
+		tarballDir := oneFileDirectory(t, "package.tgz", truncated)
+		args := publishArgs(t, tarballDir, oneFileDirectory(t, "package.tgz.intoto.jsonl", bundle),
+			reportPath, filepath.Join(t.TempDir(), "out"), truncated, bundle)
+		err := NewNPMProfilePublishCommand().Execute(context.Background(), args, &bytes.Buffer{})
+		if !errors.Is(err, ErrVerificationFailure) {
+			t.Fatalf("Execute() error = %v, want verification failure", err)
+		}
+		report, readErr := ReadTypedJSON[diagnostic.Report](reportPath, nil)
+		if readErr != nil || report.PrimaryID == nil || *report.PrimaryID != "windlass.verify.error.package-pack-failed" {
+			t.Fatalf("pack failure report = %#v, %v", report, readErr)
+		}
+	})
+}
+
+func buildPublishTestTarball(t *testing.T, manifest []byte) []byte {
+	t.Helper()
+	var buffer bytes.Buffer
+	compressed := gzip.NewWriter(&buffer)
+	archive := tar.NewWriter(compressed)
+	if err := archive.WriteHeader(&tar.Header{Name: "package/package.json", Mode: 0o644, Size: int64(len(manifest))}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := archive.Write(manifest); err != nil {
+		t.Fatal(err)
+	}
+	if err := archive.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := compressed.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
 }
 
 func publishArgs(t *testing.T, tarballDir, bundleDir, reportPath, githubOutput string, tarball, bundle []byte) []string {

@@ -1,6 +1,8 @@
 package npmprofile
 
 import (
+	"fmt"
+
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
@@ -47,7 +49,8 @@ func VerifyProducerPackage(metadata BuildMetadata) (ProducerPackage, error) {
 func VerifyPackedArtifact(filename string, expected PrimaryArtifact) (PackedMetadata, error) {
 	packed, sha256, sha512, err := inspectTarball(filename)
 	if err != nil {
-		return PackedMetadata{}, err
+		return PackedMetadata{}, npmValidationError(IDPackagePackFailed, "primary_artifact",
+			fmt.Sprintf("packed artifact cannot be inspected: %v", err))
 	}
 	if sha256.String() != expected.SHA256 || sha512.String() != expected.SHA512 {
 		return PackedMetadata{}, npmValidationError("windlass.verify.error.digest-mismatch", "primary_artifact", "packed artifact differs from the verified handoff")
