@@ -140,6 +140,34 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   cannot change canonical reports, registry or verifier operations, classification, retries, or
   publish outcomes.
 
+### Changed
+
+- **Breaking:** Finalized the JS/TS npm SLSA provenance contract per ADR 0103-0112.
+  `externalParameters.workflow` now records exactly the called workflow's `ref`, `repository`, and
+  `path`, while the legacy environment snapshots are removed from the signed record.
+  `internalParameters.github` is a closed triple of `event_name`, `repository_id`, and
+  `repository_owner_id`, bound to the OIDC Build Trigger and Build Config URI claims and to the
+  signing certificate's platform-fixed claims. `resolvedDependencies` records the ordered chain of
+  `invocation-source`, `built-source`, `package-manifest`, `lockfile`, `node-runtime`, a
+  `package-manager-distribution` for non-npm managers, and `runner-image`; the signed
+  package-manifest descriptor carries offline `manifest_evidence` (`path` plus base64 content) so
+  verifiers can recompute it without repository access. `builder.version` records the observed
+  `nodejs`, `npm`, and conditionally `corepack` versions, and build script invocations are recorded
+  as `runDetails.metadata.windlass_build_script_disposition`.
+- **Breaking:** The `runner-image` descriptor's annotation set is now exactly `deployment_version`,
+  `operating_system`, `image_version`, and `runner_label` (ADR 0111, ADR 0112). `operating_system`
+  carries the on-disk image metadata's Operating System detail from the same bounded snapshot as
+  `image_version`; the ambient `ImageOS` variable is diagnostic-only and never feeds the signed
+  record.
+
+### Removed
+
+- **Breaking:** Removed the `release-tag` and `provenance-sidecar` optional inputs from the JS/TS
+  npm reusable workflow (ADR 0108), shrinking the public contract to one required input
+  (`package-directory`) and six optional inputs. The release target tag is derived from the signed
+  invocation context instead of a caller input, and release-asset publication always receives the
+  provenance sidecar.
+
 ### Security
 
 - [CVE-2026-33818](https://osv.dev/vulnerability/CVE-2026-33818),
