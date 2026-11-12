@@ -1,0 +1,33 @@
+docs/decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md
+  s_636baadbb9f5f6::t_f23a40606e81f1 31-33
+docs/decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md
+  s_636baadbb9f5f6::t_c1ef285f868ca9 28-35
+docs/decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md
+  s_636baadbb9f5f6::t_f85535b01bf8e1 33,35-39
+  s_636baadbb9f5f6::t_7aa19a4767cdd2 12,14-19
+docs/decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md
+  s_636baadbb9f5f6::t_ba44544df9c894 20,22-27,29-31
+  s_636baadbb9f5f6::t_f3d4d05130b994 41,43-46
+docs/decisions/0104-remove-redundant-external-parameter-builder-record.md
+  s_636baadbb9f5f6::t_aff24f0b8a9be5 18,20-23
+docs/decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md
+  s_636baadbb9f5f6::t_e67cbfdb39d79f 14,16-19
+docs/decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md
+  s_636baadbb9f5f6::t_d327b72bf54c3b 61-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d3f3e594562c9a671c9e00e272a503077bcc8f2",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
