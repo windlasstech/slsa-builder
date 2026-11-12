@@ -25,9 +25,16 @@ profile.
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
   [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
   [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md),
+  [0082](../decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md),
+  [0083](../decisions/0083-defer-npm-m1-publish-remediation-to-the-upstream-provenance-file-fix.md),
+  [0084](../decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md),
+  [0085](../decisions/0085-pin-the-node-24-patch-version-and-assert-the-expected-bundled-npm-pair.md),
+  [0090](../decisions/0090-extend-the-supported-pnpm-range-to-the-10x-line.md),
+  [0098](../decisions/0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md),
   [0106](../decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md),
-  [0107](../decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md), and
-  [0108](../decisions/0108-remove-redundant-npm-release-asset-inputs.md)
+  [0107](../decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md),
+  [0108](../decisions/0108-remove-redundant-npm-release-asset-inputs.md), and
+  [0109](../decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
