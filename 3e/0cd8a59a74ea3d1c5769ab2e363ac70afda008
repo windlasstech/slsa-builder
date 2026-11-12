@@ -1,0 +1,141 @@
+README.md
+  s_52048bd78e3fb6::t_f56dce9eaf2e22 368
+internal/diagnostic/registry.go
+  s_9a0e9686ae013d::t_14d58824ab4c01 137-139
+  s_9a0e9686ae013d::t_58d0f5b849e214 249-250,254
+  s_9a0e9686ae013d::t_b710e70aa687c2 213
+docs/architecture/verification-policy-and-fixtures.md
+  s_9a0e9686ae013d::t_ba9cfc9a3af27f 279-281
+  s_9a0e9686ae013d::t_1627285fafb7e2 349-350
+  s_9a0e9686ae013d::t_9a198b7fe05493 370-376
+  s_9a0e9686ae013d::t_584915c4c600c5 777-780
+  s_9a0e9686ae013d::t_88c420dbdbd3ed 898,901-904
+  s_9a0e9686ae013d::t_d10e92a003a6ec 1361
+  s_9a0e9686ae013d::t_4fd054fbe4b455 1892
+  s_9a0e9686ae013d::t_8771e6940644e2 2195-2203,2206-2210
+  s_9a0e9686ae013d::t_03735e0dc1fcf8 436
+  s_9a0e9686ae013d::t_bea91a9f217a60 1084-1087
+  s_9a0e9686ae013d::t_5ee5e659ffefdc 1653-1698
+  s_9a0e9686ae013d::t_8796fb03524229 2257-2259
+  s_9a0e9686ae013d::t_5470914df4c7d0 520-553,556,563-566
+  s_9a0e9686ae013d::t_fea1f300ba423b 766-769
+  s_9a0e9686ae013d::t_e532cfbc27df07 1190
+  s_9a0e9686ae013d::t_45f018ccb71f6e 211-219
+  s_9a0e9686ae013d::t_1dbf853e758e66 1920-1921
+  s_9a0e9686ae013d::t_efb60537ea9b89 2109-2119
+  s_9a0e9686ae013d::t_77450a0d7cc517 1564,1566
+  s_9a0e9686ae013d::t_5fd409b07339d9 2004-2006
+  s_9a0e9686ae013d::t_03865f2880177f 604-605,610-615
+  s_9a0e9686ae013d::t_3d6097496e015c 1103
+  s_9a0e9686ae013d::t_cec080d52786a3 1967
+  s_9a0e9686ae013d::t_2584826012383a 568-586
+  s_9a0e9686ae013d::t_756408669ae6c7 2066
+  s_9a0e9686ae013d::t_5ab87fb6c13b20 2561-2570
+  s_9a0e9686ae013d::t_14194096f8d766 721-726
+  s_9a0e9686ae013d::t_10a341925293d8 589-595,597-600
+  s_9a0e9686ae013d::t_994774f9de34d6 744-764
+  s_9a0e9686ae013d::t_2f8c874677041d 1457-1470
+  s_9a0e9686ae013d::t_95fdf5c9993126 1490-1498
+  s_9a0e9686ae013d::t_f5025f811d0e1a 1876-1878
+  s_9a0e9686ae013d::t_cca9e3e700d117 665-694,699-702,715-718
+  s_9a0e9686ae013d::t_a3243c9d7c2938 1939-1944
+  s_9a0e9686ae013d::t_ebe387aa244d2c 1221-1227
+  s_9a0e9686ae013d::t_57c17f43cea927 1907-1910
+  s_9a0e9686ae013d::t_12b979cdff84aa 2129
+  s_9a0e9686ae013d::t_e740c3a2898282 617-649,652-653
+  s_9a0e9686ae013d::t_3d4f38d4de1a7b 935-936,939-947,952-955
+  s_9a0e9686ae013d::t_c3ab7c63aa1172 1176
+  s_9a0e9686ae013d::t_0c4f5dc85aff99 39-50
+  s_9a0e9686ae013d::t_9570449e66d51f 655-659
+  s_9a0e9686ae013d::t_14fc6730e6cdbc 1213
+  s_9a0e9686ae013d::t_bf784d0b0dc172 1382,1384-1387
+  s_9a0e9686ae013d::t_c3f264605e7a55 1929-1935
+  s_9a0e9686ae013d::t_8f19b0f82881e3 1527-1530
+  s_9a0e9686ae013d::t_3473db63e0ee6a 332-346,354-367,433-435,437-441,479-480,554-555,557-559,587,650-651,660-663,703-714,948-951,1088-1093,1104-1106,1147-1158,1206-1212,1214-1219,1360,1362,1364-1372,1388-1393,1702-1856,1880-1891,1893-1894,1911-1913,1922-1928,1965-1966,1968-2000,2007-2010,2067-2073,2120-2127,2131-2144,2503-2534,2557-2560,2571-2574
+  s_9a0e9686ae013d::t_033c8c22082544 784-790,792-803,807,810-845,852,860,862-865,871,881-884
+  s_9a0e9686ae013d::t_535e4d5a022147 474-475,478,481-518
+  s_9a0e9686ae013d::t_e2e8d5f359dcdc 1504-1507
+  s_9a0e9686ae013d::t_c2e38ecf4c9303 2179,2181-2192
+  s_9a0e9686ae013d::t_ae73a9d253125e 733,735-742
+  s_458000b3a2eca1::t_f2145557d3ec59 519,567,588,616,654,664,719,743,765,1220,1879,2128,2130
+README.ko.md
+  s_52048bd78e3fb6::t_ee305c1d4dbcd6 358
+docs/architecture/README.md
+  s_b3cd7388417a45::t_fd082be2f0a406 64,74
+  s_b3cd7388417a45::t_183f6c1145bbcc 63,65-66
+  s_b3cd7388417a45::t_344a2180be5fe0 59
+  s_b3cd7388417a45::t_e8ca911d9f65c3 52-55,72-73,75-82
+  s_b3cd7388417a45::t_2d7e124158b886 51
+  s_b3cd7388417a45::t_88ba8c735cf62b 50
+  s_b3cd7388417a45::t_9bbfaf5f2d7817 85,87-97
+  s_636baadbb9f5f6::t_2b855d01f05d67 30-42
+  s_b3cd7388417a45::t_e2639f78c9dab8 56-57,84
+  s_b3cd7388417a45::t_551be2f9a68fba 67-71,83
+  s_b3cd7388417a45::t_9601042342d73f 86
+  s_b3cd7388417a45::t_2065b5f5ef3d6e 58,60-62
+internal/diagnostic/diagnostic_test.go
+  s_9a0e9686ae013d::t_78bcedebe52f5e 163-164
+.github/workflows/AGENTS.md
+  s_52048bd78e3fb6::t_a7d8bbfe308879 29
+docs/architecture/README.ko.md
+  s_b3cd7388417a45::t_3a51b5eaa9484e 51-54,71-83
+  s_b3cd7388417a45::t_e40dd039c7e59b 50
+  s_b3cd7388417a45::t_8cf37378b79c1f 62,64-65
+  s_b3cd7388417a45::t_95ad065914d69c 63
+  s_636baadbb9f5f6::t_2b855d01f05d67 30-42
+  s_b3cd7388417a45::t_3a6c61cc78bf5c 57,59-61
+  s_b3cd7388417a45::t_41969213e1d094 58
+  s_b3cd7388417a45::t_71e0698274df1c 49
+  s_b3cd7388417a45::t_52db3e0aa9edca 66-70
+  s_b3cd7388417a45::t_21bae4a0124b34 55-56
+  s_b3cd7388417a45::t_bad20f049ea4f5 85-96
+  s_b3cd7388417a45::t_f3530fc60a7fb6 84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e0cd8a59a74ea3d1c5769ab2e363ac70afda008",
+  "prompts": {},
+  "sessions": {
+    "s_458000b3a2eca1": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e32a55e22ffekFjtIi72M3wj6m",
+        "model": "k3.1-pro"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_52048bd78e3fb6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e32a4fa74ffeQJzb6mFLAVuhZk",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_9a0e9686ae013d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e32a55e22ffekFjtIi72M3wj6m",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b3cd7388417a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e32a52ed3ffd19DzrJJieA26B3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
