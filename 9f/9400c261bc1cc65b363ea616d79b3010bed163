@@ -1,0 +1,25 @@
+internal/identity/identity.go
+  s_636baadbb9f5f6::t_98fd19e4e9ae12 46
+internal/identity/builder_profile_test.go
+  s_636baadbb9f5f6::t_33ac8f4235ec8e 1-33
+internal/identity/builder_profile.go
+  s_636baadbb9f5f6::t_44f640943a7a4e 16
+internal/npmprofile/invocation_identity_test.go
+  s_636baadbb9f5f6::t_bc43a7fdd5341c 152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f9400c261bc1cc65b363ea616d79b3010bed163",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
