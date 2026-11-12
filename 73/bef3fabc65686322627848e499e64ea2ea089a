@@ -1,0 +1,16 @@
+internal/diagnostic/contract_test.go
+  h_495200fbbeca45 81
+internal/diagnostic/diagnostic.go
+  h_495200fbbeca45 353
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "73bef3fabc65686322627848e499e64ea2ea089a",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
