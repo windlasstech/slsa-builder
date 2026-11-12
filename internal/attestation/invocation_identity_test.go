@@ -19,7 +19,7 @@ func TestVerifyIdentityBuildInvocationClaims(t *testing.T) {
 	}{
 		{
 			name:        "build trigger",
-			suffix:      16,
+			suffix:      20,
 			value:       "push",
 			expectation: `{"build_trigger":"push"}`,
 			mismatchID:  "windlass.verify.error.build-trigger-mismatch",

@@ -41,7 +41,7 @@ var (
 	oidSourceDigest        = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 13}
 	oidSourceRef           = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 14}
 	oidSourceRepositoryID  = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 15}
-	oidBuildTrigger        = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 16}
+	oidBuildTrigger        = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 20}
 	oidSourceOwnerID       = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 17}
 	oidBuildConfigURI      = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 18}
 	oidRunInvocationURI    = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 21}
