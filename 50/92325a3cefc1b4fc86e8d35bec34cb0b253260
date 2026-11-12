@@ -1,0 +1,210 @@
+testdata/npm/provenance/npm-predicate-source-ref-dispatch-retry.jcs.json
+  s_5a192b05b54bb5::t_d3b86735f5cf5e 1
+internal/attestation/attestation.go
+  s_5a192b05b54bb5::t_0ccfacd2e39def 69-70
+  s_5a192b05b54bb5::t_89673b73c8cf48 20-21
+internal/provenance/model.go
+  s_5a192b05b54bb5::t_bbda61fc7c2e2b 73-84
+testdata/provenance/valid-statement.json
+  s_5a192b05b54bb5::t_29eca8f1f06816 1
+internal/npmprofile/provenance_input_test.go
+  s_5a192b05b54bb5::t_bccdb609125ea5 415
+  s_5a192b05b54bb5::t_cb2c722f6fd1be 430
+  s_5a192b05b54bb5::t_0e32fc19088ea4 452
+internal/npmprofile/provenance_validate_matrix_test.go
+  s_636baadbb9f5f6::t_4fa907db52362d 81-87
+  s_5a192b05b54bb5::t_8b2a4e0403f9a8 40,42
+internal/command/npm_profile_sign_source_ref_test.go
+  s_5a192b05b54bb5::t_51797976dd953c 406
+  s_5a192b05b54bb5::t_c29fb7be393890 324
+  s_5a192b05b54bb5::t_f2172e11172f0e 245
+  s_5a192b05b54bb5::t_c302d08eb93e30 189
+  s_636baadbb9f5f6::t_cec10fa203d8cc 374
+internal/npmprofile/caller_workflow.go
+  s_5a192b05b54bb5::t_9f7e7e5d011db6 1-23
+testdata/provenance/reject-builder-dependency.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+internal/provenance/internal_parameters_fuzz_test.go
+  s_636baadbb9f5f6::t_f94db337ad3072 17
+  s_5a192b05b54bb5::t_9e86bbb55b6b56 1-16,18-42
+internal/provenance/validate.go
+  s_636baadbb9f5f6::t_cc30d4a0dc8f9d 151,177-181
+  s_5a192b05b54bb5::t_5266b6be637cde 140-150,174-176,182,184-185,187
+  s_5a192b05b54bb5::t_b2423155138a5b 4
+  s_636baadbb9f5f6::t_ee4a4d0cfd7570 7
+  s_5a192b05b54bb5::t_563199c8522d9c 152-173
+internal/command/npm_profile_build.go
+  s_636baadbb9f5f6::t_5498d339d2482f 18
+  s_5a192b05b54bb5::t_7548403aa92d24 192
+  s_5a192b05b54bb5::t_8f73ad2f9ab5c0 193
+  s_5a192b05b54bb5::t_ddcefc4d599977 180-183
+  s_5a192b05b54bb5::t_c206a5735ea6bc 85
+  s_636baadbb9f5f6::t_3bd4f4a4707fc4 184-187,194
+  s_5a192b05b54bb5::t_f0120d8f65a677 72
+  s_5a192b05b54bb5::t_00fee18190d0d6 88-91
+internal/command/npm_profile_sign.go
+  s_5a192b05b54bb5::t_bcf502b99f14aa 16,18
+  s_5a192b05b54bb5::t_2b6900994ccf66 149-156,158-164,187
+  s_5a192b05b54bb5::t_c4dc170d619e85 230
+  s_5a192b05b54bb5::t_b219cfe1093ac9 244
+internal/npmprofile/provenance_input_extra_test.go
+  s_5a192b05b54bb5::t_0da29ee75ef309 93
+internal/npmprofile/publish_verifier_statement_test.go
+  s_5a192b05b54bb5::t_1c6bd9c58ad534 57,61,65,69
+.github/workflows/lint.yml
+  s_5a192b05b54bb5::t_2f5768d1a51e35 213-214
+  s_5a192b05b54bb5::t_d91131a48cc157 170
+  s_5a192b05b54bb5::t_b0d5f84c4d3228 169
+internal/npmprofile/publish_verifier.go
+  s_5a192b05b54bb5::t_430d3d865cf832 109-111,114-121
+  s_5a192b05b54bb5::t_71dff32624ed87 75-76,79,82-83,88-92,94-95
+  s_5a192b05b54bb5::t_7f40d31dd44c14 146-151
+internal/command/npm_profile_build_source_ref_test.go
+  s_5a192b05b54bb5::t_675344a18b0bf7 237
+testdata/npm/provenance/npm-predicate.jcs.json
+  s_5a192b05b54bb5::t_d3b86735f5cf5e 1
+internal/command/verify_attestation.go
+  s_636baadbb9f5f6::t_a8eb87439eb8ba 167-169,171-180
+  s_5a192b05b54bb5::t_054ab6ffa040ec 156,158
+  s_5a192b05b54bb5::t_3a0d9ee79e575c 170
+  s_5a192b05b54bb5::t_090959755e0778 134
+internal/npmprofile/workflow_metadata_intent_test.go
+  s_636baadbb9f5f6::t_b1374b2b524bce 181
+testdata/provenance/reject-run-invocation.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+testdata/provenance/reject-builder-version.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+internal/npmprofile/provenance_input.go
+  s_5a192b05b54bb5::t_196d21a37ba280 197-206
+  s_5a192b05b54bb5::t_50af40ecf8e9f3 113-116,121
+  s_5a192b05b54bb5::t_83c10027c146ba 168
+internal/command/npm_profile_build_test.go
+  s_5a192b05b54bb5::t_3c260cd2bb12f8 85
+internal/command/sign_execute_test.go
+  s_5a192b05b54bb5::t_0b94e5c26bdb49 188
+testdata/provenance/reject-timestamp-format.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+internal/signing/fixture_test.go
+  s_5a192b05b54bb5::t_32a08118cc8f20 6
+  s_5a192b05b54bb5::t_19dbd85fea5e0f 41,44-50
+internal/signing/signing.go
+  s_636baadbb9f5f6::t_72db0d843dd2d4 185-189
+  s_5a192b05b54bb5::t_9d692f540ec3fd 120-132
+  s_5a192b05b54bb5::t_7161c8b1615b24 142
+  s_636baadbb9f5f6::t_37597a1a6bf3e7 172-175
+  s_5a192b05b54bb5::t_b0c79c22af52bb 190-233
+  s_5a192b05b54bb5::t_126851b19e7270 176-180
+internal/attestation/invocation_identity_test.go
+  s_5a192b05b54bb5::t_69f5cf33380ef8 1-13,19-20,24,26-27,31,33-84
+  s_5a192b05b54bb5::t_e4d4ce0049372a 14-18,21-23,25,28-30,32
+internal/npmprofile/invocation_identity_test.go
+  s_5a192b05b54bb5::t_4b1e6a894a1454 12,14
+  s_5a192b05b54bb5::t_156d67b187da3f 1-11,13,15-195
+testdata/provenance/reject-multiple-subjects.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+testdata/provenance/reject-predicate-type.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+internal/npmprofile/workflow_metadata.go
+  s_5a192b05b54bb5::t_2c1764c9026872 203-205
+  s_5a192b05b54bb5::t_ceb471f2c043c8 42-44
+  s_5a192b05b54bb5::t_2ec8a30909aaec 34
+  s_636baadbb9f5f6::t_d613745db13ea9 36
+  s_636baadbb9f5f6::t_0e8f75a73b3ef2 64
+  s_5a192b05b54bb5::t_623a30b27668c9 65
+  s_636baadbb9f5f6::t_519803053af8af 155-160,162
+  s_5a192b05b54bb5::t_e4d4ce0049372a 66
+internal/npmprofile/caller_workflow_fuzz_test.go
+  s_5a192b05b54bb5::t_5e655eb06197fc 1-26
+testdata/provenance/reject-zero-subjects.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+testdata/provenance/valid-clock-skew.json
+  s_5a192b05b54bb5::t_6bb85bedbcd3bf 1
+testdata/provenance/valid-statement-corepack.json
+  s_5a192b05b54bb5::t_6bb85bedbcd3bf 1
+testdata/provenance/reject-timestamp-ordering.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+internal/npmprofile/source_ref_provenance_test.go
+  s_5a192b05b54bb5::t_057965552fedeb 141
+  s_5a192b05b54bb5::t_75f01a94cc22d7 134
+internal/npmprofile/provenance_validate.go
+  s_5a192b05b54bb5::t_da6bed731a11a8 63
+  s_5a192b05b54bb5::t_380e2df8f5f396 193-194,196-197,206-213
+  s_5a192b05b54bb5::t_c9ff04f79c24af 294-305
+  s_636baadbb9f5f6::t_4c054d60ca7f43 199-205
+  s_5a192b05b54bb5::t_ff4d2a58a51d0a 243-245
+.github/workflows/js-ts-npm-package-slsa3.yml
+  s_5a192b05b54bb5::t_d3033b8ebf1b13 345-348
+  s_5a192b05b54bb5::t_80fd70ae3fd95e 491-494
+  s_5a192b05b54bb5::t_03f7d0a3c4c3d4 243-244
+.github/workflows/fuzz.yml
+  s_5a192b05b54bb5::t_d1f83907195ab1 57,100-101
+  s_5a192b05b54bb5::t_aa020ea0dd6263 56
+testdata/provenance/reject-statement-type.json
+  s_5a192b05b54bb5::t_df76a6646a6c2e 1
+internal/npmprofile/workflow_metadata_test.go
+  s_636baadbb9f5f6::t_264849b66eaf69 207
+  s_5a192b05b54bb5::t_e90935e0aa2415 41,206
+  s_636baadbb9f5f6::t_4df416a65b79e6 43
+  s_636baadbb9f5f6::t_b1374b2b524bce 134
+  s_636baadbb9f5f6::t_e6d9a4ddf23fa7 68-130
+internal/npmprofile/workflow_metadata_source_ref_test.go
+  s_5a192b05b54bb5::t_b00e02f565bf2b 35,99
+  s_636baadbb9f5f6::t_4df416a65b79e6 37
+  s_636baadbb9f5f6::t_0691cc55ff3fbe 101
+internal/provenance/model_test.go
+  s_5a192b05b54bb5::t_fee63b24136885 282,285-303,305,310,313-314,316-322,324
+  s_5a192b05b54bb5::t_344bb23f16806a 304
+internal/command/verify_attestation_source_ref_test.go
+  s_636baadbb9f5f6::t_0086816027d930 202-206
+  s_5a192b05b54bb5::t_e352fa8cc73bf1 195-196
+  s_636baadbb9f5f6::t_95b8aecf561b7b 90-96
+  s_5a192b05b54bb5::t_1b62eb62521ad8 145
+  s_5a192b05b54bb5::t_c252c138613b4a 148,153
+internal/attestation/verify.go
+  s_5a192b05b54bb5::t_100e43e5c13267 309-324
+  s_5a192b05b54bb5::t_2d7a88d48b652f 375-382
+  s_5a192b05b54bb5::t_38a4d15ee8bad2 44,46
+internal/signing/signing_test.go
+  s_636baadbb9f5f6::t_b809ec26a3394b 173-204
+testdata/provenance/valid-predicate.jcs.json
+  s_5a192b05b54bb5::t_6bb85bedbcd3bf 1
+internal/npmprofile/publish_verifier_source_ref_test.go
+  s_5a192b05b54bb5::t_4b1e6a894a1454 77-78,83-85
+  s_5a192b05b54bb5::t_de4c4e8cff5ef4 72-75
+  s_5a192b05b54bb5::t_76647178a9ea5a 79-82
+internal/provenance/provenance_test.go
+  s_5a192b05b54bb5::t_c178f6fb82676a 188-193
+  s_5a192b05b54bb5::t_450c32ec7e691f 210-219,222-226
+  s_5a192b05b54bb5::t_8d1ebd0da1e6f0 175
+  s_5a192b05b54bb5::t_5ca04db8e6cfac 111-113,117
+  s_5a192b05b54bb5::t_966defea998abd 220-221
+internal/npmprofile/provenance_types.go
+  s_5a192b05b54bb5::t_e878b11e49091f 146
+  s_5a192b05b54bb5::t_8cf931d6b44c3a 58-60
+internal/identity/builder_profile.go
+  s_5a192b05b54bb5::t_7d44d304585dce 1-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5092325a3cefc1b4fc86e8d35bec34cb0b253260",
+  "prompts": {},
+  "sessions": {
+    "s_5a192b05b54bb5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e325cd6a1ffedjQrzQGzb0Nd8B",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
