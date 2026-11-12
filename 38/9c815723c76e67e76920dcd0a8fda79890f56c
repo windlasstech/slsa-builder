@@ -1,0 +1,26 @@
+internal/npmprofile/runner_capture.go
+  s_636baadbb9f5f6::t_9fd22b66346e8a 108-110,114-131
+  s_636baadbb9f5f6::t_8f9de97633584f 132-133
+internal/npmprofile/build_pack_types.go
+  s_636baadbb9f5f6::t_6551f2e9c4c527 94-98
+internal/npmprofile/build_pack_flow_test.go
+  s_636baadbb9f5f6::t_431f74acb0b6c4 113-134
+internal/npmprofile/toolchain.go
+  s_636baadbb9f5f6::t_e46e76c84848c1 64-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "389c815723c76e67e76920dcd0a8fda79890f56c",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
