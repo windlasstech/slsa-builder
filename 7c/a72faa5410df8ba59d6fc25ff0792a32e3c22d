@@ -1,0 +1,21 @@
+internal/diagnostic/ordering_test.go
+  s_636baadbb9f5f6::t_18f41330c5d28e 8-30
+internal/diagnostic/registry.go
+  s_636baadbb9f5f6::t_f88f7e42fd0ab0 56-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ca72faa5410df8ba59d6fc25ff0792a32e3c22d",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
