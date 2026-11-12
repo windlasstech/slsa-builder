@@ -15,40 +15,37 @@ func TestCaptureRunnerEnvironment(t *testing.T) {
 		name         string
 		imageOS      string
 		imageVersion string
-		wantErr      string
 	}{
 		{name: "no GitHub observations"},
-		{name: "only ImageVersion", imageVersion: "20260807.1.0", wantErr: "runner image observations from GitHub are incomplete"},
+		{name: "only ImageVersion", imageVersion: "20261026.354.1"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			fixture := filepath.Join(t.TempDir(), "imagedata.json")
+			if err := os.WriteFile(fixture, runnerMetadataDocument(t, validRunnerDetail()), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			original := runnerMetadataPath
+			t.Cleanup(func() { runnerMetadataPath = original })
+			runnerMetadataPath = fixture
 			t.Setenv("ImageOS", test.imageOS)
 			t.Setenv("ImageVersion", test.imageVersion)
+
 			got, err := captureRunner()
-			if test.wantErr == "" {
-				if err != nil {
-					t.Fatalf("captureRunner() error = %v; want nil", err)
-				}
-			} else {
-				if err == nil || !strings.Contains(err.Error(), test.wantErr) {
-					t.Fatalf("captureRunner() error = %v; want %q", err, test.wantErr)
-				}
-				// ADR 0100: failure diagnostics carry both observed operands.
-				if !strings.Contains(err.Error(), `ImageOS="`+test.imageOS+`"`) ||
-					!strings.Contains(err.Error(), `ImageVersion="`+test.imageVersion+`"`) {
-					t.Fatalf("captureRunner() error = %q; want both operands", err)
-				}
-				requireNPMDiagnostic(t, err, "windlass.verify.error.input-unavailable")
+			if err != nil {
+				t.Fatalf("captureRunner() error = %v; want nil with complete local evidence", err)
 			}
-			if got != (RunnerCapture{}) {
-				t.Fatalf("captureRunner() = %#v; want empty capture", got)
+			requireRunnerOperatingSystem(t, got, "Ubuntu\n24.04.5\nLTS")
+			if got.DeploymentVersion != test.imageVersion {
+				t.Fatalf("DeploymentVersion = %q; want %q", got.DeploymentVersion, test.imageVersion)
 			}
 		})
 	}
 
 	t.Run("ImageVersion absent is tolerated", func(t *testing.T) {
 		// ADR 0100: deployment_version may be null when the platform supplies no
-		// ImageVersion; only the file metadata and ImageOS are load-bearing. The
-		// null case is exercised hermetically through parseRunnerMetadata, never
+		// ImageVersion; only the file metadata is load-bearing. ImageOS remains
+		// optional diagnostic-only context per ADR 0112. The null case is exercised
+		// hermetically through parseRunnerMetadata, never
 		// by reading the fixed host metadata path.
 		got, err := parseRunnerMetadata(runnerMetadataDocument(t, validRunnerDetail()), "ubuntu24", "")
 		if err != nil {
@@ -76,7 +73,7 @@ func TestCaptureRunnerEnvironment(t *testing.T) {
 		if err != nil {
 			t.Fatalf("captureRunner() error = %v; want nil", err)
 		}
-		if got.ImageVersion != "20261025.353.1" || got.DeploymentVersion != "" || got.ImageOS != "ubuntu24" {
+		if got.ImageVersion != "20261025.353.1" || got.DeploymentVersion != "" || got.OperatingSystem != "Ubuntu\n24.04.5\nLTS" {
 			t.Fatalf("captureRunner() = %#v; want the file-side image version with an empty deployment version", got)
 		}
 	})
@@ -142,7 +139,7 @@ func TestParseRunnerMetadata(t *testing.T) {
 			t.Fatalf("parseRunnerMetadata() error = %v; want nil", err)
 		}
 		want := RunnerCapture{
-			ImageLabel: "ubuntu-24.04", ImageOS: "ubuntu24", ImageVersion: "20261025.353.1",
+			ImageLabel: "ubuntu-24.04", OperatingSystem: "Ubuntu\n24.04.5\nLTS", ImageVersion: "20261025.353.1",
 			DeploymentVersion: "20261025.353.1", IncludedSoftwareURL: runnerSoftwareURL, ImageReleaseURL: runnerReleaseURL,
 		}
 		if got != want {

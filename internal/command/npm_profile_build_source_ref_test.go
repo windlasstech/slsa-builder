@@ -52,11 +52,12 @@ func TestNPMProfileBuildCommandSourceRefDispatchRetry(t *testing.T) {
 		}
 	}
 	err := npmProfileBuildCommand{now: clock, httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
-		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", DeploymentVersion: "20260801.1.1", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+		ImageLabel: "ubuntu-24.04", OperatingSystem: "Ubuntu\n24.04.5\nLTS", ImageVersion: "20261025.353.1", DeploymentVersion: "20261026.354.1",
+		IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md",
 	}}.Execute(ctx, npmBuildSourceRefArguments(repository, outputDirectory, githubOutput, registry.URL,
 		"refs/tags/v1.0.0", "refs/heads/main", invocationRevision), &output)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v; output = %s", err, output.String())
 	}
 
 	encodedOutputs, err := os.ReadFile(githubOutput)

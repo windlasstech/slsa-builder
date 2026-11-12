@@ -14,11 +14,14 @@ type contractFixtureDocument struct {
 }
 
 type contractFixtureVariant struct {
-	Name           string          `json:"name"`
-	Manager        Manager         `json:"package_manager"`
-	Statement      json.RawMessage `json:"statement"`
-	EvidenceJSON   string          `json:"manifest_evidence_json"`
-	DiagnosticJSON string          `json:"diagnostic_metadata_json,omitempty"`
+	Name               string          `json:"name"`
+	Manager            Manager         `json:"package_manager"`
+	Statement          json.RawMessage `json:"statement"`
+	EvidenceJSON       string          `json:"manifest_evidence_json"`
+	DiagnosticJSON     string          `json:"diagnostic_metadata_json,omitempty"`
+	RunnerMetadataJSON string          `json:"runner_metadata_json,omitempty"`
+	ImageOS            *string         `json:"image_os,omitempty"`
+	DeploymentVersion  string          `json:"deployment_version,omitempty"`
 }
 
 func contractFixtureInput(t *testing.T, manager Manager, scenario string) NPMProvenanceInput {

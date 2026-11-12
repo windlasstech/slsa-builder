@@ -26,7 +26,7 @@ func TestFinalizeWorkflowBuildMetadataSourceRefDispatchRetry(t *testing.T) {
 		SHA256:      mustSHA256(t, testSHA256), SHA512: mustSHA512(t, testSHA512),
 		Packed:      PackedMetadata{Name: "@windlass/slsa-builder", Version: "1.2.3", Files: []string{"package.json"}},
 		BuildScript: BuildScriptCapture{Present: true, Result: BuildScriptExecuted},
-		Toolchain:   ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
+		Toolchain:   ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: runnerProbeCapture()},
 	}
 	metadata, err := FinalizeWorkflowBuildMetadata(selection, build, WorkflowBuildMetadataConfig{
 		ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",
@@ -89,7 +89,7 @@ func TestFinalizeWorkflowBuildMetadataRejectsWhitespaceSourceRef(t *testing.T) {
 		SHA256:      mustSHA256(t, testSHA256), SHA512: mustSHA512(t, testSHA512),
 		Packed:      PackedMetadata{Name: "@windlass/slsa-builder", Version: "1.2.3", Files: []string{"package.json"}},
 		BuildScript: BuildScriptCapture{Present: true, Result: BuildScriptExecuted},
-		Toolchain:   ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
+		Toolchain:   ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: runnerProbeCapture()},
 	}
 	config := WorkflowBuildMetadataConfig{
 		ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",

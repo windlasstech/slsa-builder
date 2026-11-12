@@ -122,7 +122,39 @@ func runContractVariant(t *testing.T, spec contractFixtureSpec, variant contract
 		}
 	}
 	input.BuildMetadata.ManifestEvidence = evidence
+	var capturedRunner *RunnerCapture
+	if variant.RunnerMetadataJSON != "" {
+		imageOS := ""
+		if variant.ImageOS != nil {
+			imageOS = *variant.ImageOS
+		}
+		capture, captureErr := parseRunnerMetadata([]byte(variant.RunnerMetadataJSON), imageOS, variant.DeploymentVersion)
+		if spec.category == "input-unavailable" || captureErr != nil {
+			return captureErr
+		}
+		capturedRunner = &capture
+	}
 	statement := decodeContractStatement(t, variant.Statement)
+	if capturedRunner != nil {
+		produced := runnerImageDescriptor(*capturedRunner)
+		if err := validateRunnerDescriptor(produced); err != nil {
+			return err
+		}
+		found := false
+		for _, dependency := range statement.Predicate.BuildDefinition.ResolvedDependencies {
+			if dependency.Name != "runner-image" {
+				continue
+			}
+			found = true
+			equal, err := equalJSONValues(dependency, produced)
+			if err != nil || !equal {
+				return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image", "runner metadata capture must reproduce the signed runner-image descriptor")
+			}
+		}
+		if !found {
+			return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image", "runner-image descriptor is required")
+		}
+	}
 	if spec.producer {
 		input.BuildMetadata.ResolvedDependencies = statement.Predicate.BuildDefinition.ResolvedDependencies
 		_, err := NewProvenanceSigningInput(input)

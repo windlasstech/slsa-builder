@@ -36,6 +36,40 @@ func contractVariants(t *testing.T, spec contractFixtureSpec) []contractFixtureV
 		}
 		return variants
 	}
+	if slices.Contains([]string{
+		"runner-snapshot", "imageos-absent", "os-group-missing", "os-group-duplicate", "os-group-malformed",
+		"os-detail-missing", "os-detail-duplicate", "os-detail-non-string", "os-detail-empty", "os-detail-whitespace",
+	}, spec.mutation) {
+		variant := contractVariant(t, spec.manager, spec.scenario)
+		variant.DeploymentVersion = "20261026.354.1"
+		imageOS := "ubuntu24"
+		variant.ImageOS = &imageOS
+		switch spec.mutation {
+		case "runner-snapshot":
+			imageOS = "not-an-os-authority"
+			variant.RunnerMetadataJSON = string(runnerMetadataDocument(t, validRunnerDetail()))
+		case "imageos-absent":
+			variant.ImageOS = nil
+			variant.RunnerMetadataJSON = string(runnerMetadataDocument(t, validRunnerDetail()))
+		case "os-group-missing":
+			variant.RunnerMetadataJSON = string(runnerDocumentWithOperatingSystemGroups(t))
+		case "os-group-duplicate":
+			variant.RunnerMetadataJSON = string(runnerDocumentWithOperatingSystemGroups(t, operatingSystemGroup("Ubuntu"), operatingSystemGroup("Ubuntu")))
+		case "os-group-malformed":
+			variant.RunnerMetadataJSON = string(runnerDocumentWithOperatingSystemGroups(t, `{"group":42,"detail":"Ubuntu"}`))
+		case "os-detail-missing":
+			variant.RunnerMetadataJSON = string(runnerDocumentWithOperatingSystemGroups(t, `{"group":"Operating System"}`))
+		case "os-detail-duplicate":
+			variant.RunnerMetadataJSON = string(runnerDocumentWithOperatingSystemGroups(t, `{"group":"Operating System","detail":"Ubuntu","detail":"Ubuntu"}`))
+		case "os-detail-non-string":
+			variant.RunnerMetadataJSON = string(runnerDocumentWithOperatingSystemGroups(t, operatingSystemGroup(42)))
+		case "os-detail-empty":
+			variant.RunnerMetadataJSON = string(runnerDocumentWithOperatingSystemGroups(t, operatingSystemGroup("")))
+		case "os-detail-whitespace":
+			variant.RunnerMetadataJSON = string(runnerDocumentWithOperatingSystemGroups(t, operatingSystemGroup(" \t\r\n\u00a0")))
+		}
+		return []contractFixtureVariant{variant}
+	}
 	variant := contractVariant(t, spec.manager, spec.scenario)
 	statement := decodeContractStatement(t, variant.Statement)
 	if operation, role, found := strings.Cut(spec.mutation, ":"); found {
@@ -109,6 +143,23 @@ func contractVariants(t *testing.T, spec contractFixtureSpec) []contractFixtureV
 			statement.Predicate.RunDetails.Metadata.BuildScriptDisposition = "skipped-absent"
 		case "npm-missing":
 			delete(statement.Predicate.RunDetails.Builder.Version, "npm")
+		case "runner-image-os", "runner-operating-system-missing", "runner-additional-annotation", "runner-projection-mismatch":
+			for index, dependency := range statement.Predicate.BuildDefinition.ResolvedDependencies {
+				if dependency.Name != "runner-image" {
+					continue
+				}
+				switch spec.mutation {
+				case "runner-image-os":
+					delete(dependency.Annotations, "operating_system")
+					dependency.Annotations["image_os"] = mustJSON("ubuntu24")
+				case "runner-operating-system-missing":
+					delete(dependency.Annotations, "operating_system")
+				case "runner-additional-annotation":
+					dependency.Annotations["arbitrary_evidence"] = mustJSON("raw")
+				case "runner-projection-mismatch":
+					statement.Predicate.BuildDefinition.ResolvedDependencies[index].URI = "https://github.com/actions/runner-images/blob/ubuntu24/20261026.354/images/ubuntu/Ubuntu2404-Readme.md"
+				}
+			}
 		default:
 			t.Fatalf("unknown contract mutation %q", spec.mutation)
 		}

@@ -30,7 +30,7 @@ func TestFinalContractRequirementRegistry(t *testing.T) {
 			t.Errorf("requirement %q is absent from the specification mapping", id)
 		}
 	}
-	for _, category := range []string{"build-config-uri-mismatch", "build-trigger-mismatch", "resolved-dependencies-invocation-source", "resolved-dependencies-built-source", "resolved-dependencies-package-manifest", "package-manifest-evidence", "build-script-disposition-mismatch"} {
+	for _, category := range []string{"build-config-uri-mismatch", "build-trigger-mismatch", "resolved-dependencies-invocation-source", "resolved-dependencies-built-source", "resolved-dependencies-package-manifest", "package-manifest-evidence", "build-script-disposition-mismatch", "resolved-dependencies-runner-image", "input-unavailable"} {
 		if _, ok := failureCategoryRegistry[category]; !ok {
 			t.Errorf("unregistered failure category %q", category)
 		}

@@ -3,7 +3,6 @@ package npmprofile
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -181,36 +180,6 @@ func validateNodeRuntimeDescriptor(value provenance.ResourceDescriptor) error {
 	equal, err := equalJSONValues(value, want)
 	if err != nil || !equal {
 		return npmValidationError(IDResolvedDependenciesNodeRuntime, "resolvedDependencies.node-runtime", "runtime descriptor must match the embedded linux-x64 pin and closed annotations")
-	}
-	return nil
-}
-
-func validateRunnerDescriptor(value provenance.ResourceDescriptor) error {
-	if value.URI == "" || value.HasDigest() || value.HasMediaType() || value.HasUnexpectedFields() || !exactObjectKeys(value.Annotations, []string{"image_os", "image_version", "deployment_version"}, nil) {
-		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image", "runner-image must have URI and annotations without a digest")
-	}
-	parsed, err := url.Parse(value.URI)
-	if err != nil || parsed.Scheme != "https" || parsed.Host != "github.com" || !strings.HasPrefix(parsed.Path, "/actions/runner-images/") {
-		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.uri", "runner-image URI must be the captured actions/runner-images software report")
-	}
-	for _, name := range []string{"image_os", "image_version"} {
-		var text string
-		if json.Unmarshal(value.Annotations[name], &text) != nil || text == "" {
-			return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations", "runner-image annotations must be non-empty strings")
-		}
-	}
-	// ADR 0100: deployment_version is the control-plane deployment evidence; it
-	// is null when the platform supplied no ImageVersion, otherwise a non-empty
-	// string. It is never compared against image_version.
-	rawDeployment, present := value.Annotations["deployment_version"]
-	if !present {
-		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations", "runner-image annotations must carry deployment_version")
-	}
-	if string(rawDeployment) != "null" {
-		var deployment string
-		if json.Unmarshal(rawDeployment, &deployment) != nil || deployment == "" {
-			return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations", "runner-image deployment_version must be null or a non-empty string")
-		}
 	}
 	return nil
 }

@@ -138,6 +138,7 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		OutputDirectory:    *outputDirectory,
 		ArtifactName:       *artifactName,
 		ExternalParameters: json.RawMessage(`{}`),
+		RunnerOverride:     command.runnerOverride,
 	})
 	if err != nil {
 		// ADR 0092: a declared-digest mismatch is a classified policy failure
@@ -174,9 +175,6 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		return err
 	}
 	finishedOn := now().UTC().Truncate(time.Second).Format(time.RFC3339)
-	if command.runnerOverride != nil {
-		result.Toolchain.Runner = *command.runnerOverride
-	}
 	invocationRefValue := *invocationRef
 	if invocationRefValue == "" {
 		invocationRefValue = *ref

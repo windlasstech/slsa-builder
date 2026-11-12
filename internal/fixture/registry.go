@@ -82,7 +82,9 @@ var failureCategoryRegistry = map[string]struct{}{
 
 	"resolved-dependencies-node-runtime":                 {},
 	"resolved-dependencies-package-manager-distribution": {},
+	"resolved-dependencies-runner-image":                 {},
 	"resolved-dependencies-unexpected-entry":             {},
+	"input-unavailable":                                  {},
 
 	"source-digest-mismatch":         {},
 	"source-ref-mismatch":            {},

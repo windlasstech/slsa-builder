@@ -118,7 +118,7 @@ func TestWorkflowIntentFinalizeRejections(t *testing.T) {
 		}},
 		{"invalid runner", "", IDResolvedDependenciesRunnerImage, func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
 			_, _ = s, c
-			b.Toolchain.Runner.ImageOS = ""
+			b.Toolchain.Runner.OperatingSystem = ""
 		}},
 		{"source ref drift", "", IDSourceRefInvalid, func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
 			_, _ = s, b
@@ -176,7 +176,7 @@ func workflowIntentInputs(t *testing.T) (Result, BuildPackResult, WorkflowBuildM
 		PackageName: selection.Package.Name, PackageVersion: "1.2.3", TarballPath: filepath.Join(directory, "windlass-slsa-builder-1.2.3.tgz"),
 		SHA256: mustSHA256(t, testSHA256), SHA512: mustSHA512(t, testSHA512),
 		Packed: PackedMetadata{Name: selection.Package.Name, Version: "1.2.3"}, BuildScript: BuildScriptCapture{Present: true, Result: BuildScriptExecuted},
-		Toolchain: ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
+		Toolchain: ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: runnerProbeCapture()},
 	}
 	config := WorkflowBuildMetadataConfig{ArtifactName: "tarball", EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml", RegistryState: RegistryPreflightState{PackageExists: true}, Repository: "https://github.com/example/project"}
 	return selection, build, config

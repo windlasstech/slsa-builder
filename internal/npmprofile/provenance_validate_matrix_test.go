@@ -141,7 +141,7 @@ func TestProvenanceMatrixDependencyRejections(t *testing.T) {
 		{"runner malformed URI", "runner-image", ".uri", func(d *provenance.ResourceDescriptor) { d.URI = "https://%" }},
 		{"runner host", "runner-image", ".uri", func(d *provenance.ResourceDescriptor) { d.URI = "https://example.com/actions/runner-images/report" }},
 		{"runner path", "runner-image", ".uri", func(d *provenance.ResourceDescriptor) { d.URI = "https://github.com/other/report" }},
-		{"runner empty annotation", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["image_os"] = json.RawMessage(`""`) }},
+		{"runner empty annotation", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["operating_system"] = json.RawMessage(`""`) }},
 		{"runner annotation type", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["image_version"] = json.RawMessage(`123`) }},
 		{"runner node annotation forbidden", "runner-image", "", func(d *provenance.ResourceDescriptor) { d.Annotations["node_version"] = json.RawMessage(`"v24.1.0"`) }},
 		{"runner missing deployment annotation", "runner-image", "", func(d *provenance.ResourceDescriptor) {

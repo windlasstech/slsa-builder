@@ -307,11 +307,18 @@ func workflowResolvedDependencies(selection Result, build BuildPackResult, sourc
 		})
 	}
 	runner := build.Toolchain.Runner
-	dependencies = append(dependencies, provenance.ResourceDescriptor{
-		Name: "runner-image", URI: runner.IncludedSoftwareURL,
-		Annotations: annotations(map[string]any{"deployment_version": nullableString(runner.DeploymentVersion), "image_os": runner.ImageOS, "image_version": runner.ImageVersion}),
-	})
+	dependencies = append(dependencies, runnerImageDescriptor(runner))
 	return dependencies, nil
+}
+
+func runnerImageDescriptor(runner RunnerCapture) provenance.ResourceDescriptor {
+	return provenance.ResourceDescriptor{
+		Name: "runner-image", URI: runner.IncludedSoftwareURL,
+		Annotations: annotations(map[string]any{
+			"deployment_version": nullableString(runner.DeploymentVersion), "operating_system": runner.OperatingSystem,
+			"image_version": runner.ImageVersion, "runner_label": runner.ImageLabel,
+		}),
+	}
 }
 
 func nodeRuntimeDescriptor() (provenance.ResourceDescriptor, error) {

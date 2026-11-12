@@ -57,7 +57,7 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 	if config.fetcher == nil {
 		config.fetcher = fetchHTTPS
 	}
-	toolchain, managerPath, err := prepareToolchain(ctx, config.Selection, environmentRoot, environment, config.fetcher)
+	toolchain, managerPath, err := prepareToolchain(ctx, config, environmentRoot, environment)
 	if err != nil {
 		return BuildPackResult{}, err
 	}

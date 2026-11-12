@@ -1244,9 +1244,10 @@ one governing ADR and one contract surface:
 - `ADR-0111.runner-reported-identity`: verbatim runner report URI and full image version.
 - `ADR-0112.runner-operating-system`: the on-disk operating-system detail.
 
-The ADR 0111 and ADR 0112 IDs are registered for the I05 migration. I04C does not add accepted
-runner-image cases claiming `operating_system`, or rejected cases for `image_os`. Existing
-`image_os` vectors remain valid at this implementation stage; `node_version` is already forbidden.
+The ADR 0111 and ADR 0112 IDs are registered for the I05 migration. I05 migrates every runner-image
+vector to `operating_system`, adds accepted probe and `$ImageOS`-absent cases, and rejects
+`image_os`, missing or additional annotations, invalid local OS evidence, and projection mismatches.
+`node_version` remains forbidden.
 
 Normal descriptor vectors preserve the deterministic producer order. The explicitly named
 `npm-resolved-dependencies-reordered-valid` vector instead tests unordered, name-keyed consumption.

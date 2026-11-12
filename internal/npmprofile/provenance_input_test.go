@@ -518,10 +518,11 @@ func validDependencies(manager Manager, parameters ExternalParameters) []provena
 		})
 	}
 	dependencies = append(dependencies, provenance.ResourceDescriptor{
-		Name: "runner-image", URI: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
-		// ADR 0100: image_version is the on-disk image metadata; deployment_version
-		// is the control-plane deployment evidence, divergent during rollouts.
-		Annotations: map[string]json.RawMessage{"deployment_version": mustJSON("20260801.1.1"), "image_os": mustJSON("ubuntu24"), "image_version": mustJSON("20260801.1.0")},
+		Name: "runner-image", URI: runnerSoftwareURL,
+		Annotations: map[string]json.RawMessage{
+			"deployment_version": mustJSON("20261026.354.1"), "operating_system": mustJSON("Ubuntu\n24.04.5\nLTS"),
+			"image_version": mustJSON("20261025.353.1"), "runner_label": mustJSON("ubuntu-24.04"),
+		},
 	})
 	// Consumer fixtures deliberately retain the old entries' positions. Array order is not semantic.
 	pair, err := toolchainpins.NodeRuntimePair()

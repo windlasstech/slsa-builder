@@ -24,9 +24,9 @@ type BuildScriptCapture struct {
 
 // RunnerCapture records the GitHub-hosted runner observations available to the build.
 type RunnerCapture struct {
-	ImageLabel   string `json:"image_label,omitempty"`
-	ImageOS      string `json:"image_os,omitempty"`
-	ImageVersion string `json:"image_version,omitempty"`
+	ImageLabel      string `json:"image_label,omitempty"`
+	OperatingSystem string `json:"operating_system,omitempty"`
+	ImageVersion    string `json:"image_version,omitempty"`
 	// DeploymentVersion is the control-plane ImageVersion value, recorded as
 	// separate non-authoritative evidence per ADR 0100: during a runner image
 	// rollout it names the incoming deployment while ImageVersion (from the
@@ -91,6 +91,7 @@ type BuildPackConfig struct {
 	ArtifactName         string
 	ExternalParameters   json.RawMessage
 	ResolvedDependencies []provenance.ResourceDescriptor
+	RunnerOverride       *RunnerCapture
 	fetcher              distributionFetcher
 }
 
