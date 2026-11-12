@@ -1,0 +1,30 @@
+internal/identity/testdata/fuzz/FuzzCanonicalRepository/8d4d48100ec975e2
+  s_636baadbb9f5f6::t_f9c2a503c93e65 1-2
+internal/identity/identity.go
+  s_636baadbb9f5f6::t_01553753692b84 169-170
+  s_636baadbb9f5f6::t_a593caff22ca11 157,167-168,171-173
+  s_636baadbb9f5f6::t_cbfc028d69b0d6 174-175
+internal/identity/repository_test.go
+  s_636baadbb9f5f6::t_a8e19282ebd37e 34-35,38-39,44-48
+  s_636baadbb9f5f6::t_040f1eeb3b76fe 33,36-37,42-43,49-53,67-68
+  s_636baadbb9f5f6::t_c4b39747b1f202 40-41,54-66
+internal/identity/fuzz_test.go
+  s_636baadbb9f5f6::t_d53c4bc775f697 45
+  s_636baadbb9f5f6::t_05331b8c26bf05 43-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "18ced563b5c55b6dadbcb2e6b38f306b7fc73952",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
