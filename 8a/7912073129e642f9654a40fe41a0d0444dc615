@@ -1,0 +1,42 @@
+internal/npmprofile/manifest_evidence.go
+  s_636baadbb9f5f6::t_1e9bd066bc5c65 14-17
+internal/diagnostic/diagnostic_test.go
+  s_636baadbb9f5f6::t_4e9fe371056494 163-164
+internal/diagnostic/registry.go
+  s_636baadbb9f5f6::t_f3eb2c9a107814 40
+  s_636baadbb9f5f6::t_d7ab7855b51216 273
+docs/architecture/js-ts-npm-build-pack.md
+  s_636baadbb9f5f6::t_d8ac1627a4cf7b 1248
+  s_636baadbb9f5f6::t_d762b83661b4f7 247,255
+  s_636baadbb9f5f6::t_071cb3c9a03eaa 250-254
+  s_636baadbb9f5f6::t_1d7e4ad9e9554f 248-249
+internal/npmprofile/build_pack.go
+  s_636baadbb9f5f6::t_8267ed6913cfd7 74-76
+  s_636baadbb9f5f6::t_8dcf8dc8743820 447-459
+  s_636baadbb9f5f6::t_d554ca41a45451 88-90
+  s_636baadbb9f5f6::t_bf5255185b9b9e 4
+internal/npmprofile/build_pack_flow_test.go
+  s_636baadbb9f5f6::t_50f70bfe3a0f9d 94
+  s_636baadbb9f5f6::t_8faeadf0021b66 100
+  s_636baadbb9f5f6::t_7669ea1e915b11 98
+  s_636baadbb9f5f6::t_8cb425e5d97873 59-63,67,70-88,101-112
+  s_636baadbb9f5f6::t_b09aeb951d20a9 64-66,68-69,89-93,95-97,99
+internal/npmprofile/manifest_snapshot_test.go
+  s_636baadbb9f5f6::t_eea0ae114b0742 53,68,76-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8a7912073129e642f9654a40fe41a0d0444dc615",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
