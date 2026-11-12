@@ -1,0 +1,19 @@
+docs/architecture/npm-to-release-asset-composition.md
+  s_c03c648a6239ec::t_379a488aed6453 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a631ccb10ffc41db977e5db49f72f77e429d24ea",
+  "prompts": {},
+  "sessions": {
+    "s_c03c648a6239ec": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
