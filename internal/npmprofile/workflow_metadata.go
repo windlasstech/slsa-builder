@@ -39,7 +39,7 @@ type WorkflowBuildMetadataConfig struct {
 
 // FinalizeWorkflowBuildMetadata creates the complete closed metadata uploaded by the build job.
 func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, config WorkflowBuildMetadataConfig) (BuildMetadata, error) {
-	if config.InvocationRef == "" {
+	if config.InvocationRef == "" && NormalizeSourceRefInput(config.SourceRefInput) == "" {
 		config.InvocationRef = config.Ref
 	}
 	source, err := workflowSourceParameters(selection, config)

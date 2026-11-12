@@ -176,7 +176,7 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	}
 	finishedOn := now().UTC().Truncate(time.Second).Format(time.RFC3339)
 	invocationRefValue := *invocationRef
-	if invocationRefValue == "" {
+	if invocationRefValue == "" && normalizedSourceRef == "" {
 		invocationRefValue = *ref
 	}
 	observedCanonical, err := identity.CanonicalRepository(*observedRepository)

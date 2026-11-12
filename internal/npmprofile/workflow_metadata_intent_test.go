@@ -158,6 +158,29 @@ func TestWorkflowIntentMissingLockfile(t *testing.T) {
 	}
 }
 
+func TestWorkflowInvocationRefFallbackSkipsSourceRefDispatch(t *testing.T) {
+	t.Parallel()
+	selection, build, config := workflowIntentInputs(t)
+	config.SourceRefInput = "refs/tags/v1.2.3"
+	config.InvocationRevision = testSourceSHA
+	if _, err := FinalizeWorkflowBuildMetadata(selection, build, config); err == nil {
+		t.Fatal("source-ref with a complete invocation revision but no invocation ref must fail closed, not silently inherit the built ref")
+	}
+
+	selection, build, config = workflowIntentInputs(t)
+	metadata, err := FinalizeWorkflowBuildMetadata(selection, build, config)
+	if err != nil {
+		t.Fatalf("tag invocation without source-ref must keep its fallback: %v", err)
+	}
+	parameters, err := DecodeExternalParameters(metadata.ExternalParameters)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parameters.Workflow.Ref != "refs/tags/v1.2.3" {
+		t.Fatalf("workflow.ref = %q, want the tag invocation ref", parameters.Workflow.Ref)
+	}
+}
+
 func workflowIntentInputs(t *testing.T) (Result, BuildPackResult, WorkflowBuildMetadataConfig) {
 	t.Helper()
 	directory := t.TempDir()
