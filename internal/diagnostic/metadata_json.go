@@ -20,13 +20,13 @@ func (metadata *DiagnosticMetadata) UnmarshalJSON(data []byte) error {
 		return contractErrorf("diagnostic_metadata must be an object")
 	}
 	for key, value := range members {
-		if key != "package_manifest" && key != "publish_npm_version" {
+		if key != "package_manifest" && key != "publish_npm_version" && key != "publish" {
 			return contractErrorf("diagnostic_metadata has unknown member %q", key)
 		}
 		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
 			return contractErrorf("diagnostic_metadata member %q must not be null", key)
 		}
-		if containsJSONNull(value) {
+		if key != "publish" && containsJSONNull(value) {
 			return contractErrorf("diagnostic_metadata member %q must not contain null values", key)
 		}
 	}

@@ -332,8 +332,11 @@ jobs:
       - name: Capture trusted toolchain versions
         id: toolchain
         run: |
-          printf 'node-version=%s\n' "$(node --version)" >>"$GITHUB_OUTPUT"
-          printf 'corepack-version=%s\n' "$(corepack --version)" >>"$GITHUB_OUTPUT"
+          {
+            printf 'node-version=%s\n' "$(node --version)"
+            printf 'npm-version=%s\n' "$(npm --version)"
+            printf 'corepack-version=%s\n' "$(corepack --version)"
+          } >>"$GITHUB_OUTPUT"
 
       - name: Sign and verify exact npm provenance Statement
         id: sign
@@ -351,6 +354,7 @@ jobs:
           METADATA_DIRECTORY: ${{ runner.temp }}/windlass-sign-input/metadata
           METADATA_SHA256: ${{ needs.build.outputs.build-metadata-sha256 }}
           NODE_VERSION: ${{ steps.toolchain.outputs.node-version }}
+          NPM_VERSION: ${{ steps.toolchain.outputs.npm-version }}
           OUTPUT_DIRECTORY: ${{ runner.temp }}/windlass-provenance
           TARBALL_ARTIFACT_NAME:
             js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}
@@ -364,9 +368,9 @@ jobs:
           "$METADATA_DIRECTORY" --metadata-sha256 "$METADATA_SHA256" --metadata-artifact-name
           "$METADATA_ARTIFACT_NAME" --tarball-artifact-dir "$TARBALL_DIRECTORY" --tarball-sha256
           "$TARBALL_SHA256" --tarball-artifact-name "$TARBALL_ARTIFACT_NAME" --node-version
-          "$NODE_VERSION" --corepack-version "$COREPACK_VERSION" --built-ref "$BUILT_REF"
-          --built-revision "$BUILT_REVISION" --output-directory "$OUTPUT_DIRECTORY" --registry-url
-          "$REGISTRY_URL" --package-name "$PACKAGE_NAME"
+          "$NODE_VERSION" --npm-version "$NPM_VERSION" --corepack-version "$COREPACK_VERSION"
+          --built-ref "$BUILT_REF" --built-revision "$BUILT_REVISION" --output-directory
+          "$OUTPUT_DIRECTORY" --registry-url "$REGISTRY_URL" --package-name "$PACKAGE_NAME"
 
       - name: Upload verified provenance bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -478,11 +482,22 @@ jobs:
           name: js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/windlass-publish-input/provenance
 
+      - name: Download build metadata handoff for publish
+        if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/windlass-publish-input/metadata
+
       - name: Publish with trusted-publisher convergence
         id: publish
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         working-directory: .slsa-builder
         env:
+          METADATA_ARTIFACT_NAME:
+            js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
+          METADATA_DIRECTORY: ${{ runner.temp }}/windlass-publish-input/metadata
+          METADATA_SHA256: ${{ needs.build.outputs.build-metadata-sha256 }}
           BUNDLE_ARTIFACT_NAME:
             js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}
           BUNDLE_DIRECTORY: ${{ runner.temp }}/windlass-publish-input/provenance
@@ -513,6 +528,8 @@ jobs:
           "$PACKAGE_NAME" --package-version "$PACKAGE_VERSION" --package-url "$PACKAGE_URL"
           --registry-url "$REGISTRY_URL" --npm-executable "${{
           steps.npm-provision.outputs.npm-executable }}" --report-path "$REPORT_PATH"
+          --metadata-artifact-dir "$METADATA_DIRECTORY" --metadata-artifact-name
+          "$METADATA_ARTIFACT_NAME" --metadata-sha256 "$METADATA_SHA256"
 
       - name: Finalize outcome report
         if: always()

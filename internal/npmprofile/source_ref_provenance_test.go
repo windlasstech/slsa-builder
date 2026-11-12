@@ -31,14 +31,13 @@ func TestNPMProvenanceInputSourceRefDispatchRetryGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if parameters.Source.InputRef == nil || *parameters.Source.InputRef != "refs/tags/v1.2.3" ||
-		parameters.Source.InvocationRef == nil || *parameters.Source.InvocationRef != "refs/heads/main" ||
-		parameters.Source.InvocationRevision == nil || *parameters.Source.InvocationRevision != testAttestSHA {
+	if parameters.Source.Ref != "refs/tags/v1.2.3" || parameters.Workflow.Ref != "refs/heads/main" ||
+		signing.Predicate.BuildDefinition.ResolvedDependencies[0].Name != "invocation-source" || signing.Predicate.BuildDefinition.ResolvedDependencies[0].Digest["gitCommit"] != testAttestSHA {
 		t.Fatalf("source invocation record = %#v", parameters.Source)
 	}
 }
 
-func TestNPMProvenanceInputSourceRefOmittedByteCompatibility(t *testing.T) {
+func TestNPMProvenanceInputSourceRefOmittedGolden(t *testing.T) {
 	input := validProvenanceInput(t, ManagerPNPM)
 	signing, err := NewProvenanceSigningInput(input)
 	if err != nil {
@@ -55,14 +54,8 @@ func TestNPMProvenanceInputSourceRefOmittedByteCompatibility(t *testing.T) {
 	if err := json.Unmarshal(signing.Predicate.BuildDefinition.ExternalParameters, &external); err != nil {
 		t.Fatal(err)
 	}
-	var source map[string]json.RawMessage
-	if err := json.Unmarshal(external["source"], &source); err != nil {
-		t.Fatal(err)
-	}
-	for _, member := range []string{"input_ref", "invocation_ref", "invocation_revision"} {
-		if _, present := source[member]; present {
-			t.Errorf("source.%s is present, want absent", member)
-		}
+	if _, present := external["source"]; present {
+		t.Fatal("omitted selector emitted a source group")
 	}
 }
 
@@ -77,7 +70,7 @@ func TestNPMProvenanceInputSourceRefRejections(t *testing.T) {
 		wantID string
 		mutate func(map[string]json.RawMessage)
 	}{
-		{name: "input ref differs from built source", wantID: IDSourceRefInvalid, mutate: func(source map[string]json.RawMessage) {
+		{name: "retired input ref differs from built source", wantID: IDUnexpectedExternalParameters, mutate: func(source map[string]json.RawMessage) {
 			copySourceMembers(source, validInvocation)
 			source["input_ref"] = mustJSON("refs/tags/v1.2.4")
 		}},
@@ -127,10 +120,7 @@ func sourceRefDispatchRetryProvenanceInput(t *testing.T) NPMProvenanceInput {
 	t.Helper()
 	input := validProvenanceInput(t, ManagerPNPM)
 	parameters := validExternalParameters(ManagerPNPM)
-	parameters.Source.EventName = "workflow_dispatch"
-	parameters.Source.InputRef = testStringPointer("refs/tags/v1.2.3")
-	parameters.Source.InvocationRef = testStringPointer("refs/heads/main")
-	parameters.Source.InvocationRevision = testStringPointer(testAttestSHA)
+	parameters.Source.Ref = "refs/tags/v1.2.3"
 	parameters.Workflow.Ref = "refs/heads/main"
 	encoded, err := EncodeExternalParameters(parameters)
 	if err != nil {
@@ -138,6 +128,12 @@ func sourceRefDispatchRetryProvenanceInput(t *testing.T) NPMProvenanceInput {
 	}
 	input.BuildMetadata.ExternalParameters = encoded
 	input.BuildMetadata.ResolvedDependencies = validDependencies(ManagerPNPM, parameters)
+	for index := range input.BuildMetadata.ResolvedDependencies {
+		if input.BuildMetadata.ResolvedDependencies[index].Name == "invocation-source" {
+			input.BuildMetadata.ResolvedDependencies[index].Digest["gitCommit"] = testAttestSHA
+		}
+	}
+	input.InvocationRevision = testAttestSHA
 	input.GitHub.EventName = "workflow_dispatch"
 	return input
 }
@@ -148,9 +144,11 @@ func mutateSourceGroup(t *testing.T, encoded json.RawMessage, mutate func(map[st
 	if err := json.Unmarshal(encoded, &external); err != nil {
 		t.Fatal(err)
 	}
-	var source map[string]json.RawMessage
-	if err := json.Unmarshal(external["source"], &source); err != nil {
-		t.Fatal(err)
+	source := map[string]json.RawMessage{"ref": mustJSON("refs/tags/v1.2.3")}
+	if raw, present := external["source"]; present {
+		if err := json.Unmarshal(raw, &source); err != nil {
+			t.Fatal(err)
+		}
 	}
 	mutate(source)
 	external["source"] = mustJSON(source)

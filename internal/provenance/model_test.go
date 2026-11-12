@@ -172,8 +172,12 @@ func TestResourceDescriptorJSONContract(t *testing.T) {
 		},
 		{
 			name:                 "unknown member",
-			encoded:              `{"name":"lockfile","uri":"file:///package.json","digest":{"sha256":"` + sha256Hex + `"},"annotations":{"authority":"registry"},"mediaType":"application/gzip"}`,
+			encoded:              `{"name":"lockfile","uri":"file:///package.json","digest":{"sha256":"` + sha256Hex + `"},"annotations":{"authority":"registry"},"downloadLocation":"https://example.com/package.json"}`,
 			wantUnexpectedFields: true,
+		},
+		{
+			name:    "known media type",
+			encoded: `{"name":"lockfile","uri":"file:///package.json","digest":{"sha256":"` + sha256Hex + `"},"annotations":{"authority":"registry"},"mediaType":"application/json"}`,
 		},
 		{
 			name:                 "case-variant member",

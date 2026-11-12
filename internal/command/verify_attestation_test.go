@@ -3,9 +3,12 @@ package command
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 )
 
 func TestVerifyAttestationRejectsMalformedTypedInputs(t *testing.T) {
@@ -51,10 +54,12 @@ type attestationInputPaths struct {
 	policy    string
 	identity  string
 	statement string
+	evidence  string
+	tarball   string
 }
 
 func (paths attestationInputPaths) args() []string {
-	return []string{"verify-attestation", "--bundle", paths.bundle, "--policy", paths.policy, "--identity", paths.identity, "--statement", paths.statement}
+	return []string{"verify-attestation", "--bundle", paths.bundle, "--policy", paths.policy, "--identity", paths.identity, "--statement", paths.statement, "--manifest-evidence", paths.evidence, "--tarball", paths.tarball}
 }
 
 func writeAttestationInputs(t *testing.T, policyJSON, identityJSON string) attestationInputPaths {
@@ -65,6 +70,8 @@ func writeAttestationInputs(t *testing.T, policyJSON, identityJSON string) attes
 		policy:    filepath.Join(directory, "policy.json"),
 		identity:  filepath.Join(directory, "identity.json"),
 		statement: filepath.Join(directory, "statement.json"),
+		evidence:  filepath.Join(directory, "manifest-evidence.json"),
+		tarball:   filepath.Join(directory, "package.tgz"),
 	}
 	for path, contents := range map[string]string{
 		paths.bundle:    `{}`,
@@ -75,6 +82,14 @@ func writeAttestationInputs(t *testing.T, policyJSON, identityJSON string) attes
 		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
 			t.Fatal(err)
 		}
+	}
+	_, tarball := signSingleIdentityMetadata(t)
+	if err := os.WriteFile(paths.tarball, tarball, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	evidence := npmprofile.ManifestEvidence{Path: "package.json", ContentBase64: base64.StdEncoding.EncodeToString([]byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"example/project","scripts":{"build":"true"}}`))}
+	if err := os.WriteFile(paths.evidence, mustMarshalSignJSON(t, evidence), 0o600); err != nil {
+		t.Fatal(err)
 	}
 	return paths
 }

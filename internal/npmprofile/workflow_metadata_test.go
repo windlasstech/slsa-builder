@@ -13,7 +13,7 @@ import (
 
 func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
 	repositoryRoot := t.TempDir()
-	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"https://github.com/example/project"}`)
+	manifest := testOriginalManifest()
 	if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -52,22 +52,26 @@ func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if parameters.Package.Name != selection.Package.Name || parameters.Publish.ResolvedRegistryURL != "https://registry.npmjs.org/" ||
-		parameters.Caller.WorkflowFilename != "release.yml" || parameters.Release.VersionTag != "v1.2.3" {
+	verified, err := VerifyProducerPackage(metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if verified.Name != selection.Package.Name || verified.Publish.ResolvedRegistryURL != "https://registry.npmjs.org/" ||
+		parameters.Workflow.Path != ".github/workflows/release.yml" || effectiveBuiltRef(parameters) != "refs/tags/v1.2.3" {
 		t.Fatalf("unexpected external parameters: %#v", parameters)
 	}
-	if len(metadata.ResolvedDependencies) != 3 {
-		t.Fatalf("resolved dependencies = %d, want 3 (lockfile, node-runtime, runner-image)", len(metadata.ResolvedDependencies))
+	if len(metadata.ResolvedDependencies) != 6 {
+		t.Fatalf("resolved dependencies = %d, want 6", len(metadata.ResolvedDependencies))
 	}
-	requireRuntimeDescriptor(t, metadata.ResolvedDependencies[1])
-	if metadata.ResolvedDependencies[0].Name != "lockfile" || metadata.ResolvedDependencies[2].Name != "runner-image" {
+	requireRuntimeDescriptor(t, metadata.ResolvedDependencies[4])
+	if metadata.ResolvedDependencies[0].Name != "invocation-source" || metadata.ResolvedDependencies[3].Name != "lockfile" || metadata.ResolvedDependencies[5].Name != "runner-image" {
 		t.Fatalf("producer dependency order = %#v", metadata.ResolvedDependencies)
 	}
 }
 
 func TestFinalizeWorkflowBuildMetadataBindsObservedRepository(t *testing.T) {
 	repositoryRoot := t.TempDir()
-	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"https://github.com/example/project"}`)
+	manifest := testOriginalManifest()
 	if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +176,7 @@ func TestFinalizeWorkflowBuildMetadataDescriptorRendering(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			repositoryRoot := t.TempDir()
-			manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"https://github.com/example/project"}`)
+			manifest := testOriginalManifest()
 			if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
 				t.Fatal(err)
 			}
@@ -213,8 +217,8 @@ func TestFinalizeWorkflowBuildMetadataDescriptorRendering(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if parameters.PackageManager.Version != descriptor {
-				t.Fatalf("package_manager.version = %q, want verbatim descriptor %q", parameters.PackageManager.Version, descriptor)
+			if parameters.Package.Directory != "." {
+				t.Fatal("package selector changed")
 			}
 			var annotated string
 			for _, dependency := range metadata.ResolvedDependencies {
@@ -228,17 +232,17 @@ func TestFinalizeWorkflowBuildMetadataDescriptorRendering(t *testing.T) {
 			if annotated != descriptor {
 				t.Fatalf("package_manager_version annotation = %q, want %q", annotated, descriptor)
 			}
-			if len(metadata.ResolvedDependencies) != 4 {
-				t.Fatalf("resolved dependencies = %d, want 4 (lockfile, node-runtime, distribution, runner-image)", len(metadata.ResolvedDependencies))
+			if len(metadata.ResolvedDependencies) != 7 {
+				t.Fatalf("resolved dependencies = %d, want 7", len(metadata.ResolvedDependencies))
 			}
-			requireRuntimeDescriptor(t, metadata.ResolvedDependencies[1])
-			for index, name := range []string{"lockfile", "node-runtime", "package-manager-distribution", "runner-image"} {
+			requireRuntimeDescriptor(t, metadata.ResolvedDependencies[4])
+			for index, name := range []string{"invocation-source", "built-source", "package-manifest", "lockfile", "node-runtime", "package-manager-distribution", "runner-image"} {
 				if metadata.ResolvedDependencies[index].Name != name {
 					t.Fatalf("dependency[%d] = %q, want %q", index, metadata.ResolvedDependencies[index].Name, name)
 				}
 			}
-			if metadata.ResolvedDependencies[2].URI != test.distribution || metadata.ResolvedDependencies[2].Digest["sha512"] != testSHA512 {
-				t.Fatalf("distribution = %#v", metadata.ResolvedDependencies[2])
+			if metadata.ResolvedDependencies[5].URI != test.distribution || metadata.ResolvedDependencies[5].Digest["sha512"] != testSHA512 {
+				t.Fatalf("distribution = %#v", metadata.ResolvedDependencies[5])
 			}
 		})
 	}
@@ -251,7 +255,7 @@ func requireRuntimeDescriptor(t *testing.T, descriptor provenance.ResourceDescri
 		t.Fatal(err)
 	}
 	artifact := pair.Artifacts["linux-x64"]
-	if descriptor.Name != "node-runtime" || descriptor.URI != artifact.URL || len(descriptor.Digest) != 1 || descriptor.Digest["sha256"] != artifact.SHA256 {
+	if descriptor.Name != "node-runtime" || descriptor.MediaType != "application/gzip" || descriptor.URI != artifact.URL || len(descriptor.Digest) != 1 || descriptor.Digest["sha256"] != artifact.SHA256 {
 		t.Fatalf("node-runtime identity/digest = %#v, want embedded linux-x64 URL and only sha256", descriptor)
 	}
 	if len(descriptor.Annotations) != 2 {

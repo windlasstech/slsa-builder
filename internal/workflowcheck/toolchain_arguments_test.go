@@ -27,8 +27,8 @@ func TestPublishExecutableArgumentRejectsSpoofing(t *testing.T) {
 			}
 			for index, step := range document.Jobs["publish"].Steps {
 				if step.ID == "publish" {
-					document.Jobs["publish"].Steps[index].Env = map[string]string{"NPM_EXECUTABLE": provisionOutput}
-					document.Jobs["publish"].Steps[index].Run = "go run ./cmd/slsa-builder-internal npm-profile-publish " + argument
+					document.Jobs["publish"].Steps[index].Env["NPM_EXECUTABLE"] = provisionOutput
+					document.Jobs["publish"].Steps[index].Run = `go run ./cmd/slsa-builder-internal npm-profile-publish --metadata-artifact-dir "$METADATA_DIRECTORY" --metadata-artifact-name "$METADATA_ARTIFACT_NAME" --metadata-sha256 "$METADATA_SHA256" ` + argument
 				}
 			}
 			// When checked through the YAML contract.
@@ -57,7 +57,7 @@ func TestPublishExecutableArgumentAcceptsPinnedToken(t *testing.T) {
 			}
 			for index, step := range document.Jobs["publish"].Steps {
 				if step.ID == "publish" {
-					document.Jobs["publish"].Steps[index].Run = "go run ./cmd/slsa-builder-internal npm-profile-publish " + argument
+					document.Jobs["publish"].Steps[index].Run = `go run ./cmd/slsa-builder-internal npm-profile-publish --metadata-artifact-dir "$METADATA_DIRECTORY" --metadata-artifact-name "$METADATA_ARTIFACT_NAME" --metadata-sha256 "$METADATA_SHA256" ` + argument
 				}
 			}
 			// When checked.

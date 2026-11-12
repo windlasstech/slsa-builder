@@ -224,7 +224,13 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	}); err != nil {
 		return err
 	}
-	return writeDiagnostics(out, nil, result.Diagnostics)
+	report, err := diagnostic.Build(nil, result.Diagnostics, &diagnostic.DiagnosticMetadata{
+		Publish: &diagnostic.PublishMetadata{PackageIdentityPreexisting: &registryState.PackageExists, PackageVersionPreexisting: &registryState.VersionExists},
+	})
+	if err != nil {
+		return err
+	}
+	return WriteReport(out, report)
 }
 
 // writeNPMBuildDigestMismatch mirrors writeNPMBuildPolicyError for the
@@ -325,9 +331,9 @@ func conditionalSourceIdentity(sourceRef, value string) string {
 }
 
 func metadataPackageURL(metadata npmprofile.BuildMetadata) string {
-	parameters, err := npmprofile.DecodeExternalParameters(metadata.ExternalParameters)
+	verified, err := npmprofile.VerifyProducerPackage(metadata)
 	if err != nil {
 		return ""
 	}
-	return parameters.Package.PackageURL
+	return verified.PackageURL
 }

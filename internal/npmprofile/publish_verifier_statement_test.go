@@ -30,7 +30,7 @@ func TestPublishStatementRejectsJointlyCorruptedNodeRuntime(t *testing.T) {
 				}
 			}
 			statement := runtimeTestStatement(t, input)
-			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA)}}
+			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA), BuildMetadata: input.BuildMetadata, Packed: input.Packed}}
 			// When entering the real publish semantic consumer, it reconstructs accompanying
 			// metadata from this SAME corrupted Statement. No signed bundle is rewritten.
 			err := verifier.validateStatement(statement)
@@ -90,7 +90,8 @@ func TestPublishStatementValidationGuards(t *testing.T) {
 			statement := signing.Statement()
 			identity := publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA)
 			test.change(&statement, &identity)
-			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: identity}}
+			input := validProvenanceInput(t, ManagerPNPM)
+			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: identity, BuildMetadata: input.BuildMetadata, Packed: input.Packed}}
 			// When checking signed semantics, then reject the precise violated binding.
 			err = verifier.validateStatement(statement)
 			if test.id != "" {
@@ -112,7 +113,8 @@ func TestPublishStatementNPMDoesNotRequireCorepack(t *testing.T) {
 	if _, present := statement.Predicate.RunDetails.Builder.Version["corepack"]; present {
 		t.Fatal("npm fixture unexpectedly includes Corepack")
 	}
-	verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA)}}
+	input := validProvenanceInput(t, ManagerNPM)
+	verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA), BuildMetadata: input.BuildMetadata, Packed: input.Packed}}
 	if err := verifier.validateStatement(statement); err != nil {
 		t.Fatalf("valid npm Statement without Corepack rejected: %v", err)
 	}
@@ -123,7 +125,7 @@ func TestRawStatementNodeRuntimeUnknownMember(t *testing.T) {
 	for _, test := range []struct {
 		name, member string
 	}{
-		{"mediaType", `,"mediaType":"application/gzip"`},
+		{"downloadLocation", `,"downloadLocation":"https://example.com/runtime.tar.gz"`},
 		{"null", `,"unexpected":null`},
 		{"Name", `,"Name":"node-runtime"`},
 		{"recognized reordered", ""},
@@ -137,7 +139,7 @@ func TestRawStatementNodeRuntimeUnknownMember(t *testing.T) {
 			if err != nil {
 				t.Fatalf("DecodeStatement() must defer descriptor policy to the profile: %v", err)
 			}
-			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA)}}
+			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA), BuildMetadata: input.BuildMetadata, Packed: input.Packed}}
 			for _, consumer := range []struct {
 				name     string
 				validate func() error
@@ -180,7 +182,7 @@ func TestRawStatementClosedDependencyUnknownMember(t *testing.T) {
 			if err != nil {
 				t.Fatalf("DecodeStatement() must defer descriptor policy to the profile: %v", err)
 			}
-			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA)}}
+			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: publishVerifierIdentity("refs/tags/v1.2.3", testSourceSHA), BuildMetadata: input.BuildMetadata, Packed: input.Packed}}
 			for _, consumer := range []struct {
 				name     string
 				validate func() error
@@ -203,7 +205,7 @@ func TestRawStatementClosedDependencyUnknownMember(t *testing.T) {
 func TestCloneNPMDependenciesPreservesUnknownMember(t *testing.T) {
 	t.Parallel()
 	// Given a decoded runtime descriptor carrying an unknown member.
-	raw := rawStatementWithRuntimeMember(t, validProvenanceInput(t, ManagerNPM), `,"mediaType":"application/gzip"`)
+	raw := rawStatementWithRuntimeMember(t, validProvenanceInput(t, ManagerNPM), `,"downloadLocation":"https://example.com/runtime.tar.gz"`)
 	statement, err := provenance.DecodeStatement(raw)
 	if err != nil {
 		t.Fatal(err)
@@ -236,8 +238,8 @@ func rawStatementWithRuntimeMember(t *testing.T, input NPMProvenanceInput, membe
 		if strings.Count(raw, original) != 1 {
 			t.Fatal("expected exactly one runtime descriptor in raw Statement")
 		}
-		replacement := fmt.Sprintf(`{"annotations":%s,"digest":%s,"uri":%s,"name":"node-runtime"%s}`,
-			mustJSON(descriptor.Annotations), mustJSON(descriptor.Digest), mustJSON(descriptor.URI), member)
+		replacement := fmt.Sprintf(`{"annotations":%s,"digest":%s,"uri":%s,"mediaType":%s,"name":"node-runtime"%s}`,
+			mustJSON(descriptor.Annotations), mustJSON(descriptor.Digest), mustJSON(descriptor.URI), mustJSON(descriptor.MediaType), member)
 		return []byte(strings.Replace(raw, original, replacement, 1))
 	}
 	t.Fatal("valid Statement missing node-runtime")

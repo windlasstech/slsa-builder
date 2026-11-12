@@ -1,8 +1,6 @@
 package npmprofile
 
 import (
-	"encoding/json"
-
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
 
@@ -31,27 +29,15 @@ const (
 
 // ExternalParameters is the closed npm v1 buildType external interface.
 type ExternalParameters struct {
-	Source         SourceParameters         `json:"source"`
-	Workflow       WorkflowParameters       `json:"workflow"`
-	Runtime        RuntimeParameters        `json:"runtime"`
-	Package        PackageParameters        `json:"package"`
-	PackageManager PackageManagerParameters `json:"package_manager"`
-	Publish        PublishParameters        `json:"publish"`
-	Release        ReleaseParameters        `json:"release"`
-	Distribution   DistributionParameters   `json:"distribution"`
-	Caller         CallerParameters         `json:"caller"`
-	Build          BuildParameters          `json:"build"`
+	Source       SourceParameters       `json:"source,omitzero"`
+	Workflow     WorkflowParameters     `json:"workflow"`
+	Package      PackageParameters      `json:"package"`
+	Publish      PublishParameters      `json:"publish"`
+	Distribution DistributionParameters `json:"distribution"`
 }
 
 type SourceParameters struct {
-	Repository         string  `json:"repository"`
-	Ref                string  `json:"ref"`
-	Revision           string  `json:"revision"`
-	EventName          string  `json:"event_name"`
-	RefType            string  `json:"ref_type"`
-	InputRef           *string `json:"input_ref,omitempty"`
-	InvocationRef      *string `json:"invocation_ref,omitempty"`
-	InvocationRevision *string `json:"invocation_revision,omitempty"`
+	Ref string `json:"ref"`
 }
 
 type WorkflowParameters struct {
@@ -60,27 +46,8 @@ type WorkflowParameters struct {
 	Path       string `json:"path"`
 }
 
-type RuntimeParameters struct {
-	Runner      string `json:"runner"`
-	NodeVersion string `json:"node_version"`
-	NPMVersion  string `json:"npm_version"`
-}
-
 type PackageParameters struct {
-	Directory        string                     `json:"directory"`
-	WorkspaceRoot    *string                    `json:"workspace_root"`
-	SourceManifest   string                     `json:"source_manifest"`
-	Name             string                     `json:"name"`
-	Version          string                     `json:"version"`
-	Private          bool                       `json:"private"`
-	Repository       string                     `json:"repository"`
-	TarballName      string                     `json:"tarball_name"`
-	PackageURL       string                     `json:"package_url"`
-	PackedName       string                     `json:"packed_name"`
-	PackedVersion    string                     `json:"packed_version"`
-	PublishConfigRaw map[string]json.RawMessage `json:"publish_config_raw,omitempty"`
-	PackedFiles      []string                   `json:"packed_files,omitempty"`
-	ConsumerSurface  map[string]json.RawMessage `json:"consumer_surface,omitempty"`
+	Directory string `json:"directory"`
 }
 
 type PackageManagerParameters struct {
@@ -103,40 +70,28 @@ type PublishConfigParameters struct {
 }
 
 type PublishParameters struct {
-	InputRegistryURL           *string                  `json:"input_registry_url"`
-	InputDistTag               *string                  `json:"input_dist_tag"`
-	InputAccess                *string                  `json:"input_access"`
-	PublishConfig              *PublishConfigParameters `json:"publish_config"`
-	ResolvedRegistryURL        string                   `json:"resolved_registry_url"`
-	ResolvedDistTag            string                   `json:"resolved_dist_tag"`
-	PublishAccessOption        *string                  `json:"publish_access_option"`
-	EffectiveAccess            string                   `json:"effective_access"`
-	TrustedPublishing          bool                     `json:"trusted_publishing"`
-	ProvenanceFile             bool                     `json:"provenance_file"`
-	PackageIdentityPreexisting *bool                    `json:"package_identity_preexisting"`
-	PackageVersionPreexisting  *bool                    `json:"package_version_preexisting"`
-	CustomRegistrySupport      string                   `json:"custom_registry_support,omitempty"`
+	InputRegistryURL *string `json:"input_registry_url"`
+	InputDistTag     *string `json:"input_dist_tag"`
+	InputAccess      *string `json:"input_access"`
 }
 
-type ReleaseParameters struct {
-	Ref        string `json:"ref"`
-	VersionTag string `json:"version_tag"`
+type PublishIntent struct {
+	InputRegistryURL      *string
+	InputDistTag          *string
+	InputAccess           *string
+	PublishConfig         *PublishConfigParameters `json:"publish_config"`
+	ResolvedRegistryURL   string                   `json:"resolved_registry_url"`
+	ResolvedDistTag       string                   `json:"resolved_dist_tag"`
+	PublishAccessOption   *string                  `json:"publish_access_option"`
+	EffectiveAccess       string                   `json:"effective_access"`
+	TrustedPublishing     bool                     `json:"trusted_publishing"`
+	ProvenanceFile        bool                     `json:"provenance_file"`
+	CustomRegistrySupport string                   `json:"custom_registry_support,omitempty"`
 }
 
 type DistributionParameters struct {
-	ReleaseAssetMode       bool    `json:"release_asset_mode"`
-	ReleaseTagSupplied     bool    `json:"release_tag_supplied"`
-	ProvenanceSidecar      *string `json:"provenance_sidecar"`
-	LinkedArtifactMetadata bool    `json:"linked_artifact_metadata"`
-}
-
-type CallerParameters struct {
-	WorkflowFilename string `json:"workflow_filename"`
-}
-
-type BuildParameters struct {
-	ScriptPresent bool              `json:"script_present"`
-	ScriptResult  BuildScriptResult `json:"script_result"`
+	ReleaseAssetMode       bool `json:"release_asset_mode"`
+	LinkedArtifactMetadata bool `json:"linked_artifact_metadata"`
 }
 
 // NPMProvenanceInput combines the digest-bound N03 metadata with signing-job observations.
@@ -145,6 +100,9 @@ type NPMProvenanceInput struct {
 	BuilderID             string
 	GitHub                provenance.GitHubParameters
 	NodeJSVersion         string
+	NPMVersion            string
+	InvocationRevision    string
+	Packed                PackedMetadata
 	CorepackVersion       *string
 	InvocationID          string
 	StartedOn             string

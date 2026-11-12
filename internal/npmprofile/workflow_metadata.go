@@ -53,39 +53,39 @@ func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, conf
 	if err != nil {
 		return BuildMetadata{}, err
 	}
-	publish.PackageIdentityPreexisting = optionalBool(config.RegistryState.PackageExists)
-	publish.PackageVersionPreexisting = optionalBool(config.RegistryState.VersionExists)
-	packageURL, err := npmRegistryPackageURL(publish.ResolvedRegistryURL, selection.Package.Name, selection.Package.Version)
+	evidence, err := captureManifestEvidence(selection.Package.SourceManifest, selection.Package.Directory)
 	if err != nil {
 		return BuildMetadata{}, err
 	}
+	if err := validateBuildDisposition(evidence, selection.Package.Directory, build.BuildScript.Result); err != nil {
+		return BuildMetadata{}, err
+	}
+	if build.BuildScript.Present != (build.BuildScript.Result == BuildScriptExecuted) {
+		return BuildMetadata{}, npmValidationError(IDBuildScriptDisposition, "build_script_disposition", "captured script presence and disposition disagree")
+	}
 	parameters := ExternalParameters{
-		Source:   source,
-		Workflow: WorkflowParameters{Ref: config.InvocationRef, Repository: config.Repository, Path: config.CallerWorkflowPath},
-
-		Runtime: RuntimeParameters{Runner: "ubuntu-24.04", NodeVersion: strings.TrimPrefix(build.Toolchain.NodeVersion, "v"), NPMVersion: build.Toolchain.NPMVersion},
-		Package: PackageParameters{
-			Directory: selection.Package.Directory, WorkspaceRoot: workspaceRoot(selection.Package), SourceManifest: packageManifestPath(selection.Package.Directory),
-			Name: selection.Package.Name, Version: selection.Package.Version, Repository: selection.Package.Repository,
-			TarballName: filepath.Base(build.TarballPath), PackageURL: packageURL, PackedName: build.Packed.Name,
-			PackedVersion: build.Packed.Version, PackedFiles: append([]string(nil), build.Packed.Files...), ConsumerSurface: cloneRawMap(build.Packed.ConsumerSurface),
-		},
-		PackageManager: packageManagerParameters(selection, build),
-		Publish:        publish,
-		Release:        ReleaseParameters{Ref: source.Ref, VersionTag: strings.TrimPrefix(source.Ref, "refs/tags/")},
-		Distribution:   DistributionParameters{},
-		Caller:         CallerParameters{WorkflowFilename: config.CallerWorkflowFilename},
-		Build:          BuildParameters{ScriptPresent: build.BuildScript.Present, ScriptResult: build.BuildScript.Result},
+		Source:       SourceParameters{Ref: config.SourceRefInput},
+		Workflow:     WorkflowParameters{Ref: config.InvocationRef, Repository: config.Repository, Path: config.CallerWorkflowPath},
+		Package:      PackageParameters{Directory: selection.Package.Directory},
+		Publish:      PublishParameters{InputRegistryURL: rawInput(config.RegistryURLInput), InputDistTag: rawInput(config.DistTagInput), InputAccess: rawInput(config.AccessInput)},
+		Distribution: DistributionParameters{},
+	}
+	if publish.ResolvedRegistryURL == "https://registry.npmjs.org/" && (!config.RegistryState.PackageExists || config.RegistryState.VersionExists) {
+		return BuildMetadata{}, npmValidationError(IDUnexpectedExternalParameters, "registry-preflight", "npmjs requires an existing package identity and absent version")
 	}
 	encoded, err := EncodeExternalParameters(parameters)
 	if err != nil {
 		return BuildMetadata{}, err
 	}
-	dependencies, err := workflowResolvedDependencies(selection, build, parameters)
+	dependencies, err := workflowResolvedDependencies(selection, build, source)
 	if err != nil {
 		return BuildMetadata{}, err
 	}
-	if err := validateResolvedDependencies(dependencies, parameters); err != nil {
+	dependencies, err = prependSourceDependencies(dependencies, selection, config)
+	if err != nil {
+		return BuildMetadata{}, err
+	}
+	if err := validateFinalDependencies(dependencies, parameters); err != nil {
 		return BuildMetadata{}, err
 	}
 	return BuildMetadata{
@@ -93,47 +93,63 @@ func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, conf
 		SchemaVersion:      "1",
 		PrimaryArtifact:    PrimaryArtifact{ArtifactName: config.ArtifactName, PayloadFileName: filepath.Base(build.TarballPath), SHA256: build.SHA256.String(), SHA512: build.SHA512.String()},
 		ExternalParameters: encoded, ResolvedDependencies: dependencies,
+		ManifestEvidence: evidence, BuildScriptDisposition: build.BuildScript.Result,
 	}, nil
 }
 
 // ResolveWorkflowPublishIntent reads and resolves the selected package's complete publish intent.
-func ResolveWorkflowPublishIntent(selection Result, registryInput, distTagInput, accessInput string) (PublishParameters, error) {
+func ResolveWorkflowPublishIntent(selection Result, registryInput, distTagInput, accessInput string) (PublishIntent, error) {
 	manifest, err := decodeSourceManifestSnapshot(selection.Package.SourceManifest)
 	if err != nil {
-		return PublishParameters{}, fmt.Errorf("read selected package publish intent: %w", err)
+		return PublishIntent{}, fmt.Errorf("read selected package publish intent: %w", err)
 	}
 	publishConfig, err := decodePublishConfig(manifest.PublishConfig)
 	if err != nil {
-		return PublishParameters{}, err
+		return PublishIntent{}, err
 	}
 	return ResolvePublishIntent(registryInput, distTagInput, accessInput, publishConfig)
 }
 
 // ResolvePublishIntent applies caller input, source publishConfig, and npm defaults without silent conflict resolution.
-func ResolvePublishIntent(registryInput, distTagInput, accessInput string, source *PublishConfigParameters) (PublishParameters, error) {
+func ResolvePublishIntent(registryInput, distTagInput, accessInput string, source *PublishConfigParameters) (PublishIntent, error) {
 	registryInput = trimASCII(registryInput)
 	distTagInput = trimASCII(distTagInput)
 	accessInput = trimASCII(accessInput)
 	if source != nil && source.Provenance != nil && !*source.Provenance {
-		return PublishParameters{}, errors.New("publishConfig.provenance must not disable provenance")
+		return PublishIntent{}, errors.New("publishConfig.provenance must not disable provenance")
 	}
-	registry, err := resolveStringIntent(registryInput, sourceValue(source, "registry"), "https://registry.npmjs.org/", "registry-url")
+	registryCaller, registrySource := registryInput, trimASCII(sourceValue(source, "registry"))
+	if registryCaller != "" {
+		normalized, err := normalizeRegistryURL(registryCaller)
+		if err != nil {
+			return PublishIntent{}, err
+		}
+		registryCaller = normalized.String()
+	}
+	if registrySource != "" {
+		normalized, err := normalizeRegistryURL(registrySource)
+		if err != nil {
+			return PublishIntent{}, err
+		}
+		registrySource = normalized.String()
+	}
+	registry, err := resolveStringIntent(registryCaller, registrySource, "https://registry.npmjs.org/", "registry-url")
 	if err != nil {
-		return PublishParameters{}, err
+		return PublishIntent{}, err
 	}
 	normalizedRegistry, err := normalizeRegistryURL(registry)
 	if err != nil {
-		return PublishParameters{}, err
+		return PublishIntent{}, err
 	}
-	distTag, err := resolveStringIntent(distTagInput, sourceValue(source, "tag"), "latest", "dist-tag")
+	distTag, err := resolveStringIntent(distTagInput, trimASCII(sourceValue(source, "tag")), "latest", "dist-tag")
 	if err != nil || !validDistTag(distTag) {
-		return PublishParameters{}, errors.New("dist-tag is invalid or conflicts with publishConfig")
+		return PublishIntent{}, errors.New("dist-tag is invalid or conflicts with publishConfig")
 	}
-	access, err := resolveStringIntent(accessInput, sourceValue(source, "access"), "", "access")
+	access, err := resolveStringIntent(accessInput, trimASCII(sourceValue(source, "access")), "", "access")
 	if err != nil || access != "" && access != "public" && access != "restricted" {
-		return PublishParameters{}, errors.New("access is invalid or conflicts with publishConfig")
+		return PublishIntent{}, errors.New("access is invalid or conflicts with publishConfig")
 	}
-	result := PublishParameters{
+	result := PublishIntent{
 		InputRegistryURL: optionalString(registryInput), InputDistTag: optionalString(distTagInput), InputAccess: optionalString(accessInput),
 		PublishConfig: source, ResolvedRegistryURL: normalizedRegistry.String(), ResolvedDistTag: distTag,
 		PublishAccessOption: optionalString(access), EffectiveAccess: access, TrustedPublishing: true, ProvenanceFile: true,
@@ -147,43 +163,46 @@ func ResolvePublishIntent(registryInput, distTagInput, accessInput string, sourc
 	return result, nil
 }
 
-func workflowSourceParameters(selection Result, config WorkflowBuildMetadataConfig) (SourceParameters, error) {
+type resolvedWorkflowSource struct {
+	Repository string
+	Ref        string
+	Revision   string
+	RefType    string
+}
+
+func workflowSourceParameters(selection Result, config WorkflowBuildMetadataConfig) (resolvedWorkflowSource, error) {
 	config.SourceRefInput = NormalizeSourceRefInput(config.SourceRefInput)
 	if err := ValidateSourceRefInput(config.SourceRefInput, config.InvocationRef, selection.Package.Version); err != nil {
-		return SourceParameters{}, err
+		return resolvedWorkflowSource{}, err
 	}
 	if err := identity.ValidateCanonicalRepositoryURI(config.Repository); err != nil {
-		return SourceParameters{}, npmValidationError(IDUnexpectedExternalParameters, "observed-repository", "observed caller repository must be canonical")
+		return resolvedWorkflowSource{}, npmValidationError(IDUnexpectedExternalParameters, "observed-repository", "observed caller repository must be canonical")
 	}
 	if config.Repository != selection.Package.Repository {
-		return SourceParameters{}, npmValidationError("windlass.verify.error.package-repository-identity-mismatch", "observed-repository", "observed caller repository differs from the normalized manifest repository")
+		return resolvedWorkflowSource{}, npmValidationError("windlass.verify.error.package-repository-identity-mismatch", "observed-repository", "observed caller repository differs from the normalized manifest repository")
 	}
-	source := SourceParameters{
+	source := resolvedWorkflowSource{
 		Repository: config.Repository,
 		Ref:        config.Ref,
 		Revision:   config.Revision,
-		EventName:  config.EventName,
 		RefType:    config.RefType,
 	}
 	if config.SourceRefInput == "" {
 		return source, nil
 	}
 	if config.InvocationRef == "" || config.InvocationRevision == "" {
-		return SourceParameters{}, npmValidationError(IDUnexpectedExternalParameters, "source-ref", "source-ref requires the complete invocation ref and revision")
+		return resolvedWorkflowSource{}, npmValidationError(IDUnexpectedExternalParameters, "source-ref", "source-ref requires the complete invocation ref and revision")
 	}
 	if config.Ref != config.SourceRefInput {
-		return SourceParameters{}, sourceRefError("resolved built ref differs from source-ref input")
+		return resolvedWorkflowSource{}, sourceRefError("resolved built ref differs from source-ref input")
 	}
 	source.Ref = config.SourceRefInput
 	source.Revision = config.Revision
 	source.RefType = "tag"
-	source.InputRef = optionalString(config.SourceRefInput)
-	source.InvocationRef = optionalString(config.InvocationRef)
-	source.InvocationRevision = optionalString(config.InvocationRevision)
 	return source, nil
 }
 
-func validateWorkflowRuntime(selection Result, build BuildPackResult, config WorkflowBuildMetadataConfig, source SourceParameters) error {
+func validateWorkflowRuntime(selection Result, build BuildPackResult, config WorkflowBuildMetadataConfig, source resolvedWorkflowSource) error {
 	if config.ReleaseAssetMode || config.LinkedArtifactMetadata {
 		return errors.New("release-asset-only inputs require the later release-asset mode implementation")
 	}
@@ -206,6 +225,12 @@ func validateWorkflowRuntime(selection Result, build BuildPackResult, config Wor
 	if config.ArtifactName == "" || selection.Package.Name != build.PackageName || selection.Package.Version != build.PackageVersion ||
 		build.Packed.Name != build.PackageName || build.Packed.Version != build.PackageVersion || build.Toolchain.NodeVersion == "" || build.Toolchain.NPMVersion == "" {
 		return errors.New("build result is incomplete or conflicts with selected package")
+	}
+	if !minimumVersion(strings.TrimPrefix(build.Toolchain.NodeVersion, "v"), 24, 0, 0) || !minimumVersion(build.Toolchain.NPMVersion, 11, 5, 1) {
+		return npmValidationError("windlass.verify.error.builder-version-mismatch", "builder.version", "captured toolchain does not satisfy the runtime floors")
+	}
+	if _, err := NPMPackagePURL(build.Packed.Name, build.Packed.Version); err != nil {
+		return err
 	}
 	return nil
 }
@@ -247,15 +272,15 @@ func decodePublishConfig(raw jsonRaw) (*PublishConfigParameters, error) {
 	return &result, nil
 }
 
-func workflowResolvedDependencies(selection Result, build BuildPackResult, parameters ExternalParameters) ([]provenance.ResourceDescriptor, error) {
+func workflowResolvedDependencies(selection Result, build BuildPackResult, source resolvedWorkflowSource) ([]provenance.ResourceDescriptor, error) {
 	lockfilePath := selection.Manager.SelectedLockfilePath
 	lockfileBytes, err := readBoundedRegularFile(filepath.Join(selection.Package.RealManagerRoot, filepath.Base(lockfilePath)), maxManifestSize)
 	if err != nil {
 		return nil, fmt.Errorf("read selected lockfile: %w", err)
 	}
 	dependencies := []provenance.ResourceDescriptor{{
-		Name: "lockfile", URI: "git+" + parameters.Source.Repository + "@" + parameters.Source.Revision + "#" + escapeLockfileFragment(lockfilePath),
-		Digest: map[string]string{"sha256": digest.SumSHA256(lockfileBytes).String()},
+		Name: "lockfile", URI: "git+" + source.Repository + "@" + source.Revision + "#" + escapeLockfileFragment(lockfilePath),
+		Digest: map[string]string{"sha256": digest.SumSHA256(lockfileBytes).String()}, MediaType: lockfileMediaType(selection.Manager.Name, lockfilePath),
 		Annotations: annotations(map[string]any{
 			"package_manager": selection.Manager.Name, "package_manager_root": selection.Package.ManagerRoot,
 			"selection_source": selection.Manager.Source, "selection_manifest_path": nullableString(selection.Manager.SelectionManifestPath),
@@ -272,15 +297,19 @@ func workflowResolvedDependencies(selection Result, build BuildPackResult, param
 		if distribution == nil {
 			return nil, errors.New("corepack package-manager distribution capture is required")
 		}
+		if distribution.PackageManager != selection.Manager.Name || distribution.PackageManagerVer != selection.Manager.Descriptor() || build.Toolchain.PackageManagerVersion != selection.Manager.Version {
+			return nil, npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution", "captured and executed distribution must match the selected manager and version")
+		}
 		dependencies = append(dependencies, provenance.ResourceDescriptor{
 			Name: "package-manager-distribution", URI: distribution.URL, Digest: map[string]string{"sha512": distribution.SHA512},
+			MediaType:   distributionMediaType(*distribution),
 			Annotations: annotations(map[string]any{"digest_authority": distribution.DigestAuthority, "package_manager": distribution.PackageManager, "package_manager_version": distribution.PackageManagerVer, "acquisition_source": distribution.AcquisitionSource}),
 		})
 	}
 	runner := build.Toolchain.Runner
 	dependencies = append(dependencies, provenance.ResourceDescriptor{
 		Name: "runner-image", URI: runner.IncludedSoftwareURL,
-		Annotations: annotations(map[string]any{"deployment_version": nullableString(runner.DeploymentVersion), "image_os": runner.ImageOS, "image_version": runner.ImageVersion, "node_version": build.Toolchain.NodeVersion}),
+		Annotations: annotations(map[string]any{"deployment_version": nullableString(runner.DeploymentVersion), "image_os": runner.ImageOS, "image_version": runner.ImageVersion}),
 	})
 	return dependencies, nil
 }
@@ -295,34 +324,13 @@ func nodeRuntimeDescriptor() (provenance.ResourceDescriptor, error) {
 		return provenance.ResourceDescriptor{}, npmValidationError("windlass.verify.error.input-unavailable", "resolvedDependencies.node-runtime", "embedded linux-x64 runtime artifact is unavailable")
 	}
 	return provenance.ResourceDescriptor{
-		Name: "node-runtime", URI: artifact.URL,
+		Name: "node-runtime", URI: artifact.URL, MediaType: "application/gzip",
 		Digest: map[string]string{"sha256": artifact.SHA256},
 		Annotations: map[string]json.RawMessage{
 			"digest_authority": json.RawMessage(`"builder-pinned-record"`),
 			"platform":         json.RawMessage(`"linux-x64"`),
 		},
 	}, nil
-}
-
-func packageManagerParameters(selection Result, build BuildPackResult) PackageManagerParameters {
-	version := build.Toolchain.PackageManagerVersion
-	// ADR 0094: when the selected pnpm or Yarn descriptor declared an
-	// integrity digest (ADRs 0092-0093), package_manager.version renders the
-	// selected descriptor verbatim, suffix included. npm (ADR 0095) and
-	// digest-less selections keep the observed toolchain version.
-	if selection.Manager.Digest != nil {
-		version = selection.Manager.Descriptor()
-	}
-	parameters := PackageManagerParameters{
-		Name: selection.Manager.Name, Version: version, SelectionSource: selection.Manager.Source,
-		SelectionManifest: optionalString(filepath.Base(selection.Manager.SelectionManifestPath)), SelectionManifestPath: optionalString(selection.Manager.SelectionManifestPath),
-		SelectionLockfilePath: optionalString(selection.Manager.SelectionLockfilePath), Root: selection.Package.ManagerRoot,
-		IgnoredLockfilePaths: append([]string(nil), selection.Manager.IgnoredLockfilePaths...),
-	}
-	if parameters.Name == ManagerYarn {
-		parameters.YarnInstallMode = "immutable"
-	}
-	return parameters
 }
 
 func workspaceRoot(pkg Package) *string {
@@ -375,11 +383,6 @@ func optionalString(value string) *string {
 	if value == "" {
 		return nil
 	}
-	copy := value
-	return &copy
-}
-
-func optionalBool(value bool) *bool {
 	copy := value
 	return &copy
 }

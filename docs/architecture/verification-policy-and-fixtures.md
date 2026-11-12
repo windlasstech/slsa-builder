@@ -1203,28 +1203,66 @@ An `accepted` fixture has `expected-result: "pass"`, `expected-failure-category:
 non-null failure category, and its corresponding non-null canonical primary ID. Every fixture must
 include:
 
-| Field                       | Description                                                                                                                             |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                      | Unique fixture name.                                                                                                                    |
-| `type`                      | `accepted` or `rejected`.                                                                                                               |
-| `surface`                   | `npm`, `publisher`, `composition`, or `release-manifest`.                                                                               |
-| `artifact`                  | Path to the artifact.                                                                                                                   |
-| `provenance`                | Path to the provenance bundle.                                                                                                          |
-| `manifest-evidence`         | Path to the closed offline manifest-evidence object for npm, publisher, and composition fixtures; `null` for release-manifest fixtures. |
-| `release-manifest`          | Path to the release manifest, if applicable.                                                                                            |
-| `expected-result`           | `pass` or `fail`.                                                                                                                       |
-| `expected-failure-category` | Required for `rejected` fixtures.                                                                                                       |
-| `expected-primary-id`       | Required stable primary diagnostic ID for a rejected fixture.                                                                           |
-| `expected-secondary-ids`    | Ordered independent secondary diagnostic IDs, when applicable.                                                                          |
-| `covered-requirement`       | Spec or ADR requirement covered by the fixture.                                                                                         |
+| Field                       | Description                                                                                                                                                                                                                                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                      | Unique fixture name.                                                                                                                                                                                                                                                                                                       |
+| `type`                      | `accepted` or `rejected`.                                                                                                                                                                                                                                                                                                  |
+| `surface`                   | `npm`, `publisher`, `composition`, or `release-manifest`.                                                                                                                                                                                                                                                                  |
+| `artifact`                  | Path to the artifact.                                                                                                                                                                                                                                                                                                      |
+| `provenance`                | Path to the provenance bundle.                                                                                                                                                                                                                                                                                             |
+| `manifest-evidence`         | Path to the closed offline manifest-evidence object for fixtures whose provenance is a signed npm producer Statement carrying a `package-manifest` descriptor; `null` for release-manifest fixtures and for package-tree or static-vector fixtures whose `provenance` field is phase metadata rather than a signed bundle. |
+| `release-manifest`          | Path to the release manifest, if applicable.                                                                                                                                                                                                                                                                               |
+| `expected-result`           | `pass` or `fail`.                                                                                                                                                                                                                                                                                                          |
+| `expected-failure-category` | Required for `rejected` fixtures.                                                                                                                                                                                                                                                                                          |
+| `expected-primary-id`       | Required stable primary diagnostic ID for a rejected fixture.                                                                                                                                                                                                                                                              |
+| `expected-secondary-ids`    | Ordered independent secondary diagnostic IDs, when applicable.                                                                                                                                                                                                                                                             |
+| `covered-requirement`       | Spec or ADR requirement covered by the fixture.                                                                                                                                                                                                                                                                            |
 
-For npm, publisher, and composition fixtures, `manifest-evidence` resolves to exactly one closed
-JSON object with `path` and `content_base64`. The harness verifies that evidence against the signed
-`package-manifest` descriptor before any manifest-dependent check. A missing required path, an
-additional or duplicate member, malformed evidence, or a digest/path/repository/commit mismatch is a
-rejected fixture with primary ID `windlass.verify.error.package-manifest-evidence`, not a missing
-optional input. The harness must prove that no network fallback occurs. Release-manifest fixtures
-use `null` because their predicate has no npm package-manifest evidence contract.
+### Covered requirement IDs for the schema cutover
+
+The fixture registry maps the following stable IDs to the `provenance-inputs` phase. Each ID names
+one governing ADR and one contract surface:
+
+- `ADR-0103.workflow-invocation-identity`: caller workflow ref, repository, and path.
+- `ADR-0104.canonical-builder-identity`: canonical `runDetails.builder.id`, without an external
+  builder record.
+- `ADR-0105.invocation-source-descriptor`: invocation origin, its commit, and index-0 producer
+  emission.
+- `ADR-0105.built-source-descriptor`: the independently resolved built source.
+- `ADR-0106.source-selector-bindings`: optional selector suppliedness and effective built identity.
+- `ADR-0107.github-internal-parameters`: the closed GitHub event and numeric identity record.
+- `ADR-0108.distribution-interface`: the two retained distribution inputs and removed projections.
+- `ADR-0109.external-parameters-interface`: the minimized external-parameter schema.
+- `ADR-0109.package-manifest-descriptor`: original selected manifest identity and workspace context.
+- `ADR-0109.package-manifest-evidence`: bounded offline bytes and descriptor binding.
+- `ADR-0109.build-script-disposition`: executed or skipped disposition bound to the original
+  manifest.
+- `ADR-0109.builder-version`: Node.js, bundled npm, and conditional Corepack versions.
+- `ADR-0109.publish-resolution`: resolution from raw inputs, authenticated manifest, and defaults.
+- `ADR-0109.preexisting-diagnostics`: unsigned registry pre-existence observations.
+- `ADR-0110.dependency-media-types`: deterministic types for the digest-covered representations.
+- `ADR-0111.runner-reported-identity`: verbatim runner report URI and full image version.
+- `ADR-0112.runner-operating-system`: the on-disk operating-system detail.
+
+The ADR 0111 and ADR 0112 IDs are registered for the I05 migration. I04C does not add accepted
+runner-image cases claiming `operating_system`, or rejected cases for `image_os`. Existing
+`image_os` vectors remain valid at this implementation stage; `node_version` is already forbidden.
+
+Normal descriptor vectors preserve the deterministic producer order. The explicitly named
+`npm-resolved-dependencies-reordered-valid` vector instead tests unordered, name-keyed consumption.
+Phase-metadata vectors may contain multiple candidate Statements and exact evidence JSON strings for
+semantic tests; their index-level `manifest-evidence` is null. Statement-payload vectors carry an
+evidence path when required by the rule below. Evidence binding does not itself prove signature
+authenticity; the separate signed-bundle tests retain that responsibility.
+
+For fixtures whose provenance is a signed npm producer Statement carrying a `package-manifest`
+descriptor (npm, publisher, and composition surfaces), `manifest-evidence` resolves to exactly one
+closed JSON object with `path` and `content_base64`. The harness verifies that evidence against the
+signed `package-manifest` descriptor before any manifest-dependent check. A missing required path,
+an additional or duplicate member, malformed evidence, or a digest/path/repository/commit mismatch
+is a rejected fixture with primary ID `windlass.verify.error.package-manifest-evidence`, not a
+missing optional input. The harness must prove that no network fallback occurs. Release-manifest
+fixtures use `null` because their predicate has no npm package-manifest evidence contract.
 
 The npm PURL-derivation compatibility fixture family required by the
 [JS/TS npm provenance and publish specification](js-ts-npm-provenance-publish.md#npm-package-subject-naming)

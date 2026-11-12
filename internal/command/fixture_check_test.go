@@ -19,6 +19,7 @@ func TestFixtureCheck(t *testing.T) {
 		"artifact":"testdata/fixtures/artifact",
 		"provenance":"testdata/fixtures/provenance",
 		"release-manifest":null,
+		"manifest-evidence":null,
 		"expected-result":"pass",
 		"expected-failure-category":null,
 		"expected-primary-id":null,
@@ -41,7 +42,15 @@ func TestFixtureCheck(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			path := filepath.Join(t.TempDir(), "index.json")
+			root := t.TempDir()
+			directory := filepath.Join(root, "testdata", "fixtures")
+			if err := os.MkdirAll(directory, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(directory, "provenance"), []byte(`{"phase":"build-pack"}`), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(directory, "index.json")
 			if err := os.WriteFile(path, []byte(test.contents), 0o600); err != nil {
 				t.Fatalf("write fixture index: %v", err)
 			}

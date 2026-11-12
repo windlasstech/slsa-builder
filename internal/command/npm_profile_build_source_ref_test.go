@@ -78,13 +78,21 @@ func TestNPMProfileBuildCommandSourceRefDispatchRetry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if parameters.Source.Ref != "refs/tags/v1.0.0" || parameters.Source.Revision != builtRevision || parameters.Source.RefType != "tag" {
+	if parameters.Source.Ref != "refs/tags/v1.0.0" {
 		t.Fatalf("built source = %#v", parameters.Source)
 	}
-	if parameters.Source.InputRef == nil || *parameters.Source.InputRef != "refs/tags/v1.0.0" ||
-		parameters.Source.InvocationRef == nil || *parameters.Source.InvocationRef != "refs/heads/main" ||
-		parameters.Source.InvocationRevision == nil || *parameters.Source.InvocationRevision != invocationRevision {
-		t.Fatalf("invocation source = %#v", parameters.Source)
+	if parameters.Workflow.Ref != "refs/heads/main" {
+		t.Fatalf("invocation workflow = %#v", parameters.Workflow)
+	}
+	if len(metadata.ResolvedDependencies) != 6 || metadata.ResolvedDependencies[0].Name != "invocation-source" || metadata.ResolvedDependencies[0].Digest["gitCommit"] != invocationRevision || metadata.ResolvedDependencies[1].Name != "built-source" || metadata.ResolvedDependencies[1].Digest["gitCommit"] != builtRevision {
+		t.Fatalf("source descriptors = %#v", metadata.ResolvedDependencies)
+	}
+	var report Report
+	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.DiagnosticMetadata == nil || report.DiagnosticMetadata.Publish == nil || report.DiagnosticMetadata.Publish.PackageIdentityPreexisting == nil || !*report.DiagnosticMetadata.Publish.PackageIdentityPreexisting || report.DiagnosticMetadata.Publish.PackageVersionPreexisting == nil || *report.DiagnosticMetadata.Publish.PackageVersionPreexisting {
+		t.Fatalf("preflight observations not present in unsigned report: %#v", report.DiagnosticMetadata)
 	}
 }
 

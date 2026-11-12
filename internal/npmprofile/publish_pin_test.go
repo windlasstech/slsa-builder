@@ -96,8 +96,8 @@ func TestPublishPinObservationFailurePreservesDiagnostic(t *testing.T) {
 			result, err := Publish(t.Context(), fixture.request)
 			// Then
 			requireNPMDiagnostic(t, err, "windlass.verify.error.builder-version-mismatch")
-			if result.MutationAttempted || result.Report.DiagnosticMetadata != nil {
-				t.Fatalf("failed observation fabricated metadata or attempted mutation: %#v", result)
+			if result.MutationAttempted || result.Report.DiagnosticMetadata != nil && result.Report.DiagnosticMetadata.PublishNPMVersion != nil {
+				t.Fatalf("failed observation fabricated npm version metadata or attempted mutation: %#v", result)
 			}
 			fixture.requireInvocations(t, [][]string{{"--version"}})
 		})
@@ -151,7 +151,7 @@ func TestPublishPinRecordsSuccessMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(encoded, []byte(`"diagnostic_metadata":{"publish_npm_version":"11.21.1"}`)) {
+	if !bytes.Contains(encoded, []byte(`"publish_npm_version":"11.21.1"`)) || result.Report.DiagnosticMetadata == nil || result.Report.DiagnosticMetadata.PublishNPMVersion == nil || *result.Report.DiagnosticMetadata.PublishNPMVersion != "11.21.1" {
 		t.Fatalf("missing observed publish npm metadata: %s", encoded)
 	}
 }

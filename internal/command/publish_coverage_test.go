@@ -16,7 +16,8 @@ func TestPublishCommandRejectsInvalidHandoffInputs(t *testing.T) {
 	for _, flag := range []string{"--tarball-sha256", "--tarball-sha512", "--bundle-sha256", "--bundle-artifact-dir"} {
 		t.Run(flag, func(t *testing.T) {
 			t.Parallel()
-			tarball, bundle := []byte("tarball"), []byte("bundle")
+			_, tarball := signSingleIdentityMetadata(t)
+			bundle := []byte("bundle")
 			args := publishArgs(t, oneFileDirectory(t, "package.tgz", tarball), oneFileDirectory(t, "package.tgz.intoto.jsonl", bundle), filepath.Join(t.TempDir(), "report"), filepath.Join(t.TempDir(), "out"), tarball, bundle)
 			for i := range args {
 				if args[i] == flag {
@@ -41,7 +42,8 @@ func TestPublishCommandOutputFailures(t *testing.T) {
 	for _, stage := range []string{"invalid report", "report file", "github output", "writer"} {
 		t.Run(stage, func(t *testing.T) {
 			t.Parallel()
-			tarball, bundle := []byte("tarball"), []byte("bundle")
+			_, tarball := signSingleIdentityMetadata(t)
+			bundle := []byte("bundle")
 			reportPath, githubOutput := filepath.Join(t.TempDir(), "report"), filepath.Join(t.TempDir(), "out")
 			switch stage {
 			case "report file":

@@ -74,12 +74,14 @@ type PrimaryArtifact struct {
 
 // BuildMetadata is the closed same-run build metadata envelope.
 type BuildMetadata struct {
-	SchemaVersion        string                          `json:"schema_version"`
-	StartedOn            string                          `json:"started_on"`
-	FinishedOn           string                          `json:"finished_on"`
-	PrimaryArtifact      PrimaryArtifact                 `json:"primary_artifact"`
-	ExternalParameters   json.RawMessage                 `json:"external_parameters"`
-	ResolvedDependencies []provenance.ResourceDescriptor `json:"resolved_dependencies"`
+	SchemaVersion          string                          `json:"schema_version"`
+	StartedOn              string                          `json:"started_on"`
+	FinishedOn             string                          `json:"finished_on"`
+	PrimaryArtifact        PrimaryArtifact                 `json:"primary_artifact"`
+	ExternalParameters     json.RawMessage                 `json:"external_parameters"`
+	ResolvedDependencies   []provenance.ResourceDescriptor `json:"resolved_dependencies"`
+	ManifestEvidence       ManifestEvidence                `json:"manifest_evidence"`
+	BuildScriptDisposition BuildScriptResult               `json:"build_script_disposition"`
 }
 
 // BuildPackConfig supplies trusted selection state and same-run metadata destinations.

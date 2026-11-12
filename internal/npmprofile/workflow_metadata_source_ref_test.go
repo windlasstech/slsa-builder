@@ -8,7 +8,7 @@ import (
 
 func TestFinalizeWorkflowBuildMetadataSourceRefDispatchRetry(t *testing.T) {
 	repositoryRoot := t.TempDir()
-	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"https://github.com/example/project"}`)
+	manifest := testOriginalManifest()
 	if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -43,18 +43,16 @@ func TestFinalizeWorkflowBuildMetadataSourceRefDispatchRetry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if parameters.Source.Ref != "refs/tags/v1.2.3" || parameters.Source.Revision != testSourceSHA || parameters.Source.RefType != "tag" {
+	if parameters.Source.Ref != "refs/tags/v1.2.3" || metadata.ResolvedDependencies[1].Digest["gitCommit"] != testSourceSHA || string(metadata.ResolvedDependencies[1].Annotations["ref_type"]) != `"tag"` {
 		t.Fatalf("built source = %#v", parameters.Source)
 	}
-	if parameters.Source.InputRef == nil || *parameters.Source.InputRef != "refs/tags/v1.2.3" ||
-		parameters.Source.InvocationRef == nil || *parameters.Source.InvocationRef != "refs/heads/main" ||
-		parameters.Source.InvocationRevision == nil || *parameters.Source.InvocationRevision != testAttestSHA {
-		t.Fatalf("invocation record = %#v", parameters.Source)
+	if parameters.Workflow.Ref != "refs/heads/main" || metadata.ResolvedDependencies[0].Digest["gitCommit"] != testAttestSHA {
+		t.Fatalf("invocation record = %#v", metadata.ResolvedDependencies[0])
 	}
-	if parameters.Release.Ref != "refs/tags/v1.2.3" || parameters.Release.VersionTag != "v1.2.3" {
-		t.Fatalf("release = %#v", parameters.Release)
+	if effectiveBuiltRef(parameters) != "refs/tags/v1.2.3" {
+		t.Fatalf("release = %q", effectiveBuiltRef(parameters))
 	}
-	if got := metadata.ResolvedDependencies[0].URI; got != "git+https://github.com/example/project@"+testSourceSHA+"#package-lock.json" {
+	if got := metadata.ResolvedDependencies[3].URI; got != "git+https://github.com/example/project@"+testSourceSHA+"#package-lock.json" {
 		t.Fatalf("lockfile URI = %q", got)
 	}
 }
@@ -73,7 +71,7 @@ func TestFinalizeWorkflowBuildMetadataSourceRefRequiresInvocationContext(t *test
 
 func TestFinalizeWorkflowBuildMetadataRejectsWhitespaceSourceRef(t *testing.T) {
 	repositoryRoot := t.TempDir()
-	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"https://github.com/example/project"}`)
+	manifest := testOriginalManifest()
 	if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
 		t.Fatal(err)
 	}

@@ -34,6 +34,8 @@ func (verifyAttestationCommand) Execute(ctx context.Context, args []string, out 
 	policyPath := flags.String("policy", "", "typed verifier policy JSON path")
 	identityPath := flags.String("identity", "", "typed signer identity expectation JSON path")
 	statementPath := flags.String("statement", "", "expected in-toto Statement JSON path")
+	manifestEvidencePath := flags.String("manifest-evidence", "", "offline original manifest evidence JSON path")
+	tarballPath := flags.String("tarball", "", "npm package tarball path")
 	pinnedRootPath := flags.String("pinned-root", "", "offline pinned trusted-root JSON path")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
@@ -107,6 +109,16 @@ func (verifyAttestationCommand) Execute(ctx context.Context, args []string, out 
 		return emitFailure(out, "windlass.verify.error.verification-mode-invalid", "pinned-root", "online policy forbids --pinned-root", ErrInvocationFailure)
 	}
 
+	if err := verifyOfflineNPMInputs(statement, identityExpectation, *manifestEvidencePath, *tarballPath); err != nil {
+		if id := diagnosticIDOf(err); id != "" {
+			failure := ErrVerificationFailure
+			if id == diagnostic.IDInputUnavailable {
+				failure = ErrInvocationFailure
+			}
+			return emitFailure(out, id, "npm-evidence", err.Error(), failure)
+		}
+		return emitTypedVerificationFailure(out, err)
+	}
 	result, err := attestation.Verify(ctx, request)
 	if err != nil {
 		return emitTypedVerificationFailure(out, err)
@@ -131,13 +143,17 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 	if err != nil {
 		return attestation.IdentityExpectation{}, err
 	}
-	if parameters.Source.Repository != explicit.Source.RepositoryURI || parameters.Workflow.Repository != explicit.Source.RepositoryURI {
+	sources, err := npmprofile.ResolveStatementSources(statement)
+	if err != nil {
+		return attestation.IdentityExpectation{}, err
+	}
+	if sources.Repository != explicit.Source.RepositoryURI {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-identity-mismatch", "signed built-source repository conflicts with verifier policy")
 	}
-	if parameters.Source.Ref != explicit.Source.Ref {
+	if sources.BuiltRef != explicit.Source.Ref {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-ref-mismatch", "signed built-source ref conflicts with verifier policy")
 	}
-	if parameters.Source.Revision != explicit.Source.Digest {
+	if sources.BuiltCommit != explicit.Source.Digest {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-digest-mismatch", "signed built-source revision conflicts with verifier policy")
 	}
 	if identity.SourceRepositoryURI != explicit.Source.RepositoryURI ||
@@ -154,10 +170,7 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 		return attestation.IdentityExpectation{}, errors.New("signer URI conflicts with verifier policy workflow path")
 	}
 	invocationRef := parameters.Workflow.Ref
-	invocationRevision := parameters.Source.Revision
-	if parameters.Source.InvocationRevision != nil {
-		invocationRevision = *parameters.Source.InvocationRevision
-	}
+	invocationRevision := sources.InvocationCommit
 	if identity.SourceRef != invocationRef {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-ref-mismatch", "certificate source ref conflicts with the signed invocation record")
 	}

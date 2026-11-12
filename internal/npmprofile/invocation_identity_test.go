@@ -102,11 +102,6 @@ func TestNPMDispatchRetryWorkflowRefPreservesInvocation(t *testing.T) {
 
 	// Given a dispatch retry that builds a caller-selected release tag from main.
 	input := sourceRefDispatchRetryProvenanceInput(t)
-	parameters := validExternalParameters(ManagerPNPM)
-	parameters.Source.EventName = "workflow_dispatch"
-	parameters.Source.InputRef = testStringPointer("refs/tags/v1.2.3")
-	parameters.Source.InvocationRef = testStringPointer("refs/heads/main")
-	parameters.Source.InvocationRevision = testStringPointer(testAttestSHA)
 	input.BuildMetadata.ExternalParameters = replaceWorkflowGroup(t, input.BuildMetadata.ExternalParameters, map[string]json.RawMessage{
 		"ref":        mustJSON("refs/heads/main"),
 		"repository": mustJSON("https://github.com/example/project"),
@@ -138,8 +133,8 @@ func TestNPMDispatchRetryWorkflowRefPreservesInvocation(t *testing.T) {
 	if got := string(source["ref"]); got != `"refs/tags/v1.2.3"` {
 		t.Fatalf("source.ref = %s, want built release tag refs/tags/v1.2.3", got)
 	}
-	if got := string(source["input_ref"]); got != `"refs/tags/v1.2.3"` {
-		t.Fatalf("source.input_ref = %s, want caller selector refs/tags/v1.2.3", got)
+	if len(source) != 1 {
+		t.Fatalf("source must contain only the caller selector: %s", external["source"])
 	}
 }
 

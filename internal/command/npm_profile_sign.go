@@ -44,6 +44,7 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 	tarballDigest := flags.String("tarball-sha256", "", "expected tarball SHA-256")
 	tarballArtifactName := flags.String("tarball-artifact-name", "", "expected tarball artifact name")
 	nodeVersion := flags.String("node-version", "", "observed Node.js version")
+	npmVersion := flags.String("npm-version", "", "observed bundled npm version")
 	corepackVersion := flags.String("corepack-version", "", "observed Corepack version when used")
 	registryURL := flags.String("registry-url", "", "resolved npm registry root")
 	packageName := flags.String("package-name", "", "selected package name")
@@ -59,7 +60,7 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 		return err
 	}
 	if flags.NArg() != 0 || *metadataDirectory == "" || *metadataDigest == "" || *metadataArtifactName == "" ||
-		*tarballDirectory == "" || *tarballDigest == "" || *tarballArtifactName == "" || *nodeVersion == "" ||
+		*tarballDirectory == "" || *tarballDigest == "" || *tarballArtifactName == "" || *nodeVersion == "" || *npmVersion == "" ||
 		*registryURL == "" || *packageName == "" || *outputDirectory == "" || *githubOutput == "" {
 		return errors.New("all required npm-profile-sign flags must be supplied with no positional arguments")
 	}
@@ -103,7 +104,15 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 	if err != nil {
 		return err
 	}
-	if parameters.Package.Name != *packageName || parameters.Publish.ResolvedRegistryURL != *registryURL {
+	verified, err := npmprofile.VerifyProducerPackage(metadata)
+	if err != nil {
+		return err
+	}
+	packed, err := npmprofile.VerifyPackedArtifact(filepath.Join(*tarballDirectory, metadata.PrimaryArtifact.PayloadFileName), metadata.PrimaryArtifact)
+	if err != nil {
+		return err
+	}
+	if verified.Name != *packageName || verified.Publish.ResolvedRegistryURL != *registryURL {
 		return errors.New("signing preflight inputs differ from signed build metadata")
 	}
 	normalizedBuiltRef := npmprofile.NormalizeSourceRefInput(*builtRef)
@@ -135,11 +144,11 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 		}
 		return ErrVerificationFailure
 	}
-	if preflight.WorkflowFilename != parameters.Caller.WorkflowFilename {
+	if preflight.WorkflowFilename != filepath.Base(parameters.Workflow.Path) {
 		return errors.New("OIDC caller workflow differs from signed build metadata")
 	}
 	observedCorepack := (*string)(nil)
-	if parameters.PackageManager.Name != npmprofile.ManagerNPM {
+	if verified.UsesCorepack {
 		if *corepackVersion == "" {
 			return errors.New("corepack version is required for pnpm and Yarn")
 		}
@@ -163,6 +172,9 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 			RepositoryOwnerID: signingIdentity.SourceRepositoryOwnerID,
 		},
 		NodeJSVersion:         *nodeVersion,
+		NPMVersion:            *npmVersion,
+		InvocationRevision:    signingIdentity.SourceDigest,
+		Packed:                packed,
 		CorepackVersion:       observedCorepack,
 		InvocationID:          runInvocation,
 		StartedOn:             metadata.StartedOn,

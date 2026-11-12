@@ -19,12 +19,12 @@ func TestProvenanceExtraDecodeShape(t *testing.T) {
 		{"wrong scalar type", "runtime", "node_version", `24`, "externalParameters"},
 		{"missing required with extra member", "workflow", "", `{"path":"x","sha":"x","injected":"x"}`, "externalParameters.workflow"},
 		{"unknown optional field", "package", "injected", `true`, "externalParameters.package"},
-		{"consumer array", "package", "consumer_surface", `[]`, "externalParameters.package.consumer_surface"},
-		{"consumer null", "package", "consumer_surface", `null`, "externalParameters.package.consumer_surface"},
-		{"consumer unknown", "package", "consumer_surface", `{"scripts":{}}`, "externalParameters.package.consumer_surface"},
-		{"publish config array", "publish", "publish_config", `[]`, "externalParameters.publish.publish_config"},
-		{"publish config unknown", "publish", "publish_config", `{"token":"secret"}`, "externalParameters.publish.publish_config"},
-		{"publish config type", "publish", "publish_config", `{"registry":false}`, "externalParameters"},
+		{"consumer array", "package", "consumer_surface", `[]`, "externalParameters.package"},
+		{"consumer null", "package", "consumer_surface", `null`, "externalParameters.package"},
+		{"consumer unknown", "package", "consumer_surface", `{"scripts":{}}`, "externalParameters.package"},
+		{"publish config array", "publish", "publish_config", `[]`, "externalParameters.publish"},
+		{"publish config unknown", "publish", "publish_config", `{"token":"secret"}`, "externalParameters.publish"},
+		{"publish config type", "publish", "publish_config", `{"registry":false}`, "externalParameters.publish"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -36,9 +36,11 @@ func TestProvenanceExtraDecodeShape(t *testing.T) {
 					t.Fatal(err)
 				}
 				if test.member != "" {
-					var group map[string]json.RawMessage
-					if err := json.Unmarshal(root[test.group], &group); err != nil {
-						t.Fatal(err)
+					group := make(map[string]json.RawMessage)
+					if raw, present := root[test.group]; present {
+						if err := json.Unmarshal(raw, &group); err != nil {
+							t.Fatal(err)
+						}
 					}
 					group[test.member] = encoded
 					encoded = mustJSON(group)
@@ -60,7 +62,7 @@ func TestProvenanceExtraSigningBindings(t *testing.T) {
 	}{
 		{"bad sha256", IDMissingSubjectSHA256, "buildMetadata.primary_artifact.sha256", func(i *NPMProvenanceInput) { i.BuildMetadata.PrimaryArtifact.SHA256 = strings.Repeat("A", 64) }},
 		{"bad sha512", IDMissingSubjectSHA512, "buildMetadata.primary_artifact.sha512", func(i *NPMProvenanceInput) { i.BuildMetadata.PrimaryArtifact.SHA512 = "00" }},
-		{"release revision mismatch", IDReleaseRefMismatch, "externalParameters.source.revision", func(i *NPMProvenanceInput) { i.PeeledReleaseRevision = testAttestSHA }},
+		{"release revision mismatch", IDBuiltSource, "resolvedDependencies.built-source", func(i *NPMProvenanceInput) { i.PeeledReleaseRevision = testAttestSHA }},
 		{"bad finished timestamp", "windlass.verify.error.timestamp-format-invalid", "predicate.runDetails.metadata.finishedOn", func(i *NPMProvenanceInput) { i.FinishedOn = "not-a-time" }},
 	}
 	for _, test := range tests {
@@ -87,13 +89,12 @@ func TestProvenanceExtraStatementBindings(t *testing.T) {
 		{"finish", "windlass.verify.error.statement-assembly-mismatch", "predicate.runDetails.metadata", func(s *provenance.Statement) { s.Predicate.RunDetails.Metadata.FinishedOn = "2026-08-06T12:00:04Z" }},
 		{"valid external substitution", IDUnexpectedExternalParameters, "predicate.buildDefinition.externalParameters", func(s *provenance.Statement) {
 			p := validExternalParameters(ManagerNPM)
-			p.Publish.ResolvedDistTag = "next"
+			p.Publish.InputDistTag = testStringPointer("next")
 			s.Predicate.BuildDefinition.ExternalParameters = mustJSON(p)
 		}},
 		{"source repository substitution", IDUnexpectedExternalParameters, "externalParameters.workflow.repository", func(s *provenance.Statement) {
 			p := validExternalParameters(ManagerNPM)
-			p.Source.Repository = "https://github.com/other/project"
-			p.Package.Repository = p.Source.Repository
+			p.Workflow.Repository = "https://github.com/other/project"
 			s.Predicate.BuildDefinition.ExternalParameters = mustJSON(p)
 		}},
 	}
@@ -126,11 +127,9 @@ func TestProvenanceExtraInvocationRefs(t *testing.T) {
 		t.Run(ref, func(t *testing.T) {
 			t.Parallel()
 			p := validExternalParameters(ManagerNPM)
-			p.Source.InputRef = testStringPointer(p.Source.Ref)
-			p.Source.InvocationRef = testStringPointer(ref)
-			p.Source.InvocationRevision = testStringPointer(testAttestSHA)
+			p.Workflow.Ref = ref
 			_, err := EncodeExternalParameters(p)
-			requireProvenanceDiagnostic(t, err, [2]string{IDUnexpectedExternalParameters, "externalParameters.source.invocation_ref"})
+			requireProvenanceDiagnostic(t, err, [2]string{IDUnexpectedExternalParameters, "externalParameters.workflow.ref"})
 		})
 	}
 }
@@ -159,7 +158,7 @@ func TestProvenanceExtraExpectedDependencies(t *testing.T) {
 			if err != nil {
 				t.Fatalf("valid signing input: %v", err)
 			}
-			want := [2]string{IDResolvedDependenciesUnexpectedEntry, "predicate.buildDefinition.resolvedDependencies"}
+			want := [2]string{IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile"}
 			if malformed {
 				input.BuildMetadata.ResolvedDependencies[0].Annotations["package_manager"] = json.RawMessage(`{`)
 				want = [2]string{IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile"}
@@ -176,9 +175,6 @@ func TestProvenanceExtraSourceVersionBinding(t *testing.T) {
 	t.Parallel()
 	p := validExternalParameters(ManagerNPM)
 	p.Source.Ref = "refs/tags/v2.0.0"
-	p.Source.InputRef = testStringPointer(p.Source.Ref)
-	p.Source.InvocationRef = testStringPointer("refs/heads/main")
-	p.Source.InvocationRevision = testStringPointer(testAttestSHA)
 	_, err := EncodeExternalParameters(p)
 	requireProvenanceDiagnostic(t, err, [2]string{IDSourceRefInvalid, "source-ref"})
 }
@@ -189,17 +185,8 @@ func TestProvenanceExtraOptionalRoundTrip(t *testing.T) {
 		t.Run(registry, func(t *testing.T) {
 			t.Parallel()
 			p := validExternalParameters(ManagerNPM)
-			p.Publish.ResolvedRegistryURL = registry
-			p.Package.PackageURL = registry + "%40windlass%2Fslsa-builder/1.2.3"
-			if registry != "https://registry.npmjs.org/" {
-				p.Publish.CustomRegistrySupport = "unsupported-but-not-blocked"
-			}
-			p.Publish.PublishConfig = &PublishConfigParameters{Access: "public", Provenance: boolPointer(true)}
-			p.Publish.PublishAccessOption = testStringPointer("public")
-			p.Publish.EffectiveAccess = "public"
-			p.Distribution.ReleaseAssetMode = true
-			p.Distribution.ProvenanceSidecar = testStringPointer("required")
-			p.Package.ConsumerSurface = map[string]json.RawMessage{"main": json.RawMessage(`"index.js"`)}
+			p.Publish.InputRegistryURL = testStringPointer(registry)
+			p.Publish.InputAccess = testStringPointer("public")
 			encoded, err := EncodeExternalParameters(p)
 			if err != nil {
 				t.Fatalf("EncodeExternalParameters() = %v, want success", err)

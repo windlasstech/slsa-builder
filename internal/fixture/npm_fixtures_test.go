@@ -107,6 +107,9 @@ func TestNPMFixturesNeverPublish(t *testing.T) {
 		"npm-source-ref-built-policy-mismatch-rejected":             "windlass.verify.error.source-digest-mismatch",
 	}
 
+	for name, primary := range finalContractExpectedCases() {
+		wantCases[name] = primary
+	}
 	for _, manifest := range index.Fixtures {
 		wantPrimaryID, wanted := wantCases[manifest.Name]
 		if !wanted {

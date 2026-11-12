@@ -1,8 +1,11 @@
 package command
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -66,23 +69,16 @@ func TestNPMProfileSignCommandSourceRefDispatchRetry(t *testing.T) {
 			if err != nil {
 				t.Fatalf("decode signed external parameters: %v", err)
 			}
-			if parameters.Source.Ref != signBuiltRef || parameters.Source.Revision != signBuiltRevision ||
-				parameters.Release.Ref != signBuiltRef {
-				t.Fatalf("signed built release identity = source %#v, release %#v", parameters.Source, parameters.Release)
+			if parameters.Source.Ref != signBuiltRef || parameters.Workflow.Ref != signInvocationRef {
+				t.Fatalf("signed selectors = %#v", parameters)
 			}
-			if parameters.Source.InvocationRef == nil || *parameters.Source.InvocationRef != signInvocationRef ||
-				parameters.Source.InvocationRevision == nil || *parameters.Source.InvocationRevision != signInvocationRevision {
-				t.Fatalf("signed invocation record = %#v", parameters.Source)
-			}
-			if err := npmprofile.ValidateReleaseRefEquality(
-				parameters.Source.Ref,
-				parameters.Release.Ref,
-				signBuiltRef,
-				parameters.Release.VersionTag,
-				parameters.Source.Revision,
-				signBuiltRevision,
-			); err != nil {
-				t.Fatalf("built release equality: %v", err)
+			for _, descriptor := range statement.Predicate.BuildDefinition.ResolvedDependencies {
+				if descriptor.Name == "built-source" && (descriptor.URI != "git+https://github.com/example/project@"+signBuiltRef || descriptor.Digest["gitCommit"] != signBuiltRevision) {
+					t.Fatalf("built source = %#v", descriptor)
+				}
+				if descriptor.Name == "invocation-source" && (descriptor.URI != "git+https://github.com/example/project@"+signInvocationRef || descriptor.Digest["gitCommit"] != signInvocationRevision) {
+					t.Fatalf("invocation source = %#v", descriptor)
+				}
 			}
 			if request.Identity.SourceRef != signInvocationRef || request.Identity.SourceDigest != signInvocationRevision {
 				t.Fatalf("certificate context = %#v", request.Identity)
@@ -140,7 +136,7 @@ func TestNPMProfileSignCommandRejectsMismatchedBuiltIdentity(t *testing.T) {
 	if !errors.Is(err, ErrVerificationFailure) {
 		t.Fatalf("Execute() error = %v, want ErrVerificationFailure", err)
 	}
-	assertPrimaryDiagnostic(t, output.Bytes(), ExitCodeVerificationFailure, npmprofile.IDReleaseRefMismatch)
+	assertPrimaryDiagnostic(t, output.Bytes(), ExitCodeVerificationFailure, npmprofile.IDBuiltSource)
 }
 
 func TestNPMProfileSignDispatcherClassifiesMismatchedBuiltIdentityAsPolicyFailure(t *testing.T) {
@@ -176,7 +172,7 @@ func TestNPMProfileSignDispatcherClassifiesMismatchedBuiltIdentityAsPolicyFailur
 	if result.ExitCode != ExitCodeVerificationFailure {
 		t.Fatalf("dispatch exit code = %d, want %d", result.ExitCode, ExitCodeVerificationFailure)
 	}
-	assertPrimaryDiagnostic(t, output.Bytes(), ExitCodeVerificationFailure, npmprofile.IDReleaseRefMismatch)
+	assertPrimaryDiagnostic(t, output.Bytes(), ExitCodeVerificationFailure, npmprofile.IDBuiltSource)
 }
 
 func TestNPMProfileSignCommandFallsBackToSingleInvocationIdentity(t *testing.T) {
@@ -204,9 +200,15 @@ func TestNPMProfileSignCommandFallsBackToSingleInvocationIdentity(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			if parameters.Source.Ref != signBuiltRef || parameters.Source.Revision != signBuiltRevision ||
-				parameters.Source.InputRef != nil || parameters.Source.InvocationRef != nil || parameters.Source.InvocationRevision != nil {
+			if parameters.Source.Ref != "" || parameters.Workflow.Ref != signBuiltRef {
 				t.Fatalf("single invocation source = %#v", parameters.Source)
+			}
+			for _, descriptor := range statement.Predicate.BuildDefinition.ResolvedDependencies {
+				if descriptor.Name == "invocation-source" || descriptor.Name == "built-source" {
+					if descriptor.URI != "git+https://github.com/example/project@"+signBuiltRef || descriptor.Digest["gitCommit"] != signBuiltRevision {
+						t.Fatalf("single source role = %#v", descriptor)
+					}
+				}
 			}
 			return signing.Result{Statement: append([]byte(nil), request.Statement...), Bundle: []byte(`{"bundle":"fixture"}`)}, nil
 		},
@@ -230,51 +232,42 @@ func TestNPMProfileSignCommandFallsBackToSingleInvocationIdentity(t *testing.T) 
 
 func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 	t.Helper()
-	inputRef := signBuiltRef
-	invocationRef := signInvocationRef
-	invocationRevision := signInvocationRevision
-	selectionManifest := "package.json"
-	packageIdentityPreexisting := true
-	packageVersionPreexisting := false
 	parameters := npmprofile.ExternalParameters{
-		Source: npmprofile.SourceParameters{
-			Repository: "https://github.com/example/project", Ref: signBuiltRef, Revision: signBuiltRevision,
-			EventName: "workflow_dispatch", RefType: "tag", InputRef: &inputRef,
-			InvocationRef: &invocationRef, InvocationRevision: &invocationRevision,
-		},
-		Workflow: npmprofile.WorkflowParameters{Ref: invocationRef, Repository: "https://github.com/example/project", Path: ".github/workflows/release.yml"},
-		Runtime:  npmprofile.RuntimeParameters{Runner: "ubuntu-24.04", NodeVersion: "24.0.0", NPMVersion: "11.5.1"},
-		Package: npmprofile.PackageParameters{
-			Directory: ".", SourceManifest: "package.json", Name: signPackageName, Version: "1.2.3",
-			Repository: "https://github.com/example/project", TarballName: signTarballName,
-			PackageURL: "https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3",
-			PackedName: signPackageName, PackedVersion: "1.2.3",
-		},
-		PackageManager: npmprofile.PackageManagerParameters{
-			Name: npmprofile.ManagerNPM, Version: "11.5.1", SelectionSource: npmprofile.SelectionPackageManager,
-			SelectionManifest: &selectionManifest, SelectionManifestPath: &selectionManifest, Root: ".",
-		},
-		Publish: npmprofile.PublishParameters{
-			ResolvedRegistryURL: signRegistryURL, ResolvedDistTag: "latest", EffectiveAccess: "existing-package-access",
-			TrustedPublishing: true, ProvenanceFile: true, PackageIdentityPreexisting: &packageIdentityPreexisting,
-			PackageVersionPreexisting: &packageVersionPreexisting,
-		},
-		Release:      npmprofile.ReleaseParameters{Ref: signBuiltRef, VersionTag: "v1.2.3"},
-		Distribution: npmprofile.DistributionParameters{},
-		Caller:       npmprofile.CallerParameters{WorkflowFilename: "release.yml"},
-		Build:        npmprofile.BuildParameters{ScriptResult: npmprofile.BuildScriptSkippedAbsent},
+		Source:   npmprofile.SourceParameters{Ref: signBuiltRef},
+		Workflow: npmprofile.WorkflowParameters{Ref: signInvocationRef, Repository: "https://github.com/example/project", Path: ".github/workflows/release.yml"},
+		Package:  npmprofile.PackageParameters{Directory: "."},
 	}
 	externalParameters, err := npmprofile.EncodeExternalParameters(parameters)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tarball := []byte("dispatch retry tarball")
+	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"example/project"}`)
+	var buffer bytes.Buffer
+	compressed := gzip.NewWriter(&buffer)
+	archive := tar.NewWriter(compressed)
+	if err := archive.WriteHeader(&tar.Header{Name: "package/package.json", Mode: 0o644, Size: int64(len(manifest))}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := archive.Write(manifest); err != nil {
+		t.Fatal(err)
+	}
+	if err := archive.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := compressed.Close(); err != nil {
+		t.Fatal(err)
+	}
+	tarball := buffer.Bytes()
 	sha256Value := digest.SumSHA256(tarball).String()
 	sha512Value := digest.SumSHA512(tarball).String()
 	dependencies := []provenance.ResourceDescriptor{
+		{Name: "invocation-source", URI: "git+https://github.com/example/project@" + signInvocationRef, Digest: map[string]string{"gitCommit": signInvocationRevision}},
+		{Name: "built-source", URI: "git+https://github.com/example/project@" + signBuiltRef, Digest: map[string]string{"gitCommit": signBuiltRevision}, Annotations: map[string]json.RawMessage{"ref_type": json.RawMessage(`"tag"`)}},
+		{Name: "package-manifest", URI: "git+https://github.com/example/project@" + signBuiltRevision + "#package.json", Digest: map[string]string{"sha256": digest.SumSHA256(manifest).String()}, MediaType: "application/json", Annotations: map[string]json.RawMessage{"workspace_root": json.RawMessage(`null`)}},
 		{
 			Name: "lockfile", URI: "git+https://github.com/example/project@" + signBuiltRevision + "#package-lock.json",
-			Digest: map[string]string{"sha256": sha256Value},
+			MediaType: "application/json",
+			Digest:    map[string]string{"sha256": sha256Value},
 			Annotations: map[string]json.RawMessage{
 				"package_manager":              mustMarshalSignJSON(t, npmprofile.ManagerNPM),
 				"package_manager_root":         mustMarshalSignJSON(t, "."),
@@ -285,9 +278,10 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 			},
 		},
 		{
-			Name:   "node-runtime",
-			URI:    "https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz",
-			Digest: map[string]string{"sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"},
+			Name:      "node-runtime",
+			MediaType: "application/gzip",
+			URI:       "https://nodejs.org/download/release/v24.22.1/node-v24.22.1-linux-x64.tar.gz",
+			Digest:    map[string]string{"sha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"},
 			Annotations: map[string]json.RawMessage{
 				"digest_authority": mustMarshalSignJSON(t, "builder-pinned-record"),
 				"platform":         mustMarshalSignJSON(t, "linux-x64"),
@@ -299,7 +293,6 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 				"deployment_version": mustMarshalSignJSON(t, "20260801.1.1"),
 				"image_os":           mustMarshalSignJSON(t, "ubuntu24"),
 				"image_version":      mustMarshalSignJSON(t, "20260801.1.0"),
-				"node_version":       mustMarshalSignJSON(t, "v24.0.0"),
 			},
 		},
 	}
@@ -311,6 +304,8 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 			SHA256: sha256Value, SHA512: sha512Value,
 		},
 		ExternalParameters: externalParameters, ResolvedDependencies: dependencies,
+		ManifestEvidence:       npmprofile.ManifestEvidence{Path: "package.json", ContentBase64: base64.StdEncoding.EncodeToString(manifest)},
+		BuildScriptDisposition: npmprofile.BuildScriptSkippedAbsent,
 	}, tarball
 }
 
@@ -367,11 +362,14 @@ func signSingleIdentityMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte)
 	if err != nil {
 		t.Fatal(err)
 	}
-	parameters.Source.EventName = "push"
-	parameters.Source.InputRef = nil
-	parameters.Source.InvocationRef = nil
-	parameters.Source.InvocationRevision = nil
 	parameters.Workflow.Ref = parameters.Source.Ref
+	parameters.Source = npmprofile.SourceParameters{}
+	for index := range metadata.ResolvedDependencies {
+		if metadata.ResolvedDependencies[index].Name == "invocation-source" {
+			metadata.ResolvedDependencies[index].URI = "git+https://github.com/example/project@" + signBuiltRef
+			metadata.ResolvedDependencies[index].Digest["gitCommit"] = signBuiltRevision
+		}
+	}
 	metadata.ExternalParameters, err = npmprofile.EncodeExternalParameters(parameters)
 	if err != nil {
 		t.Fatal(err)
@@ -387,7 +385,8 @@ func signSourceRefArguments(metadataDirectory, tarballDirectory, outputDirectory
 		"--tarball-artifact-dir", tarballDirectory,
 		"--tarball-sha256", tarballSHA256,
 		"--tarball-artifact-name", signTarballArtifactName,
-		"--node-version", "v24.0.0",
+		"--node-version", "v24.22.1",
+		"--npm-version", "11.19.1",
 		"--registry-url", signRegistryURL,
 		"--package-name", signPackageName,
 		"--output-directory", outputDirectory,

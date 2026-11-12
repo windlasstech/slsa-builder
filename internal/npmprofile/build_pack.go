@@ -100,8 +100,14 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 		return BuildPackResult{}, err
 	}
 
+	evidence, err := captureManifestEvidence(config.Selection.Package.SourceManifest, config.Selection.Package.Directory)
+	if err != nil {
+		return BuildPackResult{}, err
+	}
 	metadata := BuildMetadata{
-		SchemaVersion: "1",
+		SchemaVersion:          "1",
+		ManifestEvidence:       evidence,
+		BuildScriptDisposition: buildScript.Result,
 		PrimaryArtifact: PrimaryArtifact{
 			ArtifactName:    config.ArtifactName,
 			PayloadFileName: filepath.Base(tarballPath),
@@ -109,7 +115,7 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 			SHA512:          sha512Value.String(),
 		},
 		ExternalParameters:   append(json.RawMessage(nil), config.ExternalParameters...),
-		ResolvedDependencies: append([]provenance.ResourceDescriptor(nil), config.ResolvedDependencies...),
+		ResolvedDependencies: append([]provenance.ResourceDescriptor{}, config.ResolvedDependencies...),
 	}
 	metadataPath := filepath.Join(metadataOutput, "build-metadata.json")
 	if err := writeBuildMetadata(metadataPath, metadata); err != nil {

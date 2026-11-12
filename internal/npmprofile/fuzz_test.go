@@ -77,12 +77,8 @@ func FuzzDecodeExternalParameters(f *testing.F) {
 		top["distribution"] = encoded
 	}))
 
-	// Null conditional source members (provenance_validate.go conditional source member rule).
 	f.Add(mutateJSONTop(f, []byte(valid), func(top map[string]json.RawMessage) {
-		var source map[string]json.RawMessage
-		if err := json.Unmarshal(top["source"], &source); err != nil {
-			f.Fatalf("decode seed source member: %v", err)
-		}
+		source := map[string]json.RawMessage{"ref": json.RawMessage(`"refs/tags/v1.2.3"`)}
 		for _, name := range []string{"input_ref", "invocation_ref", "invocation_revision"} {
 			source[name] = json.RawMessage("null")
 		}

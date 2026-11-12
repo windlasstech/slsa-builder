@@ -78,6 +78,15 @@ func TestNodeRuntimeDependencyFixtures(t *testing.T) {
 			if err := decoder.Decode(&document); err != nil {
 				t.Fatalf("decode fixture: %v", err)
 			}
+			if os.Getenv("UPDATE_P01_GOLDEN") == "1" {
+				data = updatedRuntimeFixture(t, name, document.PackageManager)
+				if err := os.WriteFile(filepath.Join(root, manifest.Provenance), data, 0o600); err != nil {
+					t.Fatal(err)
+				}
+				if err := json.Unmarshal(data, &document); err != nil {
+					t.Fatal(err)
+				}
+			}
 			input := validProvenanceInput(t, document.PackageManager)
 			// Decode descriptor bytes as received Statement data, not as closed BuildMetadata.
 			var dependencies []provenance.ResourceDescriptor
@@ -85,6 +94,20 @@ func TestNodeRuntimeDependencyFixtures(t *testing.T) {
 				t.Fatalf("decode descriptors: %v", err)
 			}
 			input.BuildMetadata.ResolvedDependencies = dependencies
+			if manifest.Type == "accepted" && name != "npm-resolved-dependencies-reordered-valid" {
+				want := []string{"invocation-source", "built-source", "package-manifest", "lockfile", "node-runtime"}
+				if document.PackageManager != ManagerNPM {
+					want = append(want, "package-manager-distribution")
+				}
+				want = append(want, "runner-image")
+				var names []string
+				for _, dependency := range dependencies {
+					names = append(names, dependency.Name)
+				}
+				if !slices.Equal(names, want) {
+					t.Fatalf("static emission order = %v, want %v", names, want)
+				}
+			}
 
 			// When constructing the real signing input from the fixture dependencies.
 			signing, signingErr := NewProvenanceSigningInput(input)

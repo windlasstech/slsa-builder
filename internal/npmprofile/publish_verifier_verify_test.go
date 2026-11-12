@@ -119,7 +119,8 @@ func TestSigstorePublishVerifyOfflineSignerFixture(t *testing.T) {
 
 func publishVerifyInputs(t *testing.T) (SigstorePublishVerifierConfig, ProvenanceSigningInput) {
 	t.Helper()
-	signing, err := NewProvenanceSigningInput(validProvenanceInput(t, ManagerNPM))
+	input := validProvenanceInput(t, ManagerNPM)
+	signing, err := NewProvenanceSigningInput(input)
 	if err != nil {
 		t.Fatalf("assemble valid npm Statement: %v", err)
 	}
@@ -131,6 +132,7 @@ func publishVerifyInputs(t *testing.T) (SigstorePublishVerifierConfig, Provenanc
 	identity.RunnerEnvironment = "github-hosted"
 	return SigstorePublishVerifierConfig{
 		Mode: attestation.ModeOffline, PinnedRoot: rootBytes, Identity: identity,
+		BuildMetadata: input.BuildMetadata, Packed: input.Packed,
 		TrustRoot: policy.TrustRoot{
 			Mode: "pinned", Instance: "sigstore-public-good",
 			Path: testStringPointer("trusted_root.json"), SHA256: testStringPointer(digest.SumSHA256(rootBytes).String()),

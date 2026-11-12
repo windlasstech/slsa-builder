@@ -2,6 +2,7 @@ package npmprofile
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
@@ -22,7 +24,9 @@ const (
 )
 
 func TestNPMProvenanceInput(t *testing.T) {
-	t.Parallel()
+	if os.Getenv("UPDATE_P01_GOLDEN") != "1" {
+		t.Parallel()
+	}
 
 	input := validProvenanceInput(t, ManagerPNPM)
 	signing, err := NewProvenanceSigningInput(input)
@@ -92,7 +96,11 @@ func TestNPMProvenanceInput(t *testing.T) {
 	t.Run("lockfile digest", func(t *testing.T) {
 		mutated := statement
 		mutated.Predicate.BuildDefinition.ResolvedDependencies = cloneDependencies(statement.Predicate.BuildDefinition.ResolvedDependencies)
-		mutated.Predicate.BuildDefinition.ResolvedDependencies[0].Digest["sha256"] = strings.Repeat("0", 64)
+		for index := range mutated.Predicate.BuildDefinition.ResolvedDependencies {
+			if mutated.Predicate.BuildDefinition.ResolvedDependencies[index].Name == "lockfile" {
+				mutated.Predicate.BuildDefinition.ResolvedDependencies[index].Digest["sha256"] = strings.Repeat("0", 64)
+			}
+		}
 		requireNPMDiagnostic(t, ValidateNPMStatement(mutated, input), IDResolvedDependenciesLockfile)
 	})
 }
@@ -101,16 +109,16 @@ func TestYarnExternalParametersVersionBound(t *testing.T) {
 	t.Parallel()
 
 	for _, version := range []string{"6.0.0", "6.1.0", "7.0.0", "10.0.0"} {
-		parameters := validExternalParameters(ManagerYarn)
-		parameters.PackageManager.Version = version
-		if err := validatePackageManagerParameters(parameters.PackageManager); err == nil {
+		parameters := validManagerParameters(ManagerYarn)
+		parameters.Version = version
+		if err := validatePackageManagerParameters(parameters); err == nil {
 			t.Fatalf("Yarn %s: expected rejection below the v6 boundary, got nil", version)
 		}
 	}
 	for _, version := range []string{"4.0.0", "4.9.2", "5.0.0", "5.7.1", "5.0.0-rc.1"} {
-		parameters := validExternalParameters(ManagerYarn)
-		parameters.PackageManager.Version = version
-		if err := validatePackageManagerParameters(parameters.PackageManager); err != nil {
+		parameters := validManagerParameters(ManagerYarn)
+		parameters.Version = version
+		if err := validatePackageManagerParameters(parameters); err != nil {
 			t.Fatalf("Yarn %s: unexpected rejection: %v", version, err)
 		}
 	}
@@ -211,26 +219,22 @@ func TestPackageManagerDescriptorSuffix(t *testing.T) {
 func TestDistributionDescriptorDeclaredDigest(t *testing.T) {
 	t.Parallel()
 
-	distribution := func(parameters ExternalParameters) provenance.ResourceDescriptor {
-		return validDependencies(parameters.PackageManager.Name, parameters)[1]
+	distribution := func(version string) provenance.ResourceDescriptor {
+		value := validDependencies(ManagerPNPM, validExternalParameters(ManagerPNPM))[1]
+		value.Annotations["package_manager_version"] = mustJSON(version)
+		return value
 	}
 
 	t.Run("declared sha512 equals recorded digest", func(t *testing.T) {
-		parameters := validExternalParameters(ManagerPNPM)
-		parameters.PackageManager.Version = "11.28.3+sha512." + testSHA512
-		if err := validateDistributionDescriptor(distribution(parameters), parameters); err != nil {
+		if err := validateFinalDistribution(distribution("11.28.3+sha512."+testSHA512), ManagerPNPM); err != nil {
 			t.Fatalf("validateDistributionDescriptor() error = %v", err)
 		}
 	})
 	t.Run("declared sha512 disagrees with recorded digest", func(t *testing.T) {
-		parameters := validExternalParameters(ManagerPNPM)
-		parameters.PackageManager.Version = "11.28.3+sha512." + strings.Repeat("0", 128)
-		requireNPMDiagnostic(t, validateDistributionDescriptor(distribution(parameters), parameters), IDResolvedDependenciesDistribution)
+		requireNPMDiagnostic(t, validateFinalDistribution(distribution("11.28.3+sha512."+strings.Repeat("0", 128)), ManagerPNPM), IDResolvedDependenciesDistribution)
 	})
 	t.Run("declared sha256 skips comparison", func(t *testing.T) {
-		parameters := validExternalParameters(ManagerPNPM)
-		parameters.PackageManager.Version = "11.28.3+sha256." + testSHA256
-		if err := validateDistributionDescriptor(distribution(parameters), parameters); err != nil {
+		if err := validateFinalDistribution(distribution("11.28.3+sha256."+testSHA256), ManagerPNPM); err != nil {
 			t.Fatalf("validateDistributionDescriptor() error = %v", err)
 		}
 	})
@@ -277,9 +281,9 @@ func TestResolvedDependencies(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewProvenanceSigningInput() error = %v", err)
 			}
-			want := 3
+			want := 6
 			if manager != ManagerNPM {
-				want = 4
+				want = 7
 			}
 			if len(signing.Predicate.BuildDefinition.ResolvedDependencies) != want {
 				t.Fatalf("dependency count = %d, want %d", len(signing.Predicate.BuildDefinition.ResolvedDependencies), want)
@@ -355,7 +359,7 @@ func TestBuilderFields(t *testing.T) {
 				t.Fatalf("NewProvenanceSigningInput() error = %v", err)
 			}
 			version := signing.Predicate.RunDetails.Builder.Version
-			if version["nodejs"] != "v24.0.0" {
+			if version["nodejs"] != input.NodeJSVersion || version["npm"] != input.NPMVersion {
 				t.Fatalf("builder.version = %#v", version)
 			}
 			_, hasCorepack := version["corepack"]
@@ -407,6 +411,10 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 		t.Fatalf("EncodeExternalParameters() error = %v", err)
 	}
 	dependencies := validDependencies(manager, parameters)
+	pair, err := toolchainpins.NodeRuntimePair()
+	if err != nil {
+		t.Fatal(err)
+	}
 	corepackVersion := (*string)(nil)
 	if manager != ManagerNPM {
 		value := "0.34.0"
@@ -423,12 +431,17 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 				SHA256:          testSHA256,
 				SHA512:          testSHA512,
 			},
-			ExternalParameters:   encoded,
-			ResolvedDependencies: dependencies,
+			ExternalParameters:     encoded,
+			ResolvedDependencies:   dependencies,
+			ManifestEvidence:       ManifestEvidence{Path: "package.json", ContentBase64: base64.StdEncoding.EncodeToString(testOriginalManifest())},
+			BuildScriptDisposition: BuildScriptExecuted,
 		},
 		BuilderID:             builderID,
 		GitHub:                provenance.GitHubParameters{EventName: "push", RepositoryID: "123", RepositoryOwnerID: "456"},
-		NodeJSVersion:         "v24.0.0",
+		NodeJSVersion:         "v" + pair.NodeVersion,
+		NPMVersion:            pair.NPMVersion,
+		InvocationRevision:    testSourceSHA,
+		Packed:                PackedMetadata{Name: "@windlass/slsa-builder", Version: "1.2.3", Files: []string{"package/package.json"}},
 		CorepackVersion:       corepackVersion,
 		InvocationID:          "https://github.com/example/project/actions/runs/123456789/attempts/1",
 		StartedOn:             "2026-08-06T12:00:00Z",
@@ -438,7 +451,18 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 	}
 }
 
-func validExternalParameters(manager Manager) ExternalParameters {
+func validExternalParameters(Manager) ExternalParameters {
+	return ExternalParameters{
+		Workflow: WorkflowParameters{Ref: "refs/tags/v1.2.3", Repository: "https://github.com/example/project", Path: ".github/workflows/release.yml"},
+		Package:  PackageParameters{Directory: "."},
+	}
+}
+
+func testOriginalManifest() []byte {
+	return []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"example/project","scripts":{"build":"true"}}`)
+}
+
+func validManagerParameters(manager Manager) PackageManagerParameters {
 	selectionManifest := testStringPointer("package.json")
 	packageManagerVersion := "11.28.3"
 	if manager == ManagerNPM {
@@ -447,20 +471,9 @@ func validExternalParameters(manager Manager) ExternalParameters {
 	if manager == ManagerYarn {
 		packageManagerVersion = "4.9.2"
 	}
-	parameters := ExternalParameters{
-		Source:         SourceParameters{Repository: "https://github.com/example/project", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, EventName: "push", RefType: "tag"},
-		Workflow:       WorkflowParameters{Ref: "refs/tags/v1.2.3", Repository: "https://github.com/example/project", Path: ".github/workflows/release.yml"},
-		Runtime:        RuntimeParameters{Runner: "ubuntu-24.04", NodeVersion: "24.0.0", NPMVersion: "11.5.1"},
-		Package:        PackageParameters{Directory: ".", WorkspaceRoot: nil, SourceManifest: "package.json", Name: "@windlass/slsa-builder", Version: "1.2.3", Private: false, Repository: "https://github.com/example/project", TarballName: "windlass-slsa-builder-1.2.3.tgz", PackageURL: "https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3", PackedName: "@windlass/slsa-builder", PackedVersion: "1.2.3"},
-		PackageManager: PackageManagerParameters{Name: manager, Version: packageManagerVersion, SelectionSource: SelectionPackageManager, SelectionManifest: selectionManifest, SelectionManifestPath: selectionManifest, SelectionLockfilePath: nil, Root: "."},
-		Publish:        PublishParameters{ResolvedRegistryURL: "https://registry.npmjs.org/", ResolvedDistTag: "latest", EffectiveAccess: "existing-package-access", TrustedPublishing: true, ProvenanceFile: true, PackageIdentityPreexisting: boolPointer(true), PackageVersionPreexisting: boolPointer(false)},
-		Release:        ReleaseParameters{Ref: "refs/tags/v1.2.3", VersionTag: "v1.2.3"},
-		Distribution:   DistributionParameters{ReleaseAssetMode: false, ReleaseTagSupplied: false, ProvenanceSidecar: nil, LinkedArtifactMetadata: false},
-		Caller:         CallerParameters{WorkflowFilename: "release.yml"},
-		Build:          BuildParameters{ScriptPresent: true, ScriptResult: BuildScriptExecuted},
-	}
+	parameters := PackageManagerParameters{Name: manager, Version: packageManagerVersion, SelectionSource: SelectionPackageManager, SelectionManifest: selectionManifest, SelectionManifestPath: selectionManifest, Root: "."}
 	if manager == ManagerYarn {
-		parameters.PackageManager.YarnInstallMode = "immutable"
+		parameters.YarnInstallMode = "immutable"
 	}
 	return parameters
 }
@@ -474,9 +487,10 @@ func validDependencies(manager Manager, parameters ExternalParameters) []provena
 		lockfile = "yarn.lock"
 	}
 	dependencies := []provenance.ResourceDescriptor{{
-		Name:   "lockfile",
-		URI:    "git+https://github.com/example/project@" + testSourceSHA + "#" + lockfile,
-		Digest: map[string]string{"sha256": testSHA256},
+		Name:      "lockfile",
+		MediaType: lockfileMediaType(manager, lockfile),
+		URI:       "git+https://github.com/example/project@" + testSourceSHA + "#" + lockfile,
+		Digest:    map[string]string{"sha256": testSHA256},
 		Annotations: map[string]json.RawMessage{
 			"package_manager":              mustJSON(manager),
 			"package_manager_root":         mustJSON("."),
@@ -487,22 +501,27 @@ func validDependencies(manager Manager, parameters ExternalParameters) []provena
 		},
 	}}
 	if manager != ManagerNPM {
+		version := validManagerParameters(manager).Version
+		plain, _, _ := parseDescriptorVersion(manager, version)
 		authority := "registry-integrity"
-		uri := "https://registry.npmjs.org/pnpm/-/pnpm-11.28.3.tgz"
+		uri := "https://registry.npmjs.org/pnpm/-/pnpm-" + plain + ".tgz"
+		mediaType := "application/gzip"
 		if manager == ManagerYarn {
 			authority = "download-hash"
-			uri = "https://repo.yarnpkg.com/4.9.2/packages/yarnpkg-cli/bin/yarn.js"
+			uri = "https://repo.yarnpkg.com/" + plain + "/packages/yarnpkg-cli/bin/yarn.js"
+			mediaType = "text/javascript"
 		}
 		dependencies = append(dependencies, provenance.ResourceDescriptor{
 			Name: "package-manager-distribution", URI: uri, Digest: map[string]string{"sha512": testSHA512},
-			Annotations: map[string]json.RawMessage{"digest_authority": mustJSON(authority), "package_manager": mustJSON(manager), "package_manager_version": mustJSON(parameters.PackageManager.Version), "acquisition_source": mustJSON("corepack")},
+			MediaType:   mediaType,
+			Annotations: map[string]json.RawMessage{"digest_authority": mustJSON(authority), "package_manager": mustJSON(manager), "package_manager_version": mustJSON(version), "acquisition_source": mustJSON("corepack")},
 		})
 	}
 	dependencies = append(dependencies, provenance.ResourceDescriptor{
 		Name: "runner-image", URI: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
 		// ADR 0100: image_version is the on-disk image metadata; deployment_version
 		// is the control-plane deployment evidence, divergent during rollouts.
-		Annotations: map[string]json.RawMessage{"deployment_version": mustJSON("20260801.1.1"), "image_os": mustJSON("ubuntu24"), "image_version": mustJSON("20260801.1.0"), "node_version": mustJSON("v24.0.0")},
+		Annotations: map[string]json.RawMessage{"deployment_version": mustJSON("20260801.1.1"), "image_os": mustJSON("ubuntu24"), "image_version": mustJSON("20260801.1.0")},
 	})
 	// Consumer fixtures deliberately retain the old entries' positions. Array order is not semantic.
 	pair, err := toolchainpins.NodeRuntimePair()
@@ -512,9 +531,14 @@ func validDependencies(manager Manager, parameters ExternalParameters) []provena
 	artifact := pair.Artifacts["linux-x64"]
 	dependencies = append(dependencies, provenance.ResourceDescriptor{
 		Name: "node-runtime", URI: artifact.URL, Digest: map[string]string{"sha256": artifact.SHA256},
+		MediaType:   "application/gzip",
 		Annotations: map[string]json.RawMessage{"digest_authority": mustJSON("builder-pinned-record"), "platform": mustJSON("linux-x64")},
 	})
-	return dependencies
+	return append(dependencies,
+		provenance.ResourceDescriptor{Name: "invocation-source", URI: "git+" + parameters.Workflow.Repository + "@" + parameters.Workflow.Ref, Digest: map[string]string{"gitCommit": testSourceSHA}},
+		provenance.ResourceDescriptor{Name: "built-source", URI: "git+" + parameters.Workflow.Repository + "@" + effectiveBuiltRef(parameters), Digest: map[string]string{"gitCommit": testSourceSHA}, Annotations: annotations(map[string]any{"ref_type": "tag"})},
+		provenance.ResourceDescriptor{Name: "package-manifest", URI: "git+" + parameters.Workflow.Repository + "@" + testSourceSHA + "#package.json", Digest: map[string]string{"sha256": digest.SumSHA256(testOriginalManifest()).String()}, MediaType: "application/json", Annotations: annotations(map[string]any{"workspace_root": nil})},
+	)
 }
 
 func TestNPMProvenanceInputNodeRuntime(t *testing.T) {
@@ -540,6 +564,9 @@ func runtimeTestStatement(t *testing.T, input NPMProvenanceInput) provenance.Sta
 	}
 	predicate.BuildDefinition.ExternalParameters = input.BuildMetadata.ExternalParameters
 	predicate.BuildDefinition.ResolvedDependencies = cloneDependencies(input.BuildMetadata.ResolvedDependencies)
+	predicate.RunDetails.Builder.Version["nodejs"] = input.NodeJSVersion
+	predicate.RunDetails.Builder.Version["npm"] = input.NPMVersion
+	predicate.RunDetails.Metadata.BuildScriptDisposition = string(input.BuildMetadata.BuildScriptDisposition)
 	if input.CorepackVersion == nil {
 		delete(predicate.RunDetails.Builder.Version, "corepack")
 	}
@@ -627,7 +654,13 @@ func cloneSubjects(subjects []provenance.Subject) []provenance.Subject {
 func cloneDependencies(values []provenance.ResourceDescriptor) []provenance.ResourceDescriptor {
 	cloned := make([]provenance.ResourceDescriptor, len(values))
 	for index, value := range values {
-		cloned[index] = provenance.ResourceDescriptor{Name: value.Name, URI: value.URI, Digest: make(map[string]string, len(value.Digest)), Annotations: make(map[string]json.RawMessage, len(value.Annotations))}
+		cloned[index] = value
+		if value.Digest != nil {
+			cloned[index].Digest = make(map[string]string, len(value.Digest))
+		}
+		if value.Annotations != nil {
+			cloned[index].Annotations = make(map[string]json.RawMessage, len(value.Annotations))
+		}
 		for name, digestValue := range value.Digest {
 			cloned[index].Digest[name] = digestValue
 		}

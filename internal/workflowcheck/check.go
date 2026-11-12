@@ -385,7 +385,7 @@ func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
 	if len(steps) == 0 || !strings.HasPrefix(steps[0].Uses, "step-security/harden-runner@") || scalar(steps[0].With["egress-policy"]) != "audit" {
 		return fmt.Errorf("harden-runner with audit egress must be the first publish step")
 	}
-	downloads := make([]string, 0, 2)
+	downloads := make([]string, 0, 3)
 	hasPublish := false
 	hasReport := false
 	hasReportUpload := false
@@ -401,6 +401,11 @@ func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
 		}
 		if strings.Contains(current.Run, "npm-profile-publish") {
 			hasPublish = true
+			run := toolchainShellText(current.Run)
+			if strings.Count(run, "--metadata-artifact-dir") != 1 || strings.Count(run, "--metadata-artifact-name") != 1 || strings.Count(run, "--metadata-sha256") != 1 || !containsAll(run, `--metadata-artifact-dir "$METADATA_DIRECTORY"`, `--metadata-artifact-name "$METADATA_ARTIFACT_NAME"`, `--metadata-sha256 "$METADATA_SHA256"`) ||
+				current.Env["METADATA_SHA256"] != "${{ needs.build.outputs.build-metadata-sha256 }}" || current.Env["METADATA_ARTIFACT_NAME"] != metadataArtifactName || current.Env["METADATA_DIRECTORY"] != "${{ runner.temp }}/windlass-publish-input/metadata" {
+				return fmt.Errorf("publish must verify the same-run build metadata handoff")
+			}
 		}
 		if strings.Contains(current.Run, "npm-profile-report") && normalizeExpression(current.If) == "always()" {
 			hasReport = true
@@ -411,7 +416,7 @@ func checkPublishSteps(job workflowJob, result *PublishJobResult) error {
 		}
 	}
 	slices.Sort(downloads)
-	if !slices.Equal(downloads, []string{tarballArtifactName, provenanceBundleArtifactName}) {
+	if !slices.Equal(downloads, []string{metadataArtifactName, tarballArtifactName, provenanceBundleArtifactName}) {
 		return fmt.Errorf("publish handoff downloads are %q", downloads)
 	}
 	if !hasPublish {

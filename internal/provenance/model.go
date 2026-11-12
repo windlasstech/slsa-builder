@@ -88,7 +88,11 @@ type ResourceDescriptor struct {
 	URI                 string                     `json:"uri,omitempty"`
 	Digest              map[string]string          `json:"digest,omitempty"`
 	Annotations         map[string]json.RawMessage `json:"annotations,omitempty"`
+	MediaType           string                     `json:"mediaType,omitempty"`
 	hasUnexpectedFields bool
+	presentMediaType    bool
+	presentAnnotations  bool
+	presentDigest       bool
 }
 
 // UnmarshalJSON captures unrecognized members for profile-owned validation without rejecting them.
@@ -105,13 +109,28 @@ func (descriptor *ResourceDescriptor) UnmarshalJSON(encoded []byte) error {
 	}
 	for name := range members {
 		switch name {
-		case "name", "uri", "digest", "annotations":
+		case "name", "uri", "digest", "annotations", "mediaType":
 		default:
 			decoded.hasUnexpectedFields = true
 		}
 	}
+	_, decoded.presentMediaType = members["mediaType"]
+	_, decoded.presentAnnotations = members["annotations"]
+	_, decoded.presentDigest = members["digest"]
 	*descriptor = ResourceDescriptor(decoded)
 	return nil
+}
+
+func (descriptor ResourceDescriptor) HasMediaType() bool {
+	return descriptor.presentMediaType || descriptor.MediaType != ""
+}
+
+func (descriptor ResourceDescriptor) HasAnnotations() bool {
+	return descriptor.presentAnnotations || descriptor.Annotations != nil
+}
+
+func (descriptor ResourceDescriptor) HasDigest() bool {
+	return descriptor.presentDigest || descriptor.Digest != nil
 }
 
 // HasUnexpectedFields reports whether the decoded descriptor contained unrecognized members.
@@ -141,9 +160,10 @@ type BuilderDependency struct {
 
 // Metadata records the canonical run identity and whole-second event times.
 type Metadata struct {
-	InvocationID string `json:"invocationId"`
-	StartedOn    string `json:"startedOn"`
-	FinishedOn   string `json:"finishedOn"`
+	InvocationID           string `json:"invocationId"`
+	StartedOn              string `json:"startedOn"`
+	FinishedOn             string `json:"finishedOn"`
+	BuildScriptDisposition string `json:"windlass_build_script_disposition,omitempty"`
 }
 
 // DecodeStatement decodes one duplicate-free Statement, ignoring unrecognized fields per in-toto.

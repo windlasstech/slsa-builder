@@ -19,6 +19,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore-go/pkg/sign"
 	"github.com/windlasstech/slsa-builder/internal/attestation"
+	"github.com/windlasstech/slsa-builder/internal/canonicaljson"
 	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
@@ -140,6 +141,9 @@ func bindOIDCSignerIdentity(statementBytes []byte, expectation attestation.Ident
 		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC claims are invalid")
 	}
 	var claims githubOIDCClaims
+	if canonicaljson.Validate(payload) != nil {
+		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC workflow claims are unavailable")
+	}
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC workflow claims are unavailable")
 	}
@@ -167,6 +171,9 @@ func bindOIDCSignerIdentity(statementBytes []byte, expectation attestation.Ident
 	builderPath, _, builderFound := strings.Cut(statement.Predicate.RunDetails.Builder.ID, "@")
 	signerPath, _, signerFound := strings.Cut(signerURI, "@")
 	if !builderFound || !signerFound || builderPath != signerPath {
+		return attestation.IdentityExpectation{}, errors.New("OIDC signer workflow differs from the Statement builder identity")
+	}
+	if production && signerURI != statement.Predicate.RunDetails.Builder.ID {
 		return attestation.IdentityExpectation{}, errors.New("OIDC signer workflow differs from the Statement builder identity")
 	}
 	if hasGitHubInvocationRecord(statement.Predicate.BuildDefinition.InternalParameters) {

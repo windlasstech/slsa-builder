@@ -114,6 +114,13 @@ func TestCommonRejectionMatrix(t *testing.T) {
 			if test.name != "builder dependency" {
 				useSigstoreGoDependency(&statement)
 			}
+			if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" {
+				if test.name == "builder version" {
+					delete(statement.Predicate.RunDetails.Builder.Version, "npm")
+				} else {
+					statement.Predicate.RunDetails.Builder.Version["npm"] = "11.0.0"
+				}
+			}
 			updateStatementFixture(t, test.fixture, statement)
 			_, err = statement.Validate(expectations(nil), nil)
 			requireDiagnosticID(t, err, test.wantID)
@@ -160,6 +167,7 @@ func expectations(corepackVersion *string) provenance.Expectations {
 		SourceRepositoryURI: "https://github.com/example/acme-widget",
 		Builder: provenance.BuilderExpectations{
 			NodeJSVersion:   "v24.0.0",
+			NPMVersion:      "11.0.0",
 			CorepackVersion: corepackVersion,
 		},
 	}
@@ -173,6 +181,9 @@ func loadStatement(t *testing.T, name string) provenance.Statement {
 	}
 	useSigstoreGoDependency(&statement)
 	useGitHubInternalParameters(&statement)
+	if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" {
+		statement.Predicate.RunDetails.Builder.Version["npm"] = "11.0.0"
+	}
 	updateStatementFixture(t, name, statement)
 	return statement
 }
@@ -216,7 +227,7 @@ func readFixture(t *testing.T, name string) []byte {
 		if err := json.Unmarshal(data, &statement); err != nil {
 			t.Fatalf("decode base Statement fixture: %v", err)
 		}
-		statement.Predicate.RunDetails.Builder.Version = map[string]string{"nodejs": "v24.0.0"}
+		statement.Predicate.RunDetails.Builder.Version = map[string]string{"nodejs": "v24.0.0", "npm": "11.0.0"}
 		statement.Subject[0].Digest["sha512"] = sha256Hex + sha256Hex
 		encoded, err := statement.CanonicalJSON()
 		if err != nil {

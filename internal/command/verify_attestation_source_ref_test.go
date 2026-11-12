@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/attestation"
+	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 	"github.com/windlasstech/slsa-builder/internal/policy"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
@@ -144,21 +146,28 @@ func sourceBindingStatement(t *testing.T, options sourceBindingStatementOptions)
 	}
 	predicate.BuildDefinition.InternalParameters = json.RawMessage(`{"github":{"event_name":"workflow_dispatch","repository_id":"1","repository_owner_id":"2"}}`)
 	if options.repository != "" {
-		parameters.Source.Repository = options.repository
+		for index := range predicate.BuildDefinition.ResolvedDependencies {
+			d := &predicate.BuildDefinition.ResolvedDependencies[index]
+			d.URI = strings.Replace(d.URI, "git+"+parameters.Workflow.Repository+"@", "git+"+options.repository+"@", 1)
+		}
 		parameters.Workflow.Repository = options.repository
-		parameters.Package.Repository = options.repository
 	}
 	if options.invocationRef != "" {
-		parameters.Source.InvocationRef = new(options.invocationRef)
 		parameters.Workflow.Ref = options.invocationRef
+		for index := range predicate.BuildDefinition.ResolvedDependencies {
+			if predicate.BuildDefinition.ResolvedDependencies[index].Name == "invocation-source" {
+				predicate.BuildDefinition.ResolvedDependencies[index].URI = "git+" + parameters.Workflow.Repository + "@" + options.invocationRef
+			}
+		}
 	}
 	predicate.BuildDefinition.ExternalParameters, err = npmprofile.EncodeExternalParameters(parameters)
 	if err != nil {
 		t.Fatal(err)
 	}
+	_, tarball := signSingleIdentityMetadata(t)
 	statement := provenance.Statement{
 		Type:          provenance.StatementType,
-		Subject:       []provenance.Subject{{Name: "pkg:npm/%40windlass/slsa-builder@1.2.3", Digest: map[string]string{"sha256": commandBuiltSHA + "0123456789abcdef01234567", "sha512": commandBuiltSHA + commandBuiltSHA + commandBuiltSHA + "01234567"}}},
+		Subject:       []provenance.Subject{{Name: "pkg:npm/%40windlass/slsa-builder@1.2.3", Digest: map[string]string{"sha256": digest.SumSHA256(tarball).String(), "sha512": digest.SumSHA512(tarball).String()}}},
 		PredicateType: provenance.PredicateType,
 		Predicate:     predicate,
 	}

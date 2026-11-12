@@ -82,6 +82,10 @@ func decodeTypedJSON[T any](data []byte, validate func(T) error) (T, error) {
 }
 
 func readRegularFile(path string) ([]byte, error) {
+	return readRegularFileBounded(path, maxTypedInputSize)
+}
+
+func readRegularFileBounded(path string, maximum int64) ([]byte, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return nil, fmt.Errorf("inspect typed input %q: %w", path, err)
@@ -89,8 +93,8 @@ func readRegularFile(path string) ([]byte, error) {
 	if !info.Mode().IsRegular() {
 		return nil, fmt.Errorf("typed input %q must be a regular non-symlink file", path)
 	}
-	if info.Size() > maxTypedInputSize {
-		return nil, fmt.Errorf("typed input %q exceeds %d bytes", path, maxTypedInputSize)
+	if info.Size() > maximum {
+		return nil, fmt.Errorf("typed input %q exceeds %d bytes", path, maximum)
 	}
 	file, err := os.Open(path)
 	if err != nil {
@@ -101,13 +105,13 @@ func readRegularFile(path string) ([]byte, error) {
 		_ = file.Close()
 		return nil, fmt.Errorf("typed input %q changed while opening", path)
 	}
-	data, readErr := io.ReadAll(io.LimitReader(file, maxTypedInputSize+1))
+	data, readErr := io.ReadAll(io.LimitReader(file, maximum+1))
 	closeErr := file.Close()
 	if readErr != nil || closeErr != nil {
 		return nil, errors.Join(readErr, closeErr)
 	}
-	if len(data) > maxTypedInputSize {
-		return nil, fmt.Errorf("typed input %q exceeds %d bytes", path, maxTypedInputSize)
+	if int64(len(data)) > maximum {
+		return nil, fmt.Errorf("typed input %q exceeds %d bytes", path, maximum)
 	}
 	return data, nil
 }

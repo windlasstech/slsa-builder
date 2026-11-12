@@ -27,6 +27,7 @@ var requiredManifestFields = []string{
 	"artifact",
 	"provenance",
 	"release-manifest",
+	"manifest-evidence",
 	"expected-result",
 	"expected-failure-category",
 	"expected-primary-id",
@@ -140,6 +141,14 @@ func validateManifest(manifest Manifest) error {
 			return err
 		}
 	}
+	if manifest.ManifestEvidence != nil {
+		if err := validateTestdataPath("manifest-evidence", *manifest.ManifestEvidence); err != nil {
+			return err
+		}
+		if manifest.Surface == "release-manifest" {
+			return evidenceFailure("release-manifest fixtures require null manifest-evidence")
+		}
+	}
 	if !IsRegisteredRequirement(manifest.CoveredRequirement) {
 		return fmt.Errorf("covered-requirement %q is not a mapped requirement ID", manifest.CoveredRequirement)
 	}
@@ -172,6 +181,7 @@ func Select(index Index, surface, phase string) (Index, error) {
 				return strings.HasPrefix(path.Clean(fixturePath), prefix)
 			}
 			if !withinSurface(manifest.Artifact) || !withinSurface(manifest.Provenance) ||
+				(manifest.ManifestEvidence != nil && !withinSurface(*manifest.ManifestEvidence)) ||
 				(manifest.ReleaseManifest != nil && !withinSurface(*manifest.ReleaseManifest)) {
 				return Index{}, fmt.Errorf("fixture %q paths must stay under %s", manifest.Name, prefix)
 			}

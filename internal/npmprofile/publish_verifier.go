@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/windlasstech/slsa-builder/internal/attestation"
+	"github.com/windlasstech/slsa-builder/internal/canonicaljson"
 	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/policy"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
@@ -13,19 +14,34 @@ import (
 
 // SigstorePublishVerifierConfig fixes the trust root and all identity claims except run attempt.
 type SigstorePublishVerifierConfig struct {
-	Mode       attestation.Mode
-	TrustRoot  policy.TrustRoot
-	PinnedRoot []byte
-	Identity   attestation.IdentityExpectation
+	Mode          attestation.Mode
+	TrustRoot     policy.TrustRoot
+	PinnedRoot    []byte
+	Identity      attestation.IdentityExpectation
+	BuildMetadata BuildMetadata
+	Packed        PackedMetadata
 }
 
 type sigstorePublishVerifier struct {
 	config SigstorePublishVerifierConfig
 }
 
+// ValidateConsumerStatement applies offline npm semantics after independent identity authorization.
+func ValidateConsumerStatement(statement provenance.Statement, config SigstorePublishVerifierConfig) error {
+	verifier := sigstorePublishVerifier{config: config}
+	if _, err := verifier.identityForStatement(statement); err != nil {
+		return err
+	}
+	return verifier.validateStatement(statement)
+}
+
 // NewSigstorePublishBundleVerifier creates the production verifier used for local and published bundles.
 func NewSigstorePublishBundleVerifier(config SigstorePublishVerifierConfig) PublishBundleVerifier {
 	config.PinnedRoot = append([]byte(nil), config.PinnedRoot...)
+	config.BuildMetadata.ExternalParameters = append([]byte(nil), config.BuildMetadata.ExternalParameters...)
+	config.BuildMetadata.ResolvedDependencies = cloneNPMDependencies(config.BuildMetadata.ResolvedDependencies)
+	config.Packed.Files = append([]string(nil), config.Packed.Files...)
+	config.Packed.ConsumerSurface = cloneRawMap(config.Packed.ConsumerSurface)
 	return &sigstorePublishVerifier{config: config}
 }
 
@@ -50,6 +66,9 @@ func (verifier *sigstorePublishVerifier) Verify(ctx context.Context, bundleBytes
 		return VerifiedPublishBundle{}, err
 	}
 	expectedIdentity.RunInvocationURI = runInvocation
+	if err := verifier.validateStatement(statement); err != nil {
+		return VerifiedPublishBundle{}, err
+	}
 	if _, err := attestation.Verify(ctx, attestation.Request{
 		Mode:                  verifier.config.Mode,
 		Bundle:                bundleBytes,
@@ -58,9 +77,6 @@ func (verifier *sigstorePublishVerifier) Verify(ctx context.Context, bundleBytes
 		Identity:              expectedIdentity,
 		ExpectedStatementJSON: parsed.StatementBytes(),
 	}); err != nil {
-		return VerifiedPublishBundle{}, err
-	}
-	if err := verifier.validateStatement(statement); err != nil {
 		return VerifiedPublishBundle{}, err
 	}
 	return VerifiedPublishBundle{Statement: statement, RunInvocationURI: runInvocation}, nil
@@ -72,22 +88,26 @@ func (verifier *sigstorePublishVerifier) identityForStatement(statement provenan
 		return attestation.IdentityExpectation{}, err
 	}
 	expected := verifier.config.Identity
-	if parameters.Source.Repository != expected.SourceRepositoryURI || parameters.Workflow.Repository != expected.SourceRepositoryURI {
+	sources, err := ResolveStatementSources(statement)
+	if err != nil {
+		return attestation.IdentityExpectation{}, err
+	}
+	if sources.Repository != expected.SourceRepositoryURI {
 		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-identity-mismatch", "externalParameters.workflow.repository", "signed npm repository differs from the verified repository identity")
 	}
-	invocationRevision := parameters.Source.Revision
-	if parameters.Source.InvocationRevision != nil {
-		invocationRevision = *parameters.Source.InvocationRevision
-	}
+	invocationRevision := sources.InvocationCommit
 	if expected.SourceRef != parameters.Workflow.Ref {
 		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-ref-mismatch", "externalParameters.workflow.ref", "signed npm invocation ref differs from the verified invocation identity")
 	}
 	if expected.SourceDigest != invocationRevision {
-		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-digest-mismatch", "externalParameters.source.invocation_revision", "signed npm invocation revision differs from the verified invocation identity")
+		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-digest-mismatch", "resolvedDependencies.invocation-source.digest.gitCommit", "signed npm invocation revision differs from the verified invocation identity")
 	}
 	internal, err := provenance.DecodeInternalParameters(statement.Predicate.BuildDefinition.InternalParameters)
 	if err != nil {
 		return attestation.IdentityExpectation{}, err
+	}
+	if expected.BuildTrigger == "" || internal.GitHub.EventName != expected.BuildTrigger {
+		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.build-trigger-mismatch", "internalParameters.github.event_name", "signed event differs from required invocation expectation")
 	}
 	expected.SourceRef = parameters.Workflow.Ref
 	expected.SourceDigest = invocationRevision
@@ -102,7 +122,7 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 		return err
 	}
 	identityExpectation := verifier.config.Identity
-	if parameters.Source.Repository != identityExpectation.SourceRepositoryURI {
+	if parameters.Workflow.Repository != identityExpectation.SourceRepositoryURI {
 		return errors.New("signed npm source repository differs from verified Fulcio identity")
 	}
 	builderID := statement.Predicate.RunDetails.Builder.ID
@@ -124,24 +144,37 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 		return errors.New("signed npm provenance must contain exactly one subject")
 	}
 	corepackVersion := (*string)(nil)
-	if parameters.PackageManager.Name != ManagerNPM {
+	dependencies, err := finalDependencySet(statement.Predicate.BuildDefinition.ResolvedDependencies)
+	if err != nil {
+		return err
+	}
+	if _, present := dependencies["package-manager-distribution"]; present {
 		value, present := statement.Predicate.RunDetails.Builder.Version["corepack"]
 		if !present {
 			return errors.New("signed npm builder is missing required Corepack version")
 		}
 		corepackVersion = &value
 	}
+	metadata := verifier.config.BuildMetadata
+	if _, err := metadata.ManifestEvidence.Decode(parameters.Package.Directory); err != nil {
+		return err
+	}
+	if equal, err := canonicaljson.Equal(metadata.ExternalParameters, statement.Predicate.BuildDefinition.ExternalParameters); err != nil || !equal {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters", "signed inputs differ from the verified build metadata")
+	}
+	expectedStatement := provenance.Statement{Predicate: provenance.Predicate{BuildDefinition: provenance.BuildDefinition{ExternalParameters: metadata.ExternalParameters, ResolvedDependencies: metadata.ResolvedDependencies}}}
+	expectedSources, err := ResolveStatementSources(expectedStatement)
+	if err != nil {
+		return err
+	}
 	input := NPMProvenanceInput{
 		BuildMetadata: BuildMetadata{
-			SchemaVersion: "1",
-			PrimaryArtifact: PrimaryArtifact{
-				ArtifactName:    "registry-published-attestation",
-				PayloadFileName: parameters.Package.TarballName,
-				SHA256:          statement.Subject[0].Digest["sha256"],
-				SHA512:          statement.Subject[0].Digest["sha512"],
-			},
-			ExternalParameters:   statement.Predicate.BuildDefinition.ExternalParameters,
-			ResolvedDependencies: statement.Predicate.BuildDefinition.ResolvedDependencies,
+			SchemaVersion:          "1",
+			PrimaryArtifact:        metadata.PrimaryArtifact,
+			ManifestEvidence:       metadata.ManifestEvidence,
+			BuildScriptDisposition: BuildScriptResult(statement.Predicate.RunDetails.Metadata.BuildScriptDisposition),
+			ExternalParameters:     statement.Predicate.BuildDefinition.ExternalParameters,
+			ResolvedDependencies:   statement.Predicate.BuildDefinition.ResolvedDependencies,
 		},
 		BuilderID: builderID,
 		GitHub: provenance.GitHubParameters{
@@ -149,13 +182,16 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 			RepositoryID:      identityExpectation.SourceRepositoryID,
 			RepositoryOwnerID: identityExpectation.SourceRepositoryOwnerID,
 		},
-		NodeJSVersion:         "v" + parameters.Runtime.NodeVersion,
+		NodeJSVersion:         statement.Predicate.RunDetails.Builder.Version["nodejs"],
+		NPMVersion:            statement.Predicate.RunDetails.Builder.Version["npm"],
+		Packed:                verifier.config.Packed,
+		InvocationRevision:    identityExpectation.SourceDigest,
 		CorepackVersion:       corepackVersion,
 		InvocationID:          statement.Predicate.RunDetails.Metadata.InvocationID,
 		StartedOn:             statement.Predicate.RunDetails.Metadata.StartedOn,
 		FinishedOn:            statement.Predicate.RunDetails.Metadata.FinishedOn,
-		RuntimeReleaseRef:     parameters.Source.Ref,
-		PeeledReleaseRevision: parameters.Source.Revision,
+		RuntimeReleaseRef:     expectedSources.BuiltRef,
+		PeeledReleaseRevision: expectedSources.BuiltCommit,
 	}
 	return ValidateNPMStatement(statement, input)
 }

@@ -31,77 +31,78 @@ func requireProvenanceDiagnostic(t *testing.T, err error, want [2]string) {
 func TestProvenanceMatrixExternalSemantics(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name, field, id string
-		mutate          func(*ExternalParameters)
+		name, group, member, value string
 	}{
-		{"repository spelling", "source.repository", "", func(p *ExternalParameters) { p.Source.Repository = "https://github.com/Example/project" }},
-		{"repository disagreement", "package.repository", IDPackageRepositoryIdentityMismatch, func(p *ExternalParameters) { p.Package.Repository = "https://github.com/other/project" }},
-		{"source SHA", "source.revision", "", func(p *ExternalParameters) { p.Source.Revision = "short" }},
-		{"workflow ref", "workflow.ref", "", func(p *ExternalParameters) { p.Workflow.Ref = "main" }},
-		{"workflow path", "workflow.path", "", func(p *ExternalParameters) { p.Workflow.Path = "other.yml" }},
-		{"workflow repository", "workflow.repository", "", func(p *ExternalParameters) { p.Workflow.Repository = "https://github.com/other/project" }},
-		{"event missing", "source", "", func(p *ExternalParameters) { p.Source.EventName = "" }},
-		{"branch type", "source", "", func(p *ExternalParameters) { p.Source.RefType = "branch" }},
-		{"runner", "runtime", "", func(p *ExternalParameters) { p.Runtime.Runner = "ubuntu-latest" }},
-		{"node abbreviated", "runtime", "", func(p *ExternalParameters) { p.Runtime.NodeVersion = "24" }},
-		{"node below floor", "runtime", "", func(p *ExternalParameters) { p.Runtime.NodeVersion = "23.9.9" }},
-		{"npm below floor", "runtime", "", func(p *ExternalParameters) { p.Runtime.NPMVersion = "11.5.0" }},
-		{"private package", "package", "", func(p *ExternalParameters) { p.Package.Private = true }},
-		{"packed version", "package", "", func(p *ExternalParameters) { p.Package.PackedVersion = "1.2.4" }},
-		{"tarball traversal", "package.tarball_name", IDNPMSubjectMismatch, func(p *ExternalParameters) { p.Package.TarballName = "../package.tgz" }},
-		{"tarball extension", "package.tarball_name", IDNPMSubjectMismatch, func(p *ExternalParameters) { p.Package.TarballName = "package.zip" }},
-		{"package URL", "package.package_url", "windlass.verify.error.package-url-mismatch", func(p *ExternalParameters) { p.Package.PackageURL += "?token=secret" }},
-		{"registry credentials", "package.package_url", "windlass.verify.error.package-url-mismatch", func(p *ExternalParameters) { p.Publish.ResolvedRegistryURL = "https://secret@registry.npmjs.org/" }},
-		{"unknown manager", "package_manager", "", func(p *ExternalParameters) { p.PackageManager.Name = "bun" }},
-		{"manager abbreviated", "package_manager", "", func(p *ExternalParameters) { p.PackageManager.Version = "11" }},
-		{"manager root escape", "package_manager.root", "", func(p *ExternalParameters) { p.PackageManager.Root = "../outside" }},
-		{"lockfile selection missing path", "package_manager", "", func(p *ExternalParameters) { p.PackageManager.SelectionSource = SelectionLockfile }},
-		{"manifest selection missing path", "package_manager", "", func(p *ExternalParameters) { p.PackageManager.SelectionManifestPath = nil }},
-		{"npm yarn mode", "package_manager.yarn_install_mode", "", func(p *ExternalParameters) { p.PackageManager.YarnInstallMode = "immutable" }},
-		{"token publishing", "publish", "", func(p *ExternalParameters) { p.Publish.TrustedPublishing = false }},
-		{"automatic provenance", "publish", "", func(p *ExternalParameters) { p.Publish.ProvenanceFile = false }},
-		{"unknown identity", "publish", "", func(p *ExternalParameters) { p.Publish.PackageIdentityPreexisting = nil }},
-		{"new identity", "publish", "", func(p *ExternalParameters) { p.Publish.PackageIdentityPreexisting = boolPointer(false) }},
-		{"unknown version", "publish", "", func(p *ExternalParameters) { p.Publish.PackageVersionPreexisting = nil }},
-		{"existing version", "publish", "", func(p *ExternalParameters) { p.Publish.PackageVersionPreexisting = boolPointer(true) }},
-		{"effective access", "publish.effective_access", "", func(p *ExternalParameters) { p.Publish.EffectiveAccess = "private" }},
-		{"access option", "publish.publish_access_option", "", func(p *ExternalParameters) { p.Publish.PublishAccessOption = testStringPointer("private") }},
-		{"npmjs custom marker", "publish.custom_registry_support", "", func(p *ExternalParameters) { p.Publish.CustomRegistrySupport = "unsupported-but-not-blocked" }},
-		{"release missing", "release", "", func(p *ExternalParameters) { p.Release.Ref = "" }},
-		{"release sidecar missing", "distribution.provenance_sidecar", "windlass.verify.error.release-asset-mode-schema-error", func(p *ExternalParameters) { p.Distribution.ReleaseAssetMode = true }},
-		{"npm only sidecar", "distribution.provenance_sidecar", "windlass.verify.error.release-asset-mode-schema-error", func(p *ExternalParameters) { p.Distribution.ProvenanceSidecar = testStringPointer("required") }},
-		{"caller path", "caller.workflow_filename", "windlass.verify.error.trusted-publisher-mismatch", func(p *ExternalParameters) { p.Caller.WorkflowFilename = "nested/release.yml" }},
-		{"build unknown result", "build", "", func(p *ExternalParameters) { p.Build.ScriptResult = "unknown" }},
-		{"present script skipped", "build", "", func(p *ExternalParameters) { p.Build.ScriptResult = BuildScriptSkippedAbsent }},
-		{"consumer field", "package.consumer_surface", "", func(p *ExternalParameters) {
-			p.Package.ConsumerSurface = map[string]json.RawMessage{"scripts": json.RawMessage(`{}`)}
-		}},
-		{"packed file escape", "package.packed_files", "", func(p *ExternalParameters) { p.Package.PackedFiles = []string{"../secret"} }},
-		{"partial source context", "source", "", func(p *ExternalParameters) { p.Source.InputRef = testStringPointer(p.Source.Ref) }},
-		{"workflow ref differs from built ref", "workflow.ref", "", func(p *ExternalParameters) { p.Workflow.Ref = "refs/heads/main" }},
-		{"workflow ref differs from invocation ref", "workflow.ref", "", func(p *ExternalParameters) {
-			p.Source.InputRef = testStringPointer(p.Source.Ref)
-			p.Source.InvocationRef = testStringPointer("refs/heads/main")
-			p.Source.InvocationRevision = testStringPointer("89abcdef0123456789abcdef0123456789abcdef")
-			p.Workflow.Ref = "refs/heads/other"
-		}},
+		{"repository spelling", "source", "repository", `"https://github.com/Example/project"`},
+		{"repository disagreement", "package", "repository", `"https://github.com/other/project"`},
+		{"source SHA", "source", "revision", `"short"`},
+		{"workflow ref", "workflow", "ref", `"main"`},
+		{"workflow path", "workflow", "path", `"other.yml"`},
+		{"workflow repository", "workflow", "repository", `"https://github.com/Example/project"`},
+		{"event missing", "source", "event_name", `""`},
+		{"branch type", "source", "ref_type", `"branch"`},
+		{"runner", "runtime", "runner", `"ubuntu-latest"`},
+		{"node abbreviated", "runtime", "node_version", `"24"`},
+		{"node below floor", "runtime", "node_version", `"23.9.9"`},
+		{"npm below floor", "runtime", "npm_version", `"11.5.0"`},
+		{"private package", "package", "private", `true`},
+		{"packed version", "package", "packed_version", `"1.2.4"`},
+		{"tarball traversal", "package", "tarball_name", `"../package.tgz"`},
+		{"tarball extension", "package", "tarball_name", `"package.zip"`},
+		{"package URL", "package", "package_url", `"https://registry.npmjs.org/?token=secret"`},
+		{"registry credentials", "publish", "resolved_registry_url", `"https://secret@registry.npmjs.org/"`},
+		{"unknown manager", "package_manager", "name", `"bun"`},
+		{"manager abbreviated", "package_manager", "version", `"11"`},
+		{"manager root escape", "package_manager", "root", `"../outside"`},
+		{"lockfile selection missing path", "package_manager", "selection_source", `"lockfile"`},
+		{"manifest selection missing path", "package_manager", "selection_manifest_path", `null`},
+		{"npm yarn mode", "package_manager", "yarn_install_mode", `"immutable"`},
+		{"token publishing", "publish", "trusted_publishing", `false`},
+		{"automatic provenance", "publish", "provenance_file", `false`},
+		{"unknown identity", "publish", "package_identity_preexisting", `null`},
+		{"new identity", "publish", "package_identity_preexisting", `false`},
+		{"unknown version", "publish", "package_version_preexisting", `null`},
+		{"existing version", "publish", "package_version_preexisting", `true`},
+		{"effective access", "publish", "effective_access", `"private"`},
+		{"access option", "publish", "publish_access_option", `"private"`},
+		{"npmjs custom marker", "publish", "custom_registry_support", `"unsupported-but-not-blocked"`},
+		{"release missing", "release", "ref", `""`},
+		{"release sidecar missing", "distribution", "provenance_sidecar", `null`},
+		{"npm only sidecar", "distribution", "provenance_sidecar", `"required"`},
+		{"caller path", "caller", "workflow_filename", `"nested/release.yml"`},
+		{"build unknown result", "build", "script_result", `"unknown"`},
+		{"present script skipped", "build", "script_result", `"skipped-absent"`},
+		{"consumer field", "package", "consumer_surface", `{"scripts":{}}`},
+		{"packed file escape", "package", "packed_files", `["../secret"]`},
+		{"partial source context", "source", "input_ref", `"refs/tags/v1.2.3"`},
+		{"workflow ref differs from invocation ref", "source", "invocation_ref", `"refs/heads/other"`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			// Given a valid record with one violated semantic constraint.
-			parameters := validExternalParameters(ManagerNPM)
-			test.mutate(&parameters)
-			id := test.id
-			if id == "" {
-				id = IDUnexpectedExternalParameters
+			var object map[string]map[string]json.RawMessage
+			if err := json.Unmarshal(mustJSON(validExternalParameters(ManagerNPM)), &object); err != nil {
+				t.Fatal(err)
 			}
-			// When encoding through the public validation boundary.
-			_, err := EncodeExternalParameters(parameters)
-			// Then the rejection identifies the violated constraint.
-			requireProvenanceDiagnostic(t, err, [2]string{id, "externalParameters." + test.field})
+			if object[test.group] == nil {
+				object[test.group] = make(map[string]json.RawMessage)
+			}
+			if test.group == "source" {
+				object[test.group]["ref"] = json.RawMessage(`"refs/tags/v1.2.3"`)
+			}
+			object[test.group][test.member] = json.RawMessage(test.value)
+			_, err := DecodeExternalParameters(mustJSON(object))
+			requireNPMDiagnostic(t, err, IDUnexpectedExternalParameters)
 		})
 	}
+	t.Run("workflow ref differs from built ref", func(t *testing.T) {
+		t.Parallel()
+		input := validProvenanceInput(t, ManagerNPM)
+		parameters := validExternalParameters(ManagerNPM)
+		parameters.Workflow.Ref = "refs/heads/main"
+		input.BuildMetadata.ExternalParameters = mustJSON(parameters)
+		requireNPMDiagnostic(t, newProvenanceInputError(input), IDInvocationSource)
+	})
 }
 
 func TestProvenanceMatrixDependencyRejections(t *testing.T) {
@@ -130,11 +131,11 @@ func TestProvenanceMatrixDependencyRejections(t *testing.T) {
 		}},
 		{"runtime platform value", "node-runtime", "", func(d *provenance.ResourceDescriptor) { d.Annotations["platform"] = mustJSON("linux-arm64") }},
 		{"lockfile digest length", "lockfile", "", func(d *provenance.ResourceDescriptor) { d.Digest["sha256"] = "00" }},
-		{"lockfile annotations", "lockfile", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["package_manager"] = json.RawMessage(`"npm"`) }},
-		{"lockfile malformed annotation", "lockfile", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["package_manager"] = json.RawMessage(`{`) }},
+		{"lockfile annotations", "lockfile", "", func(d *provenance.ResourceDescriptor) { d.Annotations["package_manager"] = json.RawMessage(`"npm"`) }},
+		{"lockfile malformed annotation", "lockfile", "", func(d *provenance.ResourceDescriptor) { d.Annotations["package_manager"] = json.RawMessage(`{`) }},
 		{"distribution insecure", "package-manager-distribution", "", func(d *provenance.ResourceDescriptor) { d.URI = "http://registry.npmjs.org/pnpm.tgz" }},
 		{"distribution digest", "package-manager-distribution", "", func(d *provenance.ResourceDescriptor) { d.Digest["sha512"] = strings.Repeat("F", 128) }},
-		{"distribution authority", "package-manager-distribution", ".annotations", func(d *provenance.ResourceDescriptor) {
+		{"distribution authority", "package-manager-distribution", "", func(d *provenance.ResourceDescriptor) {
 			d.Annotations["digest_authority"] = json.RawMessage(`"download-hash"`)
 		}},
 		{"runner malformed URI", "runner-image", ".uri", func(d *provenance.ResourceDescriptor) { d.URI = "https://%" }},
@@ -142,8 +143,8 @@ func TestProvenanceMatrixDependencyRejections(t *testing.T) {
 		{"runner path", "runner-image", ".uri", func(d *provenance.ResourceDescriptor) { d.URI = "https://github.com/other/report" }},
 		{"runner empty annotation", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["image_os"] = json.RawMessage(`""`) }},
 		{"runner annotation type", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) { d.Annotations["image_version"] = json.RawMessage(`123`) }},
-		{"runner node mismatch", "runner-image", ".annotations.node_version", func(d *provenance.ResourceDescriptor) { d.Annotations["node_version"] = json.RawMessage(`"v24.1.0"`) }},
-		{"runner missing deployment annotation", "runner-image", ".annotations", func(d *provenance.ResourceDescriptor) {
+		{"runner node annotation forbidden", "runner-image", "", func(d *provenance.ResourceDescriptor) { d.Annotations["node_version"] = json.RawMessage(`"v24.1.0"`) }},
+		{"runner missing deployment annotation", "runner-image", "", func(d *provenance.ResourceDescriptor) {
 			delete(d.Annotations, "deployment_version")
 			d.Annotations["unrelated"] = json.RawMessage(`"x"`)
 		}},
@@ -221,15 +222,17 @@ func TestProvenanceMatrixRelativePaths(t *testing.T) {
 		for _, field := range []string{"package.packed_files", "package_manager.root"} {
 			t.Run(field+"/"+value, func(t *testing.T) {
 				t.Parallel()
-				p := validExternalParameters(ManagerNPM)
-				switch field {
-				case "package.packed_files":
-					p.Package.PackedFiles = []string{value}
-				case "package_manager.root":
-					p.PackageManager.Root = value
+				var object map[string]map[string]json.RawMessage
+				if err := json.Unmarshal(mustJSON(validExternalParameters(ManagerNPM)), &object); err != nil {
+					t.Fatal(err)
 				}
-				_, err := EncodeExternalParameters(p)
-				requireProvenanceDiagnostic(t, err, [2]string{IDUnexpectedExternalParameters, "externalParameters." + field})
+				group, member, _ := strings.Cut(field, ".")
+				if object[group] == nil {
+					object[group] = make(map[string]json.RawMessage)
+				}
+				object[group][member] = mustJSON(value)
+				_, err := DecodeExternalParameters(mustJSON(object))
+				requireNPMDiagnostic(t, err, IDUnexpectedExternalParameters)
 			})
 		}
 	}

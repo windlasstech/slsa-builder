@@ -52,7 +52,7 @@ func TestPublishVerifierBindsCertificateToSignedInvocationRecord(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewProvenanceSigningInput() error = %v", err)
 			}
-			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: test.identity}}
+			verifier := sigstorePublishVerifier{config: SigstorePublishVerifierConfig{Identity: test.identity, BuildMetadata: test.input.BuildMetadata, Packed: test.input.Packed}}
 			_, err = verifier.identityForStatement(signing.Statement())
 			if test.wantID == "" {
 				if err != nil {

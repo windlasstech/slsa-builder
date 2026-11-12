@@ -51,10 +51,10 @@ func TestWorkflowResolvedDependenciesEscapesLockfileFragment(t *testing.T) {
 			SelectionManifestPath: "packages/foo bar#100%/package.json",
 			SelectedLockfilePath:  "packages/foo bar#100%/package-lock.json"},
 	}
-	parameters := validExternalParameters(ManagerNPM)
+	source := resolvedWorkflowSource{Repository: "https://github.com/example/project", Revision: testSourceSHA}
 
 	// When producing the resolved dependencies.
-	dependencies, err := workflowResolvedDependencies(selection, BuildPackResult{}, parameters)
+	dependencies, err := workflowResolvedDependencies(selection, BuildPackResult{}, source)
 
 	// Then the URI contains the encoded path, not raw fragment delimiters.
 	if err != nil {
@@ -79,17 +79,16 @@ func TestValidateLockfileDescriptorRequiresEncodedFragment(t *testing.T) {
 			t.Parallel()
 			// Given matching metadata and annotations, with only the URI spelling varied.
 			parameters := validExternalParameters(ManagerNPM)
-			parameters.PackageManager.Root = "packages/foo bar#100%"
+			parameters.Package.Directory = "packages/foo bar#100%"
 			manifest := "packages/foo bar#100%/package.json"
-			parameters.PackageManager.SelectionManifestPath = &manifest
 			descriptor := validDependencies(ManagerNPM, parameters)[0]
 			descriptor.URI = "git+https://github.com/example/project@" + testSourceSHA + "#" + test.fragment
-			descriptor.Annotations["package_manager_root"] = mustJSON(parameters.PackageManager.Root)
+			descriptor.Annotations["package_manager_root"] = mustJSON(parameters.Package.Directory)
 			descriptor.Annotations["selection_manifest_path"] = mustJSON(manifest)
 			descriptor.Annotations["selection_lockfile_path"] = mustJSON("packages/foo bar#100%/package-lock.json")
 
 			// When validating the descriptor without canonicalizing its URI.
-			err := validateLockfileDescriptor(descriptor, parameters)
+			_, err := finalLockfileManager(descriptor, parameters, testSourceSHA)
 
 			// Then only the encoded spelling is accepted.
 			if test.accepted {

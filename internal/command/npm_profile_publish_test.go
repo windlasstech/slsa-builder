@@ -14,7 +14,7 @@ import (
 )
 
 func TestNPMProfilePublishCommandVerifiesHandoffsAndPersistsReport(t *testing.T) {
-	tarball := []byte("tarball")
+	_, tarball := signSingleIdentityMetadata(t)
 	bundle := []byte(`{"bundle":"fixture"}`)
 	tarballDir := oneFileDirectory(t, "package.tgz", tarball)
 	bundleDir := oneFileDirectory(t, "package.tgz.intoto.jsonl", bundle)
@@ -49,13 +49,13 @@ func TestNPMProfilePublishCommandVerifiesHandoffsAndPersistsReport(t *testing.T)
 		t.Fatalf("persistent report is invalid: %v", err)
 	}
 	outputs := parseGitHubOutputs(t, string(mustRead(t, githubOutput)))
-	if outputs["package-name"] != "@windlass/test" || outputs["package-version"] != "1.2.3" || outputs["result"] != "pass" {
+	if outputs["package-name"] != signPackageName || outputs["package-version"] != "1.2.3" || outputs["result"] != "pass" {
 		t.Fatalf("publish outputs = %#v", outputs)
 	}
 }
 
 func TestNPMProfilePublishCommandRejectsAmbiguousHandoff(t *testing.T) {
-	tarball := []byte("tarball")
+	_, tarball := signSingleIdentityMetadata(t)
 	bundle := []byte(`{"bundle":"fixture"}`)
 	tarballDir := oneFileDirectory(t, "package.tgz", tarball)
 	if err := os.WriteFile(filepath.Join(tarballDir, "extra"), []byte("extra"), 0o600); err != nil {
@@ -72,7 +72,7 @@ func TestNPMProfilePublishCommandRejectsAmbiguousHandoff(t *testing.T) {
 }
 
 func TestNPMProfilePublishCommandPersistsOIDCPreflightFailure(t *testing.T) {
-	tarball := []byte("tarball")
+	_, tarball := signSingleIdentityMetadata(t)
 	bundle := []byte(`{"bundle":"fixture"}`)
 	reportPath := filepath.Join(t.TempDir(), "report.json")
 	for _, name := range []string{"ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "GITHUB_WORKFLOW_REF"} {
@@ -114,11 +114,16 @@ func TestNPMProfileReportCommand(t *testing.T) {
 
 func publishArgs(t *testing.T, tarballDir, bundleDir, reportPath, githubOutput string, tarball, bundle []byte) []string {
 	t.Helper()
+	metadata, _ := signSingleIdentityMetadata(t)
+	metadata.PrimaryArtifact = npmprofile.PrimaryArtifact{ArtifactName: "tarball-artifact", PayloadFileName: "package.tgz", SHA256: digest.SumSHA256(tarball).String(), SHA512: digest.SumSHA512(tarball).String()}
+	encoded := mustMarshalSignJSON(t, metadata)
+	metadataDir := oneFileDirectory(t, "build-metadata.json", encoded)
 	return []string{
+		"--metadata-artifact-dir", metadataDir, "--metadata-artifact-name", "metadata-artifact", "--metadata-sha256", digest.SumSHA256(encoded).String(),
 		"--tarball-artifact-dir", tarballDir, "--tarball-artifact-name", "tarball-artifact", "--tarball-name", "package.tgz",
 		"--tarball-sha256", digest.SumSHA256(tarball).String(), "--tarball-sha512", digest.SumSHA512(tarball).String(),
 		"--bundle-artifact-dir", bundleDir, "--bundle-artifact-name", "bundle-artifact", "--bundle-name", "package.tgz.intoto.jsonl", "--bundle-sha256", digest.SumSHA256(bundle).String(),
-		"--package-name", "@windlass/test", "--package-version", "1.2.3", "--package-url", "https://registry.npmjs.org/%40windlass%2Ftest/1.2.3",
+		"--package-name", signPackageName, "--package-version", "1.2.3", "--package-url", "https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3",
 		"--registry-url", "https://registry.npmjs.org/", "--npm-executable", "/usr/local/bin/npm", "--report-path", reportPath, "--github-output", githubOutput,
 	}
 }

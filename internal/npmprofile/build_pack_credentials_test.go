@@ -250,7 +250,8 @@ func TestWriteBuildMetadataHelpers(t *testing.T) {
 	t.Run("canonical output", func(t *testing.T) {
 		t.Parallel()
 		path := filepath.Join(t.TempDir(), "metadata.json")
-		metadata := BuildMetadata{SchemaVersion: "1", ExternalParameters: json.RawMessage(`{"z":1,"a":2}`)}
+		metadata := validProvenanceInput(t, ManagerNPM).BuildMetadata
+		metadata.ExternalParameters = json.RawMessage(`{"z":1,"a":2}`)
 		if err := writeBuildMetadata(path, metadata); err != nil {
 			t.Fatal(err)
 		}

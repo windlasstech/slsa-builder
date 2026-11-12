@@ -38,6 +38,7 @@ var (
 // BuilderExpectations are authenticated or locally observed common builder values.
 type BuilderExpectations struct {
 	NodeJSVersion   string
+	NPMVersion      string
 	CorepackVersion *string
 }
 
@@ -120,6 +121,10 @@ func cloneResourceDescriptors(descriptors []ResourceDescriptor) []ResourceDescri
 	cloned := make([]ResourceDescriptor, len(descriptors))
 	for index, descriptor := range descriptors {
 		cloned[index] = descriptor
+		if descriptor.Annotations == nil {
+			cloned[index].Digest = cloneStringMap(descriptor.Digest)
+			continue
+		}
 		annotations := make(map[string]json.RawMessage, len(descriptor.Annotations))
 		for key, value := range descriptor.Annotations {
 			annotations[key] = append(json.RawMessage(nil), value...)
@@ -131,6 +136,9 @@ func cloneResourceDescriptors(descriptors []ResourceDescriptor) []ResourceDescri
 }
 
 func cloneStringMap(values map[string]string) map[string]string {
+	if values == nil {
+		return nil
+	}
 	cloned := make(map[string]string, len(values))
 	maps.Copy(cloned, values)
 	return cloned
@@ -195,11 +203,15 @@ func validateBuilder(builder Builder, expected BuilderExpectations) error {
 }
 
 func validateBuilderVersion(version map[string]string, expected BuilderExpectations) error {
-	wantKeys := 1
+	wantKeys := 2
 	if expected.CorepackVersion != nil {
 		wantKeys++
 	}
 	nodeVersion, hasNode := version["nodejs"]
+	npmVersion, hasNPM := version["npm"]
+	if !hasNPM || !componentVersionPattern.MatchString(npmVersion) || npmVersion != expected.NPMVersion {
+		return validationError(idBuilderVersionMismatch, "predicate.runDetails.builder.version.npm", "npm must equal the observed build-stage bundled version")
+	}
 	if len(version) != wantKeys || !hasNode || !nodeVersionPattern.MatchString(nodeVersion) ||
 		!nodeVersionPattern.MatchString(expected.NodeJSVersion) || nodeVersion != expected.NodeJSVersion {
 		return validationError(idBuilderVersionMismatch, "predicate.runDetails.builder.version", "builder.version must contain the exact observed nodejs and conditional corepack versions")

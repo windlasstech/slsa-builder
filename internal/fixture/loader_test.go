@@ -265,6 +265,7 @@ func TestLoadRejections(t *testing.T) {
 				"artifact":"testdata/npm/case/artifact.tgz",
 				"provenance":"testdata/npm/case/provenance.json",
 				"release-manifest":null,
+				"manifest-evidence":null,
 				"expected-result":"pass",
 				"expected-failure-category":null,
 				"expected-primary-id":null,

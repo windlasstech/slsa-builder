@@ -167,6 +167,12 @@ jobs:
           - package: internal/npmprofile
             target: FuzzDecodeExternalParameters
           - package: internal/npmprofile
+            target: FuzzManifestEvidence
+          - package: internal/fixture
+            target: FuzzFixtureManifestEvidence
+          - package: internal/signing
+            target: FuzzBindOIDCSignerIdentity
+          - package: internal/npmprofile
             target: FuzzParseCallerWorkflowPath
           - package: internal/npmprofile
             target: FuzzNPMPackagePURL
