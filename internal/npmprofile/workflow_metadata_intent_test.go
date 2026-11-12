@@ -178,7 +178,7 @@ func workflowIntentInputs(t *testing.T) (Result, BuildPackResult, WorkflowBuildM
 		Packed: PackedMetadata{Name: selection.Package.Name, Version: "1.2.3"}, BuildScript: BuildScriptCapture{Present: true, Result: BuildScriptExecuted},
 		Toolchain: ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
 	}
-	config := WorkflowBuildMetadataConfig{ArtifactName: "tarball", EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml", RegistryState: RegistryPreflightState{PackageExists: true}}
+	config := WorkflowBuildMetadataConfig{ArtifactName: "tarball", EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml", RegistryState: RegistryPreflightState{PackageExists: true}, Repository: "https://github.com/example/project"}
 	return selection, build, config
 }
 

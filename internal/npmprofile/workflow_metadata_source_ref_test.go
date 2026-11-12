@@ -32,8 +32,9 @@ func TestFinalizeWorkflowBuildMetadataSourceRefDispatchRetry(t *testing.T) {
 		ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",
 		EventName: "workflow_dispatch", RefType: "branch", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA,
 		SourceRefInput: "refs/tags/v1.2.3", InvocationRef: "refs/heads/main", InvocationRevision: testAttestSHA,
-		WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml",
+		WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml",
 		RegistryState: RegistryPreflightState{PackageExists: true},
+		Repository:    "https://github.com/example/project",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -95,8 +96,9 @@ func TestFinalizeWorkflowBuildMetadataRejectsWhitespaceSourceRef(t *testing.T) {
 	config := WorkflowBuildMetadataConfig{
 		ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",
 		EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA,
-		WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml",
+		WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml",
 		RegistryState: RegistryPreflightState{PackageExists: true},
+		Repository:    "https://github.com/example/project",
 	}
 	config.SourceRefInput = " \t\n\r\v\f"
 	_, err := FinalizeWorkflowBuildMetadata(selection, build, config)

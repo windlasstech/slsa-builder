@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/digest"
-	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 	"github.com/windlasstech/slsa-builder/internal/signing"
@@ -187,6 +186,7 @@ func TestNPMProfileSignCommandFallsBackToSingleInvocationIdentity(t *testing.T) 
 	tarballDirectory := writeSignHandoff(t, signTarballName, tarball)
 	githubOutput := filepath.Join(t.TempDir(), "github-output")
 	setSignGitHubEnvironment(t, signBuiltRef, signBuiltRevision, githubOutput)
+	t.Setenv("GITHUB_EVENT_NAME", "push")
 
 	command := npmProfileSignCommand{
 		preflight: func(context.Context, string, string) npmprofile.OIDCExchangeResult {
@@ -236,17 +236,13 @@ func signSourceRefMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte) {
 	selectionManifest := "package.json"
 	packageIdentityPreexisting := true
 	packageVersionPreexisting := false
-	builderID, err := identity.NewBuilderID(npmprofile.NPMWorkflowPath, signBuilderWorkflowSHA)
-	if err != nil {
-		t.Fatal(err)
-	}
 	parameters := npmprofile.ExternalParameters{
 		Source: npmprofile.SourceParameters{
 			Repository: "https://github.com/example/project", Ref: signBuiltRef, Revision: signBuiltRevision,
 			EventName: "workflow_dispatch", RefType: "tag", InputRef: &inputRef,
 			InvocationRef: &invocationRef, InvocationRevision: &invocationRevision,
 		},
-		Workflow: npmprofile.WorkflowParameters{Path: npmprofile.NPMWorkflowPath, SHA: signBuilderWorkflowSHA, BuilderID: builderID},
+		Workflow: npmprofile.WorkflowParameters{Ref: invocationRef, Repository: "https://github.com/example/project", Path: ".github/workflows/release.yml"},
 		Runtime:  npmprofile.RuntimeParameters{Runner: "ubuntu-24.04", NodeVersion: "24.0.0", NPMVersion: "11.5.1"},
 		Package: npmprofile.PackageParameters{
 			Directory: ".", SourceManifest: "package.json", Name: signPackageName, Version: "1.2.3",
@@ -325,6 +321,7 @@ func TestNPMProfileSignRecordsStatementHashOnSignFailure(t *testing.T) {
 	tarballDirectory := writeSignHandoff(t, signTarballName, tarball)
 	githubOutput := filepath.Join(t.TempDir(), "github-output")
 	setSignGitHubEnvironment(t, signBuiltRef, signBuiltRevision, githubOutput)
+	t.Setenv("GITHUB_EVENT_NAME", "push")
 
 	var signedStatement []byte
 	command := npmProfileSignCommand{
@@ -374,6 +371,7 @@ func signSingleIdentityMetadata(t *testing.T) (npmprofile.BuildMetadata, []byte)
 	parameters.Source.InputRef = nil
 	parameters.Source.InvocationRef = nil
 	parameters.Source.InvocationRevision = nil
+	parameters.Workflow.Ref = parameters.Source.Ref
 	metadata.ExternalParameters, err = npmprofile.EncodeExternalParameters(parameters)
 	if err != nil {
 		t.Fatal(err)
@@ -405,6 +403,7 @@ func setSignGitHubEnvironment(t *testing.T, ref, revision, githubOutput string) 
 	t.Helper()
 	values := map[string]string{
 		"GITHUB_OUTPUT":              githubOutput,
+		"GITHUB_EVENT_NAME":          "workflow_dispatch",
 		"GITHUB_REF":                 ref,
 		"GITHUB_SHA":                 revision,
 		"GITHUB_SERVER_URL":          "https://github.com",

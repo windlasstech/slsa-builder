@@ -117,6 +117,19 @@ func SignGitHubActions(ctx context.Context, request Request) (Result, error) {
 	return Result{Statement: append([]byte(nil), content.Data...), Bundle: serialized}, nil
 }
 
+type githubOIDCClaims struct {
+	JobWorkflowRef    string `json:"job_workflow_ref"`
+	JobWorkflowSHA    string `json:"job_workflow_sha"`
+	WorkflowRef       string `json:"workflow_ref"`
+	WorkflowSHA       string `json:"workflow_sha"`
+	EventName         string `json:"event_name"`
+	Repository        string `json:"repository"`
+	RepositoryID      string `json:"repository_id"`
+	RepositoryOwnerID string `json:"repository_owner_id"`
+	Ref               string `json:"ref"`
+	SHA               string `json:"sha"`
+}
+
 func bindOIDCSignerIdentity(statementBytes []byte, expectation attestation.IdentityExpectation, token string) (attestation.IdentityExpectation, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
@@ -126,12 +139,7 @@ func bindOIDCSignerIdentity(statementBytes []byte, expectation attestation.Ident
 	if err != nil {
 		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC claims are invalid")
 	}
-	var claims struct {
-		JobWorkflowRef string `json:"job_workflow_ref"`
-		JobWorkflowSHA string `json:"job_workflow_sha"`
-		WorkflowRef    string `json:"workflow_ref"`
-		WorkflowSHA    string `json:"workflow_sha"`
-	}
+	var claims githubOIDCClaims
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC workflow claims are unavailable")
 	}
@@ -161,8 +169,66 @@ func bindOIDCSignerIdentity(statementBytes []byte, expectation attestation.Ident
 	if !builderFound || !signerFound || builderPath != signerPath {
 		return attestation.IdentityExpectation{}, errors.New("OIDC signer workflow differs from the Statement builder identity")
 	}
+	if hasGitHubInvocationRecord(statement.Predicate.BuildDefinition.InternalParameters) {
+		if expectation.BuildTrigger == "" {
+			return attestation.IdentityExpectation{}, errors.New("GitHub Actions OIDC Build Trigger expectation is required for the signed GitHub invocation record")
+		}
+		if err := bindGitHubInvocation(statement, claims, expectation); err != nil {
+			return attestation.IdentityExpectation{}, err
+		}
+		expectation.BuildConfigURI = "https://github.com/" + claims.WorkflowRef
+	}
 	expectation.SignerURI = signerURI
 	return expectation, nil
+}
+
+func hasGitHubInvocationRecord(raw json.RawMessage) bool {
+	trimmed := bytes.TrimSpace(raw)
+	return len(trimmed) != 0 && string(trimmed) != "null" && string(trimmed) != "{}"
+}
+
+func bindGitHubInvocation(statement provenance.Statement, claims githubOIDCClaims, expected attestation.IdentityExpectation) error {
+	for _, comparison := range []struct {
+		name     string
+		actual   string
+		expected string
+	}{
+		{name: "event_name", actual: claims.EventName, expected: expected.BuildTrigger},
+		{name: "repository", actual: "https://github.com/" + claims.Repository, expected: expected.SourceRepositoryURI},
+		{name: "repository_id", actual: claims.RepositoryID, expected: expected.SourceRepositoryID},
+		{name: "repository_owner_id", actual: claims.RepositoryOwnerID, expected: expected.SourceRepositoryOwnerID},
+		{name: "ref", actual: claims.Ref, expected: expected.SourceRef},
+		{name: "sha", actual: claims.SHA, expected: expected.SourceDigest},
+	} {
+		if comparison.actual == "" || comparison.actual != comparison.expected {
+			return errors.New("GitHub Actions OIDC " + comparison.name + " differs from trusted runtime identity")
+		}
+	}
+	internal, err := provenance.DecodeInternalParameters(statement.Predicate.BuildDefinition.InternalParameters)
+	if err != nil {
+		return fmt.Errorf("decode GitHub internal parameters: %w", err)
+	}
+	if internal.GitHub.EventName != claims.EventName || internal.GitHub.RepositoryID != claims.RepositoryID || internal.GitHub.RepositoryOwnerID != claims.RepositoryOwnerID {
+		return errors.New("GitHub internal parameters differ from OIDC claims")
+	}
+	var external struct {
+		Workflow struct {
+			Ref        string `json:"ref"`
+			Repository string `json:"repository"`
+			Path       string `json:"path"`
+		} `json:"workflow"`
+	}
+	if err := json.Unmarshal(statement.Predicate.BuildDefinition.ExternalParameters, &external); err != nil {
+		return fmt.Errorf("decode workflow invocation parameters: %w", err)
+	}
+	if external.Workflow.Ref != claims.Ref || external.Workflow.Repository != "https://github.com/"+claims.Repository {
+		return errors.New("workflow invocation identity differs from OIDC claims")
+	}
+	expectedBuildConfig := expected.SourceRepositoryURI + "/" + external.Workflow.Path + "@" + external.Workflow.Ref
+	if "https://github.com/"+claims.WorkflowRef != expectedBuildConfig {
+		return errors.New("workflow path differs from the OIDC Build Config URI")
+	}
+	return nil
 }
 
 func githubActionsOIDCToken(ctx context.Context) (string, error) {

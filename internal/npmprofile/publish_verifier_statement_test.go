@@ -54,19 +54,19 @@ func TestPublishStatementValidationGuards(t *testing.T) {
 			_ = s
 			i.SourceRepositoryURI = "https://github.com/other/project"
 		}},
-		{"builder separator absent", "signed npm builder identity differs from verified Fulcio signer", "", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
+		{"builder separator absent", "", "windlass.verify.error.builder-id-not-immutable", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
 			_ = i
 			s.Predicate.RunDetails.Builder.ID = NPMWorkflowPath
 		}},
-		{"signer separator absent", "signed npm builder identity differs from verified Fulcio signer", "", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
+		{"signer separator absent", "", "windlass.verify.error.builder-id-not-immutable", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
 			_ = s
 			i.SignerURI = NPMWorkflowPath
 		}},
-		{"signer workflow differs", "signed npm builder identity differs from verified Fulcio signer", "", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
+		{"signer workflow differs", "", "windlass.verify.error.signer-workflow-path-mismatch", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
 			_ = s
 			i.SignerURI = "https://github.com/other/project/.github/workflows/release.yml@refs/heads/main"
 		}},
-		{"builder revision differs", "signed npm builder identity differs from verified Fulcio signer", "", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
+		{"builder revision differs", "", "windlass.verify.error.signer-workflow-sha-mismatch", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
 			_ = s
 			i.WorkflowSHA = testAttestSHA
 		}},

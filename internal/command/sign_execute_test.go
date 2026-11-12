@@ -185,7 +185,7 @@ func TestSignExecutionFailureBoundaries(t *testing.T) {
 }
 
 func TestSigningIdentityRequiresEveryTrustedObservation(t *testing.T) {
-	for _, name := range []string{"GITHUB_SERVER_URL", "GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID", "GITHUB_REPOSITORY_OWNER_ID", "GITHUB_SHA", "GITHUB_REF", "WINDLASS_WORKFLOW_SHA"} {
+	for _, name := range []string{"GITHUB_SERVER_URL", "GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID", "GITHUB_REPOSITORY_OWNER_ID", "GITHUB_SHA", "GITHUB_REF", "GITHUB_EVENT_NAME", "WINDLASS_WORKFLOW_SHA"} {
 		t.Run(name, func(t *testing.T) {
 			setSignGitHubEnvironment(t, signBuiltRef, signBuiltRevision, filepath.Join(t.TempDir(), "output"))
 			t.Setenv(name, "")

@@ -131,7 +131,7 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 	if err != nil {
 		return attestation.IdentityExpectation{}, err
 	}
-	if parameters.Source.Repository != explicit.Source.RepositoryURI {
+	if parameters.Source.Repository != explicit.Source.RepositoryURI || parameters.Workflow.Repository != explicit.Source.RepositoryURI {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-identity-mismatch", "signed built-source repository conflicts with verifier policy")
 	}
 	if parameters.Source.Ref != explicit.Source.Ref {
@@ -153,10 +153,9 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 	if !strings.Contains(identity.SignerURI, wantWorkflow) {
 		return attestation.IdentityExpectation{}, errors.New("signer URI conflicts with verifier policy workflow path")
 	}
-	invocationRef := parameters.Source.Ref
+	invocationRef := parameters.Workflow.Ref
 	invocationRevision := parameters.Source.Revision
-	if parameters.Source.InvocationRef != nil {
-		invocationRef = *parameters.Source.InvocationRef
+	if parameters.Source.InvocationRevision != nil {
 		invocationRevision = *parameters.Source.InvocationRevision
 	}
 	if identity.SourceRef != invocationRef {
@@ -165,6 +164,20 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 	if identity.SourceDigest != invocationRevision {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-digest-mismatch", "certificate source digest conflicts with the signed invocation record")
 	}
+	internal, err := provenance.DecodeInternalParameters(statement.Predicate.BuildDefinition.InternalParameters)
+	if err != nil {
+		return attestation.IdentityExpectation{}, err
+	}
+	if identity.BuildTrigger == "" {
+		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.build-trigger-mismatch", "identity expectation is missing the Build Trigger required for the signed GitHub event binding")
+	}
+	if internal.GitHub.EventName != identity.BuildTrigger {
+		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.build-trigger-mismatch", "certificate Build Trigger conflicts with the signed GitHub event")
+	}
+	if internal.GitHub.RepositoryID != identity.SourceRepositoryID || internal.GitHub.RepositoryOwnerID != identity.SourceRepositoryOwnerID {
+		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-numeric-id-mismatch", "signed GitHub numeric identity conflicts with the certificate")
+	}
+	identity.BuildConfigURI = identity.SourceRepositoryURI + "/" + parameters.Workflow.Path + "@" + invocationRef
 	identity.SourceRef = invocationRef
 	identity.SourceDigest = invocationRevision
 	return identity, nil

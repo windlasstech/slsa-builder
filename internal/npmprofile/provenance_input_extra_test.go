@@ -90,7 +90,7 @@ func TestProvenanceExtraStatementBindings(t *testing.T) {
 			p.Publish.ResolvedDistTag = "next"
 			s.Predicate.BuildDefinition.ExternalParameters = mustJSON(p)
 		}},
-		{"source repository substitution", IDUnexpectedExternalParameters, "externalParameters.source.repository", func(s *provenance.Statement) {
+		{"source repository substitution", IDUnexpectedExternalParameters, "externalParameters.workflow.repository", func(s *provenance.Statement) {
 			p := validExternalParameters(ManagerNPM)
 			p.Source.Repository = "https://github.com/other/project"
 			p.Package.Repository = p.Source.Repository

@@ -87,6 +87,13 @@ func TestBindIdentityPolicySourceRefRebinding(t *testing.T) {
 			identity:  sourceBindingIdentity("https://github.com/example/project", "9", "2", "refs/heads/main", commandInvocationSHA),
 			wantID:    "windlass.verify.error.source-numeric-id-mismatch",
 		},
+		{
+			name:      "missing Build Trigger expectation rejected",
+			statement: dispatchStatement,
+			policy:    sourceBindingPolicy("https://github.com/example/project", "refs/tags/v1.2.3", commandBuiltSHA),
+			identity:  withoutBuildTrigger(sourceBindingIdentity("https://github.com/example/project", "1", "2", "refs/heads/main", commandInvocationSHA)),
+			wantID:    "windlass.verify.error.build-trigger-mismatch",
+		},
 	}
 
 	for _, test := range tests {
@@ -135,12 +142,15 @@ func sourceBindingStatement(t *testing.T, options sourceBindingStatementOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
+	predicate.BuildDefinition.InternalParameters = json.RawMessage(`{"github":{"event_name":"workflow_dispatch","repository_id":"1","repository_owner_id":"2"}}`)
 	if options.repository != "" {
 		parameters.Source.Repository = options.repository
+		parameters.Workflow.Repository = options.repository
 		parameters.Package.Repository = options.repository
 	}
 	if options.invocationRef != "" {
 		parameters.Source.InvocationRef = new(options.invocationRef)
+		parameters.Workflow.Ref = options.invocationRef
 	}
 	predicate.BuildDefinition.ExternalParameters, err = npmprofile.EncodeExternalParameters(parameters)
 	if err != nil {
@@ -182,9 +192,16 @@ func sourceBindingIdentity(repository, repositoryID, ownerID, ref, revision stri
 		SourceRepositoryOwnerID: ownerID,
 		SourceDigest:            revision,
 		SourceRef:               ref,
+		BuildTrigger:            "workflow_dispatch",
+		BuildConfigURI:          repository + "/.github/workflows/release.yml@" + ref,
 		RunnerEnvironment:       "github-hosted",
 		RunInvocationURI:        "https://github.com/example/project/actions/runs/123456789/attempts/1",
 	}
+}
+
+func withoutBuildTrigger(identity attestation.IdentityExpectation) attestation.IdentityExpectation {
+	identity.BuildTrigger = ""
+	return identity
 }
 
 func writeSourceBindingInputs(t *testing.T, explicit policy.ExplicitPolicy, identity attestation.IdentityExpectation, statement []byte) attestationInputPaths {

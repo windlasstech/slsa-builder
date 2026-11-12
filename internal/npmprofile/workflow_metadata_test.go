@@ -38,8 +38,9 @@ func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
 		StartedOn: "2026-08-14T11:59:58Z", FinishedOn: "2026-08-14T12:00:03Z",
 		ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",
 		EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA,
-		WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml",
+		WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml",
 		RegistryState: RegistryPreflightState{PackageExists: true},
+		Repository:    "https://github.com/example/project",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -64,10 +65,73 @@ func TestFinalizeWorkflowBuildMetadata(t *testing.T) {
 	}
 }
 
+func TestFinalizeWorkflowBuildMetadataBindsObservedRepository(t *testing.T) {
+	repositoryRoot := t.TempDir()
+	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"https://github.com/example/project"}`)
+	if err := os.WriteFile(filepath.Join(repositoryRoot, "package.json"), manifest, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	lockfile := []byte(`{"lockfileVersion":3}`)
+	if err := os.WriteFile(filepath.Join(repositoryRoot, "package-lock.json"), lockfile, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	selection := Result{
+		Package: Package{Directory: ".", RealDirectory: repositoryRoot, RealManagerRoot: repositoryRoot, ManagerRoot: ".", Name: "@windlass/slsa-builder", Version: "1.2.3", Repository: "https://github.com/example/project"},
+		Manager: ManagerSelection{Name: ManagerNPM, Version: "11.5.1", Source: SelectionPackageManager, SelectionManifestPath: "package.json", SelectedLockfilePath: "package-lock.json"},
+	}
+	selection.Package.SourceManifest = SourceManifestSnapshot{Path: "package.json", Content: manifest}
+	build := BuildPackResult{
+		PackageName: "@windlass/slsa-builder", PackageVersion: "1.2.3",
+		TarballPath: filepath.Join(repositoryRoot, "windlass-slsa-builder-1.2.3.tgz"),
+		SHA256:      mustSHA256(t, testSHA256), SHA512: mustSHA512(t, testSHA512),
+		Packed:      PackedMetadata{Name: "@windlass/slsa-builder", Version: "1.2.3", Files: []string{"package.json"}},
+		BuildScript: BuildScriptCapture{Present: true, Result: BuildScriptExecuted},
+		Toolchain:   ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
+	}
+	config := WorkflowBuildMetadataConfig{
+		StartedOn: "2026-08-14T11:59:58Z", FinishedOn: "2026-08-14T12:00:03Z",
+		ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",
+		EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA,
+		WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml",
+		RegistryState: RegistryPreflightState{PackageExists: true},
+		Repository:    "https://github.com/example/project",
+	}
+
+	// Given a platform-observed caller repository that agrees with the manifest.
+	metadata, err := FinalizeWorkflowBuildMetadata(selection, build, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parameters, err := DecodeExternalParameters(metadata.ExternalParameters)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Then the signed invocation repository is the observed value.
+	if parameters.Workflow.Repository != "https://github.com/example/project" {
+		t.Fatalf("workflow.repository = %q, want the platform-observed repository", parameters.Workflow.Repository)
+	}
+
+	// When the observed repository diverges from the manifest repository.
+	mismatch := config
+	mismatch.Repository = "https://github.com/example/other"
+	// Then construction fails closed on the repository identity chain.
+	if _, err := FinalizeWorkflowBuildMetadata(selection, build, mismatch); err == nil {
+		t.Fatal("divergent observed repository was not rejected")
+	}
+
+	// When the observed repository is absent.
+	missing := config
+	missing.Repository = ""
+	// Then construction fails closed rather than deriving identity from the manifest alone.
+	if _, err := FinalizeWorkflowBuildMetadata(selection, build, missing); err == nil {
+		t.Fatal("missing observed repository was not rejected")
+	}
+}
+
 func TestFinalizeWorkflowBuildMetadataRejectsGuardAndModeDrift(t *testing.T) {
 	selection := Result{Package: Package{Directory: ".", Name: "pkg", Version: "1.2.3", Repository: "https://github.com/example/project"}}
 	build := BuildPackResult{PackageName: "pkg", PackageVersion: "1.2.3"}
-	base := WorkflowBuildMetadataConfig{EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml"}
+	base := WorkflowBuildMetadataConfig{EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml", Repository: "https://github.com/example/project"}
 	tests := map[string]func(*WorkflowBuildMetadataConfig){
 		"branch ref":          func(config *WorkflowBuildMetadataConfig) { config.RefType = "branch" },
 		"wrong tag":           func(config *WorkflowBuildMetadataConfig) { config.Ref = "refs/tags/v1.2.4" },
@@ -139,8 +203,8 @@ func TestFinalizeWorkflowBuildMetadataDescriptorRendering(t *testing.T) {
 			metadata, err := FinalizeWorkflowBuildMetadata(selection, build, WorkflowBuildMetadataConfig{
 				ArtifactName: "js-ts-npm-package-tarball-123456789-1", RegistryURLInput: "https://registry.npmjs.org/",
 				EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA,
-				WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml",
-				RegistryState: RegistryPreflightState{PackageExists: true},
+				WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml",
+				RegistryState: RegistryPreflightState{PackageExists: true}, Repository: "https://github.com/example/project",
 			})
 			if err != nil {
 				t.Fatal(err)

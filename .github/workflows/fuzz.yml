@@ -54,6 +54,8 @@ jobs:
           - package: internal/npmprofile
             target: FuzzDecodeExternalParameters
           - package: internal/npmprofile
+            target: FuzzParseCallerWorkflowPath
+          - package: internal/npmprofile
             target: FuzzNPMPackagePURL
           - package: internal/npmprofile
             target: FuzzValidateReleaseRefEquality
@@ -95,6 +97,8 @@ jobs:
             target: FuzzNPMFailureRecognizer
           - package: internal/npmprofile
             target: FuzzOperationalStderrRelayFilter
+          - package: internal/provenance
+            target: FuzzDecodeInternalParameters
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
     steps:

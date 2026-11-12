@@ -13,7 +13,9 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/handoff"
+	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
+	"github.com/windlasstech/slsa-builder/internal/provenance"
 	"github.com/windlasstech/slsa-builder/internal/signing"
 )
 
@@ -144,9 +146,22 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 		observedCorepack = corepackVersion
 	}
 	runInvocation := githubRunInvocationURI()
+	signingIdentity, err := githubSigningIdentity(runInvocation)
+	if err != nil {
+		return err
+	}
+	builderID, err := identity.NewBuilderID(npmprofile.NPMWorkflowPath, signingIdentity.WorkflowSHA)
+	if err != nil {
+		return err
+	}
 	signingInput, err := npmprofile.NewProvenanceSigningInput(npmprofile.NPMProvenanceInput{
-		BuildMetadata:         metadata,
-		BuilderID:             parameters.Workflow.BuilderID,
+		BuildMetadata: metadata,
+		BuilderID:     builderID,
+		GitHub: provenance.GitHubParameters{
+			EventName:         signingIdentity.BuildTrigger,
+			RepositoryID:      signingIdentity.SourceRepositoryID,
+			RepositoryOwnerID: signingIdentity.SourceRepositoryOwnerID,
+		},
 		NodeJSVersion:         *nodeVersion,
 		CorepackVersion:       observedCorepack,
 		InvocationID:          runInvocation,
@@ -165,15 +180,11 @@ func (command npmProfileSignCommand) Execute(ctx context.Context, args []string,
 	recordStatementHash := func(err error) error {
 		return fmt.Errorf("%w (statement-sha256=%s)", err, statementSHA256)
 	}
-	identity, err := githubSigningIdentity(runInvocation)
-	if err != nil {
-		return err
-	}
 	sign := command.sign
 	if sign == nil {
 		sign = signing.SignGitHubActions
 	}
-	result, err := sign(ctx, signing.Request{Statement: signingInput.StatementJSON, Identity: identity})
+	result, err := sign(ctx, signing.Request{Statement: signingInput.StatementJSON, Identity: signingIdentity})
 	if err != nil {
 		return recordStatementHash(err)
 	}
@@ -216,7 +227,7 @@ func githubRunInvocationURI() string {
 }
 
 func githubSigningIdentity(runInvocation string) (attestation.IdentityExpectation, error) {
-	required := []string{"GITHUB_SERVER_URL", "GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID", "GITHUB_REPOSITORY_OWNER_ID", "GITHUB_SHA", "GITHUB_REF", "WINDLASS_WORKFLOW_SHA"}
+	required := []string{"GITHUB_SERVER_URL", "GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID", "GITHUB_REPOSITORY_OWNER_ID", "GITHUB_SHA", "GITHUB_REF", "GITHUB_EVENT_NAME", "WINDLASS_WORKFLOW_SHA"}
 	for _, name := range required {
 		if os.Getenv(name) == "" {
 			return attestation.IdentityExpectation{}, fmt.Errorf("required trusted runtime value %s is unavailable", name)
@@ -230,6 +241,7 @@ func githubSigningIdentity(runInvocation string) (attestation.IdentityExpectatio
 		SourceRepositoryOwnerID: os.Getenv("GITHUB_REPOSITORY_OWNER_ID"),
 		SourceDigest:            os.Getenv("GITHUB_SHA"),
 		SourceRef:               os.Getenv("GITHUB_REF"),
+		BuildTrigger:            os.Getenv("GITHUB_EVENT_NAME"),
 		RunnerEnvironment:       "github-hosted",
 		RunInvocationURI:        runInvocation,
 	}, nil

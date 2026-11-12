@@ -72,23 +72,27 @@ func (verifier *sigstorePublishVerifier) identityForStatement(statement provenan
 		return attestation.IdentityExpectation{}, err
 	}
 	expected := verifier.config.Identity
-	if parameters.Source.Repository != expected.SourceRepositoryURI {
-		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-identity-mismatch", "externalParameters.source.repository", "signed npm source repository differs from the verified repository identity")
+	if parameters.Source.Repository != expected.SourceRepositoryURI || parameters.Workflow.Repository != expected.SourceRepositoryURI {
+		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-identity-mismatch", "externalParameters.workflow.repository", "signed npm repository differs from the verified repository identity")
 	}
-	invocationRef := parameters.Source.Ref
 	invocationRevision := parameters.Source.Revision
-	if parameters.Source.InvocationRef != nil {
-		invocationRef = *parameters.Source.InvocationRef
+	if parameters.Source.InvocationRevision != nil {
 		invocationRevision = *parameters.Source.InvocationRevision
 	}
-	if expected.SourceRef != invocationRef {
-		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-ref-mismatch", "externalParameters.source.invocation_ref", "signed npm invocation ref differs from the verified invocation identity")
+	if expected.SourceRef != parameters.Workflow.Ref {
+		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-ref-mismatch", "externalParameters.workflow.ref", "signed npm invocation ref differs from the verified invocation identity")
 	}
 	if expected.SourceDigest != invocationRevision {
 		return attestation.IdentityExpectation{}, npmValidationError("windlass.verify.error.source-digest-mismatch", "externalParameters.source.invocation_revision", "signed npm invocation revision differs from the verified invocation identity")
 	}
-	expected.SourceRef = invocationRef
+	internal, err := provenance.DecodeInternalParameters(statement.Predicate.BuildDefinition.InternalParameters)
+	if err != nil {
+		return attestation.IdentityExpectation{}, err
+	}
+	expected.SourceRef = parameters.Workflow.Ref
 	expected.SourceDigest = invocationRevision
+	expected.BuildTrigger = internal.GitHub.EventName
+	expected.BuildConfigURI = expected.SourceRepositoryURI + "/" + parameters.Workflow.Path + "@" + parameters.Workflow.Ref
 	return expected, nil
 }
 
@@ -102,10 +106,19 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 		return errors.New("signed npm source repository differs from verified Fulcio identity")
 	}
 	builderID := statement.Predicate.RunDetails.Builder.ID
+	if err := identity.ValidateBuilderIDForWorkflow(builderID, NPMWorkflowPath); err != nil {
+		return err
+	}
 	builderPath, builderSHA, builderFound := strings.Cut(builderID, "@")
 	signerPath, _, signerFound := strings.Cut(identityExpectation.SignerURI, "@")
-	if !builderFound || !signerFound || builderPath != signerPath || builderSHA != identityExpectation.WorkflowSHA {
-		return errors.New("signed npm builder identity differs from verified Fulcio signer")
+	if !builderFound || !signerFound {
+		return npmValidationError("windlass.verify.error.builder-id-not-immutable", "predicate.runDetails.builder.id", "signed npm builder identity is malformed")
+	}
+	if builderPath != signerPath {
+		return npmValidationError("windlass.verify.error.signer-workflow-path-mismatch", "predicate.runDetails.builder.id", "signed npm builder path differs from verified Fulcio signer")
+	}
+	if builderSHA != identityExpectation.WorkflowSHA {
+		return npmValidationError("windlass.verify.error.signer-workflow-sha-mismatch", "predicate.runDetails.builder.id", "signed npm builder SHA differs from verified Fulcio signer")
 	}
 	if len(statement.Subject) != 1 {
 		return errors.New("signed npm provenance must contain exactly one subject")
@@ -130,7 +143,12 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 			ExternalParameters:   statement.Predicate.BuildDefinition.ExternalParameters,
 			ResolvedDependencies: statement.Predicate.BuildDefinition.ResolvedDependencies,
 		},
-		BuilderID:             builderID,
+		BuilderID: builderID,
+		GitHub: provenance.GitHubParameters{
+			EventName:         identityExpectation.BuildTrigger,
+			RepositoryID:      identityExpectation.SourceRepositoryID,
+			RepositoryOwnerID: identityExpectation.SourceRepositoryOwnerID,
+		},
 		NodeJSVersion:         "v" + parameters.Runtime.NodeVersion,
 		CorepackVersion:       corepackVersion,
 		InvocationID:          statement.Predicate.RunDetails.Metadata.InvocationID,

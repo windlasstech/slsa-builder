@@ -240,8 +240,8 @@ jobs:
           --dist-tag "$DIST_TAG" --access "$ACCESS" --event-name "$EVENT_NAME" --ref-type
           "$REF_TYPE" --source-ref "$SOURCE_REF" --invocation-ref "$INVOCATION_REF"
           --invocation-revision "$INVOCATION_REVISION" --ref "$REF" --revision "$REVISION"
-          --workflow-sha "$WORKFLOW_SHA" --caller-workflow-filename "$(basename
-          "${CALLER_WORKFLOW_REF%@*}")"
+          --workflow-sha "$WORKFLOW_SHA" --caller-workflow-ref "$CALLER_WORKFLOW_REF"
+          --caller-workflow-filename "$(basename "${CALLER_WORKFLOW_REF%@*}")"
 
       - name: Upload package tarball handoff
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -342,6 +342,10 @@ jobs:
           BUILT_REF: ${{ needs.build.outputs.built-ref }}
           BUILT_REVISION: ${{ needs.build.outputs.built-revision }}
           COREPACK_VERSION: ${{ steps.toolchain.outputs.corepack-version }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+          GITHUB_REPOSITORY_OWNER_ID: ${{ github.repository_owner_id }}
+          GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
           METADATA_ARTIFACT_NAME:
             js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}
           METADATA_DIRECTORY: ${{ runner.temp }}/windlass-sign-input/metadata
@@ -484,6 +488,10 @@ jobs:
           BUNDLE_DIRECTORY: ${{ runner.temp }}/windlass-publish-input/provenance
           BUNDLE_NAME: ${{ needs.build.outputs.package-tarball-name }}.intoto.jsonl
           BUNDLE_SHA256: ${{ needs.provenance-sign.outputs.bundle-sha256 }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+          GITHUB_REPOSITORY_OWNER_ID: ${{ github.repository_owner_id }}
+          GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
           PACKAGE_NAME: ${{ needs.build.outputs.package-name }}
           PACKAGE_URL: ${{ needs.build.outputs.package-url }}
           PACKAGE_VERSION: ${{ needs.build.outputs.package-version }}

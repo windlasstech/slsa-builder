@@ -110,11 +110,15 @@ func NewProvenanceSigningInput(input NPMProvenanceInput) (ProvenanceSigningInput
 	if input.CorepackVersion != nil {
 		version["corepack"] = *input.CorepackVersion
 	}
+	internalParameters, err := json.Marshal(provenance.InternalParameters{GitHub: input.GitHub})
+	if err != nil {
+		return ProvenanceSigningInput{}, fmt.Errorf("encode GitHub internal parameters: %w", err)
+	}
 	predicate := provenance.Predicate{
 		BuildDefinition: provenance.BuildDefinition{
 			BuildType:            NPMBuildType,
 			ExternalParameters:   append(json.RawMessage(nil), input.BuildMetadata.ExternalParameters...),
-			InternalParameters:   json.RawMessage(`{}`),
+			InternalParameters:   internalParameters,
 			ResolvedDependencies: cloneNPMDependencies(input.BuildMetadata.ResolvedDependencies),
 		},
 		RunDetails: provenance.RunDetails{
@@ -161,10 +165,7 @@ func validateInputBindings(input NPMProvenanceInput, parameters ExternalParamete
 	if artifact.ArtifactName == "" || artifact.PayloadFileName == "" || strings.ContainsAny(artifact.PayloadFileName, `/\\`) || !strings.HasSuffix(artifact.PayloadFileName, ".tgz") || artifact.PayloadFileName != parameters.Package.TarballName {
 		return npmValidationError(IDNPMSubjectMismatch, "buildMetadata.primary_artifact", "build metadata must identify the external-parameter tarball basename")
 	}
-	if input.BuilderID != parameters.Workflow.BuilderID {
-		return npmValidationError("windlass.verify.error.builder-id-not-immutable", "builder.id", "builder identity differs from the signed workflow identity")
-	}
-	if err := identity.ValidateBuilderID(input.BuilderID); err != nil {
+	if err := identity.ValidateBuilderIDForWorkflow(input.BuilderID, NPMWorkflowPath); err != nil {
 		return err
 	}
 	if err := ValidateReleaseRefEquality(parameters.Source.Ref, parameters.Release.Ref, input.RuntimeReleaseRef, parameters.Release.VersionTag, parameters.Source.Revision, input.PeeledReleaseRevision); err != nil {
@@ -192,6 +193,16 @@ func ValidateNPMStatement(statement provenance.Statement, input NPMProvenanceInp
 	}
 	if statement.Predicate.RunDetails.Builder.ID != input.BuilderID {
 		return npmValidationError("windlass.verify.error.wrong-builder-id", "predicate.runDetails.builder.id", "builder ID differs from the signing input")
+	}
+	internal, err := provenance.DecodeInternalParameters(statement.Predicate.BuildDefinition.InternalParameters)
+	if err != nil {
+		return err
+	}
+	if internal.GitHub.EventName != input.GitHub.EventName || internal.GitHub.EventName != parameters.Source.EventName {
+		return npmValidationError("windlass.verify.error.build-trigger-mismatch", "predicate.buildDefinition.internalParameters.github.event_name", "GitHub event name differs from the signing input")
+	}
+	if internal.GitHub.RepositoryID != input.GitHub.RepositoryID || internal.GitHub.RepositoryOwnerID != input.GitHub.RepositoryOwnerID {
+		return npmValidationError("windlass.verify.error.source-numeric-id-mismatch", "predicate.buildDefinition.internalParameters.github", "GitHub numeric repository identity differs from the signing input")
 	}
 	metadata := statement.Predicate.RunDetails.Metadata
 	if metadata.InvocationID != input.InvocationID || metadata.StartedOn != input.StartedOn || metadata.FinishedOn != input.FinishedOn {

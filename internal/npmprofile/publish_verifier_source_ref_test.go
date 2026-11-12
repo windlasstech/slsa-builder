@@ -69,11 +69,19 @@ func TestPublishVerifierBindsCertificateToSignedInvocationRecord(t *testing.T) {
 }
 
 func publishVerifierIdentity(sourceRef, sourceDigest string) attestation.IdentityExpectation {
+	eventName := "push"
+	if sourceRef == "refs/heads/main" {
+		eventName = "workflow_dispatch"
+	}
 	return attestation.IdentityExpectation{
-		SignerURI:           "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@refs/heads/main",
-		WorkflowSHA:         testSourceSHA,
-		SourceRepositoryURI: "https://github.com/example/project",
-		SourceDigest:        sourceDigest,
-		SourceRef:           sourceRef,
+		SignerURI:               "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@refs/heads/main",
+		WorkflowSHA:             testSourceSHA,
+		SourceRepositoryURI:     "https://github.com/example/project",
+		SourceRepositoryID:      "123",
+		SourceRepositoryOwnerID: "456",
+		SourceDigest:            sourceDigest,
+		SourceRef:               sourceRef,
+		BuildTrigger:            eventName,
+		BuildConfigURI:          "https://github.com/example/project/.github/workflows/release.yml@" + sourceRef,
 	}
 }

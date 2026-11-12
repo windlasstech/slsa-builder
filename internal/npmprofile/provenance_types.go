@@ -55,9 +55,9 @@ type SourceParameters struct {
 }
 
 type WorkflowParameters struct {
-	Path      string `json:"path"`
-	SHA       string `json:"sha"`
-	BuilderID string `json:"builder_id"`
+	Ref        string `json:"ref"`
+	Repository string `json:"repository"`
+	Path       string `json:"path"`
 }
 
 type RuntimeParameters struct {
@@ -143,6 +143,7 @@ type BuildParameters struct {
 type NPMProvenanceInput struct {
 	BuildMetadata         BuildMetadata
 	BuilderID             string
+	GitHub                provenance.GitHubParameters
 	NodeJSVersion         string
 	CorepackVersion       *string
 	InvocationID          string

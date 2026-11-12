@@ -412,7 +412,7 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 		value := "0.34.0"
 		corepackVersion = &value
 	}
-	builderID := parameters.Workflow.BuilderID
+	builderID := "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@" + testSourceSHA
 	return NPMProvenanceInput{
 		BuildMetadata: BuildMetadata{
 			SchemaVersion: "1",
@@ -427,6 +427,7 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 			ResolvedDependencies: dependencies,
 		},
 		BuilderID:             builderID,
+		GitHub:                provenance.GitHubParameters{EventName: "push", RepositoryID: "123", RepositoryOwnerID: "456"},
 		NodeJSVersion:         "v24.0.0",
 		CorepackVersion:       corepackVersion,
 		InvocationID:          "https://github.com/example/project/actions/runs/123456789/attempts/1",
@@ -438,7 +439,6 @@ func validProvenanceInput(t *testing.T, manager Manager) NPMProvenanceInput {
 }
 
 func validExternalParameters(manager Manager) ExternalParameters {
-	builderID := "https://github.com/windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml@" + testSourceSHA
 	selectionManifest := testStringPointer("package.json")
 	packageManagerVersion := "11.28.3"
 	if manager == ManagerNPM {
@@ -449,7 +449,7 @@ func validExternalParameters(manager Manager) ExternalParameters {
 	}
 	parameters := ExternalParameters{
 		Source:         SourceParameters{Repository: "https://github.com/example/project", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, EventName: "push", RefType: "tag"},
-		Workflow:       WorkflowParameters{Path: NPMWorkflowPath, SHA: testSourceSHA, BuilderID: builderID},
+		Workflow:       WorkflowParameters{Ref: "refs/tags/v1.2.3", Repository: "https://github.com/example/project", Path: ".github/workflows/release.yml"},
 		Runtime:        RuntimeParameters{Runner: "ubuntu-24.04", NodeVersion: "24.0.0", NPMVersion: "11.5.1"},
 		Package:        PackageParameters{Directory: ".", WorkspaceRoot: nil, SourceManifest: "package.json", Name: "@windlass/slsa-builder", Version: "1.2.3", Private: false, Repository: "https://github.com/example/project", TarballName: "windlass-slsa-builder-1.2.3.tgz", PackageURL: "https://registry.npmjs.org/%40windlass%2Fslsa-builder/1.2.3", PackedName: "@windlass/slsa-builder", PackedVersion: "1.2.3"},
 		PackageManager: PackageManagerParameters{Name: manager, Version: packageManagerVersion, SelectionSource: SelectionPackageManager, SelectionManifest: selectionManifest, SelectionManifestPath: selectionManifest, SelectionLockfilePath: nil, Root: "."},

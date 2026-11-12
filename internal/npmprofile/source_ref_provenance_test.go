@@ -131,12 +131,14 @@ func sourceRefDispatchRetryProvenanceInput(t *testing.T) NPMProvenanceInput {
 	parameters.Source.InputRef = testStringPointer("refs/tags/v1.2.3")
 	parameters.Source.InvocationRef = testStringPointer("refs/heads/main")
 	parameters.Source.InvocationRevision = testStringPointer(testAttestSHA)
+	parameters.Workflow.Ref = "refs/heads/main"
 	encoded, err := EncodeExternalParameters(parameters)
 	if err != nil {
 		t.Fatalf("EncodeExternalParameters() error = %v", err)
 	}
 	input.BuildMetadata.ExternalParameters = encoded
 	input.BuildMetadata.ResolvedDependencies = validDependencies(ManagerPNPM, parameters)
+	input.GitHub.EventName = "workflow_dispatch"
 	return input
 }
 

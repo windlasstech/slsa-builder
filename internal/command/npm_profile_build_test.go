@@ -82,6 +82,7 @@ func TestNPMProfileBuildCommand(t *testing.T) {
 		"--ref", "refs/tags/v1.0.0",
 		"--revision", "0123456789abcdef0123456789abcdef01234567",
 		"--workflow-sha", "0123456789abcdef0123456789abcdef01234567",
+		"--caller-workflow-ref", "windlasstech/slsa-builder/.github/workflows/release.yml@refs/tags/v1.0.0",
 		"--caller-workflow-filename", "release.yml",
 		"--github-output", githubOutput,
 	}, &output)

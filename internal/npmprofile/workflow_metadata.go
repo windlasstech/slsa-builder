@@ -31,12 +31,17 @@ type WorkflowBuildMetadataConfig struct {
 	InvocationRef          string
 	InvocationRevision     string
 	WorkflowSHA            string
+	CallerWorkflowPath     string
 	CallerWorkflowFilename string
+	Repository             string
 	RegistryState          RegistryPreflightState
 }
 
 // FinalizeWorkflowBuildMetadata creates the complete closed metadata uploaded by the build job.
 func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, config WorkflowBuildMetadataConfig) (BuildMetadata, error) {
+	if config.InvocationRef == "" {
+		config.InvocationRef = config.Ref
+	}
 	source, err := workflowSourceParameters(selection, config)
 	if err != nil {
 		return BuildMetadata{}, err
@@ -54,14 +59,11 @@ func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, conf
 	if err != nil {
 		return BuildMetadata{}, err
 	}
-	builderID, err := identity.NewBuilderID(NPMWorkflowPath, config.WorkflowSHA)
-	if err != nil {
-		return BuildMetadata{}, err
-	}
 	parameters := ExternalParameters{
 		Source:   source,
-		Workflow: WorkflowParameters{Path: NPMWorkflowPath, SHA: config.WorkflowSHA, BuilderID: builderID},
-		Runtime:  RuntimeParameters{Runner: "ubuntu-24.04", NodeVersion: strings.TrimPrefix(build.Toolchain.NodeVersion, "v"), NPMVersion: build.Toolchain.NPMVersion},
+		Workflow: WorkflowParameters{Ref: config.InvocationRef, Repository: config.Repository, Path: config.CallerWorkflowPath},
+
+		Runtime: RuntimeParameters{Runner: "ubuntu-24.04", NodeVersion: strings.TrimPrefix(build.Toolchain.NodeVersion, "v"), NPMVersion: build.Toolchain.NPMVersion},
 		Package: PackageParameters{
 			Directory: selection.Package.Directory, WorkspaceRoot: workspaceRoot(selection.Package), SourceManifest: packageManifestPath(selection.Package.Directory),
 			Name: selection.Package.Name, Version: selection.Package.Version, Repository: selection.Package.Repository,
@@ -150,8 +152,14 @@ func workflowSourceParameters(selection Result, config WorkflowBuildMetadataConf
 	if err := ValidateSourceRefInput(config.SourceRefInput, config.InvocationRef, selection.Package.Version); err != nil {
 		return SourceParameters{}, err
 	}
+	if err := identity.ValidateCanonicalRepositoryURI(config.Repository); err != nil {
+		return SourceParameters{}, npmValidationError(IDUnexpectedExternalParameters, "observed-repository", "observed caller repository must be canonical")
+	}
+	if config.Repository != selection.Package.Repository {
+		return SourceParameters{}, npmValidationError("windlass.verify.error.package-repository-identity-mismatch", "observed-repository", "observed caller repository differs from the normalized manifest repository")
+	}
 	source := SourceParameters{
-		Repository: selection.Package.Repository,
+		Repository: config.Repository,
 		Ref:        config.Ref,
 		Revision:   config.Revision,
 		EventName:  config.EventName,
@@ -191,6 +199,9 @@ func validateWorkflowRuntime(selection Result, build BuildPackResult, config Wor
 	if config.CallerWorkflowFilename == "" || filepath.Base(config.CallerWorkflowFilename) != config.CallerWorkflowFilename ||
 		!strings.HasSuffix(config.CallerWorkflowFilename, ".yml") && !strings.HasSuffix(config.CallerWorkflowFilename, ".yaml") {
 		return errors.New("caller workflow filename is invalid")
+	}
+	if !validCallerWorkflowPath(config.CallerWorkflowPath) || config.CallerWorkflowPath == NPMWorkflowPath || filepath.Base(config.CallerWorkflowPath) != config.CallerWorkflowFilename {
+		return errors.New("caller workflow path is invalid or conflicts with the caller filename")
 	}
 	if config.ArtifactName == "" || selection.Package.Name != build.PackageName || selection.Package.Version != build.PackageVersion ||
 		build.Packed.Name != build.PackageName || build.Packed.Version != build.PackageVersion || build.Toolchain.NodeVersion == "" || build.Toolchain.NPMVersion == "" {

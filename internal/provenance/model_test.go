@@ -279,25 +279,49 @@ func TestValidateProfileErrorPropagation(t *testing.T) {
 	}
 }
 
-func TestValidateAcceptsEmptyInternalParameters(t *testing.T) {
+func TestValidateInternalParametersGitHubContract(t *testing.T) {
 	t.Parallel()
 
-	for _, test := range []struct{ name, parameters string }{
-		{"absent", ""},
-		{"null", "null"},
-		{"empty object", "{}"},
-		{"whitespace null", " \nnull\t"},
-		{"whitespace object", " { } "},
+	const valid = `{"github":{"event_name":"workflow_dispatch","repository_id":"123456789","repository_owner_id":"987654321"}}`
+	for _, test := range []struct {
+		name       string
+		parameters string
+		valid      bool
+	}{
+		{name: "closed github object", parameters: valid, valid: true},
+		{name: "whitespace around closed github object", parameters: " \n" + valid + "\t", valid: true},
+		{name: "absent", parameters: ""},
+		{name: "null", parameters: "null"},
+		{name: "empty object", parameters: "{}"},
+		{name: "null github", parameters: `{"github":null}`},
+		{name: "empty github", parameters: `{"github":{}}`},
+		{name: "additional top-level member", parameters: `{"github":{"event_name":"push","repository_id":"123456789","repository_owner_id":"987654321"},"debug":true}`},
+		{name: "additional github member", parameters: `{"github":{"event_name":"push","repository_id":"123456789","repository_owner_id":"987654321","runner":"ubuntu-24.04"}}`},
+		{name: "missing owner identifier", parameters: `{"github":{"event_name":"push","repository_id":"123456789"}}`},
+		{name: "non-string repository identifier", parameters: `{"github":{"event_name":"push","repository_id":123456789,"repository_owner_id":"987654321"}}`},
+		{name: "actor field", parameters: `{"github":{"event_name":"push","repository_id":"123456789","repository_owner_id":"987654321","actor_id":"42"}}`},
+		{name: "triggering actor field", parameters: `{"github":{"event_name":"push","repository_id":"123456789","repository_owner_id":"987654321","triggering_actor_id":"42"}}`},
+		{name: "case-variant member", parameters: `{"github":{"event_name":"push","Repository_Id":"123456789","repository_owner_id":"987654321"}}`},
+		{name: "non-object github", parameters: `{"github":[]}`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
+			// Given a Statement carrying the case's internalParameters value.
 			statement := loadStatement(t, "valid-statement.json")
 			statement.Predicate.BuildDefinition.InternalParameters = json.RawMessage(test.parameters)
+
+			// When common validation evaluates the closed GitHub invocation record.
 			_, err := statement.Validate(expectations(nil), nil)
-			if err != nil {
-				t.Fatalf("Validate() error = %v", err)
+
+			// Then only the exact three-string GitHub object is accepted.
+			if test.valid {
+				if err != nil {
+					t.Fatalf("Validate() error = %v", err)
+				}
+				return
 			}
+			requireDiagnosticID(t, err, "windlass.verify.error.unexpected-internal-parameters")
 		})
 	}
 }

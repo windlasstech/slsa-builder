@@ -41,7 +41,9 @@ var (
 	oidSourceDigest        = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 13}
 	oidSourceRef           = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 14}
 	oidSourceRepositoryID  = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 15}
+	oidBuildTrigger        = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 16}
 	oidSourceOwnerID       = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 17}
+	oidBuildConfigURI      = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 18}
 	oidRunInvocationURI    = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 21}
 )
 
@@ -304,6 +306,22 @@ func verifyIdentity(certificate *x509.Certificate, expected IdentityExpectation)
 		{oidSourceOwnerID, expected.SourceRepositoryOwnerID, idSourceNumericIDMismatch, "certificate.source_repository_owner_id"},
 		{oidRunInvocationURI, expected.RunInvocationURI, idRunInvocationURIInvalid, "certificate.run_invocation_uri"},
 	}
+	if expected.BuildTrigger != "" {
+		claims = append(claims, struct {
+			oid      asn1.ObjectIdentifier
+			expected string
+			id       string
+			field    string
+		}{oidBuildTrigger, expected.BuildTrigger, idBuildTriggerMismatch, "certificate.build_trigger"})
+	}
+	if expected.BuildConfigURI != "" {
+		claims = append(claims, struct {
+			oid      asn1.ObjectIdentifier
+			expected string
+			id       string
+			field    string
+		}{oidBuildConfigURI, expected.BuildConfigURI, idBuildConfigURIMismatch, "certificate.build_config_uri"})
+	}
 	for _, claim := range claims {
 		actual, present, err := certificateExtension(certificate, claim.oid)
 		if err != nil || !present {
@@ -353,6 +371,14 @@ func validateIdentityExpectation(expected IdentityExpectation) error {
 	}
 	if expected.RunnerEnvironment != "github-hosted" {
 		return newError(idPolicySchemaInvalid, "identity.runner_environment", "expected runner environment must be github-hosted", nil)
+	}
+	if strings.TrimSpace(expected.BuildTrigger) != expected.BuildTrigger {
+		return newError(idPolicySchemaInvalid, "identity.build_trigger", "expected Build Trigger must be an exact event name", nil)
+	}
+	if expected.BuildConfigURI != "" {
+		if err := validateSignerURI(expected.BuildConfigURI); err != nil {
+			return newError(idPolicySchemaInvalid, "identity.build_config_uri", "expected Build Config URI is not canonical", err)
+		}
 	}
 	if _, err := identity.ParseRunInvocationURI(expected.RunInvocationURI, expected.SourceRepositoryURI); err != nil {
 		return newError(idPolicySchemaInvalid, "identity.run_invocation_uri", "expected Run Invocation URI is not canonical", err)

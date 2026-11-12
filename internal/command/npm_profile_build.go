@@ -15,6 +15,7 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/handoff"
+	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 )
 
@@ -68,6 +69,7 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	invocationRef := flags.String("invocation-ref", "", "observed caller invocation ref")
 	invocationRevision := flags.String("invocation-revision", "", "observed caller invocation revision")
 	workflowSHA := flags.String("workflow-sha", "", "immutable reusable workflow revision")
+	callerWorkflowRef := flags.String("caller-workflow-ref", "", "observed caller workflow_ref")
 	callerWorkflow := flags.String("caller-workflow-filename", "", "observed caller workflow filename")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
@@ -80,8 +82,12 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	normalizedSourceRef := npmprofile.NormalizeSourceRefInput(*sourceRef)
 	if *repositoryRoot == "" || *packageDirectory == "" || *observedRepository == "" || *outputDirectory == "" ||
 		*artifactName == "" || *metadataArtifactName == "" || *eventName == "" || *refType == "" || *ref == "" ||
-		*revision == "" || *workflowSHA == "" || *callerWorkflow == "" || *githubOutput == "" || flags.NArg() != 0 {
+		*revision == "" || *workflowSHA == "" || *callerWorkflowRef == "" || *callerWorkflow == "" || *githubOutput == "" || flags.NArg() != 0 {
 		return errors.New("all npm-profile-build flags are required with no positional arguments")
+	}
+	callerWorkflowPath, err := npmprofile.ParseCallerWorkflowPath(*callerWorkflowRef)
+	if err != nil {
+		return err
 	}
 	if err := handoff.ValidateSafeBasename(*artifactName); err != nil {
 		return fmt.Errorf("invalid tarball artifact name: %w", err)
@@ -171,12 +177,21 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	if command.runnerOverride != nil {
 		result.Toolchain.Runner = *command.runnerOverride
 	}
+	invocationRefValue := *invocationRef
+	if invocationRefValue == "" {
+		invocationRefValue = *ref
+	}
+	observedCanonical, err := identity.CanonicalRepository(*observedRepository)
+	if err != nil {
+		return err
+	}
 	metadata, err := npmprofile.FinalizeWorkflowBuildMetadata(selection, result, npmprofile.WorkflowBuildMetadataConfig{
 		StartedOn: startedOn, FinishedOn: finishedOn,
 		ArtifactName: *artifactName, RegistryURLInput: *registryURL, DistTagInput: *distTag, AccessInput: *access,
 		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, SourceRefInput: normalizedSourceRef,
-		InvocationRef: conditionalSourceIdentity(normalizedSourceRef, *invocationRef), InvocationRevision: conditionalSourceIdentity(normalizedSourceRef, *invocationRevision), WorkflowSHA: *workflowSHA,
-		CallerWorkflowFilename: *callerWorkflow, RegistryState: registryState,
+		InvocationRef: invocationRefValue, InvocationRevision: conditionalSourceIdentity(normalizedSourceRef, *invocationRevision), WorkflowSHA: *workflowSHA,
+		CallerWorkflowPath: callerWorkflowPath, CallerWorkflowFilename: *callerWorkflow, RegistryState: registryState,
+		Repository: observedCanonical,
 	})
 	if err != nil {
 		return err

@@ -60,7 +60,7 @@ func validateExternalParameterShape(encoded []byte) error {
 		optional []string
 	}{
 		{name: "source", required: []string{"repository", "ref", "revision", "event_name", "ref_type"}, optional: []string{"input_ref", "invocation_ref", "invocation_revision"}},
-		{name: "workflow", required: []string{"path", "sha", "builder_id"}},
+		{name: "workflow", required: []string{"ref", "repository", "path"}},
 		{name: "runtime", required: []string{"runner", "node_version", "npm_version"}},
 		{name: "package", required: []string{"directory", "workspace_root", "source_manifest", "name", "version", "private", "repository", "tarball_name", "package_url", "packed_name", "packed_version"}, optional: []string{"publish_config_raw", "packed_files", "consumer_surface"}},
 		{name: "package_manager", required: []string{"name", "version", "selection_source", "selection_manifest", "selection_manifest_path", "selection_lockfile_path", "root"}, optional: []string{"ignored_lockfile_paths", "yarn_install_mode"}},
@@ -190,15 +190,27 @@ func validateExternalParameters(parameters ExternalParameters, expectedRepositor
 	if err := validateSourceParameters(parameters.Source, parameters.Package.Version); err != nil {
 		return err
 	}
-	if identity.ValidateFullSHA(parameters.Source.Revision) != nil || identity.ValidateFullSHA(parameters.Workflow.SHA) != nil {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.revision", "source and workflow revisions must be full lowercase SHAs")
+	if identity.ValidateFullSHA(parameters.Source.Revision) != nil {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.revision", "source revision must be a full lowercase SHA")
 	}
-	if parameters.Workflow.Path != NPMWorkflowPath {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.workflow.path", "workflow path must equal the npm producer entrypoint")
+	if !validFullGitRef(parameters.Workflow.Ref) {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.workflow.ref", "workflow ref must be a well-formed full Git ref")
 	}
-	wantBuilderID, err := identity.NewBuilderID(parameters.Workflow.Path, parameters.Workflow.SHA)
-	if err != nil || parameters.Workflow.BuilderID != wantBuilderID {
-		return npmValidationError("windlass.verify.error.builder-id-not-immutable", "externalParameters.workflow.builder_id", "builder identity must bind the workflow path and SHA")
+	if parameters.Source.InvocationRef != nil {
+		if parameters.Workflow.Ref != *parameters.Source.InvocationRef {
+			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.workflow.ref", "workflow ref must equal the recorded invocation ref")
+		}
+	} else if parameters.Workflow.Ref != parameters.Source.Ref {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.workflow.ref", "workflow ref must equal the built source ref when no caller source selector is present")
+	}
+	if err := identity.ValidateCanonicalRepositoryURI(parameters.Workflow.Repository); err != nil || parameters.Workflow.Repository != parameters.Source.Repository {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.workflow.repository", "workflow repository must equal the canonical caller repository")
+	}
+	if parameters.Workflow.Path == NPMWorkflowPath {
+		return npmValidationError("windlass.verify.error.build-config-uri-mismatch", "externalParameters.workflow.path", "workflow path must identify the caller workflow, not the reusable builder")
+	}
+	if !validCallerWorkflowPath(parameters.Workflow.Path) {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.workflow.path", "workflow path must identify one caller YAML workflow")
 	}
 	if parameters.Source.EventName == "" || parameters.Source.RefType != "tag" {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "release source event and tag type are required")
@@ -227,6 +239,9 @@ func validateExternalParameters(parameters ExternalParameters, expectedRepositor
 	}
 	if parameters.Caller.WorkflowFilename == "" || path.Base(parameters.Caller.WorkflowFilename) != parameters.Caller.WorkflowFilename || !strings.HasSuffix(parameters.Caller.WorkflowFilename, ".yml") {
 		return npmValidationError("windlass.verify.error.trusted-publisher-mismatch", "externalParameters.caller.workflow_filename", "caller workflow filename must be an observed yml basename")
+	}
+	if path.Base(parameters.Workflow.Path) != parameters.Caller.WorkflowFilename {
+		return npmValidationError("windlass.verify.error.trusted-publisher-mismatch", "externalParameters.workflow.path", "caller workflow path and filename must agree")
 	}
 	if parameters.Build.ScriptPresent != (parameters.Build.ScriptResult == BuildScriptExecuted) && parameters.Build.ScriptResult != BuildScriptSkippedAbsent {
 		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.build", "build script presence and result disagree")
@@ -274,6 +289,18 @@ func validFullGitRef(ref string) bool {
 		}
 	}
 	return validTagName(strings.TrimPrefix(ref, "refs/"))
+}
+
+func validCallerWorkflowPath(value string) bool {
+	const prefix = ".github/workflows/"
+	if !strings.HasPrefix(value, prefix) || strings.ContainsAny(value, "%\\\x00") {
+		return false
+	}
+	filename := strings.TrimPrefix(value, prefix)
+	if filename == "" || strings.Contains(filename, "/") || strings.HasPrefix(filename, ".") {
+		return false
+	}
+	return strings.HasSuffix(filename, ".yml") || strings.HasSuffix(filename, ".yaml")
 }
 
 func validatePackageParameters(parameters ExternalParameters) error {

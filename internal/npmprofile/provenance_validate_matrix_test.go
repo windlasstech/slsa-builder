@@ -37,9 +37,9 @@ func TestProvenanceMatrixExternalSemantics(t *testing.T) {
 		{"repository spelling", "source.repository", "", func(p *ExternalParameters) { p.Source.Repository = "https://github.com/Example/project" }},
 		{"repository disagreement", "package.repository", IDPackageRepositoryIdentityMismatch, func(p *ExternalParameters) { p.Package.Repository = "https://github.com/other/project" }},
 		{"source SHA", "source.revision", "", func(p *ExternalParameters) { p.Source.Revision = "short" }},
-		{"workflow SHA", "source.revision", "", func(p *ExternalParameters) { p.Workflow.SHA = strings.ToUpper(testSourceSHA) }},
+		{"workflow ref", "workflow.ref", "", func(p *ExternalParameters) { p.Workflow.Ref = "main" }},
 		{"workflow path", "workflow.path", "", func(p *ExternalParameters) { p.Workflow.Path = "other.yml" }},
-		{"builder binding", "workflow.builder_id", "windlass.verify.error.builder-id-not-immutable", func(p *ExternalParameters) { p.Workflow.BuilderID += "0" }},
+		{"workflow repository", "workflow.repository", "", func(p *ExternalParameters) { p.Workflow.Repository = "https://github.com/other/project" }},
 		{"event missing", "source", "", func(p *ExternalParameters) { p.Source.EventName = "" }},
 		{"branch type", "source", "", func(p *ExternalParameters) { p.Source.RefType = "branch" }},
 		{"runner", "runtime", "", func(p *ExternalParameters) { p.Runtime.Runner = "ubuntu-latest" }},
@@ -78,6 +78,13 @@ func TestProvenanceMatrixExternalSemantics(t *testing.T) {
 		}},
 		{"packed file escape", "package.packed_files", "", func(p *ExternalParameters) { p.Package.PackedFiles = []string{"../secret"} }},
 		{"partial source context", "source", "", func(p *ExternalParameters) { p.Source.InputRef = testStringPointer(p.Source.Ref) }},
+		{"workflow ref differs from built ref", "workflow.ref", "", func(p *ExternalParameters) { p.Workflow.Ref = "refs/heads/main" }},
+		{"workflow ref differs from invocation ref", "workflow.ref", "", func(p *ExternalParameters) {
+			p.Source.InputRef = testStringPointer(p.Source.Ref)
+			p.Source.InvocationRef = testStringPointer("refs/heads/main")
+			p.Source.InvocationRevision = testStringPointer("89abcdef0123456789abcdef0123456789abcdef")
+			p.Workflow.Ref = "refs/heads/other"
+		}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

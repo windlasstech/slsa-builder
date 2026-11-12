@@ -1,8 +1,10 @@
 package provenance
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"regexp"
 	"time"
@@ -135,14 +137,54 @@ func cloneStringMap(values map[string]string) map[string]string {
 }
 
 func validateInternalParameters(parameters json.RawMessage) error {
-	if len(parameters) == 0 {
-		return nil
+	_, err := DecodeInternalParameters(parameters)
+	return err
+}
+
+// DecodeInternalParameters parses the required closed GitHub invocation record.
+func DecodeInternalParameters(parameters json.RawMessage) (InternalParameters, error) {
+	invalid := func() (InternalParameters, error) {
+		return InternalParameters{}, validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must contain exactly github.event_name, github.repository_id, and github.repository_owner_id strings")
 	}
-	canonical, err := canonicaljson.Canonicalize(parameters)
-	if err != nil || (string(canonical) != "{}" && string(canonical) != "null") {
-		return validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must be absent, null, or the empty object")
+	if len(parameters) == 0 || canonicaljson.Validate(parameters) != nil {
+		return invalid()
 	}
-	return nil
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(parameters, &top); err != nil || len(top) != 1 {
+		return invalid()
+	}
+	rawGitHub, present := top["github"]
+	if !present {
+		return invalid()
+	}
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(rawGitHub, &members); err != nil || len(members) != 3 {
+		return invalid()
+	}
+	for _, name := range []string{"event_name", "repository_id", "repository_owner_id"} {
+		raw, present := members[name]
+		if !present {
+			return invalid()
+		}
+		var value string
+		if err := json.Unmarshal(raw, &value); err != nil || value == "" {
+			return invalid()
+		}
+	}
+	decoder := json.NewDecoder(bytes.NewReader(parameters))
+	decoder.DisallowUnknownFields()
+	var decoded InternalParameters
+	if err := decoder.Decode(&decoded); err != nil {
+		return invalid()
+	}
+	var extra json.RawMessage
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return invalid()
+	}
+	if decoded.GitHub.EventName == "" || decoded.GitHub.RepositoryID == "" || decoded.GitHub.RepositoryOwnerID == "" {
+		return invalid()
+	}
+	return decoded, nil
 }
 
 func validateBuilder(builder Builder, expected BuilderExpectations) error {

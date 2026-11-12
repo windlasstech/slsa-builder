@@ -3,6 +3,7 @@ package signing
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -37,11 +38,16 @@ func TestProductionSignerFixtureOffline(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decode production signer Statement: %v", err)
 	}
-	if _, err := statement.Validate(provenance.Expectations{
+	_, validationErr := statement.Validate(provenance.Expectations{
 		SourceRepositoryURI: "https://github.com/yunseo-kim/slsa-builder-conformance",
 		Builder:             provenance.BuilderExpectations{NodeJSVersion: "v24.0.0"},
-	}, nil); err != nil {
-		t.Fatalf("validate production signer Statement: %v", err)
+	}, nil)
+	if validationErr == nil {
+		t.Fatal("historical Statement unexpectedly satisfied the current closed schema")
+	}
+	var identified interface{ DiagnosticID() string }
+	if !errors.As(validationErr, &identified) || identified.DiagnosticID() != "windlass.verify.error.unexpected-internal-parameters" {
+		t.Fatalf("historical schema rejection = %v, want unexpected-internal-parameters", validationErr)
 	}
 	identityBytes := readSigningFixture(t, filepath.Join(fixtureDirectory, "npm-go-signer-identity.json"))
 	var identity attestation.IdentityExpectation

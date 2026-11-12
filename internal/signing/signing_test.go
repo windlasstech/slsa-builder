@@ -170,6 +170,38 @@ func TestBindOIDCSignerIdentityPinForm(t *testing.T) {
 	})
 }
 
+func TestBindOIDCSignerIdentityRequiresBuildTriggerForGitHubInvocation(t *testing.T) {
+	workflowSHA := "d2d916c6d6694c82c79d15c0393139b4084d4acc"
+	workflowPath := "windlasstech/slsa-builder/.github/workflows/js-ts-npm-package-slsa3.yml"
+	statement, err := (provenance.Statement{
+		Type:          provenance.StatementType,
+		Subject:       []provenance.Subject{},
+		PredicateType: provenance.PredicateType,
+		Predicate: provenance.Predicate{
+			BuildDefinition: provenance.BuildDefinition{
+				ExternalParameters:   []byte(`{}`),
+				InternalParameters:   []byte(`{"github":{"event_name":"push","repository_id":"1","repository_owner_id":"2"}}`),
+				ResolvedDependencies: []provenance.ResourceDescriptor{},
+			},
+			RunDetails: provenance.RunDetails{Builder: provenance.Builder{ID: "https://github.com/" + workflowPath + "@" + workflowSHA, Version: map[string]string{}, BuilderDependencies: []provenance.BuilderDependency{}}},
+		},
+	}).CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(map[string]string{"job_workflow_ref": workflowPath + "@" + workflowSHA, "job_workflow_sha": workflowSHA})
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := "header." + base64.RawURLEncoding.EncodeToString(payload) + ".signature"
+
+	// Given a statement that carries the signed GitHub invocation record, an
+	// expectation without Build Trigger must not skip the OIDC binding.
+	if _, err := bindOIDCSignerIdentity(statement, attestation.IdentityExpectation{WorkflowSHA: workflowSHA}, token); err == nil {
+		t.Fatal("missing Build Trigger expectation was not rejected for a GitHub invocation statement")
+	}
+}
+
 func TestSignRejectsInvalidStatementBeforeNetwork(t *testing.T) {
 	original := http.DefaultTransport
 	transport := &denyTransport{}

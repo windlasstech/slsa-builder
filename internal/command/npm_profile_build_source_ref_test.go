@@ -234,6 +234,7 @@ func npmBuildSourceRefArgumentsWithBuiltRef(repository, outputDirectory, githubO
 		"--invocation-ref", invocationRef,
 		"--invocation-revision", invocationSHA,
 		"--workflow-sha", builtRevision,
+		"--caller-workflow-ref", "windlasstech/slsa-builder/.github/workflows/release.yml@" + invocationRef,
 		"--caller-workflow-filename", "release.yml",
 		"--github-output", githubOutput,
 	}

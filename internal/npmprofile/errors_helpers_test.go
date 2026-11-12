@@ -138,7 +138,6 @@ func TestValidateInputBindings(t *testing.T) {
 		{"builder mismatch", func(b *bindings) { b.input.BuilderID = "other" }, "windlass.verify.error.builder-id-not-immutable"},
 		{"builder invalid", func(b *bindings) {
 			b.input.BuilderID = "invalid"
-			b.parameters.Workflow.BuilderID = "invalid"
 		}, "windlass.verify.error.builder-id-not-immutable"},
 		{"node mismatch", func(b *bindings) { b.input.NodeJSVersion = "v22.0.0" }, "windlass.verify.error.builder-version-mismatch"},
 		{"unexpected corepack", func(b *bindings) { b.input.CorepackVersion = testStringPointer("0.34.0") }, "windlass.verify.error.builder-version-mismatch"},

@@ -70,6 +70,18 @@ type BuildDefinition struct {
 	ResolvedDependencies []ResourceDescriptor `json:"resolvedDependencies"`
 }
 
+// InternalParameters is the closed platform-controlled invocation record.
+type InternalParameters struct {
+	GitHub GitHubParameters `json:"github"`
+}
+
+// GitHubParameters records the GitHub-issued invocation event and numeric repository identity.
+type GitHubParameters struct {
+	EventName         string `json:"event_name"`
+	RepositoryID      string `json:"repository_id"`
+	RepositoryOwnerID string `json:"repository_owner_id"`
+}
+
 // ResourceDescriptor is the closed descriptor envelope whose semantics are defined by a profile.
 type ResourceDescriptor struct {
 	Name                string                     `json:"name"`
