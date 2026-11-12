@@ -1,0 +1,265 @@
+testdata/npm/provenance/contract-npm-internal-parameters-github-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+internal/fixture/registry.go
+  s_166e59cbc32e1f::t_9d2d7b9f406174 85
+  s_166e59cbc32e1f::t_cc56edf042e547 87
+testdata/npm/provenance/contract-npm-package-manifest-descriptor-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-path-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-build-script-disposition-skipped-absent-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-workflow-invocation-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-diagnostic-publish-preexisting-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runtime-media-type-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+internal/npmprofile/workflow_metadata_source_ref_test.go
+  s_166e59cbc32e1f::t_0224c3b5758b40 29,92
+internal/fixture/contract_registry_test.go
+  s_166e59cbc32e1f::t_14baf1fd9a4bf0 33
+internal/npmprofile/toolchain_operating_system_test.go
+  s_166e59cbc32e1f::t_cc56edf042e547 84
+  s_166e59cbc32e1f::t_c7070f9b8287d9 147-157
+  s_166e59cbc32e1f::t_25a30ee29ca1a4 1-83,85-87,89-126,133-146,158-176
+  s_166e59cbc32e1f::t_dfbfff6c405585 127-132
+  s_166e59cbc32e1f::t_f84ce2af0564bd 88
+testdata/npm/provenance/contract-npm-source-selector-whitespace.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-duplicate.json
+  s_166e59cbc32e1f::t_0d6c5dbf61f6bf 1
+internal/fixture/contract_cases_test.go
+  s_166e59cbc32e1f::t_e383a9479ff9d5 32-37
+  s_166e59cbc32e1f::t_854b6f881bb174 12
+testdata/npm/provenance/contract-npm-package-manifest-descriptor-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-wrong-uri.json
+  s_166e59cbc32e1f::t_1923c10d73c282 1
+internal/npmprofile/contract_fixture_mutation_test.go
+  s_166e59cbc32e1f::t_b520b06dbe565c 39-72
+  s_166e59cbc32e1f::t_99756004da1003 146-162
+testdata/npm/provenance/contract-npm-external-parameters-removed-members-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-invocation-source-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-group-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-pnpm-valid.json
+  s_166e59cbc32e1f::t_0f020dca897c20 1
+testdata/npm/provenance/contract-npm-built-source-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-npm-manager-distribution.json
+  s_166e59cbc32e1f::t_546584bb13221c 1
+internal/npmprofile/build_pack.go
+  s_166e59cbc32e1f::t_418c334dfe59a8 60
+internal/npmprofile/provenance_input_test.go
+  s_166e59cbc32e1f::t_2f267d5bfbd9b7 521-525
+internal/npmprofile/runner_image_contract_test.go
+  s_166e59cbc32e1f::t_cc56edf042e547 25-27
+  s_166e59cbc32e1f::t_7df12bfa3b4317 1-24,28-108,112-208
+  s_636baadbb9f5f6::t_df472a69dbba25 109-111
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-whitespace.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+internal/npmprofile/contract_fixture_test.go
+  s_636baadbb9f5f6::t_7a51f530e99f1b 125,131,135,138-157
+  s_166e59cbc32e1f::t_bf0623f1520a2e 126-130,132-134,136
+testdata/npm/provenance/contract-npm-manifest-media-type-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-missing.json
+  s_166e59cbc32e1f::t_393471bdfaa6a1 1
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-malformed-digest.json
+  s_166e59cbc32e1f::t_a3cba5ebb0f4c3 1
+internal/npmprofile/build_pack_types.go
+  s_166e59cbc32e1f::t_0773a813b63039 27-29
+  s_166e59cbc32e1f::t_507b68f1a814a6 94
+internal/command/npm_profile_sign_source_ref_test.go
+  s_166e59cbc32e1f::t_3d020047e8a7f0 291,293
+  s_166e59cbc32e1f::t_cc56edf042e547 294-296
+testdata/npm/provenance/contract-npm-runner-image-metadata-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-predicate.jcs.json
+  s_166e59cbc32e1f::t_a2af0c309e7d64 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-group-duplicate.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-digest-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+internal/npmprofile/runner_image_validate.go
+  s_166e59cbc32e1f::t_4a187052c14741 1-22,25-29,31-83
+  s_636baadbb9f5f6::t_73852a4d38523a 30
+  s_166e59cbc32e1f::t_cc56edf042e547 23-24
+testdata/npm/provenance/contract-npm-github-internal-parameters-actor-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-built-source-classifier-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-invocation-source-media-type-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-built-source-commit-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-reported-identity-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-package-manifest-path-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-external-parameters-minimized-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/fixtures/index.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1868-2077
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-annotations.json
+  s_166e59cbc32e1f::t_6735d883361f4a 1
+internal/npmprofile/toolchain_capture_test.go
+  s_166e59cbc32e1f::t_e82e39eca391e8 46-48
+  s_166e59cbc32e1f::t_112b46f8f352e6 20,23-29,32,34-35,37-39
+  s_166e59cbc32e1f::t_19c2d6d994f50f 142
+  s_166e59cbc32e1f::t_fa1157057a0c27 76
+testdata/npm/provenance/contract-npm-canonical-builder-id-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-build-script-disposition-executed-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-built-source-media-type-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-projection-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-empty.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-media-type-matrix-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-source-selector-bindings-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-noncanonical.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-predicate-source-ref-dispatch-retry.jcs.json
+  s_166e59cbc32e1f::t_2d1aec458fabcd 1
+internal/npmprofile/workflow_metadata_test.go
+  s_166e59cbc32e1f::t_1ab9006d9eb6ac 35,93,204
+testdata/npm/provenance/contract-npm-invocation-source-commit-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-image-os-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-build-trigger-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-npm-valid.json
+  s_166e59cbc32e1f::t_6c69e9addc0fc5 1
+internal/npmprofile/workflow_metadata_intent_test.go
+  s_166e59cbc32e1f::t_9d3076d24cef00 179
+  s_166e59cbc32e1f::t_99b7ec5e69117e 121
+internal/npmprofile/workflow_metadata.go
+  s_166e59cbc32e1f::t_7a32e6948e50a1 317-320
+  s_636baadbb9f5f6::t_49af3ea761f2f6 310,314-315,321
+  s_636baadbb9f5f6::t_06814a0804e751 322-323
+internal/npmprofile/toolchain_distribution_test.go
+  s_166e59cbc32e1f::t_53ddf678abbb70 110
+  s_166e59cbc32e1f::t_9031adfe6fdda1 78,118
+  s_166e59cbc32e1f::t_b6749ff4cbca26 68
+internal/npmprofile/provenance_validate_matrix_test.go
+  s_166e59cbc32e1f::t_b384f7d6adfb01 144
+testdata/npm/provenance/contract-npm-runner-image-operating-system-group-malformed.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-yarn-valid.json
+  s_166e59cbc32e1f::t_606112f571e714 1
+internal/npmprofile/build_pack_hermetic_test.go
+  s_166e59cbc32e1f::t_a3ca7c5ab182ec 50
+internal/command/npm_profile_build.go
+  s_166e59cbc32e1f::t_915c009edb33db 141
+testdata/npm/provenance/contract-npm-distribution-media-type-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-unknown-member.json
+  s_166e59cbc32e1f::t_5839c0e0c2987c 1
+testdata/npm/provenance/contract-npm-publish-resolution-recompute-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+internal/command/npm_profile_build_test.go
+  s_166e59cbc32e1f::t_fbe8630edec0ff 71-72
+  s_166e59cbc32e1f::t_00080a4fc27f67 91
+testdata/npm/provenance/contract-npm-built-source-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-annotation-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+internal/npmprofile/contract_fixture_catalog_test.go
+  s_166e59cbc32e1f::t_76d0a392aa577d 28-42
+internal/npmprofile/contract_fixture_input_test.go
+  s_166e59cbc32e1f::t_bbe99d09908d8e 17-24
+testdata/npm/provenance/contract-npm-package-manifest-evidence-duplicate-member.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-build-script-disposition-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-duplicate.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+internal/command/npm_profile_build_source_ref_test.go
+  s_166e59cbc32e1f::t_ca4d90ec793a2c 55-56
+  s_166e59cbc32e1f::t_9268c0fa5fb4bc 60
+internal/npmprofile/runner_capture.go
+  s_166e59cbc32e1f::t_cd32e9f3e72879 123-124
+  s_166e59cbc32e1f::t_e47c090d64ab91 1-122,125-133
+internal/npmprofile/toolchain.go
+  s_166e59cbc32e1f::t_22890c19367a96 62
+  s_166e59cbc32e1f::t_44045a504f2307 63-69
+  s_166e59cbc32e1f::t_1bc4f6492173d7 38-39
+testdata/npm/provenance/npm-resolved-dependencies-node-runtime-wrong-digest.json
+  s_166e59cbc32e1f::t_25c3e29b15e7bb 1
+docs/architecture/verification-policy-and-fixtures.md
+  s_166e59cbc32e1f::t_16efc82311047e 1248-1249
+  s_166e59cbc32e1f::t_30d752529862c9 1247,1250
+testdata/npm/provenance/contract-npm-invocation-source-duplicate.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-build-config-uri-mismatch.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-builder-version-npm-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-build-script-disposition-inconsistent.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-lockfile-media-type-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-builder-version-direct-npm-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-distribution-interface-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-non-string.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-imageos-absent-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-reordered-valid.json
+  s_166e59cbc32e1f::t_f7010816b74fc0 1
+testdata/npm/provenance/contract-npm-source-selector-conflict.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-runner-image-additional-annotation-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-builder-version-corepack-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/npm-resolved-dependencies-unknown-entry.json
+  s_166e59cbc32e1f::t_6e810685582dd8 1
+testdata/npm/provenance/contract-npm-distribution-removed-member-rejected.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-canonical-builder-identity-valid.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+testdata/npm/provenance/contract-npm-invocation-source-missing.json
+  s_166e59cbc32e1f::t_5f83be2633ccce 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "10a4ee5fbd39d34646320be167ad125f8a41daf6",
+  "prompts": {},
+  "sessions": {
+    "s_166e59cbc32e1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3150f57fffeGtgnHdJoNL7PVN",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
