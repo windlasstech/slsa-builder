@@ -1,0 +1,29 @@
+docs/architecture/README.md
+  s_636baadbb9f5f6::t_8a52102571b0d7 34-36,50-97
+docs/architecture/js-ts-npm-build-pack.md
+  s_636baadbb9f5f6::t_fd4a6b8f3d7fe9 21-22,25-28,30-37
+  s_636baadbb9f5f6::t_31ce0e72b71201 23-24,29
+  s_636baadbb9f5f6::t_8a52102571b0d7 38
+docs/architecture/js-ts-npm-package-profile.md
+  s_636baadbb9f5f6::t_bfc6be1cc33a4c 28-33,37
+  s_636baadbb9f5f6::t_c4762afe76f825 35-36
+docs/architecture/README.ko.md
+  s_636baadbb9f5f6::t_8a52102571b0d7 34,36,49-96
+  s_636baadbb9f5f6::t_32d69c946f1aa4 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1275b7f59151b0cc21c68dc833664acb6f564f7e",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
