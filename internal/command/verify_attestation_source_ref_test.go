@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/windlasstech/slsa-builder/internal/attestation"
+	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 	"github.com/windlasstech/slsa-builder/internal/policy"
@@ -96,6 +97,13 @@ func TestBindIdentityPolicySourceRefRebinding(t *testing.T) {
 			identity:  withoutBuildTrigger(sourceBindingIdentity("https://github.com/example/project", "1", "2", "refs/heads/main", commandInvocationSHA)),
 			wantID:    "windlass.verify.error.build-trigger-mismatch",
 		},
+		{
+			name:      "conflicting consumer Build Config URI pin rejected",
+			statement: dispatchStatement,
+			policy:    sourceBindingPolicy("https://github.com/example/project", "refs/tags/v1.2.3", commandBuiltSHA),
+			identity:  withBuildConfigURI(sourceBindingIdentity("https://github.com/example/project", "1", "2", "refs/heads/main", commandInvocationSHA), "https://github.com/example/project/.github/workflows/other.yml@refs/heads/main"),
+			wantID:    "windlass.verify.error.build-config-uri-mismatch",
+		},
 	}
 
 	for _, test := range tests {
@@ -105,6 +113,44 @@ func TestBindIdentityPolicySourceRefRebinding(t *testing.T) {
 			result := NewDispatcher(NewVerifyAttestationCommand()).Dispatch(context.Background(), paths.args(), &output)
 			requireSourceBindingDiagnostic(t, output.Bytes(), result.ExitCode, test.wantID)
 		})
+	}
+}
+
+func TestVerifyAttestationKeepsValidationCheckField(t *testing.T) {
+	t.Parallel()
+	raw := sourceBindingStatement(t, sourceBindingStatementOptions{})
+	var statement provenance.Statement
+	if err := json.Unmarshal(raw, &statement); err != nil {
+		t.Fatal(err)
+	}
+	for index := range statement.Predicate.BuildDefinition.ResolvedDependencies {
+		dependency := &statement.Predicate.BuildDefinition.ResolvedDependencies[index]
+		if dependency.Name == "runner-image" {
+			delete(dependency.Annotations, "operating_system")
+		}
+	}
+	encoded, err := statement.CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths := writeSourceBindingInputs(t,
+		sourceBindingPolicy("https://github.com/example/project", "refs/tags/v1.2.3", commandBuiltSHA),
+		sourceBindingIdentity("https://github.com/example/project", "1", "2", "refs/heads/main", commandInvocationSHA),
+		encoded)
+	var output bytes.Buffer
+	result := NewDispatcher(NewVerifyAttestationCommand()).Dispatch(context.Background(), paths.args(), &output)
+	if result.ExitCode != 1 {
+		t.Fatalf("exit code = %d, want 1; output=%s", result.ExitCode, output.String())
+	}
+	var report diagnostic.Report
+	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.PrimaryID == nil || *report.PrimaryID != "windlass.verify.error.resolved-dependencies-runner-image" {
+		t.Fatalf("primary ID = %v, want runner-image rejection", report.PrimaryID)
+	}
+	if len(report.Diagnostics) == 0 || report.Diagnostics[0].Check != "resolvedDependencies.runner-image" {
+		t.Fatalf("check field = %#v, want the failing descriptor path, not a generic label", report.Diagnostics)
 	}
 }
 
@@ -210,6 +256,11 @@ func sourceBindingIdentity(repository, repositoryID, ownerID, ref, revision stri
 
 func withoutBuildTrigger(identity attestation.IdentityExpectation) attestation.IdentityExpectation {
 	identity.BuildTrigger = ""
+	return identity
+}
+
+func withBuildConfigURI(identity attestation.IdentityExpectation, value string) attestation.IdentityExpectation {
+	identity.BuildConfigURI = value
 	return identity
 }
 

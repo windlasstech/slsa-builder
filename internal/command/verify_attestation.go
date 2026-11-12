@@ -116,7 +116,12 @@ func (verifyAttestationCommand) Execute(ctx context.Context, args []string, out 
 			if id == diagnostic.IDInputUnavailable {
 				failure = ErrInvocationFailure
 			}
-			return emitFailure(out, id, "npm-evidence", err.Error(), failure)
+			check := "npm-evidence"
+			var withCheck interface{ DiagnosticCheck() string }
+			if errors.As(err, &withCheck) && withCheck.DiagnosticCheck() != "" {
+				check = withCheck.DiagnosticCheck()
+			}
+			return emitFailure(out, id, check, err.Error(), failure)
 		}
 		return emitTypedVerificationFailure(out, err)
 	}
@@ -191,7 +196,11 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 	if internal.GitHub.RepositoryID != identity.SourceRepositoryID || internal.GitHub.RepositoryOwnerID != identity.SourceRepositoryOwnerID {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-numeric-id-mismatch", "signed GitHub numeric identity conflicts with the certificate")
 	}
-	identity.BuildConfigURI = identity.SourceRepositoryURI + "/" + parameters.Workflow.Path + "@" + invocationRef
+	derivedBuildConfigURI := identity.SourceRepositoryURI + "/" + parameters.Workflow.Path + "@" + invocationRef
+	if identity.BuildConfigURI != "" && identity.BuildConfigURI != derivedBuildConfigURI {
+		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.build-config-uri-mismatch", "consumer Build Config URI pin conflicts with the signed invocation record")
+	}
+	identity.BuildConfigURI = derivedBuildConfigURI
 	identity.SourceRef = invocationRef
 	identity.SourceDigest = invocationRevision
 	return identity, nil
