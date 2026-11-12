@@ -350,7 +350,7 @@ func validateMetadata(metadata *DiagnosticMetadata) error {
 		return nil
 	}
 	if metadata.PackageManifest == nil && metadata.PublishNPMVersion == nil && metadata.Publish == nil {
-		return contractErrorf("diagnostic_metadata must contain package_manifest")
+		return contractErrorf("diagnostic_metadata must contain package_manifest, publish_npm_version, or publish")
 	}
 	if metadata.PublishNPMVersion != nil && !publishNPMVersionPattern.MatchString(*metadata.PublishNPMVersion) {
 		return contractErrorf("publish_npm_version must be an exact three-part SemVer version")
