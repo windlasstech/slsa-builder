@@ -1,0 +1,24 @@
+docs/architecture/verification-policy-and-fixtures.md
+  s_636baadbb9f5f6::t_1f1d82aa62be49 366
+  s_636baadbb9f5f6::t_e72cf0c1d5d03c 343
+internal/attestation/verify.go
+  s_636baadbb9f5f6::t_68e2e108b6436a 44
+internal/attestation/invocation_identity_test.go
+  s_636baadbb9f5f6::t_ef119f44118d18 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1b1cbd62ec1d9014ef5680e75a634eddb314b0c7",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
