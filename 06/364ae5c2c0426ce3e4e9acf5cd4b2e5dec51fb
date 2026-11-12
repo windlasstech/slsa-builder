@@ -1,0 +1,20 @@
+internal/npmprofile/external_interface_boundary_test.go
+  s_636baadbb9f5f6::t_24914107ebbc60 24,33,36
+  s_636baadbb9f5f6::t_eb0acc2daee973 1-23,25-32,34-35,37-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "06364ae5c2c0426ce3e4e9acf5cd4b2e5dec51fb",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
