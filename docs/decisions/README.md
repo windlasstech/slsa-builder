@@ -164,7 +164,6 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0032 | Constrain manual dispatch releases to version tags                                                                | JS/TS npm profile                                                                                                                                                                                |
 | 0033 | Run build script only when declared                                                                               | JS/TS npm build and pack                                                                                                                                                                         |
 | 0034 | Do not support private dependency credentials                                                                     | JS/TS npm profile                                                                                                                                                                                |
-| 0035 | `actions/attest` as initial Sigstore signing adapter                                                              | Core profile contract, common provenance, JS/TS npm provenance and publish, release manifest                                                                                                     |
 | 0036 | Three-job digest-verified publish graph                                                                           | JS/TS npm provenance and publish, verification policy                                                                                                                                            |
 | 0037 | Define initial verification deliverables                                                                          | Verification policy and fixtures                                                                                                                                                                 |
 | 0039 | Scope release asset profile to one asset per run                                                                  | GitHub Release asset publisher                                                                                                                                                                   |
@@ -179,7 +178,6 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0052 | Compose npm package tarball producer with release asset publisher                                                 | Composition spec, verification policy                                                                                                                                                            |
 | 0053 | Three-job release manifest signing boundary                                                                       | Release manifest                                                                                                                                                                                 |
 | 0054 | Use `slsa-builder.dev` release manifest predicate URI                                                             | Release manifest, verification policy                                                                                                                                                            |
-| 0055 | `actions/attest` custom mode for Statement construction                                                           | Common provenance, JS/TS npm provenance and publish                                                                                                                                              |
 | 0056 | Treat non-selected lockfiles as stale diagnostics                                                                 | JS/TS npm build and pack, JS/TS npm provenance and publish, verification policy                                                                                                                  |
 | 0057 | Provide public npm release-asset mode                                                                             | Composition spec, JS/TS npm provenance and publish, GitHub Release asset publisher                                                                                                               |
 | 0058 | Define GitHub Release asset publisher authority boundary                                                          | GitHub Release asset publisher, composition spec, verification policy                                                                                                                            |
@@ -240,15 +238,17 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 
 ### Superseded or deprecated ADRs (historical only)
 
-| ADR  | Superseded by | Reason                                                                   |
-| ---- | ------------- | ------------------------------------------------------------------------ |
-| 0020 | 0028          | Reusable workflow ref identity replaced by SHA-pinned identity           |
-| 0021 | 0042          | Profile-specific buildType URIs replaced by acquired-domain URIs         |
-| 0038 | 0049          | Release asset provenance model changed from builder to distributor       |
-| 0040 | 0049          | `github-release-asset-slsa3.yml` entrypoint removed from production path |
-| 0041 | 0042          | Release asset buildType URI replaced by acquired-domain namespace        |
-| 0044 | 0049          | Three-job release asset build graph replaced by publisher model          |
-| 0047 | 0051          | Canonical attestation storage replaced by sidecar distribution model     |
+| ADR  | Superseded by | Reason                                                                     |
+| ---- | ------------- | -------------------------------------------------------------------------- |
+| 0020 | 0028          | Reusable workflow ref identity replaced by SHA-pinned identity             |
+| 0021 | 0042          | Profile-specific buildType URIs replaced by acquired-domain URIs           |
+| 0038 | 0049          | Release asset provenance model changed from builder to distributor         |
+| 0040 | 0049          | `github-release-asset-slsa3.yml` entrypoint removed from production path   |
+| 0041 | 0042          | Release asset buildType URI replaced by acquired-domain namespace          |
+| 0044 | 0049          | Three-job release asset build graph replaced by publisher model            |
+| 0047 | 0051          | Canonical attestation storage replaced by sidecar distribution model       |
+| 0035 | 0077          | `actions/attest` signing adapter replaced by the Go-native DSSE signer     |
+| 0055 | 0077          | `actions/attest` custom-mode Statement construction replaced by the signer |
 
 ## ADR writing rules
 
