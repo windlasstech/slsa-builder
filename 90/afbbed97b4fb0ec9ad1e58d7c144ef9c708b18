@@ -1,0 +1,14 @@
+docs/architecture/composed-workflow-internal-handoff.md
+  h_495200fbbeca45 222
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "90afbbed97b4fb0ec9ad1e58d7c144ef9c708b18",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
