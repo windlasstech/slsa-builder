@@ -22,8 +22,6 @@ type WorkflowBuildMetadataConfig struct {
 	DistTagInput           string
 	AccessInput            string
 	ReleaseAssetMode       bool
-	ReleaseTag             string
-	ProvenanceSidecar      string
 	LinkedArtifactMetadata bool
 	EventName              string
 	RefType                string
@@ -178,7 +176,7 @@ func workflowSourceParameters(selection Result, config WorkflowBuildMetadataConf
 }
 
 func validateWorkflowRuntime(selection Result, build BuildPackResult, config WorkflowBuildMetadataConfig, source SourceParameters) error {
-	if config.ReleaseAssetMode || trimASCII(config.ReleaseTag) != "" || trimASCII(config.ProvenanceSidecar) != "" || config.LinkedArtifactMetadata {
+	if config.ReleaseAssetMode || config.LinkedArtifactMetadata {
 		return errors.New("release-asset-only inputs require the later release-asset mode implementation")
 	}
 	if config.EventName != "push" && config.EventName != "workflow_dispatch" {

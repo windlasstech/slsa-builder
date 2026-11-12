@@ -21,8 +21,6 @@ on:
       dist-tag: {type: string}
       access: {type: string}
       release-asset-mode: {type: boolean, default: false}
-      release-tag: {type: string}
-      provenance-sidecar: {type: string}
       linked-artifact-metadata: {type: boolean, default: false}
     outputs:
       package-name: {value: "${{ jobs.publish.outputs.package-name }}"}

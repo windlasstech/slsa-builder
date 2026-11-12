@@ -341,11 +341,16 @@ func checkNPMWorkflowCall(call workflowCall) error {
 		"package-directory": {typeName: "string", required: true},
 		"source-ref":        {typeName: "string"},
 		"registry-url":      {typeName: "string"}, "dist-tag": {typeName: "string"}, "access": {typeName: "string"},
-		"release-asset-mode": {typeName: "boolean", boolean: true}, "release-tag": {typeName: "string"},
-		"provenance-sidecar": {typeName: "string"}, "linked-artifact-metadata": {typeName: "boolean", boolean: true},
+		"release-asset-mode":       {typeName: "boolean", boolean: true},
+		"linked-artifact-metadata": {typeName: "boolean", boolean: true},
+	}
+	for name := range call.Inputs {
+		if _, ok := wantInputs[name]; !ok {
+			return fmt.Errorf("unknown workflow_call input %q", name)
+		}
 	}
 	if len(call.Inputs) != len(wantInputs) {
-		return fmt.Errorf("workflow_call inputs must contain exactly the nine public inputs")
+		return fmt.Errorf("workflow_call inputs must contain exactly the seven public inputs")
 	}
 	for name, want := range wantInputs {
 		input, ok := call.Inputs[name]

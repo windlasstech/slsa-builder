@@ -30,14 +30,6 @@ on:
         required: false
         type: boolean
         default: false
-      release-tag:
-        description: Reserved release asset tag
-        required: false
-        type: string
-      provenance-sidecar:
-        description: Reserved provenance sidecar path
-        required: false
-        type: string
       linked-artifact-metadata:
         description: Reserved linked artifact metadata mode
         required: false
@@ -209,12 +201,9 @@ jobs:
       - name: Reject unavailable distribution modes
         env:
           LINKED_ARTIFACT_METADATA: ${{ inputs.linked-artifact-metadata }}
-          PROVENANCE_SIDECAR: ${{ inputs.provenance-sidecar }}
           RELEASE_ASSET_MODE: ${{ inputs.release-asset-mode }}
-          RELEASE_TAG: ${{ inputs.release-tag }}
         run: |
-          if [[ "$RELEASE_ASSET_MODE" != "false" || -n "$RELEASE_TAG" || \
-                -n "$PROVENANCE_SIDECAR" || "$LINKED_ARTIFACT_METADATA" != "false" ]]; then
+          if [[ "$RELEASE_ASSET_MODE" != "false" || "$LINKED_ARTIFACT_METADATA" != "false" ]]; then
             printf '%s\n' 'release-asset distribution inputs are not implemented by npm-only mode' >&2
             exit 1
           fi
