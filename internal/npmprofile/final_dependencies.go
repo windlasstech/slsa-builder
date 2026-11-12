@@ -51,15 +51,10 @@ func validateFinalDependencies(values []provenance.ResourceDescriptor, parameter
 	if err != nil {
 		return err
 	}
-	for _, name := range []string{"invocation-source", "built-source"} {
-		if err := validateSourceDescriptor(byName[name], parameters); err != nil {
-			return err
-		}
+	if err := validateSourceDependencies(byName, parameters); err != nil {
+		return err
 	}
 	built := byName["built-source"]
-	if parameters.Source.Ref == "" && byName["invocation-source"].Digest["gitCommit"] != built.Digest["gitCommit"] {
-		return npmValidationError(IDBuiltSource, "resolvedDependencies.built-source", "omitted selector requires identical source identities")
-	}
 	if err := validateManifestDescriptor(byName["package-manifest"], parameters, built.Digest["gitCommit"]); err != nil {
 		return err
 	}
@@ -91,6 +86,18 @@ func validateFinalDependencies(values []provenance.ResourceDescriptor, parameter
 		return err
 	}
 	return validateRunnerDescriptor(byName["runner-image"])
+}
+
+func validateSourceDependencies(byName map[string]provenance.ResourceDescriptor, parameters ExternalParameters) error {
+	for _, name := range []string{"invocation-source", "built-source"} {
+		if err := validateSourceDescriptor(byName[name], parameters); err != nil {
+			return err
+		}
+	}
+	if parameters.Source.Ref == "" && byName["invocation-source"].Digest["gitCommit"] != byName["built-source"].Digest["gitCommit"] {
+		return npmValidationError(IDBuiltSource, "resolvedDependencies.built-source", "omitted selector requires identical source identities")
+	}
+	return nil
 }
 
 func finalLockfileManager(value provenance.ResourceDescriptor, parameters ExternalParameters, commit string) (Manager, error) {

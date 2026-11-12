@@ -20,15 +20,9 @@ func ResolveStatementSources(statement provenance.Statement) (StatementSources, 
 	if err != nil {
 		return StatementSources{}, err
 	}
-	for _, name := range []string{"invocation-source", "built-source"} {
-		if err := validateSourceDescriptor(dependencies[name], parameters); err != nil {
-			return StatementSources{}, err
-		}
+	if err := validateSourceDependencies(dependencies, parameters); err != nil {
+		return StatementSources{}, err
 	}
-	invocation := dependencies["invocation-source"].Digest["gitCommit"]
 	built := dependencies["built-source"].Digest["gitCommit"]
-	if parameters.Source.Ref == "" && invocation != built {
-		return StatementSources{}, npmValidationError(IDBuiltSource, "resolvedDependencies.built-source", "omitted selector requires equal source commits")
-	}
-	return StatementSources{Repository: parameters.Workflow.Repository, BuiltRef: effectiveBuiltRef(parameters), BuiltCommit: built, InvocationRef: parameters.Workflow.Ref, InvocationCommit: invocation}, nil
+	return StatementSources{Repository: parameters.Workflow.Repository, BuiltRef: effectiveBuiltRef(parameters), BuiltCommit: built, InvocationRef: parameters.Workflow.Ref, InvocationCommit: dependencies["invocation-source"].Digest["gitCommit"]}, nil
 }
