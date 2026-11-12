@@ -172,9 +172,9 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 			SchemaVersion:          "1",
 			PrimaryArtifact:        metadata.PrimaryArtifact,
 			ManifestEvidence:       metadata.ManifestEvidence,
-			BuildScriptDisposition: BuildScriptResult(statement.Predicate.RunDetails.Metadata.BuildScriptDisposition),
-			ExternalParameters:     statement.Predicate.BuildDefinition.ExternalParameters,
-			ResolvedDependencies:   statement.Predicate.BuildDefinition.ResolvedDependencies,
+			BuildScriptDisposition: metadata.BuildScriptDisposition,
+			ExternalParameters:     metadata.ExternalParameters,
+			ResolvedDependencies:   metadata.ResolvedDependencies,
 		},
 		BuilderID: builderID,
 		GitHub: provenance.GitHubParameters{

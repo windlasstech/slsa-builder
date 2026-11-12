@@ -117,6 +117,43 @@ func TestSigstorePublishVerifyOfflineSignerFixture(t *testing.T) {
 	requireNPMDiagnostic(t, err, IDUnexpectedExternalParameters)
 }
 
+func TestSigstorePublishVerifyRejectsStatementMetadataDivergence(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		mutate func(*ProvenanceSigningInput)
+		wantID string
+	}{
+		{name: "runner image annotation diverges from authenticated metadata", mutate: func(signing *ProvenanceSigningInput) {
+			for index := range signing.Predicate.BuildDefinition.ResolvedDependencies {
+				dependency := &signing.Predicate.BuildDefinition.ResolvedDependencies[index]
+				if dependency.Name == "runner-image" {
+					dependency.Annotations["operating_system"] = mustJSON("Tampered\nOS")
+				}
+			}
+		}, wantID: "windlass.verify.error.resolved-dependencies-runner-image"},
+		{name: "build script disposition diverges from authenticated metadata", mutate: func(signing *ProvenanceSigningInput) {
+			signing.Predicate.RunDetails.Metadata.BuildScriptDisposition = string(BuildScriptSkippedAbsent)
+		}, wantID: "windlass.verify.error.build-script-disposition-mismatch"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			config, signing := publishVerifyInputs(t)
+			test.mutate(&signing)
+			statement, err := signing.Statement().CanonicalJSON()
+			if err != nil {
+				t.Fatalf("encode diverged test Statement: %v", err)
+			}
+			bundle := publishBundleWithPayload(t, statement)
+			got, err := NewSigstorePublishBundleVerifier(config).Verify(t.Context(), bundle)
+			requireNPMDiagnostic(t, err, test.wantID)
+			if !reflect.DeepEqual(got, VerifiedPublishBundle{}) {
+				t.Fatalf("diverged bundle returned verified evidence: %#v", got)
+			}
+		})
+	}
+}
+
 func publishVerifyInputs(t *testing.T) (SigstorePublishVerifierConfig, ProvenanceSigningInput) {
 	t.Helper()
 	input := validProvenanceInput(t, ManagerNPM)
