@@ -299,8 +299,8 @@ whitespace, leading zeros, or non-digit characters.
 ```
 
 The values are constructed from GitHub-issued OIDC claims before signing. All three are compared
-fail-closed with the corresponding claims in the issued signing certificate before any registry
-orrelease mutation. In particular, `event_name` must equal the certificate's Build Trigger claim; a
+fail-closed with the corresponding claims in the issued signing certificate before any registry or
+release mutation. In particular, `event_name` must equal the certificate's Build Trigger claim; a
 disagreement is rejected with `windlass.verify.error.build-trigger-mismatch`. The numeric repository
 and owner identifiers must also agree with the certificate and trusted policy. Certificate
 authentication of an event does not replace the profile's separate supported-event admission check.

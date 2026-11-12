@@ -12,8 +12,8 @@ import (
 
 const IDPackageManifestEvidence = "windlass.verify.error.package-manifest-evidence"
 
-// IDSourceManifestDrift rejects a selected package manifest whose on-disk or
-// packed bytes no longer equal the original snapshot recorded as evidence.
+// IDSourceManifestDrift rejects a selected package manifest whose on-disk
+// bytes no longer equal the original snapshot recorded as evidence.
 const IDSourceManifestDrift = "windlass.verify.error.source-manifest-drift"
 const IDBuildScriptDisposition = "windlass.verify.error.build-script-disposition-mismatch"
 
