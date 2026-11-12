@@ -219,7 +219,7 @@ Their values and the conditional `linked_artifact_settings` member rules must co
   - Re-read, build-mutated, or packed manifest bytes cannot replace that snapshot.
   - Arrays, duplicate members, missing members, and additional members are invalid.
   - `path` is the repository-root-relative selected manifest path.
-  - Use `package.json` for directory `.` and `<package.directory>/package.json` otherwise.
+  - Use `package.json` for directory `.` and `<package-directory>/package.json` otherwise.
   - Reject absolute, traversing, backslashed, empty, or out-of-directory paths.
   - `content_base64` is canonical standard RFC 4648 base64 with required padding and no whitespace.
   - Reject URL-safe alphabet, noncanonical padding or pad bits, and malformed encodings.
