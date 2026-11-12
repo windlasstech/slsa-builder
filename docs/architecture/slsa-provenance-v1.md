@@ -151,7 +151,7 @@ belongs to the profile specification:
     "runDetails": {
       "builder": {
         "id": "<full GitHub reusable workflow URI with SHA>",
-        "version": { "nodejs": "v24.0.0", "npm": "11.0.0" },
+        "version": { "nodejs": "v24.22.1", "npm": "11.19.1" },
         "builderDependencies": [
           {
             "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
@@ -560,25 +560,25 @@ duplicated or forbidden builder value is rejected with
 Valid direct-npm version shape:
 
 ```json
-{ "version": { "nodejs": "v24.0.0", "npm": "11.0.0" } }
+{ "version": { "nodejs": "v24.22.1", "npm": "11.19.1" } }
 ```
 
 Valid Corepack version shape:
 
 ```json
-{ "version": { "nodejs": "v24.0.0", "npm": "11.0.0", "corepack": "0.29.4" } }
+{ "version": { "nodejs": "v24.22.1", "npm": "11.19.1", "corepack": "0.29.4" } }
 ```
 
 Invalid, because the required bundled `npm` observation is absent:
 
 ```json
-{ "version": { "nodejs": "v24.0.0" } }
+{ "version": { "nodejs": "v24.22.1" } }
 ```
 
 Invalid, because `nodejs` is not an exact observed version string:
 
 ```json
-{ "version": { "nodejs": "v24", "npm": "11.0.0" } }
+{ "version": { "nodejs": "v24", "npm": "11.19.1" } }
 ```
 
 Valid signing-adapter dependency:
