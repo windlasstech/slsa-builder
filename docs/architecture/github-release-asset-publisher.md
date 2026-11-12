@@ -94,7 +94,7 @@ composition primitive, not the recommended npm caller surface selected by the pu
 | `release-tag`                       | string | yes      | none    | Full `refs/tags/<tag-name>` ref for an existing release.      |
 | `producer-provenance-artifact-name` | string | yes      | none    | Same-run artifact containing exactly one signed bundle.       |
 | `producer-provenance-sha256`        | string | yes      | none    | 64 lowercase hexadecimal SHA-256 of the signed bundle.        |
-| `manifest-evidence`                 | string | yes      | none    | UTF-8 JSON object with original selected manifest bytes.      |
+| `manifest-evidence`                 | string | yes      | none    | UTF-8 JSON object with `path` and base64 `content_base64`.    |
 | `trusted-builder-id`                | string | yes      | none    | Narrowing constraint on the selected policy's `builder.id`.   |
 | `trusted-build-type`                | string | yes      | none    | Exact closed-registry selector and caller constraint.         |
 | `expected-subject-name`             | string | yes      | none    | Narrowing constraint on the registered producer subject.      |
