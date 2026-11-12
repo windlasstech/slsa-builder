@@ -88,18 +88,6 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 	if !seenRunnerImage {
 		return RunnerCapture{}, runnerCaptureError("runner image metadata lacks the Runner Image group", imageOS, deploymentVersion)
 	}
-	if _, ok := runnerImageReleaseProjection(capture.ImageVersion); !ok {
-		return RunnerCapture{}, runnerCaptureError("runner image metadata has a malformed full image version", imageOS, deploymentVersion)
-	}
-	if !validRunnerSoftwareURI(capture.IncludedSoftwareURL) {
-		return RunnerCapture{}, runnerCaptureError("runner image metadata has a malformed Included Software URI", imageOS, deploymentVersion)
-	}
-	releaseTag, _ := runnerImageReleaseProjection(capture.ImageVersion)
-	releaseURI, err := url.Parse(capture.ImageReleaseURL)
-	if !validRunnerReleaseURI(capture.ImageReleaseURL) || err != nil || !strings.HasSuffix(releaseURI.Path, "/"+releaseTag) {
-		return RunnerCapture{}, runnerCaptureError("runner image metadata has a malformed or version-disagreeing Image Release URI", imageOS, deploymentVersion)
-	}
-
 	seenOperatingSystem := false
 	for _, group := range groups {
 		if group.Group != "Operating System" {
@@ -117,7 +105,30 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 	if !seenOperatingSystem {
 		return RunnerCapture{}, runnerCaptureError("runner image metadata lacks the Operating System group", imageOS, deploymentVersion)
 	}
+	if err := validateRunnerCapture(capture, imageOS); err != nil {
+		return RunnerCapture{}, err
+	}
 	return capture, nil
+}
+
+// validateRunnerCapture enforces the runner identity invariants on any capture
+// source: the parser and the RunnerOverride test seam share this one check.
+func validateRunnerCapture(capture RunnerCapture, imageOS string) error {
+	releaseTag, ok := runnerImageReleaseProjection(capture.ImageVersion)
+	if !ok {
+		return runnerCaptureError("runner image metadata has a malformed full image version", imageOS, capture.DeploymentVersion)
+	}
+	if !validRunnerSoftwareURI(capture.IncludedSoftwareURL) {
+		return runnerCaptureError("runner image metadata has a malformed Included Software URI", imageOS, capture.DeploymentVersion)
+	}
+	releaseURI, err := url.Parse(capture.ImageReleaseURL)
+	if !validRunnerReleaseURI(capture.ImageReleaseURL) || err != nil || !strings.HasSuffix(releaseURI.Path, "/"+releaseTag) {
+		return runnerCaptureError("runner image metadata has a malformed or version-disagreeing Image Release URI", imageOS, capture.DeploymentVersion)
+	}
+	if strings.TrimSpace(capture.ImageLabel) == "" || strings.TrimSpace(capture.OperatingSystem) == "" {
+		return runnerCaptureError("runner image capture lacks a non-empty label or operating system detail", imageOS, capture.DeploymentVersion)
+	}
+	return nil
 }
 
 func runnerImageReleaseProjection(version string) (string, bool) {

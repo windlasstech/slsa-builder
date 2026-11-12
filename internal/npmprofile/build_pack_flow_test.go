@@ -110,6 +110,28 @@ func TestBuildPackRejectsSourceManifestDrift(t *testing.T) {
 	}
 }
 
+func TestBuildPackRejectsInvalidRunnerOverride(t *testing.T) {
+	// This case replaces PATH and therefore must remain serial.
+	clearToolchainRootEnvironment(t)
+	installFakeToolchain(t)
+	t.Setenv("ImageOS", "")
+	t.Setenv("ImageVersion", "")
+	root := createRepository(t, map[string]string{
+		"package.json":      `{"name":"example","version":"1.0.0","packageManager":"npm@11.5.1","repository":"windlasstech/slsa-builder"}`,
+		"package-lock.json": `{}`,
+	})
+	override := runnerProbeCapture()
+	override.IncludedSoftwareURL = "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme%2Emd"
+	_, err := BuildPack(t.Context(), BuildPackConfig{
+		Selection:          analyze(t, root, "."),
+		OutputDirectory:    t.TempDir(),
+		ArtifactName:       "artifact",
+		ExternalParameters: []byte(`{}`),
+		RunnerOverride:     &override,
+	})
+	requireNPMDiagnostic(t, err, "windlass.verify.error.input-unavailable")
+}
+
 func TestBuildPackInvalidYarnOutputName(t *testing.T) {
 	t.Parallel()
 	selection := Result{}

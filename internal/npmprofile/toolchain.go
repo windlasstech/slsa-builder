@@ -61,6 +61,9 @@ func prepareToolchain(ctx context.Context, config BuildPackConfig, root string, 
 	}
 	var runner RunnerCapture
 	if config.RunnerOverride != nil {
+		if err := validateRunnerCapture(*config.RunnerOverride, os.Getenv("ImageOS")); err != nil {
+			return ToolchainCapture{}, "", err
+		}
 		runner = *config.RunnerOverride
 	} else {
 		runner, err = captureRunner()

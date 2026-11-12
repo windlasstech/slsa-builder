@@ -91,8 +91,11 @@ type BuildPackConfig struct {
 	ArtifactName         string
 	ExternalParameters   json.RawMessage
 	ResolvedDependencies []provenance.ResourceDescriptor
-	RunnerOverride       *RunnerCapture
-	fetcher              distributionFetcher
+	// RunnerOverride is a test seam for hermetic captures; production leaves it
+	// nil so the runner identity comes from the on-disk metadata. A non-nil
+	// override is validated against the same invariants as a parsed capture.
+	RunnerOverride *RunnerCapture
+	fetcher        distributionFetcher
 }
 
 // BuildPackResult contains the one packed artifact, metadata, and observed tool state.
