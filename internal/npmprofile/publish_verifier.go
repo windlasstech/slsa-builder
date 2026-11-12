@@ -123,7 +123,7 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 	}
 	identityExpectation := verifier.config.Identity
 	if parameters.Workflow.Repository != identityExpectation.SourceRepositoryURI {
-		return errors.New("signed npm source repository differs from verified Fulcio identity")
+		return npmValidationError("windlass.verify.error.source-identity-mismatch", "externalParameters.workflow.repository", "signed npm source repository differs from verified Fulcio identity")
 	}
 	builderID := statement.Predicate.RunDetails.Builder.ID
 	if err := identity.ValidateBuilderIDForWorkflow(builderID, NPMWorkflowPath); err != nil {
@@ -141,7 +141,7 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 		return npmValidationError("windlass.verify.error.signer-workflow-sha-mismatch", "predicate.runDetails.builder.id", "signed npm builder SHA differs from verified Fulcio signer")
 	}
 	if len(statement.Subject) != 1 {
-		return errors.New("signed npm provenance must contain exactly one subject")
+		return npmValidationError("windlass.verify.error.subject-cardinality-error", "subject", "signed npm provenance must contain exactly one subject")
 	}
 	corepackVersion := (*string)(nil)
 	dependencies, err := finalDependencySet(statement.Predicate.BuildDefinition.ResolvedDependencies)
@@ -151,7 +151,7 @@ func (verifier *sigstorePublishVerifier) validateStatement(statement provenance.
 	if _, present := dependencies["package-manager-distribution"]; present {
 		value, present := statement.Predicate.RunDetails.Builder.Version["corepack"]
 		if !present {
-			return errors.New("signed npm builder is missing required Corepack version")
+			return npmValidationError("windlass.verify.error.builder-version-mismatch", "runDetails.builder.version", "signed npm builder is missing required Corepack version")
 		}
 		corepackVersion = &value
 	}

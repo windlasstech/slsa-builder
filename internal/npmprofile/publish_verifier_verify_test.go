@@ -154,6 +154,40 @@ func TestSigstorePublishVerifyRejectsStatementMetadataDivergence(t *testing.T) {
 	}
 }
 
+func TestSigstorePublishVerifyRejectsMultiSubjectStatement(t *testing.T) {
+	t.Parallel()
+	config, signing := publishVerifyInputs(t)
+	statement := signing.Statement()
+	statement.Subject = append(statement.Subject, statement.Subject[0])
+	payload, err := statement.CanonicalJSON()
+	if err != nil {
+		t.Fatalf("encode two-subject Statement: %v", err)
+	}
+	bundle := publishBundleWithPayload(t, payload)
+	got, err := NewSigstorePublishBundleVerifier(config).Verify(t.Context(), bundle)
+	requireNPMDiagnostic(t, err, "windlass.verify.error.subject-cardinality-error")
+	if !reflect.DeepEqual(got, VerifiedPublishBundle{}) {
+		t.Fatalf("two-subject bundle returned verified evidence: %#v", got)
+	}
+}
+
+func TestSigstorePublishVerifyRejectsDistributionWithoutCorepackVersion(t *testing.T) {
+	t.Parallel()
+	config, _ := publishVerifyInputs(t)
+	signing, err := NewProvenanceSigningInput(validProvenanceInput(t, ManagerPNPM))
+	if err != nil {
+		t.Fatalf("assemble pnpm Statement: %v", err)
+	}
+	delete(signing.Predicate.RunDetails.Builder.Version, "corepack")
+	payload, err := signing.Statement().CanonicalJSON()
+	if err != nil {
+		t.Fatalf("encode pnpm Statement: %v", err)
+	}
+	bundle := publishBundleWithPayload(t, payload)
+	_, err = NewSigstorePublishBundleVerifier(config).Verify(t.Context(), bundle)
+	requireNPMDiagnostic(t, err, "windlass.verify.error.builder-version-mismatch")
+}
+
 func publishVerifyInputs(t *testing.T) (SigstorePublishVerifierConfig, ProvenanceSigningInput) {
 	t.Helper()
 	input := validProvenanceInput(t, ManagerNPM)

@@ -50,7 +50,7 @@ func TestPublishStatementValidationGuards(t *testing.T) {
 			_ = i
 			s.Predicate.BuildDefinition.ExternalParameters = json.RawMessage(`{}`)
 		}},
-		{"repository differs", "signed npm source repository differs from verified Fulcio identity", "", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
+		{"repository differs", "signed npm source repository differs from verified Fulcio identity", "windlass.verify.error.source-identity-mismatch", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
 			_ = s
 			i.SourceRepositoryURI = "https://github.com/other/project"
 		}},
@@ -70,12 +70,12 @@ func TestPublishStatementValidationGuards(t *testing.T) {
 			_ = s
 			i.WorkflowSHA = testAttestSHA
 		}},
-		{"no subject", "signed npm provenance must contain exactly one subject", "", func(s *provenance.Statement, i *attestation.IdentityExpectation) { _ = i; s.Subject = nil }},
-		{"multiple subjects", "signed npm provenance must contain exactly one subject", "", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
+		{"no subject", "signed npm provenance must contain exactly one subject", "windlass.verify.error.subject-cardinality-error", func(s *provenance.Statement, i *attestation.IdentityExpectation) { _ = i; s.Subject = nil }},
+		{"multiple subjects", "signed npm provenance must contain exactly one subject", "windlass.verify.error.subject-cardinality-error", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
 			_ = i
 			s.Subject = append(s.Subject, s.Subject[0])
 		}},
-		{"corepack absent", "signed npm builder is missing required Corepack version", "", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
+		{"corepack absent", "signed npm builder is missing required Corepack version", "windlass.verify.error.builder-version-mismatch", func(s *provenance.Statement, i *attestation.IdentityExpectation) {
 			_ = i
 			delete(s.Predicate.RunDetails.Builder.Version, "corepack")
 		}},
