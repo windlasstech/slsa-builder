@@ -135,3 +135,32 @@ func evidenceFixtureBytes(t testing.TB) ([]byte, []byte) {
 	}
 	return s, e
 }
+
+func TestFixtureManifestEvidenceBoundaryRejections(t *testing.T) {
+	t.Parallel()
+	statement, evidence := evidenceFixtureBytes(t)
+	for _, test := range []struct {
+		name      string
+		statement []byte
+		evidence  []byte
+	}{
+		{name: "empty content", statement: statement, evidence: []byte(`{"path":"packages/a/package.json","content_base64":""}`)},
+		{name: "traversing package directory", statement: []byte(strings.Replace(string(statement), `"directory":"packages/a"`, `"directory":"../a"`, 1)), evidence: evidence},
+		{name: "duplicate dependency names", statement: []byte(strings.Replace(string(statement),
+			`{"digest":{"gitCommit":"`+strings.Repeat("a", 40)+`"},"name":"built-source"}`,
+			`{"digest":{"gitCommit":"`+strings.Repeat("a", 40)+`"},"name":"built-source"},{"digest":{"gitCommit":"`+strings.Repeat("a", 40)+`"},"name":"built-source"}`, 1)), evidence: evidence},
+		{name: "built source without commit", statement: []byte(strings.Replace(string(statement), `"gitCommit":"`+strings.Repeat("a", 40)+`"`, `"sha256":"`+strings.Repeat("a", 64)+`"`, 1)), evidence: evidence},
+		{name: "malformed bundle", statement: []byte(`{"dsseEnvelope":{"payload":"!!!"}}`), evidence: evidence},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			manifest := validAcceptedManifest()
+			manifest.ManifestEvidence = stringPointer("testdata/npm/evidence.json")
+			err := ValidateManifestEvidence(manifest, test.statement, test.evidence)
+			var identified interface{ DiagnosticID() string }
+			if !errors.As(err, &identified) || identified.DiagnosticID() != "windlass.verify.error.package-manifest-evidence" {
+				t.Fatalf("evidence error = %v", err)
+			}
+		})
+	}
+}
