@@ -19,6 +19,7 @@ func TestFinalizeWorkflowBuildMetadataSourceRefDispatchRetry(t *testing.T) {
 		Package: Package{Directory: ".", RealDirectory: repositoryRoot, RealManagerRoot: repositoryRoot, ManagerRoot: ".", Name: "@windlass/slsa-builder", Version: "1.2.3", Repository: "https://github.com/example/project"},
 		Manager: ManagerSelection{Name: ManagerNPM, Version: "11.5.1", Source: SelectionPackageManager, SelectionManifestPath: "package.json", SelectedLockfilePath: "package-lock.json"},
 	}
+	selection.Package.SourceManifest = SourceManifestSnapshot{Path: "package.json", Content: manifest}
 	build := BuildPackResult{
 		PackageName: "@windlass/slsa-builder", PackageVersion: "1.2.3",
 		TarballPath: filepath.Join(repositoryRoot, "windlass-slsa-builder-1.2.3.tgz"),
@@ -82,6 +83,7 @@ func TestFinalizeWorkflowBuildMetadataRejectsWhitespaceSourceRef(t *testing.T) {
 		Package: Package{Directory: ".", RealDirectory: repositoryRoot, RealManagerRoot: repositoryRoot, ManagerRoot: ".", Name: "@windlass/slsa-builder", Version: "1.2.3", Repository: "https://github.com/example/project"},
 		Manager: ManagerSelection{Name: ManagerNPM, Version: "11.5.1", Source: SelectionPackageManager, SelectionManifestPath: "package.json", SelectedLockfilePath: "package-lock.json"},
 	}
+	selection.Package.SourceManifest = SourceManifestSnapshot{Path: "package.json", Content: manifest}
 	build := BuildPackResult{
 		PackageName: "@windlass/slsa-builder", PackageVersion: "1.2.3",
 		TarballPath: filepath.Join(repositoryRoot, "windlass-slsa-builder-1.2.3.tgz"),

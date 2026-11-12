@@ -66,9 +66,9 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 		return BuildPackResult{}, err
 	}
 	diagnostics = append(corepackWarning, diagnostics...)
-	manifest, _, err := readManifest(filepath.Join(config.Selection.Package.RealDirectory, "package.json"))
+	manifest, err := decodeSourceManifestSnapshot(config.Selection.Package.SourceManifest)
 	if err != nil {
-		return BuildPackResult{}, fmt.Errorf("re-read selected package manifest: %w", err)
+		return BuildPackResult{}, fmt.Errorf("decode original source-manifest snapshot: %w", err)
 	}
 	buildScript := BuildScriptCapture{Present: manifest.Scripts != nil && manifest.Scripts["build"] != "", Result: BuildScriptSkippedAbsent}
 

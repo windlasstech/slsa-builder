@@ -98,7 +98,7 @@ func FinalizeWorkflowBuildMetadata(selection Result, build BuildPackResult, conf
 
 // ResolveWorkflowPublishIntent reads and resolves the selected package's complete publish intent.
 func ResolveWorkflowPublishIntent(selection Result, registryInput, distTagInput, accessInput string) (PublishParameters, error) {
-	manifest, _, err := readManifest(filepath.Join(selection.Package.RealDirectory, "package.json"))
+	manifest, err := decodeSourceManifestSnapshot(selection.Package.SourceManifest)
 	if err != nil {
 		return PublishParameters{}, fmt.Errorf("read selected package publish intent: %w", err)
 	}

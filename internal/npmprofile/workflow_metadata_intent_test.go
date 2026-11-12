@@ -66,7 +66,11 @@ func TestWorkflowIntentManifestFailures(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			got, err := ResolveWorkflowPublishIntent(Result{Package: Package{RealDirectory: directory}}, "", "", "")
+			selection := Result{Package: Package{RealDirectory: directory}}
+			if test.manifest != "" {
+				selection.Package.SourceManifest = SourceManifestSnapshot{Path: "package.json", Content: []byte(test.manifest)}
+			}
+			got, err := ResolveWorkflowPublishIntent(selection, "", "", "")
 			if test.manifest == "" {
 				if !errors.Is(err, os.ErrNotExist) {
 					t.Fatalf("missing manifest error = %v, want os.ErrNotExist", err)
@@ -157,7 +161,8 @@ func TestWorkflowIntentMissingLockfile(t *testing.T) {
 func workflowIntentInputs(t *testing.T) (Result, BuildPackResult, WorkflowBuildMetadataConfig) {
 	t.Helper()
 	directory := t.TempDir()
-	for name, data := range map[string]string{"package.json": `{"name":"@windlass/slsa-builder","version":"1.2.3"}`, "package-lock.json": `{"lockfileVersion":3}`} {
+	manifest := []byte(`{"name":"@windlass/slsa-builder","version":"1.2.3"}`)
+	for name, data := range map[string]string{"package.json": string(manifest), "package-lock.json": `{"lockfileVersion":3}`} {
 		if err := os.WriteFile(filepath.Join(directory, name), []byte(data), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -166,6 +171,7 @@ func workflowIntentInputs(t *testing.T) (Result, BuildPackResult, WorkflowBuildM
 		Package: Package{Directory: ".", RealDirectory: directory, RealManagerRoot: directory, ManagerRoot: ".", Name: "@windlass/slsa-builder", Version: "1.2.3", Repository: "https://github.com/example/project"},
 		Manager: ManagerSelection{Name: ManagerNPM, Version: "11.5.1", Source: SelectionPackageManager, SelectionManifestPath: "package.json", SelectedLockfilePath: "package-lock.json"},
 	}
+	selection.Package.SourceManifest = SourceManifestSnapshot{Path: "package.json", Content: manifest}
 	build := BuildPackResult{
 		PackageName: selection.Package.Name, PackageVersion: "1.2.3", TarballPath: filepath.Join(directory, "windlass-slsa-builder-1.2.3.tgz"),
 		SHA256: mustSHA256(t, testSHA256), SHA512: mustSHA512(t, testSHA512),

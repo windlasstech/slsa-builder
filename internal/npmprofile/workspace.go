@@ -11,9 +11,13 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-func discoverWorkspaceRoot(repositoryRoot, selectedDirectory string) (string, *manifest, error) {
+func discoverWorkspaceRoot(repositoryRoot, selectedDirectory string, selectedManifest *manifest) (string, *manifest, error) {
 	for candidate := selectedDirectory; ; candidate = filepath.Dir(candidate) {
-		patterns, candidateManifest, metadataPresent, pnpmRootOnly, err := workspacePatterns(candidate)
+		var capturedManifest *manifest
+		if candidate == selectedDirectory {
+			capturedManifest = selectedManifest
+		}
+		patterns, candidateManifest, metadataPresent, pnpmRootOnly, err := workspacePatterns(candidate, capturedManifest)
 		if err != nil {
 			return "", nil, err
 		}
@@ -49,29 +53,30 @@ func discoverWorkspaceRoot(repositoryRoot, selectedDirectory string) (string, *m
 	return selectedDirectory, nil, nil
 }
 
-func workspacePatterns(candidate string) ([]string, *manifest, bool, bool, error) {
+func workspacePatterns(candidate string, candidateManifest *manifest) ([]string, *manifest, bool, bool, error) {
 	var patterns []string
-	var candidateManifest *manifest
 	metadataPresent := false
 	pnpmRootOnly := false
 
 	manifestPath := filepath.Join(candidate, "package.json")
-	if _, err := os.Lstat(manifestPath); err == nil {
-		decoded, _, readErr := readManifest(manifestPath)
-		if readErr != nil {
-			return nil, nil, false, false, readErr
-		}
-		candidateManifest = &decoded
-		if len(decoded.Workspaces) != 0 {
-			metadataPresent = true
-			workspacePatterns, parseErr := parseJSONWorkspacePatterns(decoded.Workspaces)
-			if parseErr != nil {
-				return nil, nil, false, false, parseErr
+	if candidateManifest == nil {
+		if _, err := os.Lstat(manifestPath); err == nil {
+			decoded, _, readErr := readManifest(manifestPath)
+			if readErr != nil {
+				return nil, nil, false, false, readErr
 			}
-			patterns = append(patterns, workspacePatterns...)
+			candidateManifest = &decoded
+		} else if !os.IsNotExist(err) {
+			return nil, nil, false, false, err
 		}
-	} else if !os.IsNotExist(err) {
-		return nil, nil, false, false, err
+	}
+	if candidateManifest != nil && len(candidateManifest.Workspaces) != 0 {
+		metadataPresent = true
+		workspacePatterns, parseErr := parseJSONWorkspacePatterns(candidateManifest.Workspaces)
+		if parseErr != nil {
+			return nil, nil, false, false, parseErr
+		}
+		patterns = append(patterns, workspacePatterns...)
 	}
 
 	pnpmPath := filepath.Join(candidate, "pnpm-workspace.yaml")

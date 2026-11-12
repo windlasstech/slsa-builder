@@ -23,7 +23,11 @@ func resolvePackage(config Config) (resolvedPackage, *diagnostic.DiagnosticMetad
 		return resolvedPackage{}, nil, IDPackageResolutionInvalid, "package-directory does not resolve to one directory inside the repository"
 	}
 
-	selectedManifest, _, err := readManifest(filepath.Join(selectedReal, "package.json"))
+	selectedManifestBytes, err := readRegularNonSymlink(filepath.Join(selectedReal, "package.json"))
+	if err != nil {
+		return resolvedPackage{}, nil, IDPackageManifestInvalid, "selected package.json is missing or invalid"
+	}
+	selectedManifest, err := decodeManifest(selectedManifestBytes)
 	if err != nil {
 		return resolvedPackage{}, nil, IDPackageManifestInvalid, "selected package.json is missing or invalid"
 	}
@@ -42,7 +46,7 @@ func resolvePackage(config Config) (resolvedPackage, *diagnostic.DiagnosticMetad
 		return resolvedPackage{}, nil, IDPackageRepositoryIdentityMismatch, "package repository identity does not match the observed caller repository"
 	}
 
-	managerRootReal, rootManifest, err := discoverWorkspaceRoot(rootReal, selectedReal)
+	managerRootReal, rootManifest, err := discoverWorkspaceRoot(rootReal, selectedReal, &selectedManifest)
 	if err != nil {
 		return resolvedPackage{}, nil, IDPackageResolutionInvalid, "workspace metadata cannot resolve the selected package unambiguously"
 	}
@@ -51,6 +55,7 @@ func resolvePackage(config Config) (resolvedPackage, *diagnostic.DiagnosticMetad
 		return resolvedPackage{}, nil, IDPackageResolutionInvalid, "package manager root cannot be represented inside the repository"
 	}
 	managerRoot := canonicalRelative(managerRootRelative)
+	manifestPath := joinRelative(selectedRelative, "package.json")
 
 	resolved := resolvedPackage{
 		repositoryRootReal: rootReal,
@@ -59,7 +64,8 @@ func resolvePackage(config Config) (resolvedPackage, *diagnostic.DiagnosticMetad
 		managerRootReal:    managerRootReal,
 		managerRoot:        managerRoot,
 		manifest:           selectedManifest,
-		manifestPath:       joinRelative(selectedRelative, "package.json"),
+		sourceManifest:     SourceManifestSnapshot{Path: manifestPath, Content: selectedManifestBytes},
+		manifestPath:       manifestPath,
 	}
 	if rootManifest != nil && managerRootReal != selectedReal {
 		resolved.rootManifest = rootManifest
@@ -142,14 +148,26 @@ func readManifest(manifestPath string) (manifest, *diagnostic.DiagnosticMetadata
 	if err != nil {
 		return manifest{}, nil, err
 	}
+	decoded, err := decodeManifest(encoded)
+	return decoded, nil, err
+}
+
+func decodeManifest(encoded []byte) (manifest, error) {
 	if err := canonicaljson.Validate(encoded); err != nil {
-		return manifest{}, nil, err
+		return manifest{}, err
 	}
 	var decoded manifest
 	if err := json.Unmarshal(encoded, &decoded); err != nil {
-		return manifest{}, nil, err
+		return manifest{}, err
 	}
-	return decoded, nil, nil
+	return decoded, nil
+}
+
+func decodeSourceManifestSnapshot(snapshot SourceManifestSnapshot) (manifest, error) {
+	if snapshot.Content == nil {
+		return manifest{}, os.ErrNotExist
+	}
+	return decodeManifest(snapshot.Content)
 }
 
 func readRegularNonSymlink(filePath string) ([]byte, error) {

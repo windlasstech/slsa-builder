@@ -35,6 +35,7 @@ func Analyze(config Config) (Result, error) {
 		Name:                         resolved.manifest.Name,
 		Version:                      resolved.manifest.Version,
 		Repository:                   canonicalRepository,
+		SourceManifest:               resolved.sourceManifest,
 	}}
 
 	selection, diagnostics, failureID := selectManager(resolved)
