@@ -53,7 +53,9 @@ func buildRegistry() map[string]Definition {
 		"signer-identity-untrusted", "signer-workflow-path-mismatch", "signer-workflow-sha-mismatch",
 		"source-identity-mismatch", "source-numeric-id-mismatch", "source-digest-mismatch",
 		"source-ref-mismatch", "source-repository-canonicalization-error", "run-invocation-uri-invalid",
-		"self-hosted-runner", "wrong-producer-signer")
+		"self-hosted-runner", "wrong-producer-signer",
+		"build-trigger-mismatch", "build-config-uri-mismatch",
+		"resolved-dependencies-invocation-source", "resolved-dependencies-built-source")
 	setPrecedence(definitions, 5, "trusted-producer-policy-conflict")
 	setPrecedence(definitions, 6,
 		"statement-type-invalid", "predicate-type-invalid", "wrong-predicate-type",
