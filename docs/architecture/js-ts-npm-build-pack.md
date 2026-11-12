@@ -880,10 +880,15 @@ when supplied, are independent observations. `$ImageOS` is optional diagnostic-o
 
 The snapshot decodes as a JSON array containing exactly one well-formed group whose `group` value is
 `Runner Image`. That group's `detail` contains exactly one each of the well-formed `Image: <label>`,
-`Version: <full-version>`, `Included Software: <url>`, and `Image Release: <url>` lines.
+`Version: <full-version>`, `Included Software: <url>`, and `Image Release: <url>` lines. Detail
+lines and their values carry no surrounding whitespace; a padded line is malformed rather than
+normalized.
 
 The full version must be non-empty and well formed, and the Included Software URI must be non-empty
-and well formed.
+and well formed: the canonical `https` software-report URL on `github.com` under
+`/actions/runner-images/blob/`, carrying no query or fragment component (a trailing `?` or `#` is a
+malformed spelling, not an empty component) and no percent-encoded path spelling, whose release-tag
+component agrees with the full version's first two numeric components.
 
 An unavailable or malformed file, a missing, duplicate, or malformed Runner Image group or required
 detail, a missing, empty, or malformed full version, or a missing, empty, or malformed Included

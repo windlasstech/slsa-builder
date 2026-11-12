@@ -107,6 +107,24 @@ func TestParseRunnerMetadataRejectsNonCanonicalURIs(t *testing.T) {
 		{name: "included software URI with query", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
 			"Included Software: " + runnerSoftwareURL + "?raw=1\n" +
 			"Image Release: " + runnerReleaseURL},
+		{name: "included software URI with trailing query delimiter", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: " + runnerSoftwareURL + "?\n" +
+			"Image Release: " + runnerReleaseURL},
+		{name: "included software URI with trailing fragment delimiter", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: " + runnerSoftwareURL + "#\n" +
+			"Image Release: " + runnerReleaseURL},
+		{name: "included software tag disagrees with image version", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.354/images/ubuntu/Ubuntu2404-Readme.md\n" +
+			"Image Release: " + runnerReleaseURL},
+		{name: "whitespace-padded detail line", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: " + runnerSoftwareURL + " \n" +
+			"Image Release: " + runnerReleaseURL},
+		{name: "whitespace-padded included software value", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software:  " + runnerSoftwareURL + "\n" +
+			"Image Release: " + runnerReleaseURL},
+		{name: "whitespace-only detail line", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n \n" +
+			"Included Software: " + runnerSoftwareURL + "\n" +
+			"Image Release: " + runnerReleaseURL},
 		{name: "http image release", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
 			"Included Software: " + runnerSoftwareURL + "\n" +
 			"Image Release: http://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353"},

@@ -57,28 +57,37 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 		}
 		seenRunnerImage = true
 		for _, line := range strings.Split(group.Detail, "\n") {
-			line = strings.TrimSpace(line)
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "" {
+				if line != "" {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata has a whitespace-padded detail line", imageOS, deploymentVersion)
+				}
+				continue
+			}
+			if trimmed != line {
+				return RunnerCapture{}, runnerCaptureError("runner image metadata has a whitespace-padded detail line", imageOS, deploymentVersion)
+			}
 			switch {
 			case strings.HasPrefix(line, "Image: "):
 				if capture.ImageLabel != "" {
 					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Image detail line", imageOS, deploymentVersion)
 				}
-				capture.ImageLabel = strings.TrimSpace(strings.TrimPrefix(line, "Image: "))
+				capture.ImageLabel = strings.TrimPrefix(line, "Image: ")
 			case strings.HasPrefix(line, "Version: "):
 				if capture.ImageVersion != "" {
 					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Version detail line", imageOS, deploymentVersion)
 				}
-				capture.ImageVersion = strings.TrimSpace(strings.TrimPrefix(line, "Version: "))
+				capture.ImageVersion = strings.TrimPrefix(line, "Version: ")
 			case strings.HasPrefix(line, "Included Software: "):
 				if capture.IncludedSoftwareURL != "" {
 					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Included Software detail line", imageOS, deploymentVersion)
 				}
-				capture.IncludedSoftwareURL = strings.TrimSpace(strings.TrimPrefix(line, "Included Software: "))
+				capture.IncludedSoftwareURL = strings.TrimPrefix(line, "Included Software: ")
 			case strings.HasPrefix(line, "Image Release: "):
 				if capture.ImageReleaseURL != "" {
 					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Image Release detail line", imageOS, deploymentVersion)
 				}
-				capture.ImageReleaseURL = strings.TrimSpace(strings.TrimPrefix(line, "Image Release: "))
+				capture.ImageReleaseURL = strings.TrimPrefix(line, "Image Release: ")
 			}
 		}
 		if capture.ImageLabel == "" || capture.ImageVersion == "" || capture.IncludedSoftwareURL == "" || capture.ImageReleaseURL == "" {
@@ -118,8 +127,9 @@ func validateRunnerCapture(capture RunnerCapture, imageOS string) error {
 	if !ok {
 		return runnerCaptureError("runner image metadata has a malformed full image version", imageOS, capture.DeploymentVersion)
 	}
-	if !validRunnerSoftwareURI(capture.IncludedSoftwareURL) {
-		return runnerCaptureError("runner image metadata has a malformed Included Software URI", imageOS, capture.DeploymentVersion)
+	includedTag, validIncluded := runnerIncludedSoftwareReleaseTag(capture.IncludedSoftwareURL)
+	if !validIncluded || includedTag != releaseTag {
+		return runnerCaptureError("runner image metadata has a malformed or version-disagreeing Included Software URI", imageOS, capture.DeploymentVersion)
 	}
 	releaseURI, err := url.Parse(capture.ImageReleaseURL)
 	if !validRunnerReleaseURI(capture.ImageReleaseURL) || err != nil || !strings.HasSuffix(releaseURI.Path, "/"+releaseTag) {
@@ -146,7 +156,11 @@ func validRunnerSoftwareURI(value string) bool {
 	parsed, err := url.Parse(value)
 	// RawPath must be empty: the signed descriptor carries the verbatim URI,
 	// so percent-encoded variants are not interchangeable with the plain form.
-	return err == nil && parsed.Scheme == "https" && parsed.Host == "github.com" && parsed.User == nil &&
+	// A raw "?" or "#" is rejected outright so trailing delimiters, which
+	// url.Parse drops from the reconstructed form, cannot smuggle a
+	// non-canonical spelling into the signed record.
+	return err == nil && !strings.ContainsAny(value, "?#") &&
+		parsed.Scheme == "https" && parsed.Host == "github.com" && parsed.User == nil &&
 		parsed.RawQuery == "" && parsed.Fragment == "" && parsed.RawPath == "" && strings.HasPrefix(parsed.Path, "/actions/runner-images/")
 }
 
