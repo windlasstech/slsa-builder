@@ -145,6 +145,7 @@ web_modules/
 *.tgz
 # Except committed hermetic-test fixtures
 !testdata/npm/buildpack/*.tgz
+!testdata/npm/provenance/contract-artifact-*.tgz
 
 # Yarn Integrity file
 .yarn-integrity

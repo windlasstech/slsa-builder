@@ -17,6 +17,8 @@ import (
 )
 
 const (
+	idBuildConfigURIMismatch     = "windlass.verify.error.build-config-uri-mismatch"
+	idBuildTriggerMismatch       = "windlass.verify.error.build-trigger-mismatch"
 	idDuplicateJSONMember        = "windlass.verify.error.duplicate-json-member"
 	idInputUnavailable           = "windlass.verify.error.input-unavailable"
 	idIssuerMismatch             = "windlass.verify.error.issuer-mismatch"
@@ -64,6 +66,8 @@ type IdentityExpectation struct {
 	SourceRepositoryOwnerID string `json:"source_repository_owner_id"`
 	SourceDigest            string `json:"source_digest"`
 	SourceRef               string `json:"source_ref"`
+	BuildTrigger            string `json:"build_trigger,omitempty"`
+	BuildConfigURI          string `json:"build_config_uri,omitempty"`
 	RunnerEnvironment       string `json:"runner_environment"`
 	RunInvocationURI        string `json:"run_invocation_uri"`
 }

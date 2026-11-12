@@ -26,7 +26,7 @@ Also: `.github/actionlint.yaml` — scoped suppressions, see below.
 
 | Task                        | File                          | Notes                                                                             |
 | --------------------------- | ----------------------------- | --------------------------------------------------------------------------------- |
-| Production npm profile      | `js-ts-npm-package-slsa3.yml` | `workflow_call` only; 9 inputs / 7 outputs; three-job graph.                      |
+| Production npm profile      | `js-ts-npm-package-slsa3.yml` | `workflow_call` only; 7 inputs / 7 outputs; three-job graph.                      |
 | Required code-quality gate  | `lint.yml`                    | PR + push to `main` + dispatch; `go test ./...` + Codecov upload, 30s fuzz smoke. |
 | Deep fuzz conformance       | `fuzz.yml`                    | Weekly Mon 04:00 UTC + dispatch; same matrix as lint smoke, 10 min per target.    |
 | Autoformat a PR             | `autofix.yml`                 | Pushes formatter fixes via `autofix.ci`; never touches `testdata/` fixtures.      |

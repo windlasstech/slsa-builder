@@ -167,6 +167,16 @@ jobs:
           - package: internal/npmprofile
             target: FuzzDecodeExternalParameters
           - package: internal/npmprofile
+            target: FuzzManifestEvidence
+          - package: internal/fixture
+            target: FuzzFixtureManifestEvidence
+          - package: internal/signing
+            target: FuzzBindOIDCSignerIdentity
+          - package: internal/npmprofile
+            target: FuzzParseRunnerMetadata
+          - package: internal/npmprofile
+            target: FuzzParseCallerWorkflowPath
+          - package: internal/npmprofile
             target: FuzzNPMPackagePURL
           - package: internal/npmprofile
             target: FuzzValidateReleaseRefEquality
@@ -208,6 +218,8 @@ jobs:
             target: FuzzNPMFailureRecognizer
           - package: internal/npmprofile
             target: FuzzOperationalStderrRelayFilter
+          - package: internal/provenance
+            target: FuzzDecodeInternalParameters
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
     steps:
@@ -219,6 +231,7 @@ jobs:
             api.github.com:443 dl.google.com:443 github.com:443 mise-versions.jdx.dev:443
             mise.jdx.dev:443 nodejs.org:443 proxy.golang.org:443
             release-assets.githubusercontent.com:443 tuf-repo-cdn.sigstore.dev:443
+            storage.googleapis.com:443
 
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

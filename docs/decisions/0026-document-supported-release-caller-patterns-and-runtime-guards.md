@@ -17,6 +17,8 @@ relations:
     scope:
       "the rerun-versus-new-release semantics that ADR 0026 delegated to the architecture
       specification; ADR 0067 decides them at ADR level"
+  - type: see-also
+    target: ADR-0107
 ---
 
 # Document Supported Release Caller Patterns and Runtime Guards

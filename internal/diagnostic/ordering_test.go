@@ -5,6 +5,29 @@ import (
 	"testing"
 )
 
+func TestIdentityBindingPrecedence(t *testing.T) {
+	t.Parallel()
+	control := mustDiagnostic(t, "windlass.verify.error.builder-id-not-immutable", "builder", "Mutable.")
+	for _, id := range []string{
+		"windlass.verify.error.build-trigger-mismatch",
+		"windlass.verify.error.build-config-uri-mismatch",
+		"windlass.verify.error.resolved-dependencies-invocation-source",
+		"windlass.verify.error.resolved-dependencies-built-source",
+	} {
+		t.Run(id, func(t *testing.T) {
+			t.Parallel()
+			identity := mustDiagnostic(t, id, "certificate", "Mismatch.")
+			report, err := Build(nil, []Diagnostic{control, identity}, nil)
+			if err != nil {
+				t.Fatalf("Build() error = %v", err)
+			}
+			if report.Diagnostics[0].ID != id {
+				t.Fatalf("primary = %q, want identity/source diagnostic %q ahead of level-6 control", report.Diagnostics[0].ID, id)
+			}
+		})
+	}
+}
+
 func TestBuildOrderingTieBreakers(t *testing.T) {
 	t.Parallel()
 	base := mustDiagnostic(t, IDSignatureMismatch, "signature", "Mismatch.")

@@ -121,8 +121,6 @@ on:
       dist-tag: {required: false, type: string}
       access: {required: false, type: string}
       release-asset-mode: {required: false, type: boolean, default: false}
-      release-tag: {required: false, type: string}
-      provenance-sidecar: {required: false, type: string}
       linked-artifact-metadata: {required: false, type: boolean, default: false}
     outputs:
       package-name: {value: "${{ jobs.publish.outputs.package-name }}"}
@@ -232,6 +230,8 @@ jobs:
         with: {name: "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with: {name: "js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}"}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with: {name: "js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}"}
       - id: node-provision
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
         working-directory: .slsa-builder
@@ -252,7 +252,8 @@ jobs:
         run: '"${{ steps.npm-provision.outputs.npm-executable }}" --version'
       - id: publish
         if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
-        run: go run ./cmd/slsa-builder-internal npm-profile-publish --npm-executable "${{ steps.npm-provision.outputs.npm-executable }}"
+        env: {METADATA_ARTIFACT_NAME: "js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}", METADATA_DIRECTORY: "${{ runner.temp }}/windlass-publish-input/metadata", METADATA_SHA256: "${{ needs.build.outputs.build-metadata-sha256 }}"}
+        run: go run ./cmd/slsa-builder-internal npm-profile-publish --npm-executable "${{ steps.npm-provision.outputs.npm-executable }}" --metadata-artifact-dir "$METADATA_DIRECTORY" --metadata-artifact-name "$METADATA_ARTIFACT_NAME" --metadata-sha256 "$METADATA_SHA256"
       - if: always()
         run: go run ./cmd/slsa-builder-internal npm-profile-report
       - if: always()
@@ -381,6 +382,45 @@ func TestCheckNPMOnlyProfile(t *testing.T) {
 	wantGraph := []string{"build", "provenance-sign", "publish"}
 	if result.Result != "pass" || result.Profile != "npm-only" || !slices.Equal(result.Graph, wantGraph) {
 		t.Fatalf("unexpected profile result: %#v", result)
+	}
+}
+
+func TestCheckNPMOnlyProfileRejectsRemovedReleaseInputs(t *testing.T) {
+	t.Run("production workflow declares exactly seven inputs", func(t *testing.T) {
+		// Given the production reusable workflow.
+		path := "../../.github/workflows/js-ts-npm-package-slsa3.yml"
+		document, err := readWorkflow(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// When checking the complete npm-only contract.
+		_, err = CheckNPMOnlyProfile(path)
+
+		// Then the workflow passes with exactly seven public inputs.
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := len(document.On.WorkflowCall.Inputs); got != 7 {
+			t.Fatalf("production workflow declares %d inputs, want 7", got)
+		}
+	})
+
+	for _, inputName := range []string{"release-tag", "provenance-sidecar"} {
+		t.Run(inputName+" is unknown", func(t *testing.T) {
+			// Given a seven-input workflow with one removed public input reintroduced.
+			declaration := "      " + inputName + ": {required: false, type: string}\n"
+			contents := replaceOnce(t, validNPMOnlyWorkflow, "      linked-artifact-metadata:", declaration+"      linked-artifact-metadata:")
+
+			// When checking the complete npm-only contract.
+			_, err := CheckNPMOnlyProfile(writeWorkflow(t, contents))
+
+			// Then the removed input is rejected as unknown.
+			want := `unknown workflow_call input "` + inputName + `"`
+			if err == nil || !strings.Contains(err.Error(), want) {
+				t.Fatalf("CheckNPMOnlyProfile() error = %v, want error containing %q", err, want)
+			}
+		})
 	}
 }
 

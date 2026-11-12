@@ -52,11 +52,13 @@ func TestNPMProfileBuildCommandSourceRefDispatchRetry(t *testing.T) {
 		}
 	}
 	err := npmProfileBuildCommand{now: clock, httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
-		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", DeploymentVersion: "20260801.1.1", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+		ImageLabel: "ubuntu-24.04", OperatingSystem: "Ubuntu\n24.04.5\nLTS", ImageVersion: "20261025.353.1", DeploymentVersion: "20261026.354.1",
+		IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md",
+		ImageReleaseURL:     "https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353",
 	}}.Execute(ctx, npmBuildSourceRefArguments(repository, outputDirectory, githubOutput, registry.URL,
 		"refs/tags/v1.0.0", "refs/heads/main", invocationRevision), &output)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v; output = %s", err, output.String())
 	}
 
 	encodedOutputs, err := os.ReadFile(githubOutput)
@@ -78,13 +80,21 @@ func TestNPMProfileBuildCommandSourceRefDispatchRetry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if parameters.Source.Ref != "refs/tags/v1.0.0" || parameters.Source.Revision != builtRevision || parameters.Source.RefType != "tag" {
+	if parameters.Source.Ref != "refs/tags/v1.0.0" {
 		t.Fatalf("built source = %#v", parameters.Source)
 	}
-	if parameters.Source.InputRef == nil || *parameters.Source.InputRef != "refs/tags/v1.0.0" ||
-		parameters.Source.InvocationRef == nil || *parameters.Source.InvocationRef != "refs/heads/main" ||
-		parameters.Source.InvocationRevision == nil || *parameters.Source.InvocationRevision != invocationRevision {
-		t.Fatalf("invocation source = %#v", parameters.Source)
+	if parameters.Workflow.Ref != "refs/heads/main" {
+		t.Fatalf("invocation workflow = %#v", parameters.Workflow)
+	}
+	if len(metadata.ResolvedDependencies) != 6 || metadata.ResolvedDependencies[0].Name != "invocation-source" || metadata.ResolvedDependencies[0].Digest["gitCommit"] != invocationRevision || metadata.ResolvedDependencies[1].Name != "built-source" || metadata.ResolvedDependencies[1].Digest["gitCommit"] != builtRevision {
+		t.Fatalf("source descriptors = %#v", metadata.ResolvedDependencies)
+	}
+	var report Report
+	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.DiagnosticMetadata == nil || report.DiagnosticMetadata.Publish == nil || report.DiagnosticMetadata.Publish.PackageIdentityPreexisting == nil || !*report.DiagnosticMetadata.Publish.PackageIdentityPreexisting || report.DiagnosticMetadata.Publish.PackageVersionPreexisting == nil || *report.DiagnosticMetadata.Publish.PackageVersionPreexisting {
+		t.Fatalf("preflight observations not present in unsigned report: %#v", report.DiagnosticMetadata)
 	}
 }
 
@@ -234,6 +244,7 @@ func npmBuildSourceRefArgumentsWithBuiltRef(repository, outputDirectory, githubO
 		"--invocation-ref", invocationRef,
 		"--invocation-revision", invocationSHA,
 		"--workflow-sha", builtRevision,
+		"--caller-workflow-ref", "windlasstech/slsa-builder/.github/workflows/release.yml@" + invocationRef,
 		"--caller-workflow-filename", "release.yml",
 		"--github-output", githubOutput,
 	}

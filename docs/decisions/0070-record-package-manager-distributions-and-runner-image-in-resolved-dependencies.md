@@ -70,6 +70,38 @@ relations:
       deployment evidence. The recording obligation, the runner-image descriptor's presence in the
       closed descriptor set, the no-distribution-digest rationale, and the source-native
       digest-authority discipline remain in force"
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the retention of the actual package-manager version recording in
+      externalParameters.package_manager and the runner-image descriptor's node_version annotation;
+      the manager version continues in the package-manager-distribution descriptor's annotations,
+      the bundled npm version moves to builder.version.npm, and the Node.js version is single-homed
+      in builder.version.nodejs"
+  - type: partially-superseded-by
+    target: ADR-0112
+    scope:
+      "the runner-image descriptor's image_os annotation and the associated ImageOS capture and
+      Confirmation clauses: image_os is replaced by operating_system, whose value is the exact
+      decoded Operating System.detail string from the producer's local metadata snapshot; runtime
+      ImageOS becomes optional diagnostic-only and is never required, compared, or used as a
+      fallback. The runner-image role and required resolvedDependencies membership, the
+      name/uri/annotations top-level shape, the verbatim Included Software URI and exact full
+      image_version as the sole reported-identity pair, descriptor cardinality and serialization
+      order, no-public-availability behavior, baseline consumer independence, and every unrelated
+      recording decision remain in force"
+  - type: partially-superseded-by
+    target: ADR-0111
+    scope:
+      "the runner-image URI and identity/availability semantics: the broad permission to identify
+      either a runner image release or its software report is replaced by the verbatim
+      platform-supplied Included Software URI, paired with the exact full on-disk image_version as a
+      buildType-defined reported identity rather than immutable or image-byte identity; the
+      consequence making the descriptor depend on continuing publication is replaced by offline
+      structural projection against local evidence, with no public-availability gate. The
+      runner-image role, required resolvedDependencies membership and cardinality, annotation-based
+      image_version recording, URI-based digest-free representation, no-distribution-digest
+      rationale, and all package-manager and runtime recording decisions remain in force"
 ---
 
 # Record Package Manager Distributions and Runner Image in resolvedDependencies

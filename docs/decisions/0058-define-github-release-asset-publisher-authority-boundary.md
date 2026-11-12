@@ -20,6 +20,8 @@ relations:
       "the runtime permission-verification layer: no side-effect-free write-capability probe exists,
       so the first mutating call is the runtime authority check, with HTTP 403 as the
       permission-failure signal and ADR 0067 read-back on ambiguity"
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Define the GitHub Release Asset Publisher Authority Boundary

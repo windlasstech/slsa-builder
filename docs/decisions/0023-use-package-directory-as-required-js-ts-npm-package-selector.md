@@ -4,6 +4,9 @@ nav_order: 23
 status: accepted
 date: 12026-07-01
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Use `package-directory` as the Required JS/TS npm Package Selector

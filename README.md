@@ -365,7 +365,7 @@ distribution targets will continue to be added over time.
 | JS/TS npm | [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md) | npm package build, SLSA v1 provenance issuance and signing, npm publish | Pre-release |
 
 - **Exactly one package per run:** Select the target package with the required `package-directory`
-  input. The public contract consists of this one required input and eight optional inputs.
+  input. The public contract consists of this one required input and six optional inputs.
 - **Fixed-pipeline release retry:** The optional, tags-only `source-ref` input lets a caller retry a
   failed release by dispatching from a ref that carries the fixed pipeline (for example `main`)
   while the built and attested content remains the signed release tag: no retagging, no weakened

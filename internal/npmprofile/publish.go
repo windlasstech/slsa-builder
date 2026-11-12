@@ -66,6 +66,7 @@ type PublishRequest struct {
 	TarballSHA256       digest.SHA256
 	TarballSHA512       digest.SHA512
 	BundleSHA256        digest.SHA256
+	BuildMetadata       BuildMetadata
 	Registry            *RegistryClient
 	RunID               string
 	RunAttempt          string
@@ -108,6 +109,8 @@ func (publishError *PublishError) DiagnosticID() string {
 type preparedPublish struct {
 	request       PublishRequest
 	parameters    ExternalParameters
+	packageInfo   ProducerPackage
+	tarballName   string
 	statement     provenance.Statement
 	runInvocation string
 	expectedSRI   string
@@ -215,6 +218,17 @@ func preparePublish(ctx context.Context, request PublishRequest) (preparedPublis
 	if !digest.SumSHA256(tarballBytes).Equal(request.TarballSHA256) || !digest.SumSHA512(tarballBytes).Equal(request.TarballSHA512) {
 		return preparedPublish{}, errors.New("verified tarball handoff digest mismatch")
 	}
+	packageInfo, err := VerifyProducerPackage(request.BuildMetadata)
+	if err != nil {
+		return preparedPublish{}, err
+	}
+	packed, err := VerifyPackedArtifact(request.TarballPath, request.BuildMetadata.PrimaryArtifact)
+	if err != nil {
+		return preparedPublish{}, err
+	}
+	if packed.Name != packageInfo.Name || packed.Version != packageInfo.Version {
+		return preparedPublish{}, npmValidationError(IDPackedPackageMetadataMismatch, "packed", "packed identity differs from authenticated manifest")
+	}
 	bundleBytes, err := verifiedPublishFile(request.BundlePath, ".intoto.jsonl", maxPublishBundleSize)
 	if err != nil {
 		return preparedPublish{}, fmt.Errorf("verify provenance bundle path: %w", err)
@@ -239,11 +253,11 @@ func preparePublish(ctx context.Context, request PublishRequest) (preparedPublis
 		"publish",
 		request.TarballPath,
 		"--provenance-file=" + request.BundlePath,
-		"--registry=" + parameters.Publish.ResolvedRegistryURL,
-		"--tag=" + parameters.Publish.ResolvedDistTag,
+		"--registry=" + packageInfo.Publish.ResolvedRegistryURL,
+		"--tag=" + packageInfo.Publish.ResolvedDistTag,
 	}
-	if parameters.Publish.PublishAccessOption != nil {
-		argv = append(argv, "--access="+*parameters.Publish.PublishAccessOption)
+	if packageInfo.Publish.PublishAccessOption != nil {
+		argv = append(argv, "--access="+*packageInfo.Publish.PublishAccessOption)
 	}
 	now := request.Now
 	if now == nil {
@@ -255,6 +269,8 @@ func preparePublish(ctx context.Context, request PublishRequest) (preparedPublis
 	}
 	return preparedPublish{
 		request: request, parameters: parameters, statement: verified.Statement,
+		packageInfo: packageInfo, tarballName: request.BuildMetadata.PrimaryArtifact.PayloadFileName,
+		metadata:      &diagnostic.DiagnosticMetadata{Publish: &diagnostic.PublishMetadata{}},
 		runInvocation: runInvocation, expectedSRI: expectedSRI, argv: argv, now: now, sleep: sleep,
 	}, nil
 }
@@ -265,13 +281,24 @@ func validatePreparedBindings(request PublishRequest, verified VerifiedPublishBu
 		statement.Predicate.BuildDefinition.BuildType != NPMBuildType || len(statement.Subject) != 1 {
 		return "", errors.New("verified provenance Statement has an unexpected type, build type, or subject count")
 	}
-	if parameters.Publish.ResolvedRegistryURL != request.Registry.URL() {
+	if equal, err := equalJSONValues(request.BuildMetadata.ExternalParameters, statement.Predicate.BuildDefinition.ExternalParameters); err != nil || !equal {
+		return "", npmValidationError(IDUnexpectedExternalParameters, "externalParameters", "signed inputs differ from verified build metadata")
+	}
+	metadata := request.BuildMetadata
+	metadata.ExternalParameters = statement.Predicate.BuildDefinition.ExternalParameters
+	metadata.ResolvedDependencies = statement.Predicate.BuildDefinition.ResolvedDependencies
+	metadata.BuildScriptDisposition = BuildScriptResult(statement.Predicate.RunDetails.Metadata.BuildScriptDisposition)
+	packageInfo, err := VerifyProducerPackage(metadata)
+	if err != nil {
+		return "", err
+	}
+	if packageInfo.Publish.ResolvedRegistryURL != request.Registry.URL() {
 		return "", errors.New("registry client differs from signed publish intent")
 	}
-	if filepath.Base(request.TarballPath) != parameters.Package.TarballName || filepath.Base(request.BundlePath) != parameters.Package.TarballName+".intoto.jsonl" {
+	if filepath.Base(request.TarballPath) != request.BuildMetadata.PrimaryArtifact.PayloadFileName || filepath.Base(request.BundlePath) != request.BuildMetadata.PrimaryArtifact.PayloadFileName+".intoto.jsonl" {
 		return "", errors.New("artifact paths differ from signed package metadata")
 	}
-	wantPURL, err := NPMPackagePURL(parameters.Package.Name, parameters.Package.Version)
+	wantPURL, err := NPMPackagePURL(packageInfo.Name, packageInfo.Version)
 	if err != nil {
 		return "", err
 	}
@@ -288,7 +315,7 @@ func validatePreparedBindings(request PublishRequest, verified VerifiedPublishBu
 	if err != nil || invocation.RunID != request.RunID || invocationAttemptErr != nil || currentAttemptErr != nil || invocationAttempt > currentAttempt {
 		return "", errors.New("local P02 bundle run identity differs from the current attempt")
 	}
-	if request.OIDCExchange.Report.PrimaryID != nil || !request.OIDCExchange.Token.valid() || request.OIDCExchange.WorkflowFilename != parameters.Caller.WorkflowFilename {
+	if request.OIDCExchange.Report.PrimaryID != nil || !request.OIDCExchange.Token.valid() || request.OIDCExchange.WorkflowFilename != filepath.Base(parameters.Workflow.Path) {
 		return "", errors.New("successful trusted-publisher preflight for the signed caller workflow is required")
 	}
 	now := time.Now()
@@ -319,6 +346,9 @@ func (prepared preparedPublish) classify(ctx context.Context, afterMutation, e42
 	for {
 		observedAt := prepared.now()
 		last = prepared.observe(ctx)
+		if !afterMutation && prepared.metadata != nil && last.packumentErr == nil {
+			prepared.metadata.Publish = &diagnostic.PublishMetadata{PackageIdentityPreexisting: new(last.packageExists), PackageVersionPreexisting: new(last.version != nil)}
+		}
 		if last.packumentErr == nil && last.version != nil {
 			sawVersion = true
 		}
@@ -351,8 +381,8 @@ func (prepared preparedPublish) classify(ctx context.Context, afterMutation, e42
 }
 
 func (prepared preparedPublish) observe(ctx context.Context) registryObservation {
-	state, packumentErr := prepared.request.Registry.Preflight(ctx, prepared.parameters.Package.Name, prepared.parameters.Package.Version)
-	attestations, attestationErr := prepared.request.Registry.Attestations(ctx, prepared.parameters.Package.Name, prepared.parameters.Package.Version)
+	state, packumentErr := prepared.request.Registry.Preflight(ctx, prepared.packageInfo.Name, prepared.packageInfo.Version)
+	attestations, attestationErr := prepared.request.Registry.Attestations(ctx, prepared.packageInfo.Name, prepared.packageInfo.Version)
 	return registryObservation{
 		packageExists:  state.PackageExists,
 		version:        state.Version,
@@ -383,7 +413,7 @@ func (prepared preparedPublish) decide(ctx context.Context, observation registry
 	if !validSRI {
 		return observationDecision{state: PublishIndeterminate, terminal: exhausted}
 	}
-	if actualSRI != prepared.expectedSRI || !registryTarballMatches(version.Tarball, prepared.parameters.Package.TarballName) {
+	if actualSRI != prepared.expectedSRI || !registryTarballMatches(version.Tarball, prepared.tarballName) {
 		return observationDecision{state: PublishForeignConflict, terminal: true}
 	}
 	foundRequired := false
@@ -463,7 +493,10 @@ func (prepared *preparedPublish) validateNPMVersion(ctx context.Context) error {
 	if !exactSemver(string(version)) || strings.Contains(string(version), "-") {
 		return errors.New("observe npm version before publish: npm did not report an exact three-part version")
 	}
-	prepared.metadata = &diagnostic.DiagnosticMetadata{PublishNPMVersion: new(string(version))}
+	if prepared.metadata == nil {
+		prepared.metadata = &diagnostic.DiagnosticMetadata{}
+	}
+	prepared.metadata.PublishNPMVersion = new(string(version))
 	pin, err := toolchainpins.PublishPin()
 	if err != nil {
 		return fmt.Errorf("load publish npm pin: %w", err)

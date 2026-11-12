@@ -30,18 +30,13 @@ const (
 	distributionTimeout  = 2 * time.Minute
 	corepackHashPrefix   = "sha512."
 	corepackDebugMarker  = " corepack Installing "
-	maxRunnerMetadata    = 1 << 20
 	acquisitionSource    = "corepack"
 	registryDigestSource = "registry-integrity"
 	downloadDigestSource = "download-hash"
 )
 
-// runnerMetadataPath is the GitHub-hosted runner's fixed baked image metadata
-// path. It is a var so tests can redirect the read to a hermetic fixture;
-// production code never reassigns it.
-var runnerMetadataPath = "/imagegeneration/imagedata.json"
-
-func prepareToolchain(ctx context.Context, selection Result, root string, environment []string, fetcher distributionFetcher) (ToolchainCapture, string, error) {
+func prepareToolchain(ctx context.Context, config BuildPackConfig, root string, environment []string) (ToolchainCapture, string, error) {
+	selection, fetcher := config.Selection, config.fetcher
 	nodePath, err := exec.LookPath("node")
 	if err != nil {
 		return ToolchainCapture{}, "", errors.New("node executable is unavailable")
@@ -64,9 +59,17 @@ func prepareToolchain(ctx context.Context, selection Result, root string, enviro
 	if !semver.IsValid("v"+npmVersion) || semver.Compare("v"+npmVersion, "v11.5.1") < 0 {
 		return ToolchainCapture{}, "", fmt.Errorf("npm 11.5.1 or newer is required, executed %q", npmVersion)
 	}
-	runner, err := captureRunner()
-	if err != nil {
-		return ToolchainCapture{}, "", err
+	var runner RunnerCapture
+	if config.RunnerOverride != nil {
+		if err := validateRunnerCapture(*config.RunnerOverride, os.Getenv("ImageOS")); err != nil {
+			return ToolchainCapture{}, "", err
+		}
+		runner = *config.RunnerOverride
+	} else {
+		runner, err = captureRunner()
+		if err != nil {
+			return ToolchainCapture{}, "", err
+		}
 	}
 	capture := ToolchainCapture{NodeVersion: nodeVersion, NPMVersion: npmVersion, Runner: runner}
 	if selection.Manager.Name == ManagerNPM {
@@ -323,29 +326,6 @@ func fetchHTTPS(ctx context.Context, rawURL string, maximum int64, accept string
 	return nil, lastErr
 }
 
-func captureRunner() (RunnerCapture, error) {
-	imageOS := os.Getenv("ImageOS")
-	deploymentVersion := os.Getenv("ImageVersion")
-	if imageOS == "" && deploymentVersion == "" {
-		return RunnerCapture{}, nil
-	}
-	// ADR 0100: only ImageOS is load-bearing (the image_os annotation); an
-	// absent ImageVersion is recorded as a null deployment_version, not failed.
-	if imageOS == "" {
-		return RunnerCapture{}, runnerCaptureError("runner image observations from GitHub are incomplete", imageOS, deploymentVersion)
-	}
-	encoded, err := readBoundedRegularFile(runnerMetadataPath, maxRunnerMetadata)
-	if err != nil {
-		return RunnerCapture{}, runnerCaptureError(fmt.Sprintf("read GitHub runner image metadata: %v", err), imageOS, deploymentVersion)
-	}
-	return parseRunnerMetadata(encoded, imageOS, deploymentVersion)
-}
-
-func runnerCaptureError(message, imageOS, deploymentVersion string) error {
-	return npmValidationError("windlass.verify.error.input-unavailable", "resolvedDependencies.runner-image",
-		fmt.Sprintf("%s (ImageOS=%q, ImageVersion=%q)", message, imageOS, deploymentVersion))
-}
-
 // distributionEvidenceError classifies missing or unreadable Corepack
 // acquisition evidence as input-unavailable (exit 2); a captured disagreement
 // is classified by distributionDisagreementError (exit 1).
@@ -355,64 +335,4 @@ func distributionEvidenceError(message string) error {
 
 func distributionDisagreementError(message string) error {
 	return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution", message)
-}
-
-// parseRunnerMetadata reads the on-disk runner image metadata as the authority
-// for the image identity (ADR 0100). The control-plane deploymentVersion is
-// recorded as separate evidence and never compared for equality: during an
-// image rollout window the two legitimately diverge.
-func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (RunnerCapture, error) {
-	capture := RunnerCapture{ImageOS: imageOS, DeploymentVersion: deploymentVersion}
-	if err := canonicaljson.Validate(encoded); err != nil {
-		return RunnerCapture{}, runnerCaptureError(fmt.Sprintf("validate GitHub runner image metadata: %v", err), imageOS, deploymentVersion)
-	}
-	var groups []struct {
-		Group  string `json:"group"`
-		Detail string `json:"detail"`
-	}
-	if err := json.Unmarshal(encoded, &groups); err != nil {
-		return RunnerCapture{}, runnerCaptureError(fmt.Sprintf("decode GitHub runner image metadata: %v", err), imageOS, deploymentVersion)
-	}
-	seen := false
-	for _, group := range groups {
-		if group.Group != "Runner Image" {
-			continue
-		}
-		if seen {
-			return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Runner Image group", imageOS, deploymentVersion)
-		}
-		seen = true
-		for _, line := range strings.Split(group.Detail, "\n") {
-			line = strings.TrimSpace(line)
-			switch {
-			case strings.HasPrefix(line, "Image: "):
-				if capture.ImageLabel != "" {
-					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Image detail line", imageOS, deploymentVersion)
-				}
-				capture.ImageLabel = strings.TrimSpace(strings.TrimPrefix(line, "Image: "))
-			case strings.HasPrefix(line, "Version: "):
-				if capture.ImageVersion != "" {
-					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Version detail line", imageOS, deploymentVersion)
-				}
-				capture.ImageVersion = strings.TrimSpace(strings.TrimPrefix(line, "Version: "))
-			case strings.HasPrefix(line, "Included Software: "):
-				if capture.IncludedSoftwareURL != "" {
-					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Included Software detail line", imageOS, deploymentVersion)
-				}
-				capture.IncludedSoftwareURL = strings.TrimSpace(strings.TrimPrefix(line, "Included Software: "))
-			case strings.HasPrefix(line, "Image Release: "):
-				if capture.ImageReleaseURL != "" {
-					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Image Release detail line", imageOS, deploymentVersion)
-				}
-				capture.ImageReleaseURL = strings.TrimSpace(strings.TrimPrefix(line, "Image Release: "))
-			}
-		}
-		if capture.ImageLabel == "" || capture.ImageVersion == "" || capture.IncludedSoftwareURL == "" || capture.ImageReleaseURL == "" {
-			return RunnerCapture{}, runnerCaptureError("runner image metadata lacks required detail lines", imageOS, deploymentVersion)
-		}
-	}
-	if !seen {
-		return RunnerCapture{}, runnerCaptureError("runner image metadata lacks the Runner Image group", imageOS, deploymentVersion)
-	}
-	return capture, nil
 }

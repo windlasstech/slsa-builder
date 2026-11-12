@@ -4,6 +4,9 @@ nav_order: 48
 status: accepted
 date: 12026-07-07
 decision-makers: Yunseo Kim
+relations:
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Make Linked Artifacts Storage Records Explicit Opt-In for Release Assets

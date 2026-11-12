@@ -30,6 +30,11 @@ relations:
     target: ADR-0088
   - type: see-also
     target: ADR-0098
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the externalParameters.runtime.npm_version recording location; the bundled npm version moves
+      to builder.version.npm"
 ---
 
 # Provision the Publish-Stage npm CLI from a Digest-Verified Registry Tarball

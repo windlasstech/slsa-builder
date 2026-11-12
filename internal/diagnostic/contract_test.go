@@ -78,7 +78,7 @@ func TestCanonicalJSONRejectsInvalidReport(t *testing.T) {
 		{"wrong result", func(r *Report) { r.Result = ResultFail }, "result, exit_code, and primary_id do not match the first ordered error"},
 		{"wrong exit code", func(r *Report) { r.ExitCode = 1 }, "result, exit_code, and primary_id do not match the first ordered error"},
 		{"wrong primary", func(r *Report) { r.PrimaryID = new(IDSignatureMismatch) }, "result, exit_code, and primary_id do not match the first ordered error"},
-		{"missing metadata manifest", func(r *Report) { r.DiagnosticMetadata = &DiagnosticMetadata{} }, "diagnostic_metadata must contain package_manifest"},
+		{"missing metadata manifest", func(r *Report) { r.DiagnosticMetadata = &DiagnosticMetadata{} }, "diagnostic_metadata must contain package_manifest, publish_npm_version, or publish"},
 		{"invalid diagnostic", func(r *Report) { r.Diagnostics = []Diagnostic{{ID: "unknown"}} }, `unknown diagnostic ID "unknown"`},
 		{"reverse order", func(r *Report) {
 			r.Diagnostics = []Diagnostic{

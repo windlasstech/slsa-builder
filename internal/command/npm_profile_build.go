@@ -15,6 +15,7 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/digest"
 	"github.com/windlasstech/slsa-builder/internal/handoff"
+	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/npmprofile"
 )
 
@@ -68,6 +69,7 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	invocationRef := flags.String("invocation-ref", "", "observed caller invocation ref")
 	invocationRevision := flags.String("invocation-revision", "", "observed caller invocation revision")
 	workflowSHA := flags.String("workflow-sha", "", "immutable reusable workflow revision")
+	callerWorkflowRef := flags.String("caller-workflow-ref", "", "observed caller workflow_ref")
 	callerWorkflow := flags.String("caller-workflow-filename", "", "observed caller workflow filename")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
@@ -80,8 +82,12 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	normalizedSourceRef := npmprofile.NormalizeSourceRefInput(*sourceRef)
 	if *repositoryRoot == "" || *packageDirectory == "" || *observedRepository == "" || *outputDirectory == "" ||
 		*artifactName == "" || *metadataArtifactName == "" || *eventName == "" || *refType == "" || *ref == "" ||
-		*revision == "" || *workflowSHA == "" || *callerWorkflow == "" || *githubOutput == "" || flags.NArg() != 0 {
+		*revision == "" || *workflowSHA == "" || *callerWorkflowRef == "" || *callerWorkflow == "" || *githubOutput == "" || flags.NArg() != 0 {
 		return errors.New("all npm-profile-build flags are required with no positional arguments")
+	}
+	callerWorkflowPath, err := npmprofile.ParseCallerWorkflowPath(*callerWorkflowRef)
+	if err != nil {
+		return err
 	}
 	if err := handoff.ValidateSafeBasename(*artifactName); err != nil {
 		return fmt.Errorf("invalid tarball artifact name: %w", err)
@@ -132,6 +138,7 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		OutputDirectory:    *outputDirectory,
 		ArtifactName:       *artifactName,
 		ExternalParameters: json.RawMessage(`{}`),
+		RunnerOverride:     command.runnerOverride,
 	})
 	if err != nil {
 		// ADR 0092: a declared-digest mismatch is a classified policy failure
@@ -168,15 +175,21 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 		return err
 	}
 	finishedOn := now().UTC().Truncate(time.Second).Format(time.RFC3339)
-	if command.runnerOverride != nil {
-		result.Toolchain.Runner = *command.runnerOverride
+	invocationRefValue := *invocationRef
+	if invocationRefValue == "" && normalizedSourceRef == "" {
+		invocationRefValue = *ref
+	}
+	observedCanonical, err := identity.CanonicalRepository(*observedRepository)
+	if err != nil {
+		return err
 	}
 	metadata, err := npmprofile.FinalizeWorkflowBuildMetadata(selection, result, npmprofile.WorkflowBuildMetadataConfig{
 		StartedOn: startedOn, FinishedOn: finishedOn,
 		ArtifactName: *artifactName, RegistryURLInput: *registryURL, DistTagInput: *distTag, AccessInput: *access,
 		EventName: *eventName, RefType: *refType, Ref: *ref, Revision: *revision, SourceRefInput: normalizedSourceRef,
-		InvocationRef: conditionalSourceIdentity(normalizedSourceRef, *invocationRef), InvocationRevision: conditionalSourceIdentity(normalizedSourceRef, *invocationRevision), WorkflowSHA: *workflowSHA,
-		CallerWorkflowFilename: *callerWorkflow, RegistryState: registryState,
+		InvocationRef: invocationRefValue, InvocationRevision: conditionalSourceIdentity(normalizedSourceRef, *invocationRevision), WorkflowSHA: *workflowSHA,
+		CallerWorkflowPath: callerWorkflowPath, CallerWorkflowFilename: *callerWorkflow, RegistryState: registryState,
+		Repository: observedCanonical,
 	})
 	if err != nil {
 		return err
@@ -209,7 +222,13 @@ func (command npmProfileBuildCommand) Execute(ctx context.Context, args []string
 	}); err != nil {
 		return err
 	}
-	return writeDiagnostics(out, nil, result.Diagnostics)
+	report, err := diagnostic.Build(nil, result.Diagnostics, &diagnostic.DiagnosticMetadata{
+		Publish: &diagnostic.PublishMetadata{PackageIdentityPreexisting: &registryState.PackageExists, PackageVersionPreexisting: &registryState.VersionExists},
+	})
+	if err != nil {
+		return err
+	}
+	return WriteReport(out, report)
 }
 
 // writeNPMBuildDigestMismatch mirrors writeNPMBuildPolicyError for the
@@ -310,9 +329,9 @@ func conditionalSourceIdentity(sourceRef, value string) string {
 }
 
 func metadataPackageURL(metadata npmprofile.BuildMetadata) string {
-	parameters, err := npmprofile.DecodeExternalParameters(metadata.ExternalParameters)
+	verified, err := npmprofile.VerifyProducerPackage(metadata)
 	if err != nil {
 		return ""
 	}
-	return parameters.Package.PackageURL
+	return verified.PackageURL
 }

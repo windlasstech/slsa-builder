@@ -13,6 +13,7 @@ type Manifest struct {
 	Surface                 string   `json:"surface"`
 	Artifact                string   `json:"artifact"`
 	Provenance              string   `json:"provenance"`
+	ManifestEvidence        *string  `json:"manifest-evidence"`
 	ReleaseManifest         *string  `json:"release-manifest"`
 	ExpectedResult          string   `json:"expected-result"`
 	ExpectedFailureCategory *string  `json:"expected-failure-category"`

@@ -14,16 +14,13 @@ import (
 
 // EncodeExternalParameters validates and JCS-encodes the closed npm external parameter object.
 func EncodeExternalParameters(parameters ExternalParameters) (json.RawMessage, error) {
-	encoded, err := json.Marshal(parameters)
+	encoded, err := parameters.MarshalJSON()
 	if err != nil {
-		return nil, npmValidationError(IDUnexpectedExternalParameters, "externalParameters", "encode external parameters")
+		return nil, err
 	}
 	canonical, err := canonicaljson.Canonicalize(encoded)
 	if err != nil {
 		return nil, npmValidationError(IDUnexpectedExternalParameters, "externalParameters", "canonicalize external parameters")
-	}
-	if err := validateExternalParameters(parameters, ""); err != nil {
-		return nil, err
 	}
 	return canonical, nil
 }
@@ -33,7 +30,7 @@ func DecodeExternalParameters(encoded []byte) (ExternalParameters, error) {
 	if err := canonicaljson.Validate(encoded); err != nil {
 		return ExternalParameters{}, npmValidationError(IDUnexpectedExternalParameters, "externalParameters", "external parameters must be duplicate-free JSON")
 	}
-	if err := validateExternalParameterShape(encoded); err != nil {
+	if err := validateFinalExternalShape(encoded); err != nil {
 		return ExternalParameters{}, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(encoded))
@@ -45,7 +42,7 @@ func DecodeExternalParameters(encoded []byte) (ExternalParameters, error) {
 	if decoder.More() {
 		return ExternalParameters{}, npmValidationError(IDUnexpectedExternalParameters, "externalParameters", "external parameters contain trailing data")
 	}
-	if err := validateExternalParameters(parameters, ""); err != nil {
+	if err := validateFinalExternalParameters(parameters, ""); err != nil {
 		return ExternalParameters{}, err
 	}
 	return parameters, nil
@@ -102,20 +99,24 @@ func NewProvenanceSigningInput(input NPMProvenanceInput) (ProvenanceSigningInput
 	if err != nil {
 		return ProvenanceSigningInput{}, npmValidationError(IDMissingSubjectSHA512, "buildMetadata.primary_artifact.sha512", "tarball SHA-512 must be lowercase hexadecimal")
 	}
-	subjectName, err := NPMPackagePURL(parameters.Package.Name, parameters.Package.Version)
+	subjectName, err := NPMPackagePURL(input.Packed.Name, input.Packed.Version)
 	if err != nil {
 		return ProvenanceSigningInput{}, err
 	}
-	version := map[string]string{"nodejs": input.NodeJSVersion}
+	version := map[string]string{"nodejs": input.NodeJSVersion, "npm": input.NPMVersion}
 	if input.CorepackVersion != nil {
 		version["corepack"] = *input.CorepackVersion
+	}
+	internalParameters, err := json.Marshal(provenance.InternalParameters{GitHub: input.GitHub})
+	if err != nil {
+		return ProvenanceSigningInput{}, fmt.Errorf("encode GitHub internal parameters: %w", err)
 	}
 	predicate := provenance.Predicate{
 		BuildDefinition: provenance.BuildDefinition{
 			BuildType:            NPMBuildType,
 			ExternalParameters:   append(json.RawMessage(nil), input.BuildMetadata.ExternalParameters...),
-			InternalParameters:   json.RawMessage(`{}`),
-			ResolvedDependencies: cloneNPMDependencies(input.BuildMetadata.ResolvedDependencies),
+			InternalParameters:   internalParameters,
+			ResolvedDependencies: orderedProducerDependencies(input.BuildMetadata.ResolvedDependencies),
 		},
 		RunDetails: provenance.RunDetails{
 			Builder: provenance.Builder{
@@ -127,7 +128,7 @@ func NewProvenanceSigningInput(input NPMProvenanceInput) (ProvenanceSigningInput
 					Annotations: map[string]string{"role": "signing-adapter"},
 				}},
 			},
-			Metadata: provenance.Metadata{InvocationID: input.InvocationID, StartedOn: input.StartedOn, FinishedOn: input.FinishedOn},
+			Metadata: provenance.Metadata{InvocationID: input.InvocationID, StartedOn: input.StartedOn, FinishedOn: input.FinishedOn, BuildScriptDisposition: string(input.BuildMetadata.BuildScriptDisposition)},
 		},
 	}
 	signing := ProvenanceSigningInput{
@@ -158,27 +159,13 @@ func validateInputBindings(input NPMProvenanceInput, parameters ExternalParamete
 		return npmValidationError(IDUnexpectedExternalParameters, "buildMetadata.schema_version", "build metadata schema version must be 1")
 	}
 	artifact := input.BuildMetadata.PrimaryArtifact
-	if artifact.ArtifactName == "" || artifact.PayloadFileName == "" || strings.ContainsAny(artifact.PayloadFileName, `/\\`) || !strings.HasSuffix(artifact.PayloadFileName, ".tgz") || artifact.PayloadFileName != parameters.Package.TarballName {
+	if artifact.ArtifactName == "" || artifact.PayloadFileName == "" || strings.ContainsAny(artifact.PayloadFileName, `/\\`) || !strings.HasSuffix(artifact.PayloadFileName, ".tgz") {
 		return npmValidationError(IDNPMSubjectMismatch, "buildMetadata.primary_artifact", "build metadata must identify the external-parameter tarball basename")
 	}
-	if input.BuilderID != parameters.Workflow.BuilderID {
-		return npmValidationError("windlass.verify.error.builder-id-not-immutable", "builder.id", "builder identity differs from the signed workflow identity")
-	}
-	if err := identity.ValidateBuilderID(input.BuilderID); err != nil {
+	if err := identity.ValidateBuilderIDForWorkflow(input.BuilderID, NPMWorkflowPath); err != nil {
 		return err
 	}
-	if err := ValidateReleaseRefEquality(parameters.Source.Ref, parameters.Release.Ref, input.RuntimeReleaseRef, parameters.Release.VersionTag, parameters.Source.Revision, input.PeeledReleaseRevision); err != nil {
-		return err
-	}
-	if input.NodeJSVersion != "v"+parameters.Runtime.NodeVersion {
-		return npmValidationError("windlass.verify.error.builder-version-mismatch", "builder.version.nodejs", "observed Node.js version differs from external parameters")
-	}
-	usesCorepack := parameters.PackageManager.Name != ManagerNPM
-	if usesCorepack != (input.CorepackVersion != nil) {
-		return npmValidationError("windlass.verify.error.builder-version-mismatch", "builder.version.corepack", "Corepack presence must match package-manager acquisition")
-	}
-	validator := npmProfileValidator{parameters: parameters, encodedParameters: input.BuildMetadata.ExternalParameters, dependencies: input.BuildMetadata.ResolvedDependencies, sha256: input.BuildMetadata.PrimaryArtifact.SHA256, sha512: input.BuildMetadata.PrimaryArtifact.SHA512}
-	return validator.ValidateResolvedDependencies(cloneNPMDependencies(input.BuildMetadata.ResolvedDependencies))
+	return validateProducerBindings(input, parameters)
 }
 
 // ValidateNPMStatement checks an emitted Statement against the exact pre-sign npm input.
@@ -193,15 +180,32 @@ func ValidateNPMStatement(statement provenance.Statement, input NPMProvenanceInp
 	if statement.Predicate.RunDetails.Builder.ID != input.BuilderID {
 		return npmValidationError("windlass.verify.error.wrong-builder-id", "predicate.runDetails.builder.id", "builder ID differs from the signing input")
 	}
+	internal, err := provenance.DecodeInternalParameters(statement.Predicate.BuildDefinition.InternalParameters)
+	if err != nil {
+		return err
+	}
+	if internal.GitHub.EventName != input.GitHub.EventName {
+		return npmValidationError("windlass.verify.error.build-trigger-mismatch", "predicate.buildDefinition.internalParameters.github.event_name", "GitHub event name differs from the signing input")
+	}
+	if internal.GitHub.RepositoryID != input.GitHub.RepositoryID || internal.GitHub.RepositoryOwnerID != input.GitHub.RepositoryOwnerID {
+		return npmValidationError("windlass.verify.error.source-numeric-id-mismatch", "predicate.buildDefinition.internalParameters.github", "GitHub numeric repository identity differs from the signing input")
+	}
 	metadata := statement.Predicate.RunDetails.Metadata
+	if metadata.BuildScriptDisposition != string(input.BuildMetadata.BuildScriptDisposition) {
+		return npmValidationError(IDBuildScriptDisposition, "predicate.runDetails.metadata.windlass_build_script_disposition", "signed disposition differs from the authenticated manifest and build observation")
+	}
 	if metadata.InvocationID != input.InvocationID || metadata.StartedOn != input.StartedOn || metadata.FinishedOn != input.FinishedOn {
 		return npmValidationError("windlass.verify.error.statement-assembly-mismatch", "predicate.runDetails.metadata", "signed metadata differs from the pre-sign candidate")
 	}
-	validator := npmProfileValidator{parameters: parameters, encodedParameters: input.BuildMetadata.ExternalParameters, dependencies: input.BuildMetadata.ResolvedDependencies, sha256: input.BuildMetadata.PrimaryArtifact.SHA256, sha512: input.BuildMetadata.PrimaryArtifact.SHA512}
+	if err := validateInputBindings(input, parameters); err != nil {
+		return err
+	}
+	validator := npmProfileValidator{parameters: parameters, encodedParameters: input.BuildMetadata.ExternalParameters, dependencies: input.BuildMetadata.ResolvedDependencies, sha256: input.BuildMetadata.PrimaryArtifact.SHA256, sha512: input.BuildMetadata.PrimaryArtifact.SHA512, packageName: input.Packed.Name, packageVersion: input.Packed.Version}
 	expectations := provenance.Expectations{
-		SourceRepositoryURI: parameters.Source.Repository,
+		SourceRepositoryURI: parameters.Workflow.Repository,
 		Builder: provenance.BuilderExpectations{
 			NodeJSVersion:   input.NodeJSVersion,
+			NPMVersion:      input.NPMVersion,
 			CorepackVersion: input.CorepackVersion,
 		},
 	}
@@ -238,7 +242,9 @@ func cloneNPMDependencies(values []provenance.ResourceDescriptor) []provenance.R
 	for index, value := range values {
 		cloned[index] = value
 		cloned[index].Digest = cloneNPMStringMap(value.Digest)
-		cloned[index].Annotations = make(map[string]json.RawMessage, len(value.Annotations))
+		if value.Annotations != nil {
+			cloned[index].Annotations = make(map[string]json.RawMessage, len(value.Annotations))
+		}
 		for name, annotation := range value.Annotations {
 			cloned[index].Annotations[name] = append(json.RawMessage(nil), annotation...)
 		}

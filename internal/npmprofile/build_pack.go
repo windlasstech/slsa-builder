@@ -1,6 +1,7 @@
 package npmprofile
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -57,7 +58,7 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 	if config.fetcher == nil {
 		config.fetcher = fetchHTTPS
 	}
-	toolchain, managerPath, err := prepareToolchain(ctx, config.Selection, environmentRoot, environment, config.fetcher)
+	toolchain, managerPath, err := prepareToolchain(ctx, config, environmentRoot, environment)
 	if err != nil {
 		return BuildPackResult{}, err
 	}
@@ -66,11 +67,14 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 		return BuildPackResult{}, err
 	}
 	diagnostics = append(corepackWarning, diagnostics...)
-	manifest, _, err := readManifest(filepath.Join(config.Selection.Package.RealDirectory, "package.json"))
+	manifest, err := decodeSourceManifestSnapshot(config.Selection.Package.SourceManifest)
 	if err != nil {
-		return BuildPackResult{}, fmt.Errorf("re-read selected package manifest: %w", err)
+		return BuildPackResult{}, fmt.Errorf("decode original source-manifest snapshot: %w", err)
 	}
-	buildScript := BuildScriptCapture{Present: manifest.Scripts != nil && manifest.Scripts["build"] != "", Result: BuildScriptSkippedAbsent}
+	if err := verifySourceManifestCurrent(config.Selection.Package); err != nil {
+		return BuildPackResult{}, err
+	}
+	buildScript := BuildScriptCapture{Present: manifestDeclaresBuildScript(manifest), Result: BuildScriptSkippedAbsent}
 
 	if err := runManagerCommand(ctx, config.Selection, managerPath, environment, installArguments(config.Selection.Manager.Name)); err != nil {
 		return BuildPackResult{}, fmt.Errorf("install dependencies: %w", err)
@@ -80,6 +84,9 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 			return BuildPackResult{}, fmt.Errorf("run declared build script: %w", err)
 		}
 		buildScript.Result = BuildScriptExecuted
+	}
+	if err := verifySourceManifestCurrent(config.Selection.Package); err != nil {
+		return BuildPackResult{}, err
 	}
 	if err := runManagerCommand(ctx, config.Selection, managerPath, environment, packArguments(config.Selection, packageOutput)); err != nil {
 		return BuildPackResult{}, fmt.Errorf("pack selected package: %w", err)
@@ -100,8 +107,14 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 		return BuildPackResult{}, err
 	}
 
+	evidence, err := captureManifestEvidence(config.Selection.Package.SourceManifest, config.Selection.Package.Directory)
+	if err != nil {
+		return BuildPackResult{}, err
+	}
 	metadata := BuildMetadata{
-		SchemaVersion: "1",
+		SchemaVersion:          "1",
+		ManifestEvidence:       evidence,
+		BuildScriptDisposition: buildScript.Result,
 		PrimaryArtifact: PrimaryArtifact{
 			ArtifactName:    config.ArtifactName,
 			PayloadFileName: filepath.Base(tarballPath),
@@ -109,7 +122,7 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 			SHA512:          sha512Value.String(),
 		},
 		ExternalParameters:   append(json.RawMessage(nil), config.ExternalParameters...),
-		ResolvedDependencies: append([]provenance.ResourceDescriptor(nil), config.ResolvedDependencies...),
+		ResolvedDependencies: append([]provenance.ResourceDescriptor{}, config.ResolvedDependencies...),
 	}
 	metadataPath := filepath.Join(metadataOutput, "build-metadata.json")
 	if err := writeBuildMetadata(metadataPath, metadata); err != nil {
@@ -430,4 +443,17 @@ func writeBuildMetadata(path string, metadata BuildMetadata) error {
 
 func npmTarballName(name, version string) string {
 	return strings.ReplaceAll(strings.TrimPrefix(name, "@"), "/", "-") + "-" + version + ".tgz"
+}
+
+// verifySourceManifestCurrent fails closed when the on-disk selected manifest
+// no longer equals the original snapshot recorded as signed evidence.
+func verifySourceManifestCurrent(pkg Package) error {
+	current, err := readRegularNonSymlink(filepath.Join(pkg.RealDirectory, "package.json"))
+	if err != nil {
+		return npmValidationError(IDSourceManifestDrift, "package.json", "selected package manifest is unreadable after the original snapshot")
+	}
+	if !bytes.Equal(current, pkg.SourceManifest.Content) {
+		return npmValidationError(IDSourceManifestDrift, "package.json", "selected package manifest changed after the original snapshot")
+	}
+	return nil
 }

@@ -109,6 +109,7 @@ type Diagnostic struct {
 type DiagnosticMetadata struct {
 	PackageManifest   *PackageManifest `json:"package_manifest,omitempty"`
 	PublishNPMVersion *string          `json:"publish_npm_version,omitempty"`
+	Publish           *PublishMetadata `json:"publish,omitempty"`
 }
 
 // PackageManifest preserves safe-listed raw package.json diagnostic metadata.
@@ -348,8 +349,8 @@ func validateMetadata(metadata *DiagnosticMetadata) error {
 	if metadata == nil {
 		return nil
 	}
-	if metadata.PackageManifest == nil && metadata.PublishNPMVersion == nil {
-		return contractErrorf("diagnostic_metadata must contain package_manifest")
+	if metadata.PackageManifest == nil && metadata.PublishNPMVersion == nil && metadata.Publish == nil {
+		return contractErrorf("diagnostic_metadata must contain package_manifest, publish_npm_version, or publish")
 	}
 	if metadata.PublishNPMVersion != nil && !publishNPMVersionPattern.MatchString(*metadata.PublishNPMVersion) {
 		return contractErrorf("publish_npm_version must be an exact three-part SemVer version")

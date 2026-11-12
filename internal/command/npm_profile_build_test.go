@@ -68,7 +68,9 @@ func TestNPMProfileBuildCommand(t *testing.T) {
 	}))
 	t.Cleanup(registry.Close)
 	err = npmProfileBuildCommand{httpClient: registry.Client(), runnerOverride: &npmprofile.RunnerCapture{
-		ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", DeploymentVersion: "20260801.1.1", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md",
+		ImageLabel: "ubuntu-24.04", OperatingSystem: "Ubuntu\n24.04.5\nLTS", ImageVersion: "20261025.353.1", DeploymentVersion: "20261026.354.1",
+		IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md",
+		ImageReleaseURL:     "https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353",
 	}}.Execute(ctx, []string{
 		"--repository-root", repository,
 		"--package-directory", ".",
@@ -82,11 +84,12 @@ func TestNPMProfileBuildCommand(t *testing.T) {
 		"--ref", "refs/tags/v1.0.0",
 		"--revision", "0123456789abcdef0123456789abcdef01234567",
 		"--workflow-sha", "0123456789abcdef0123456789abcdef01234567",
+		"--caller-workflow-ref", "windlasstech/slsa-builder/.github/workflows/release.yml@refs/tags/v1.0.0",
 		"--caller-workflow-filename", "release.yml",
 		"--github-output", githubOutput,
 	}, &output)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v; output = %s", err, output.String())
 	}
 
 	encoded, err := os.ReadFile(githubOutput)

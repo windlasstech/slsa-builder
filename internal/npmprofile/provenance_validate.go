@@ -3,14 +3,12 @@ package npmprofile
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"path"
 	"strconv"
 	"strings"
 
 	"github.com/windlasstech/slsa-builder/internal/canonicaljson"
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
-	"github.com/windlasstech/slsa-builder/internal/identity"
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 	"golang.org/x/mod/semver"
 )
@@ -21,10 +19,12 @@ type npmProfileValidator struct {
 	dependencies      []provenance.ResourceDescriptor
 	sha256            string
 	sha512            string
+	packageName       string
+	packageVersion    string
 }
 
 func (validator npmProfileValidator) ValidateSubject(subject provenance.Subject) error {
-	want, err := NPMPackagePURL(validator.parameters.Package.Name, validator.parameters.Package.Version)
+	want, err := NPMPackagePURL(validator.packageName, validator.packageVersion)
 	if err != nil || subject.Name != want {
 		return npmValidationError(IDNPMSubjectMismatch, "subject[0].name", "subject name must equal the npm package PURL")
 	}
@@ -41,80 +41,6 @@ func (validator npmProfileValidator) ValidateSubject(subject provenance.Subject)
 	}
 	if validator.sha256 != "" && sha256Value != validator.sha256 || validator.sha512 != "" && sha512Value != validator.sha512 {
 		return npmValidationError("windlass.verify.error.digest-mismatch", "subject[0].digest", "subject digests differ from the verified packed artifact")
-	}
-	return nil
-}
-
-func validateExternalParameterShape(encoded []byte) error {
-	var top map[string]json.RawMessage
-	if json.Unmarshal(encoded, &top) != nil {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters", "external parameters must be an object")
-	}
-	requiredTop := []string{"source", "workflow", "runtime", "package", "package_manager", "publish", "release", "distribution", "caller", "build"}
-	if !exactObjectKeys(top, requiredTop, nil) {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters", "external parameter groups are missing or unexpected")
-	}
-	shapes := []struct {
-		name     string
-		required []string
-		optional []string
-	}{
-		{name: "source", required: []string{"repository", "ref", "revision", "event_name", "ref_type"}, optional: []string{"input_ref", "invocation_ref", "invocation_revision"}},
-		{name: "workflow", required: []string{"path", "sha", "builder_id"}},
-		{name: "runtime", required: []string{"runner", "node_version", "npm_version"}},
-		{name: "package", required: []string{"directory", "workspace_root", "source_manifest", "name", "version", "private", "repository", "tarball_name", "package_url", "packed_name", "packed_version"}, optional: []string{"publish_config_raw", "packed_files", "consumer_surface"}},
-		{name: "package_manager", required: []string{"name", "version", "selection_source", "selection_manifest", "selection_manifest_path", "selection_lockfile_path", "root"}, optional: []string{"ignored_lockfile_paths", "yarn_install_mode"}},
-		{name: "publish", required: []string{"input_registry_url", "input_dist_tag", "input_access", "publish_config", "resolved_registry_url", "resolved_dist_tag", "publish_access_option", "effective_access", "trusted_publishing", "provenance_file", "package_identity_preexisting", "package_version_preexisting"}, optional: []string{"custom_registry_support"}},
-		{name: "release", required: []string{"ref", "version_tag"}},
-		{name: "distribution", required: []string{"release_asset_mode", "release_tag_supplied", "provenance_sidecar", "linked_artifact_metadata"}},
-		{name: "caller", required: []string{"workflow_filename"}},
-		{name: "build", required: []string{"script_present", "script_result"}},
-	}
-	for _, shape := range shapes {
-		var object map[string]json.RawMessage
-		if json.Unmarshal(top[shape.name], &object) != nil || !exactObjectKeys(object, shape.required, shape.optional) {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters."+shape.name, "nested external parameter members are missing or unexpected")
-		}
-	}
-	var sourceObject map[string]json.RawMessage
-	if err := json.Unmarshal(top["source"], &sourceObject); err != nil {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "source parameters must be an object")
-	}
-	conditionalSourceMembers := []string{"input_ref", "invocation_ref", "invocation_revision"}
-	presentSourceMembers := 0
-	for _, name := range conditionalSourceMembers {
-		raw, present := sourceObject[name]
-		if !present {
-			continue
-		}
-		presentSourceMembers++
-		if string(raw) == "null" {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source."+name, "conditional source members must not be null")
-		}
-	}
-	if presentSourceMembers != 0 && presentSourceMembers != len(conditionalSourceMembers) {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "conditional source members must be all present or all absent")
-	}
-	var packageObject map[string]json.RawMessage
-	if err := json.Unmarshal(top["package"], &packageObject); err != nil {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package", "package parameters must be an object")
-	}
-	if raw, present := packageObject["consumer_surface"]; present {
-		var surface map[string]json.RawMessage
-		allowed := []string{"exports", "main", "type", "bin", "types", "typings", "typesVersions", "files"}
-		if json.Unmarshal(raw, &surface) != nil || !exactObjectKeys(surface, nil, allowed) {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package.consumer_surface", "consumer surface contains an unknown member")
-		}
-	}
-	var publishObject map[string]json.RawMessage
-	if err := json.Unmarshal(top["publish"], &publishObject); err != nil {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish", "publish parameters must be an object")
-	}
-	if raw := publishObject["publish_config"]; string(raw) != "null" {
-		var publishConfig map[string]json.RawMessage
-		if json.Unmarshal(raw, &publishConfig) != nil || !exactObjectKeys(publishConfig, nil, []string{"registry", "access", "tag", "provenance"}) {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish.publish_config", "publishConfig contains an unknown member")
-		}
 	}
 	return nil
 }
@@ -146,7 +72,7 @@ func (validator npmProfileValidator) ValidateExternalParameters(encoded json.Raw
 	if err != nil {
 		return err
 	}
-	if err := validateExternalParameters(parameters, validator.parameters.Source.Repository); err != nil {
+	if err := validateFinalExternalParameters(parameters, validator.parameters.Workflow.Repository); err != nil {
 		return err
 	}
 	equal, err := canonicaljson.Equal(encoded, validator.encodedParameters)
@@ -157,7 +83,7 @@ func (validator npmProfileValidator) ValidateExternalParameters(encoded json.Raw
 }
 
 func (validator npmProfileValidator) ValidateResolvedDependencies(values []provenance.ResourceDescriptor) error {
-	if err := validateResolvedDependencies(values, validator.parameters); err != nil {
+	if err := validateFinalDependencies(values, validator.parameters); err != nil {
 		return err
 	}
 	wantByName := make(map[string]provenance.ResourceDescriptor, len(validator.dependencies))
@@ -173,89 +99,6 @@ func (validator npmProfileValidator) ValidateResolvedDependencies(values []prove
 		if err != nil || !equal {
 			return dependencyMismatch(dependency.Name)
 		}
-	}
-	return nil
-}
-
-func validateExternalParameters(parameters ExternalParameters, expectedRepository string) error {
-	if err := identity.ValidateCanonicalRepositoryURI(parameters.Source.Repository); err != nil {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.repository", "source repository must be canonical")
-	}
-	if expectedRepository != "" && parameters.Source.Repository != expectedRepository {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.repository", "source repository differs from the expected repository")
-	}
-	if parameters.Package.Repository != parameters.Source.Repository {
-		return npmValidationError("windlass.verify.error.package-repository-identity-mismatch", "externalParameters.package.repository", "package and source repositories must match")
-	}
-	if err := validateSourceParameters(parameters.Source, parameters.Package.Version); err != nil {
-		return err
-	}
-	if identity.ValidateFullSHA(parameters.Source.Revision) != nil || identity.ValidateFullSHA(parameters.Workflow.SHA) != nil {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.revision", "source and workflow revisions must be full lowercase SHAs")
-	}
-	if parameters.Workflow.Path != NPMWorkflowPath {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.workflow.path", "workflow path must equal the npm producer entrypoint")
-	}
-	wantBuilderID, err := identity.NewBuilderID(parameters.Workflow.Path, parameters.Workflow.SHA)
-	if err != nil || parameters.Workflow.BuilderID != wantBuilderID {
-		return npmValidationError("windlass.verify.error.builder-id-not-immutable", "externalParameters.workflow.builder_id", "builder identity must bind the workflow path and SHA")
-	}
-	if parameters.Source.EventName == "" || parameters.Source.RefType != "tag" {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "release source event and tag type are required")
-	}
-	if parameters.Runtime.Runner != "ubuntu-24.04" || !minimumVersion(parameters.Runtime.NodeVersion, 24, 0, 0) || !minimumVersion(parameters.Runtime.NPMVersion, 11, 5, 1) {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.runtime", "runtime must use ubuntu-24.04, Node.js 24+, and npm 11.5.1+")
-	}
-	if err := validatePackageParameters(parameters); err != nil {
-		return err
-	}
-	if err := validatePackageManagerParameters(parameters.PackageManager); err != nil {
-		return err
-	}
-	if err := validatePublishParameters(parameters.Publish); err != nil {
-		return err
-	}
-	if parameters.Release.Ref == "" || parameters.Release.VersionTag == "" {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.release", "release ref and version tag are required")
-	}
-	if parameters.Distribution.ReleaseAssetMode {
-		if parameters.Distribution.ProvenanceSidecar == nil || *parameters.Distribution.ProvenanceSidecar != "required" {
-			return npmValidationError("windlass.verify.error.release-asset-mode-schema-error", "externalParameters.distribution.provenance_sidecar", "release mode requires the provenance sidecar")
-		}
-	} else if parameters.Distribution.ProvenanceSidecar != nil {
-		return npmValidationError("windlass.verify.error.release-asset-mode-schema-error", "externalParameters.distribution.provenance_sidecar", "npm-only mode requires a null provenance sidecar")
-	}
-	if parameters.Caller.WorkflowFilename == "" || path.Base(parameters.Caller.WorkflowFilename) != parameters.Caller.WorkflowFilename || !strings.HasSuffix(parameters.Caller.WorkflowFilename, ".yml") {
-		return npmValidationError("windlass.verify.error.trusted-publisher-mismatch", "externalParameters.caller.workflow_filename", "caller workflow filename must be an observed yml basename")
-	}
-	if parameters.Build.ScriptPresent != (parameters.Build.ScriptResult == BuildScriptExecuted) && parameters.Build.ScriptResult != BuildScriptSkippedAbsent {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.build", "build script presence and result disagree")
-	}
-	if parameters.Build.ScriptPresent && parameters.Build.ScriptResult != BuildScriptExecuted || !parameters.Build.ScriptPresent && parameters.Build.ScriptResult != BuildScriptSkippedAbsent {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.build", "build result must match script presence")
-	}
-	return validateOptionalExternalFields(parameters)
-}
-
-func validateSourceParameters(source SourceParameters, packageVersion string) error {
-	present := boolCount(source.InputRef != nil) + boolCount(source.InvocationRef != nil) + boolCount(source.InvocationRevision != nil)
-	if present == 0 {
-		return nil
-	}
-	if present != 3 {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source", "conditional source members must be all present or all absent")
-	}
-	if *source.InputRef != source.Ref {
-		return sourceRefError("source input ref differs from the built source ref")
-	}
-	if err := ValidateSourceRefInput(*source.InputRef, *source.InvocationRef, packageVersion); err != nil {
-		return err
-	}
-	if !validFullGitRef(*source.InvocationRef) {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.invocation_ref", "invocation ref must be a well-formed full Git ref")
-	}
-	if identity.ValidateFullSHA(*source.InvocationRevision) != nil {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.source.invocation_revision", "invocation revision must be a full lowercase SHA")
 	}
 	return nil
 }
@@ -276,20 +119,16 @@ func validFullGitRef(ref string) bool {
 	return validTagName(strings.TrimPrefix(ref, "refs/"))
 }
 
-func validatePackageParameters(parameters ExternalParameters) error {
-	packageParameters := parameters.Package
-	if packageParameters.Directory == "" || packageParameters.SourceManifest == "" || packageParameters.Name == "" || packageParameters.Version == "" || packageParameters.Private || packageParameters.PackedName != packageParameters.Name || packageParameters.PackedVersion != packageParameters.Version {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package", "package identity and packed identity must be complete and equal")
+func validCallerWorkflowPath(value string) bool {
+	const prefix = ".github/workflows/"
+	if !strings.HasPrefix(value, prefix) || strings.ContainsAny(value, "%\\\x00") {
+		return false
 	}
-	if strings.ContainsAny(packageParameters.TarballName, `/\\`) || !strings.HasSuffix(packageParameters.TarballName, ".tgz") {
-		return npmValidationError(IDNPMSubjectMismatch, "externalParameters.package.tarball_name", "tarball name must be a safe tgz basename")
+	filename := strings.TrimPrefix(value, prefix)
+	if filename == "" || strings.Contains(filename, "/") || strings.HasPrefix(filename, ".") {
+		return false
 	}
-	wantURL, err := npmRegistryPackageURL(parameters.Publish.ResolvedRegistryURL, packageParameters.Name, packageParameters.Version)
-	if err != nil || packageParameters.PackageURL != wantURL {
-		return npmValidationError("windlass.verify.error.package-url-mismatch", "externalParameters.package.package_url", "registry package URL is not canonical")
-	}
-	_, err = NPMPackagePURL(packageParameters.Name, packageParameters.Version)
-	return err
+	return strings.HasSuffix(filename, ".yml") || strings.HasSuffix(filename, ".yaml")
 }
 
 func validatePackageManagerParameters(parameters PackageManagerParameters) error {
@@ -330,106 +169,6 @@ func validatePackageManagerParameters(parameters PackageManagerParameters) error
 	return nil
 }
 
-func validatePublishParameters(parameters PublishParameters) error {
-	registry, registryErr := normalizeRegistryURL(parameters.ResolvedRegistryURL)
-	if registryErr != nil || registry.String() != parameters.ResolvedRegistryURL || parameters.ResolvedDistTag == "" || !parameters.TrustedPublishing || !parameters.ProvenanceFile || parameters.PackageIdentityPreexisting == nil || !*parameters.PackageIdentityPreexisting || parameters.PackageVersionPreexisting == nil || *parameters.PackageVersionPreexisting {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish", "npmjs publish intent must be tokenless, provenance-file enabled, and target an absent version")
-	}
-	if parameters.EffectiveAccess != "existing-package-access" && parameters.EffectiveAccess != "public" && parameters.EffectiveAccess != "restricted" {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish.effective_access", "effective access is not enumerated")
-	}
-	if parameters.PublishAccessOption != nil && *parameters.PublishAccessOption != "public" && *parameters.PublishAccessOption != "restricted" {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish.publish_access_option", "publish access option is not enumerated")
-	}
-	wantCustomSupport := ""
-	if parameters.ResolvedRegistryURL != "https://registry.npmjs.org/" {
-		wantCustomSupport = "unsupported-but-not-blocked"
-	}
-	if parameters.CustomRegistrySupport != wantCustomSupport {
-		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish.custom_registry_support", "custom registry marker is forbidden for npmjs")
-	}
-	return nil
-}
-
-func validateOptionalExternalFields(parameters ExternalParameters) error {
-	allowedConsumerFields := map[string]bool{"exports": true, "main": true, "type": true, "bin": true, "types": true, "typings": true, "typesVersions": true, "files": true}
-	for name := range parameters.Package.ConsumerSurface {
-		if !allowedConsumerFields[name] {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package.consumer_surface", "consumer surface contains an unknown field")
-		}
-	}
-	for _, file := range parameters.Package.PackedFiles {
-		if file == "" || path.IsAbs(file) || strings.Contains(file, "\\") || strings.HasPrefix(path.Clean(file), "..") {
-			return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.package.packed_files", "packed file path is unsafe")
-		}
-	}
-	return nil
-}
-
-func validateResolvedDependencies(values []provenance.ResourceDescriptor, parameters ExternalParameters) error {
-	byName := make(map[string][]provenance.ResourceDescriptor, len(values))
-	for _, value := range values {
-		switch value.Name {
-		case "lockfile", "node-runtime", "package-manager-distribution", "runner-image":
-			if value.HasUnexpectedFields() {
-				return dependencyMismatch(value.Name)
-			}
-			byName[value.Name] = append(byName[value.Name], value)
-		default:
-			return npmValidationError(IDResolvedDependenciesUnexpectedEntry, "resolvedDependencies", "dependency name is not enumerated")
-		}
-	}
-	if len(byName["lockfile"]) != 1 || len(byName["runner-image"]) != 1 {
-		if len(byName["lockfile"]) != 1 {
-			return npmValidationError(IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile", "exactly one lockfile descriptor is required")
-		}
-		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image", "exactly one runner-image descriptor is required")
-	}
-	wantDistribution := parameters.PackageManager.Name != ManagerNPM
-	if len(byName["package-manager-distribution"]) != boolCount(wantDistribution) {
-		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution", "distribution descriptor cardinality must match the selected manager")
-	}
-	if len(byName["node-runtime"]) != 1 {
-		return npmValidationError(IDResolvedDependenciesNodeRuntime, "resolvedDependencies.node-runtime", "exactly one node-runtime descriptor is required")
-	}
-	if err := validateLockfileDescriptor(byName["lockfile"][0], parameters); err != nil {
-		return err
-	}
-	if err := validateNodeRuntimeDescriptor(byName["node-runtime"][0]); err != nil {
-		return err
-	}
-	if wantDistribution {
-		if err := validateDistributionDescriptor(byName["package-manager-distribution"][0], parameters); err != nil {
-			return err
-		}
-	}
-	return validateRunnerDescriptor(byName["runner-image"][0], parameters.Runtime.NodeVersion)
-}
-
-func validateLockfileDescriptor(value provenance.ResourceDescriptor, parameters ExternalParameters) error {
-	lockfilePath := selectedLockfilePath(parameters.PackageManager)
-	wantURI := "git+" + parameters.Source.Repository + "@" + parameters.Source.Revision + "#" + escapeLockfileFragment(lockfilePath)
-	if value.URI != wantURI || len(value.Digest) != 1 || digestEncodingInvalid(value.Digest["sha256"], 64) || len(value.Annotations) != 6 {
-		return npmValidationError(IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile", "lockfile URI, digest, or annotation shape is invalid")
-	}
-	wantManifestPath := any(nil)
-	if parameters.PackageManager.SelectionManifestPath != nil {
-		wantManifestPath = *parameters.PackageManager.SelectionManifestPath
-	}
-	wants := map[string]any{
-		"package_manager":              parameters.PackageManager.Name,
-		"package_manager_root":         parameters.PackageManager.Root,
-		"selection_source":             parameters.PackageManager.SelectionSource,
-		"selection_manifest_path":      wantManifestPath,
-		"selection_lockfile_path":      lockfilePath,
-		"stale_non_selected_lockfiles": nonNilStrings(parameters.PackageManager.IgnoredLockfilePaths),
-	}
-	if !annotationsEqual(value.Annotations, wants) {
-		return npmValidationError(IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile.annotations", "lockfile annotations differ from external parameters")
-	}
-	return nil
-}
-
 func validateNodeRuntimeDescriptor(value provenance.ResourceDescriptor) error {
 	if value.HasUnexpectedFields() {
 		return npmValidationError(IDResolvedDependenciesNodeRuntime, "resolvedDependencies.node-runtime", "runtime descriptor contains unrecognized members")
@@ -441,62 +180,6 @@ func validateNodeRuntimeDescriptor(value provenance.ResourceDescriptor) error {
 	equal, err := equalJSONValues(value, want)
 	if err != nil || !equal {
 		return npmValidationError(IDResolvedDependenciesNodeRuntime, "resolvedDependencies.node-runtime", "runtime descriptor must match the embedded linux-x64 pin and closed annotations")
-	}
-	return nil
-}
-
-func validateDistributionDescriptor(value provenance.ResourceDescriptor, parameters ExternalParameters) error {
-	authority := "registry-integrity"
-	if parameters.PackageManager.Name == ManagerYarn {
-		authority = "download-hash"
-	}
-	if value.URI == "" || len(value.Digest) != 1 || digestEncodingInvalid(value.Digest["sha512"], 128) || len(value.Annotations) != 4 || !strings.HasPrefix(value.URI, "https://") {
-		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution", "distribution URI, SHA-512, or annotation shape is invalid")
-	}
-	wants := map[string]any{"digest_authority": authority, "package_manager": parameters.PackageManager.Name, "package_manager_version": parameters.PackageManager.Version, "acquisition_source": "corepack"}
-	if !annotationsEqual(value.Annotations, wants) {
-		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution.annotations", "distribution annotations differ from the selected manager")
-	}
-	// ADR 0092: a declared sha512 suffix must agree with the recorded
-	// observed distribution digest. Declared sha256 and sha384 suffixes
-	// cannot be recomputed from the SHA-512 evidence and are accepted as
-	// build-time-reconciled declared input.
-	_, declared, _ := parseDescriptorVersion(parameters.PackageManager.Name, parameters.PackageManager.Version)
-	if declared != nil && declared.Algorithm == "sha512" && declared.Hex != value.Digest["sha512"] {
-		return npmValidationError(IDResolvedDependenciesDistribution, "resolvedDependencies.package-manager-distribution.digest", "declared sha512 digest disagrees with the recorded distribution digest")
-	}
-	return nil
-}
-
-func validateRunnerDescriptor(value provenance.ResourceDescriptor, nodeVersion string) error {
-	if value.URI == "" || len(value.Digest) != 0 || len(value.Annotations) != 4 {
-		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image", "runner-image must have URI and annotations without a digest")
-	}
-	parsed, err := url.Parse(value.URI)
-	if err != nil || parsed.Scheme != "https" || parsed.Host != "github.com" || !strings.HasPrefix(parsed.Path, "/actions/runner-images/") {
-		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.uri", "runner-image URI must be the captured actions/runner-images software report")
-	}
-	for _, name := range []string{"image_os", "image_version", "node_version"} {
-		var text string
-		if json.Unmarshal(value.Annotations[name], &text) != nil || text == "" {
-			return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations", "runner-image annotations must be non-empty strings")
-		}
-		if name == "node_version" && text != "v"+nodeVersion {
-			return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations.node_version", "runner Node.js version differs from external parameters")
-		}
-	}
-	// ADR 0100: deployment_version is the control-plane deployment evidence; it
-	// is null when the platform supplied no ImageVersion, otherwise a non-empty
-	// string. It is never compared against image_version.
-	rawDeployment, present := value.Annotations["deployment_version"]
-	if !present {
-		return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations", "runner-image annotations must carry deployment_version")
-	}
-	if string(rawDeployment) != "null" {
-		var deployment string
-		if json.Unmarshal(rawDeployment, &deployment) != nil || deployment == "" {
-			return npmValidationError(IDResolvedDependenciesRunnerImage, "resolvedDependencies.runner-image.annotations", "runner-image deployment_version must be null or a non-empty string")
-		}
 	}
 	return nil
 }
@@ -598,6 +281,12 @@ func equalJSONValues(left, right any) (bool, error) {
 
 func dependencyMismatch(name string) error {
 	switch name {
+	case "invocation-source":
+		return npmValidationError(IDInvocationSource, "resolvedDependencies.invocation-source", "invocation source differs from verified build metadata")
+	case "built-source":
+		return npmValidationError(IDBuiltSource, "resolvedDependencies.built-source", "built source differs from verified build metadata")
+	case "package-manifest":
+		return npmValidationError(IDPackageManifest, "resolvedDependencies.package-manifest", "manifest descriptor differs from verified build metadata")
 	case "lockfile":
 		return npmValidationError(IDResolvedDependenciesLockfile, "resolvedDependencies.lockfile", "lockfile differs from verified build metadata")
 	case "node-runtime":
@@ -609,13 +298,6 @@ func dependencyMismatch(name string) error {
 	default:
 		return npmValidationError(IDResolvedDependenciesUnexpectedEntry, "resolvedDependencies", "dependency name is not enumerated")
 	}
-}
-
-func boolCount(value bool) int {
-	if value {
-		return 1
-	}
-	return 0
 }
 
 func nonNilStrings(values []string) []string {

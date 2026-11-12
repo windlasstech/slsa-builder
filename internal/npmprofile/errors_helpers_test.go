@@ -2,10 +2,10 @@ package npmprofile
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -98,12 +98,11 @@ func TestEncodeExternalParametersMalformedRawJSON(t *testing.T) {
 	for _, raw := range []string{`{`, `{"duplicate":1,"duplicate":2}`} {
 		t.Run(raw, func(t *testing.T) {
 			t.Parallel()
-			parameters := validExternalParameters(ManagerNPM)
-			parameters.Package.ConsumerSurface = map[string]json.RawMessage{"exports": json.RawMessage(raw)}
-			encoded, err := EncodeExternalParameters(parameters)
+			encoded := strings.Replace(string(mustJSON(validExternalParameters(ManagerNPM))), `"directory":"."`, `"directory":".","consumer_surface":{"exports":`+raw+`}`, 1)
+			decoded, err := DecodeExternalParameters([]byte(encoded))
 			requireNPMDiagnostic(t, err, IDUnexpectedExternalParameters)
-			if encoded != nil {
-				t.Fatalf("rejected parameters returned bytes: %s", encoded)
+			if !reflect.DeepEqual(decoded, ExternalParameters{}) {
+				t.Fatalf("rejected parameters returned a partial value: %#v", decoded)
 			}
 		})
 	}
@@ -132,17 +131,16 @@ func TestValidateInputBindings(t *testing.T) {
 		{"payload suffix", func(b *bindings) {
 			b.input.BuildMetadata.PrimaryArtifact.PayloadFileName = "pkg.zip"
 		}, IDNPMSubjectMismatch},
-		{"payload mismatch", func(b *bindings) {
+		{"safe pack basename is not derived from package name", func(b *bindings) {
 			b.input.BuildMetadata.PrimaryArtifact.PayloadFileName = "other.tgz"
-		}, IDNPMSubjectMismatch},
+		}, ""},
 		{"builder mismatch", func(b *bindings) { b.input.BuilderID = "other" }, "windlass.verify.error.builder-id-not-immutable"},
 		{"builder invalid", func(b *bindings) {
 			b.input.BuilderID = "invalid"
-			b.parameters.Workflow.BuilderID = "invalid"
 		}, "windlass.verify.error.builder-id-not-immutable"},
 		{"node mismatch", func(b *bindings) { b.input.NodeJSVersion = "v22.0.0" }, "windlass.verify.error.builder-version-mismatch"},
 		{"unexpected corepack", func(b *bindings) { b.input.CorepackVersion = testStringPointer("0.34.0") }, "windlass.verify.error.builder-version-mismatch"},
-		{"missing corepack", func(b *bindings) { b.parameters.PackageManager.Name = ManagerPNPM }, "windlass.verify.error.builder-version-mismatch"},
+		{"missing corepack", func(b *bindings) { b.input = validProvenanceInput(t, ManagerPNPM); b.input.CorepackVersion = nil }, "windlass.verify.error.builder-version-mismatch"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()

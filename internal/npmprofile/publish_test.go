@@ -283,7 +283,8 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 	directory := t.TempDir()
 	tarballPath := filepath.Join(directory, "windlass-slsa-builder-1.2.3.tgz")
 	bundlePath := tarballPath + ".intoto.jsonl"
-	tarballBytes := []byte("exact packed npm tarball bytes")
+	input := validProvenanceInput(t, ManagerNPM)
+	tarballBytes := inspectArchiveBytes(t, []inspectArchiveEntry{{name: "package/package.json", body: string(testOriginalManifest()), kind: '0'}})
 	bundleBytes := []byte("exact P02 Sigstore bundle bytes")
 	if err := os.WriteFile(tarballPath, tarballBytes, 0o600); err != nil {
 		t.Fatal(err)
@@ -295,10 +296,8 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 	sha256Value := digest.SumSHA256(tarballBytes)
 	sha512Value := digest.SumSHA512(tarballBytes)
 	expectedSRI := "sha512-" + base64.StdEncoding.EncodeToString(sha512Value[:])
-	parameters := validExternalParameters(ManagerNPM)
-	if options.buildNPMVersion != "" {
-		parameters.Runtime.NPMVersion = options.buildNPMVersion
-	}
+	input.BuildMetadata.PrimaryArtifact.SHA256 = sha256Value.String()
+	input.BuildMetadata.PrimaryArtifact.SHA512 = sha512Value.String()
 
 	fixture := &publishFixture{bundleBytes: bundleBytes, logPath: filepath.Join(directory, "npm.log")}
 	server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -331,7 +330,7 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 			if options.foreignIntegrity {
 				integrity = "sha512-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 			}
-			writePackument(writer, &RegistryVersion{Name: parameters.Package.Name, Version: parameters.Package.Version, Integrity: integrity, Tarball: "https://registry.npmjs.org/windlass-slsa-builder-1.2.3.tgz"})
+			writePackument(writer, &RegistryVersion{Name: input.Packed.Name, Version: input.Packed.Version, Integrity: integrity, Tarball: "https://registry.npmjs.org/windlass-slsa-builder-1.2.3.tgz"})
 		case request.URL.EscapedPath() == "/-/npm/v1/attestations/%40windlass%2Fslsa-builder@1.2.3":
 			fixture.attestationRequests++
 			if options.initialVersionAbsent && fixture.packumentRequests == 1 {
@@ -367,21 +366,11 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 	}))
 	t.Cleanup(server.Close)
 
-	encodedParameters, err := EncodeExternalParameters(parameters)
-	if err != nil {
-		t.Fatalf("EncodeExternalParameters() error = %v", err)
-	}
-	statement := provenance.Statement{
-		Type: provenance.StatementType,
-		Subject: []provenance.Subject{{
-			Name:   npmPURL(parameters.Package.Name, parameters.Package.Version),
-			Digest: map[string]string{"sha256": sha256Value.String(), "sha512": sha512Value.String()},
-		}},
-		PredicateType: provenance.PredicateType,
-		Predicate: provenance.Predicate{
-			BuildDefinition: provenance.BuildDefinition{BuildType: NPMBuildType, ExternalParameters: encodedParameters, InternalParameters: json.RawMessage(`{}`)},
-			RunDetails:      provenance.RunDetails{Metadata: provenance.Metadata{InvocationID: "https://github.com/example/project/actions/runs/" + testPublishRunID + "/attempts/1"}},
-		},
+	statement := runtimeTestStatement(t, input)
+	statement.Subject[0].Digest = map[string]string{"sha256": sha256Value.String(), "sha512": sha512Value.String()}
+	statement.Predicate.RunDetails.Metadata.InvocationID = "https://github.com/example/project/actions/runs/" + testPublishRunID + "/attempts/1"
+	if options.buildNPMVersion != "" {
+		statement.Predicate.RunDetails.Builder.Version["npm"] = options.buildNPMVersion
 	}
 	fixture.verifier = &publishFakeVerifier{localBundle: bundleBytes, statement: statement, foreignRunID: options.foreignRunID}
 	fixture.clock = &publishFakeClock{now: time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC), overshoot: options.sleepOvershoot}
@@ -429,6 +418,7 @@ func newPublishFixture(t *testing.T, options publishFixtureOptions) *publishFixt
 		t.Fatal(err)
 	}
 	fixture.request = PublishRequest{
+		BuildMetadata:       input.BuildMetadata,
 		NPMExecutable:       npmPath,
 		TarballPath:         tarballPath,
 		BundlePath:          bundlePath,

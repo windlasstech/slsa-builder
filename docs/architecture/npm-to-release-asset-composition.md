@@ -22,7 +22,12 @@ tarball producer feeding the GitHub Release asset publisher.
   [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
   [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
+  [0103](../decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md),
+  [0105](../decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md),
+  [0106](../decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md),
+  [0108](../decisions/0108-remove-redundant-npm-release-asset-inputs.md),
+  [0109](../decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md)
 - Related specs: [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
   [Composed workflow internal handoff](composed-workflow-internal-handoff.md),
   [GitHub Release asset publisher](github-release-asset-publisher.md),
@@ -98,9 +103,12 @@ provenance bundle artifact names are not public outputs.
 The recommended public caller surface for this composition is release-asset mode on
 `.github/workflows/js-ts-npm-package-slsa3.yml`, as defined by the
 [JS/TS npm package workflow contract](js-ts-npm-package-profile.md#workflow_call-contract). That
-public mode exposes package, publish, release tag, sidecar policy, linked metadata, and publication
-result handles. It does not expose this composition's internal artifact names, handoff manifest
-name, handoff manifest digest, or publisher handoff inputs as public workflow inputs or outputs.
+public mode exposes package selection, source selection, publish intent, release-asset mode, linked
+metadata, and publication result handles. The release target derives from the effective built tag,
+and provenance sidecar publication is mandatory in release-asset mode. Neither has an independent
+public input. The public mode does not expose this composition's internal artifact names, handoff
+manifest name, handoff manifest digest, or publisher handoff inputs as public workflow inputs or
+outputs.
 
 A composed release workflow or mapping layer that runs the npm producer and publisher in the same
 workflow run must receive the producer-owned internal handoff manifest defined by the
@@ -239,28 +247,29 @@ public npm producer outputs, deterministic names, logs, or caller-supplied value
 outputs such as `package-tarball-sha256` and `package-tarball-name` may be compared against the
 manifest for diagnostics, but they are not trusted mapping sources for the publisher contract.
 
-| Verified handoff manifest source     | Publisher handoff field             | Notes                                                              |
-| ------------------------------------ | ----------------------------------- | ------------------------------------------------------------------ |
-| `primary_artifact.artifact_name`     | `primary-artifact-name`             | Same-run workflow artifact containing the tarball.                 |
-| `primary_artifact.sha256`            | `expected-sha256`                   | Canonical digest.                                                  |
-| `release.final_asset_name`           | `final-asset-name`                  | Release asset name equals the pack-produced tarball name.          |
-| `release.tag`                        | `release-tag`                       | Same full `refs/tags/<tag-name>` ref used by the npm release.      |
-| `producer_provenance.artifact_name`  | `producer-provenance-artifact-name` | Same-run artifact containing the signed DSSE bundle.               |
-| `producer_provenance.sha256`         | `producer-provenance-sha256`        | Canonical bundle digest.                                           |
-| `trusted_producer.builder_id`        | `trusted-builder-id`                | Narrowing constraint on the selected registry policy.              |
-| `trusted_producer.build_type`        | `trusted-build-type`                | Exact closed-registry selector, not a policy extension.            |
-| `subject.name`                       | `expected-subject-name`             | npm Package URL subject from producer provenance.                  |
-| `subject.sha256`                     | `expected-subject-sha256`           | Must equal uploaded tarball bytes.                                 |
-| `trusted_producer.source_repository` | `source-repository`                 | Required canonical HTTPS source repository URL.                    |
-| `trusted_producer.source_revision`   | `source-revision`                   | Required full source revision; GitHub Git sources use 40-char SHA. |
-| `native_provenance_locators`         | `native-provenance-locators`        | Optional array of locator objects defined by the publisher spec.   |
-| `linked_artifact_settings`           | `linked-artifact-settings`          | Optional settings object defined by the publisher spec.            |
+| Verified handoff manifest source     | Publisher handoff field             | Notes                                                                      |
+| ------------------------------------ | ----------------------------------- | -------------------------------------------------------------------------- |
+| `primary_artifact.artifact_name`     | `primary-artifact-name`             | Same-run workflow artifact containing the tarball.                         |
+| `primary_artifact.sha256`            | `expected-sha256`                   | Canonical digest.                                                          |
+| `release.final_asset_name`           | `final-asset-name`                  | Release asset name equals the pack-produced tarball name.                  |
+| `release.tag`                        | `release-tag`                       | Full effective built tag ref carried by the internal composition contract. |
+| `producer_provenance.artifact_name`  | `producer-provenance-artifact-name` | Same-run artifact containing the signed DSSE bundle.                       |
+| `producer_provenance.sha256`         | `producer-provenance-sha256`        | Canonical bundle digest.                                                   |
+| `trusted_producer.builder_id`        | `trusted-builder-id`                | Narrowing constraint on the selected registry policy.                      |
+| `trusted_producer.build_type`        | `trusted-build-type`                | Exact closed-registry selector, not a policy extension.                    |
+| `subject.name`                       | `expected-subject-name`             | npm Package URL subject from producer provenance.                          |
+| `subject.sha256`                     | `expected-subject-sha256`           | Must equal uploaded tarball bytes.                                         |
+| `trusted_producer.source_repository` | `source-repository`                 | Canonical HTTPS URL from `externalParameters.workflow.repository`.         |
+| `trusted_producer.source_revision`   | `source-revision`                   | Full Git commit from `built-source.digest.gitCommit`.                      |
+| `native_provenance_locators`         | `native-provenance-locators`        | Optional array of locator objects defined by the publisher spec.           |
+| `linked_artifact_settings`           | `linked-artifact-settings`          | Optional settings object defined by the publisher spec.                    |
 
 The mapping job must verify that manifest-derived values agree with the npm producer provenance
-before invoking the publisher. For example, `trusted_producer.source_repository` must equal
-`externalParameters.source.repository`, `subject.name` must equal the npm Package URL provenance
-`subject[0].name`, `subject.sha256` must equal the provenance `subject[0].digest.sha256`, and
-`release.final_asset_name` must equal `primary_artifact.payload_file_name`. A mismatch is a
+before invoking the publisher. In particular, `trusted_producer.source_repository` must equal
+`externalParameters.workflow.repository`, `trusted_producer.source_revision` must equal the
+`built-source` descriptor's `digest.gitCommit`, `subject.name` must equal the npm Package URL
+provenance `subject[0].name`, `subject.sha256` must equal the provenance `subject[0].digest.sha256`,
+and `release.final_asset_name` must equal `primary_artifact.payload_file_name`. A mismatch is a
 composition failure, not a reason to replace a manifest field with a public workflow output or
 deterministic name.
 
@@ -272,17 +281,19 @@ selected value unchanged as `trusted-build-type`; it must not use handoff or cal
 registry entry or override the registered signer, builder, subject, digest, source, release-ref,
 tarball-name, or closed `externalParameters` baseline.
 
-The mapping job must also verify the npm release binding before invoking the publisher. For this
-composition, all of the following values must be the same full Git tag ref:
+The mapping job must also verify the npm release binding before invoking the publisher. The
+effective built ref and the required release binding are:
 
 ```text
-release.tag == externalParameters.release.ref == externalParameters.source.ref
+effective built ref: externalParameters.source.ref ?? externalParameters.workflow.ref
+release.tag == effective built ref == built-source URI ref component
 ```
 
-`externalParameters.release.version_tag` must be the short tag name whose `refs/tags/` expansion
-equals the same ref. The target GitHub Release must be the caller repository's existing release for
-that tag. A missing release field, short ref, branch ref, pull request ref, mismatched
-source/release ref, mismatched version tag, or release target outside the caller repository is a
+The effective built ref must be the packed package's version tag in full `refs/tags/<tag-name>`
+form, and `built-source.digest.gitCommit` must be its verified resolved commit. The target GitHub
+Release must be the caller repository's existing release for that tag. A missing release tag or
+`built-source` descriptor, a short ref, branch ref, pull request ref, disagreement among these
+values, a built-source commit mismatch, or a release target outside the caller repository is a
 composition failure.
 
 The mapping job must also verify that the npm provenance subject includes `subject[0].digest.sha512`
@@ -296,10 +307,15 @@ provenance `subject[0].name` is the npm Package URL, while the final GitHub Rele
 the pack-produced tarball filename. The composition must therefore verify package-version subject
 identity and tarball filename binding as separate facts.
 
-The npm package identity is available to verifiers through the Package URL subject and through
-`externalParameters.package.name` and `externalParameters.package.version`. The tarball filename is
-available through `externalParameters.package.tarball_name`, `primary_artifact.payload_file_name`,
-and `release.final_asset_name`.
+The npm package identity is verified from the Package URL subject and the original selected
+source-manifest bytes. The `package-manifest` descriptor binds those bytes by digest and source
+identity, and the offline manifest-evidence contract supplies them to verifiers. The manifest's
+`name` and `version` must match the Package URL subject. Missing, mismatched, or malformed evidence
+is a composition failure.
+
+The tarball filename is bound by the verified pack output and the digest-verified handoff.
+`primary_artifact.payload_file_name` and `release.final_asset_name` must both equal the
+pack-produced tarball filename. The signed provenance schema carries no tarball-name field.
 
 ### Final composition rule
 
@@ -307,13 +323,13 @@ For the npm-to-release-asset composition:
 
 - The primary `subject[0].name` is the npm Package URL, for example
   `pkg:npm/%40windlass/slsa-builder@1.2.3`.
-- The npm package name and version are recorded in `externalParameters` under `package.name` and
-  `package.version` and must match the Package URL subject.
-- The final GitHub Release asset name equals the tarball file name.
-- The composition release tag, producer `externalParameters.release.ref`, and producer
-  `externalParameters.source.ref` are identical full tag refs.
-- The mapping layer and publisher verify the tarball filename through producer policy and handoff
-  fields before upload.
+- The npm package name and version in the authenticated source-manifest bytes must match the Package
+  URL subject. The manifest evidence is bound to the `package-manifest` descriptor.
+- The final GitHub Release asset name equals the verified pack-produced tarball file name.
+- The composition `release.tag`, the effective built ref (`source.ref ?? workflow.ref`), and the
+  `built-source` URI's ref component are identical full tag refs.
+- The mapping layer and publisher verify the tarball filename through the verified pack output and
+  handoff fields before upload.
 - The npm provenance subject digest includes both SHA-512 and SHA-256 for the same tarball bytes.
 
 ## Tarball digest alignment
@@ -326,6 +342,10 @@ The publisher computes the SHA-256 of the tarball bytes and compares it to:
 All three must match.
 
 ## Producer provenance sidecar publication
+
+Sidecar publication is mandatory whenever release-asset mode is enabled. That behavior follows from
+release-asset mode itself and requires no separate public sidecar input or sidecar-required
+provenance parameter.
 
 The publisher uploads the unchanged npm producer provenance bundle as:
 
@@ -356,24 +376,25 @@ interrupted or ambiguous primary upload is resolved only through the sidecar-fir
 success report may state that expected provenance-covered bytes are present, but must not claim that
 the current run performed the upload without a matching receipt.
 
-## npm-specific fields as producer metadata
+## npm-specific evidence as producer metadata
 
-The publisher treats the following npm-specific fields as producer metadata or policy inputs, not as
-part of the generic publisher contract:
+The publisher treats the following npm-specific evidence as producer metadata or policy inputs, not
+as part of the generic publisher contract:
 
-- `package.name`
-- `package.version`
-- `publish.resolved_registry_url`
-- `publish.resolved_dist_tag`
-- `package.package_url`
-- tarball SHA-512 diagnostics from workflow outputs or registry metadata
-- `package_manager.name`
-- `package_manager.version`
-- `package_manager.selection_source`
+- The npm Package URL subject.
+- Package `name`, `version`, `publishConfig`, and normalized `repository` values from authenticated
+  package-manifest bytes.
+- `publish.input_registry_url`, `publish.input_dist_tag`, and `publish.input_access`, plus the
+  registry, dist-tag, and access resolutions recomputed from those raw inputs, the authenticated
+  manifest's `publishConfig`, and the documented defaults.
+- Tarball SHA-512 diagnostics from workflow outputs or registry metadata.
+- Package-manager selection evidence in the `lockfile` descriptor's annotations and, for pnpm or
+  Yarn, the observed distribution version in the `package-manager-distribution` descriptor's
+  annotations.
 
-These fields are verified from producer provenance or producer-side diagnostics. They are not
-generic publisher handoff fields and must not be used to bypass the producer-neutral handoff
-contract.
+These values are verified from producer provenance, authenticated manifest bytes, or producer-side
+diagnostics. They are not generic publisher handoff fields and must not be used to bypass the
+producer-neutral handoff contract.
 
 ## Producer-neutral publisher constraints
 
@@ -394,10 +415,11 @@ generic handoff fields:
 - `source-revision`
 
 For this initial npm composition, `source-repository` and `source-revision` are not optional policy
-extensions. The mapping layer must pass them from npm provenance `externalParameters.source`, and
-the publisher must verify exact equality before upload. A missing source repository, a branch or tag
-name in place of a revision, a short SHA, or a value that differs from npm producer provenance is a
-composition failure.
+extensions. The mapping layer must pass them from `externalParameters.workflow.repository` and the
+`built-source` descriptor's `digest.gitCommit`, respectively, and the publisher must verify exact
+equality with those signed provenance targets before upload. A missing source repository or
+`built-source` descriptor, a branch or tag name in place of a revision, a short SHA, or a value that
+differs from npm producer provenance is a composition failure.
 
 `trusted-build-type` is the exact selector for the publisher's closed producer-policy registry. For
 this composition, it selects only
@@ -408,14 +430,16 @@ authenticated release manifest, and caller constraints intersect. The mapping la
 must reject a conflict rather than allow a handoff or caller value to widen, register, or override a
 policy.
 
-The mapping layer must pass `release.tag` to the publisher as a full Git tag ref, such as
-`refs/tags/v1.2.3`. It must not pass the short tag name from `release.version_tag` or derive a short
-tag from the full ref for the publisher contract.
+The mapping layer must pass the internal handoff's `release.tag` to the publisher as a full Git tag
+ref, such as `refs/tags/v1.2.3`. It must equal the effective built ref and the `built-source` URI's
+ref component. The mapping layer must not pass a short tag name, derive a short tag for the
+publisher contract, or accept an independent caller-supplied release target.
 
 The mapping layer must not treat the signed release manifest as the source of npm caller release-ref
-constraints. Manifest schema version `1` authenticates the trusted Windlass workflow mappings, but
-the npm caller source ref and release ref come from the signed npm producer provenance,
-digest-verified handoff, and public workflow runtime guards.
+constraints. Manifest schema version `1` authenticates the trusted Windlass workflow mappings. The
+effective built ref is recomputed from the signed source and workflow parameters and bound to the
+`built-source` descriptor, while the digest-verified handoff carries the resulting `release.tag`.
+Public workflow runtime guards remain in force.
 
 `native-provenance-locators`, when present, must use the plural field name and the locator object
 schema from the publisher contract. A singular `native-provenance-locator` field is invalid and must
@@ -440,28 +464,33 @@ copy of the tarball.
    - `subject[0].name`: `pkg:npm/%40windlass/slsa-builder@1.2.3`
    - `subject[0].digest.sha256`: `abc123...`
    - `subject[0].digest.sha512`: the SHA-512 of `windlass-slsa-builder-1.2.3.tgz`
-   - `externalParameters.package.name`: `@windlass/slsa-builder`
-   - `externalParameters.package.version`: `1.2.3`
-   - `externalParameters.package.tarball_name`: `windlass-slsa-builder-1.2.3.tgz`
+   - `package-manifest` evidence: the original selected source-manifest bytes containing the package
+     name `@windlass/slsa-builder` and version `1.2.3`, authenticated by the descriptor's digest and
+     source identity
+   - `built-source`: the effective built tag `refs/tags/v1.2.3` and its verified `digest.gitCommit`
+   - Verified pack output and handoff filename binding: `windlass-slsa-builder-1.2.3.tgz`
 3. The npm profile publishes to npm and makes the internal handoff values available to the same-run
    mapping layer.
 4. The publisher receives the handoff, verifies the tarball digest and provenance, and uploads:
    - `windlass-slsa-builder-1.2.3.tgz` (primary asset)
    - `windlass-slsa-builder-1.2.3.tgz.intoto.jsonl` (sidecar)
 5. A consumer downloads the tarball and the sidecar, verifies the producer provenance against the
-   tarball, and trusts the npm package identity recorded in `externalParameters`.
+   tarball, and verifies the npm package identity from the Package URL subject and authenticated
+   source-manifest bytes.
 
 ## Rejected composition cases
 
 The following must be rejected by the publisher:
 
 - A raw tarball without acceptable producer provenance.
-- A producer provenance whose npm Package URL subject differs from package name or version policy.
+- A producer provenance whose npm Package URL subject differs from the authenticated source-manifest
+  name or version, or whose package-manifest evidence is missing, malformed, or digest-mismatched.
 - A tarball whose handoff payload filename differs from the final asset name.
 - A tarball whose digest differs from the provenance subject digest.
 - A producer provenance missing the mandatory npm subject SHA-512 or SHA-256 digest.
-- A producer provenance whose `externalParameters.source.ref`, `externalParameters.release.ref`, or
-  reconstructed `release.version_tag` differs from the publisher `release-tag`.
+- A composition whose publisher `release-tag`, effective built ref (`source.ref ?? workflow.ref`),
+  or `built-source` URI ref component disagree, or whose handoff source revision differs from
+  `built-source.digest.gitCommit`.
 - A composed ordering that performs `npm publish` before handoff-derived release-state and policy
   preflight.
 - A missing or unknown producer `buildType`, including any value other than the sole registered npm
@@ -496,7 +525,12 @@ The composition must fail when:
 - The npm producer does not produce a valid tarball and provenance.
 - The handoff fields are missing or inconsistent.
 - The publisher cannot verify the producer provenance.
-- The npm Package URL subject, tarball filename binding, or digest does not align.
+- The npm Package URL subject does not match the authenticated source-manifest identity, the tarball
+  filename binding or digest does not align, or required package-manifest evidence is missing or
+  mismatched.
+- The handoff source repository or revision differs from `externalParameters.workflow.repository` or
+  `built-source.digest.gitCommit`, or `release.tag` differs from the effective built ref or the
+  `built-source` URI's ref component.
 - The release target does not exist.
 - The read-only preflight finds an immutable target whose required handoff-derived asset set cannot
   complete same-`run_id` convergence. It must fail before `npm publish` with
@@ -514,17 +548,25 @@ The composition must fail when:
 
 ## TDD and fixtures
 
-- Positive fixture: npm tarball successfully composes with the publisher.
-- Rejected fixtures: raw tarball without provenance, npm Package URL subject mismatch, tarball
-  filename binding mismatch, digest mismatch, npm-specific publisher coupling, pre-existing primary
-  or sidecar release asset name classified through the sidecar-first pair rules, a lone primary
-  classified as `foreign-conflict`, a composed ordering that reaches `npm publish` before preflight,
-  a mutable-target `foreign-conflict` or `indeterminate` result that blocks `npm publish`, an
-  unknown `buildType` (`unregistered-producer-build-type`), an immutable target with a partial asset
-  set before `npm publish` (`release-target-immutable`), and a stale preflight result reused at
-  publisher mutation entry.
+- Positive fixture: an npm tarball successfully composes with the publisher, with package identity
+  verified from the Package URL subject and authenticated package-manifest bytes, source repository
+  and revision mapped from `externalParameters.workflow.repository` and
+  `built-source.digest.gitCommit`, and the tarball filename bound by the verified pack output and
+  handoff.
+- Rejected fixtures: raw tarball without provenance, npm Package URL subject or manifest-evidence
+  mismatch, missing package-manifest evidence, tarball filename binding mismatch, digest mismatch, a
+  release tag that disagrees with the effective built ref or `built-source` URI, a source revision
+  that disagrees with `built-source.digest.gitCommit`, npm-specific publisher coupling, pre-existing
+  primary or sidecar release asset name classified through the sidecar-first pair rules, a lone
+  primary classified as `foreign-conflict`, a composed ordering that reaches `npm publish` before
+  preflight, a mutable-target `foreign-conflict` or `indeterminate` result that blocks
+  `npm publish`, an unknown `buildType` (`unregistered-producer-build-type`), an immutable target
+  with a partial asset set before `npm publish` (`release-target-immutable`), and a stale preflight
+  result reused at publisher mutation entry.
 - A fixture proving that the publisher remains producer-neutral when the same handoff is constructed
   from a different producer profile (mock or stub).
+- A fixture proving that release-asset mode publishes the unchanged sidecar without any separate
+  sidecar input, while the internal handoff retains the full `release.tag` binding.
 - A review checklist proving that expected asset names and digests come from the verified handoff,
   policy selection uses the publisher's closed registry, immutable-incomplete targets fail before
   npm mutation, and publisher mutation-entry revalidation never trusts an early preflight result.

@@ -131,8 +131,8 @@ func TestPublishFlowObservationDecisions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			// Given paired registry evidence for matching bytes but incomplete custody.
-			prepared := preparedPublish{parameters: validExternalParameters(ManagerNPM), expectedSRI: sha512SRI(digest.SumSHA512(nil)), request: PublishRequest{Verifier: &publishFakeVerifier{}}}
-			observation := registryObservation{packageExists: true, version: &RegistryVersion{Integrity: prepared.expectedSRI, Tarball: "https://registry.npmjs.org/" + prepared.parameters.Package.TarballName}, attestations: RegistryAttestationState{Found: true}}
+			prepared := preparedPublish{tarballName: "package.tgz", expectedSRI: sha512SRI(digest.SumSHA512(nil)), request: PublishRequest{Verifier: &publishFakeVerifier{}}}
+			observation := registryObservation{packageExists: true, version: &RegistryVersion{Integrity: prepared.expectedSRI, Tarball: "https://registry.npmjs.org/" + prepared.tarballName}, attestations: RegistryAttestationState{Found: true}}
 			test.change(&observation)
 			// When classifying, then custody and polling bounds determine the state.
 			if got := prepared.decide(t.Context(), observation, test.after, test.final); got != test.want {
@@ -190,8 +190,8 @@ func TestPublishFlowPreparedBindings(t *testing.T) {
 		change        func(*VerifiedPublishBundle, *ExternalParameters)
 	}{
 		{"registry", "registry client differs from signed publish intent", func(v *VerifiedPublishBundle, p *ExternalParameters) {
-			_ = v
-			p.Publish.ResolvedRegistryURL = "https://example.com/"
+			p.Publish.InputRegistryURL = testStringPointer("https://example.com/")
+			v.Statement.Predicate.BuildDefinition.ExternalParameters = mustJSON(p)
 		}},
 		{"certificate invocation", "verified certificate and SLSA invocationId bindings differ", func(v *VerifiedPublishBundle, p *ExternalParameters) { _ = p; v.RunInvocationURI = "" }},
 		{"subject count", "verified provenance Statement has an unexpected type, build type, or subject count", func(v *VerifiedPublishBundle, p *ExternalParameters) { _ = p; v.Statement.Subject = nil }},
@@ -201,6 +201,9 @@ func TestPublishFlowPreparedBindings(t *testing.T) {
 			verified := VerifiedPublishBundle{Statement: fixture.verifier.statement, RunInvocationURI: fixture.verifier.statement.Predicate.RunDetails.Metadata.InvocationID}
 			parameters := validExternalParameters(ManagerNPM)
 			test.change(&verified, &parameters)
+			if test.name == "registry" {
+				fixture.request.BuildMetadata.ExternalParameters = verified.Statement.Predicate.BuildDefinition.ExternalParameters
+			}
 			got, err := validatePreparedBindings(fixture.request, verified, parameters)
 			if got != "" || err == nil || err.Error() != test.message {
 				t.Fatalf("validatePreparedBindings() = %q, %v; want %q", got, err, test.message)
@@ -215,13 +218,13 @@ func TestPublishFlowPreparedBindings(t *testing.T) {
 func TestPublishFlowPreparationIntent(t *testing.T) {
 	fixture := newPublishFixture(t, publishFixtureOptions{})
 	parameters := validExternalParameters(ManagerNPM)
-	parameters.Publish.PublishAccessOption = testStringPointer("public")
-	parameters.Publish.EffectiveAccess = "public"
+	parameters.Publish.InputAccess = testStringPointer("public")
 	encoded, err := EncodeExternalParameters(parameters)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fixture.verifier.statement.Predicate.BuildDefinition.ExternalParameters = encoded
+	fixture.request.BuildMetadata.ExternalParameters = encoded
 	fixture.request.Sleep = nil
 	prepared, err := preparePublish(t.Context(), fixture.request)
 	if err != nil || !reflect.DeepEqual(prepared.argv, append(fixture.expectedArgv(), "--access=public")) || prepared.sleep == nil {

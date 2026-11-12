@@ -1,8 +1,10 @@
 package provenance
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"regexp"
 	"time"
@@ -28,14 +30,16 @@ const (
 )
 
 var (
-	canonicalTimestampPattern = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$`)
-	nodeVersionPattern        = regexp.MustCompile(`^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
-	componentVersionPattern   = regexp.MustCompile(`^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
+	canonicalTimestampPattern   = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$`)
+	positiveDecimalIDExpression = regexp.MustCompile(`^[1-9][0-9]*$`)
+	nodeVersionPattern          = regexp.MustCompile(`^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
+	componentVersionPattern     = regexp.MustCompile(`^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
 )
 
 // BuilderExpectations are authenticated or locally observed common builder values.
 type BuilderExpectations struct {
 	NodeJSVersion   string
+	NPMVersion      string
 	CorepackVersion *string
 }
 
@@ -118,6 +122,10 @@ func cloneResourceDescriptors(descriptors []ResourceDescriptor) []ResourceDescri
 	cloned := make([]ResourceDescriptor, len(descriptors))
 	for index, descriptor := range descriptors {
 		cloned[index] = descriptor
+		if descriptor.Annotations == nil {
+			cloned[index].Digest = cloneStringMap(descriptor.Digest)
+			continue
+		}
 		annotations := make(map[string]json.RawMessage, len(descriptor.Annotations))
 		for key, value := range descriptor.Annotations {
 			annotations[key] = append(json.RawMessage(nil), value...)
@@ -129,20 +137,66 @@ func cloneResourceDescriptors(descriptors []ResourceDescriptor) []ResourceDescri
 }
 
 func cloneStringMap(values map[string]string) map[string]string {
+	if values == nil {
+		return nil
+	}
 	cloned := make(map[string]string, len(values))
 	maps.Copy(cloned, values)
 	return cloned
 }
 
 func validateInternalParameters(parameters json.RawMessage) error {
-	if len(parameters) == 0 {
-		return nil
+	_, err := DecodeInternalParameters(parameters)
+	return err
+}
+
+// DecodeInternalParameters parses the required closed GitHub invocation record.
+func DecodeInternalParameters(parameters json.RawMessage) (InternalParameters, error) {
+	invalid := func() (InternalParameters, error) {
+		return InternalParameters{}, validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must contain exactly github.event_name, github.repository_id, and github.repository_owner_id strings")
 	}
-	canonical, err := canonicaljson.Canonicalize(parameters)
-	if err != nil || (string(canonical) != "{}" && string(canonical) != "null") {
-		return validationError(idUnexpectedInternalParameters, "predicate.buildDefinition.internalParameters", "internalParameters must be absent, null, or the empty object")
+	if len(parameters) == 0 || canonicaljson.Validate(parameters) != nil {
+		return invalid()
 	}
-	return nil
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(parameters, &top); err != nil || len(top) != 1 {
+		return invalid()
+	}
+	rawGitHub, present := top["github"]
+	if !present {
+		return invalid()
+	}
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(rawGitHub, &members); err != nil || len(members) != 3 {
+		return invalid()
+	}
+	for _, name := range []string{"event_name", "repository_id", "repository_owner_id"} {
+		raw, present := members[name]
+		if !present {
+			return invalid()
+		}
+		var value string
+		if err := json.Unmarshal(raw, &value); err != nil || value == "" {
+			return invalid()
+		}
+		if name != "event_name" && !positiveDecimalIDExpression.MatchString(value) {
+			return invalid()
+		}
+	}
+	decoder := json.NewDecoder(bytes.NewReader(parameters))
+	decoder.DisallowUnknownFields()
+	var decoded InternalParameters
+	if err := decoder.Decode(&decoded); err != nil {
+		return invalid()
+	}
+	var extra json.RawMessage
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return invalid()
+	}
+	if decoded.GitHub.EventName == "" || decoded.GitHub.RepositoryID == "" || decoded.GitHub.RepositoryOwnerID == "" {
+		return invalid()
+	}
+	return decoded, nil
 }
 
 func validateBuilder(builder Builder, expected BuilderExpectations) error {
@@ -153,11 +207,15 @@ func validateBuilder(builder Builder, expected BuilderExpectations) error {
 }
 
 func validateBuilderVersion(version map[string]string, expected BuilderExpectations) error {
-	wantKeys := 1
+	wantKeys := 2
 	if expected.CorepackVersion != nil {
 		wantKeys++
 	}
 	nodeVersion, hasNode := version["nodejs"]
+	npmVersion, hasNPM := version["npm"]
+	if !hasNPM || !componentVersionPattern.MatchString(npmVersion) || npmVersion != expected.NPMVersion {
+		return validationError(idBuilderVersionMismatch, "predicate.runDetails.builder.version.npm", "npm must equal the observed build-stage bundled version")
+	}
 	if len(version) != wantKeys || !hasNode || !nodeVersionPattern.MatchString(nodeVersion) ||
 		!nodeVersionPattern.MatchString(expected.NodeJSVersion) || nodeVersion != expected.NodeJSVersion {
 		return validationError(idBuilderVersionMismatch, "predicate.runDetails.builder.version", "builder.version must contain the exact observed nodejs and conditional corepack versions")

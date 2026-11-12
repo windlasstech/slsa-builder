@@ -17,6 +17,22 @@ relations:
     target: ADR-0068
   - type: see-also
     target: ADR-0080
+  - type: see-also
+    target: ADR-0105
+  - type: see-also
+    target: ADR-0106
+  - type: see-also
+    target: ADR-0107
+  - type: see-also
+    target: ADR-0109
+  - type: partially-superseded-by
+    target: ADR-0103
+    scope:
+      "the omitted-source-ref byte-for-byte compatibility promise (the Decision Outcome and
+      Confirmation clauses that omitted-input flows are byte-for-byte compatible with the
+      pre-existing contract): ADR 0103 adds the required workflow invocation-identity group, so
+      pre-change bundles are not byte-compatible; the source-ref input grammar, tag-only validation,
+      and fixed-pipeline retry semantics remain in force"
 ---
 
 # Support a Tags-Only Caller-Specified Build Source Ref for Release Retries Across Profiles

@@ -50,7 +50,10 @@ func (fixtureCheckCommand) Execute(ctx context.Context, args []string, out io.Wr
 
 	index, err := fixture.Load(*indexPath)
 	if err == nil && (*surface != "" || *phase != "") {
-		_, err = fixture.Select(index, *surface, *phase)
+		index, err = fixture.Select(index, *surface, *phase)
+	}
+	if err == nil {
+		err = fixture.CheckEvidence(index, *indexPath)
 	}
 	if err == nil {
 		return writeDiagnostics(out, nil, nil)
@@ -60,6 +63,13 @@ func (fixtureCheckCommand) Execute(ctx context.Context, args []string, out io.Wr
 			return reportErr
 		}
 		return ErrInvocationFailure
+	}
+	var identified interface{ DiagnosticID() string }
+	if errors.As(err, &identified) {
+		if reportErr := writeDiagnosticError(out, identified.DiagnosticID(), "fixture.manifest-evidence", err.Error()); reportErr != nil {
+			return reportErr
+		}
+		return ErrVerificationFailure
 	}
 
 	if reportErr := writeDiagnosticError(out, diagnosticsContractInvalidID, "fixture.index", err.Error()); reportErr != nil {

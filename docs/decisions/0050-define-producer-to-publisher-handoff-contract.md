@@ -8,6 +8,8 @@ relations:
   - type: amended-by
     target: ADR-0064
     scope: "the npm producer subject name is the npm Package URL, not the release asset name"
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Define the Producer-to-Publisher Handoff Contract

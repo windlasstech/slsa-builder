@@ -37,7 +37,7 @@ func buildRegistry() map[string]Definition {
 		"package-resolution-invalid", "package-manager-conflict", "package-manager-version-required",
 		"package-manager-digest-malformed", "package-manager-digest-mismatch",
 		"yarn-selection-invalid", "required-lockfile-missing", "package-repository-identity-mismatch",
-		"pnpm-version-unsupported", "yarn-version-unsupported")
+		"pnpm-version-unsupported", "yarn-version-unsupported", "source-manifest-drift")
 
 	setPrecedence(definitions, 1,
 		"diagnostics-contract-invalid", "digest-encoding-invalid", "digest-mismatch",
@@ -53,7 +53,9 @@ func buildRegistry() map[string]Definition {
 		"signer-identity-untrusted", "signer-workflow-path-mismatch", "signer-workflow-sha-mismatch",
 		"source-identity-mismatch", "source-numeric-id-mismatch", "source-digest-mismatch",
 		"source-ref-mismatch", "source-repository-canonicalization-error", "run-invocation-uri-invalid",
-		"self-hosted-runner", "wrong-producer-signer")
+		"self-hosted-runner", "wrong-producer-signer",
+		"build-trigger-mismatch", "build-config-uri-mismatch",
+		"resolved-dependencies-invocation-source", "resolved-dependencies-built-source")
 	setPrecedence(definitions, 5, "trusted-producer-policy-conflict")
 	setPrecedence(definitions, 6,
 		"statement-type-invalid", "predicate-type-invalid", "wrong-predicate-type",
@@ -134,6 +136,9 @@ var errorCategories = strings.Fields(`
 actions-attest-adapter-contract
 already-published-version
 build-type-not-canonical
+build-config-uri-mismatch
+build-script-disposition-mismatch
+build-trigger-mismatch
 builder-dependencies-signing-adapter-mismatch
 builder-id-not-immutable
 builder-version-mismatch
@@ -207,6 +212,7 @@ package-manager-digest-mismatch
 package-manager-manifest-shape-error
 package-manager-selection-path-mismatch
 package-manager-version-required
+package-manifest-evidence
 package-manifest-invalid
 package-metadata-required
 package-pack-failed
@@ -242,9 +248,12 @@ release-ref-mismatch
 release-target-immutable
 release-version-semver-mismatch
 required-lockfile-missing
+resolved-dependencies-built-source
+resolved-dependencies-invocation-source
 resolved-dependencies-lockfile
 resolved-dependencies-node-runtime
 resolved-dependencies-package-manager-distribution
+resolved-dependencies-package-manifest
 resolved-dependencies-runner-image
 resolved-dependencies-unexpected-entry
 run-invocation-uri-invalid
@@ -263,6 +272,7 @@ signer-workflow-path-mismatch
 signer-workflow-sha-mismatch
 source-digest-mismatch
 source-identity-mismatch
+source-manifest-drift
 source-numeric-id-mismatch
 source-ref-invalid
 source-ref-mismatch

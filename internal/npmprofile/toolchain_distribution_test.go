@@ -65,6 +65,7 @@ func TestCorepackToolchainPreparationFailures(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			root := t.TempDir()
 			t.Setenv("PATH", root)
+			redirectRunnerMetadata(t)
 			t.Setenv("ImageOS", "")
 			t.Setenv("ImageVersion", "")
 			for name, body := range map[string]string{"node": test.node, "npm": test.npm, "corepack": test.corepack} {
@@ -74,7 +75,7 @@ func TestCorepackToolchainPreparationFailures(t *testing.T) {
 			}
 			selection := Result{Manager: ManagerSelection{Name: ManagerPNPM, Version: "11.0.0"}}
 			selection.Package.RealManagerRoot = root
-			_, executable, err := prepareToolchain(t.Context(), selection, root, []string{}, nil)
+			_, executable, err := prepareToolchain(t.Context(), BuildPackConfig{Selection: selection}, root, []string{})
 			if err == nil || err.Error() != test.want || executable != "" {
 				t.Fatalf("prepareToolchain() executable=%q error=%v; want %q", executable, err, test.want)
 			}
@@ -106,6 +107,7 @@ func TestCorepackShimDirectoryCollision(t *testing.T) {
 	writeScript(t, root, "npm", "#!/bin/sh\nprintf 11.5.1\n")
 	writeScript(t, root, "corepack", "#!/bin/sh\nprintf 0.34.1\n")
 	t.Setenv("PATH", root)
+	redirectRunnerMetadata(t)
 	t.Setenv("ImageOS", "")
 	t.Setenv("ImageVersion", "")
 	if err := os.Mkdir(filepath.Join(root, "shims"), 0o700); err != nil {
@@ -113,7 +115,7 @@ func TestCorepackShimDirectoryCollision(t *testing.T) {
 	}
 	selection := Result{Manager: ManagerSelection{Name: ManagerPNPM, Version: "11.0.0"}}
 	selection.Package.RealManagerRoot = root
-	_, _, err := prepareToolchain(t.Context(), selection, root, []string{}, nil)
+	_, _, err := prepareToolchain(t.Context(), BuildPackConfig{Selection: selection}, root, []string{})
 	if !errors.Is(err, os.ErrExist) || !strings.HasPrefix(err.Error(), "create Corepack shim directory: ") {
 		t.Fatalf("shim collision = %v; want wrapped os.ErrExist", err)
 	}

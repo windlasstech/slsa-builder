@@ -21,13 +21,13 @@ func TestBuildMetadataRejectsDescriptorUnknownMember(t *testing.T) {
 			if strings.Count(raw, needle) != 1 {
 				t.Fatal("expected one descriptor mutation target")
 			}
-			raw = strings.Replace(raw, needle, needle+`,"mediaType":"application/gzip"`, 1)
+			raw = strings.Replace(raw, needle, needle+`,"downloadLocation":"https://example.com/artifact"`, 1)
 			// When decoding at the strict BuildMetadata JSON boundary.
 			var decoded BuildMetadata
 			err := json.Unmarshal([]byte(raw), &decoded)
 			// Then rejection occurs during decode, not later semantic validation.
-			if err == nil || !strings.Contains(err.Error(), `unknown field "mediaType"`) {
-				t.Fatalf("BuildMetadata decode error = %v, want unknown field mediaType", err)
+			if err == nil || !strings.Contains(err.Error(), `unknown field "downloadLocation"`) {
+				t.Fatalf("BuildMetadata decode error = %v, want unknown field downloadLocation", err)
 			}
 		})
 	}
@@ -124,10 +124,10 @@ func TestBuildMetadataRequiresTimestampMembers(t *testing.T) {
 		setNull   bool
 		wantError string
 	}{
-		{name: "missing started_on", member: "started_on", wantError: "build metadata requires started_on"},
-		{name: "null started_on", member: "started_on", setNull: true, wantError: "build metadata requires started_on"},
-		{name: "missing finished_on", member: "finished_on", wantError: "build metadata requires finished_on"},
-		{name: "null finished_on", member: "finished_on", setNull: true, wantError: "build metadata requires finished_on"},
+		{name: "missing started_on", member: "started_on", wantError: "build metadata requires non-null started_on"},
+		{name: "null started_on", member: "started_on", setNull: true, wantError: "build metadata requires non-null started_on"},
+		{name: "missing finished_on", member: "finished_on", wantError: "build metadata requires non-null finished_on"},
+		{name: "null finished_on", member: "finished_on", setNull: true, wantError: "build metadata requires non-null finished_on"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -176,4 +176,31 @@ func TestBuildMetadataRejectsCaseVariantMember(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildMetadataRejectsNullBuildScriptDisposition(t *testing.T) {
+	t.Parallel()
+	raw := string(mustJSON(validProvenanceInput(t, ManagerNPM).BuildMetadata))
+	t.Run("null disposition", func(t *testing.T) {
+		t.Parallel()
+		input := strings.Replace(raw, `"build_script_disposition":"executed"`, `"build_script_disposition":null`, 1)
+		var decoded BuildMetadata
+		err := json.Unmarshal([]byte(input), &decoded)
+		requireNPMDiagnostic(t, err, IDBuildScriptDisposition)
+	})
+	t.Run("missing disposition", func(t *testing.T) {
+		t.Parallel()
+		var members map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(raw), &members); err != nil {
+			t.Fatal(err)
+		}
+		delete(members, "build_script_disposition")
+		encoded, err := json.Marshal(members)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var decoded BuildMetadata
+		decodeErr := json.Unmarshal(encoded, &decoded)
+		requireNPMDiagnostic(t, decodeErr, IDBuildScriptDisposition)
+	})
 }

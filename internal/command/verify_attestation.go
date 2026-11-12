@@ -34,17 +34,20 @@ func (verifyAttestationCommand) Execute(ctx context.Context, args []string, out 
 	policyPath := flags.String("policy", "", "typed verifier policy JSON path")
 	identityPath := flags.String("identity", "", "typed signer identity expectation JSON path")
 	statementPath := flags.String("statement", "", "expected in-toto Statement JSON path")
+	manifestEvidencePath := flags.String("manifest-evidence", "", "offline original manifest evidence JSON path")
+	tarballPath := flags.String("tarball", "", "npm package tarball path")
 	pinnedRootPath := flags.String("pinned-root", "", "offline pinned trusted-root JSON path")
 	githubOutput := flags.String("github-output", os.Getenv("GITHUB_OUTPUT"), "GitHub Actions output file")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			_, writeErr := fmt.Fprintln(out, "Internal workflow command. Usage: slsa-builder-internal verify-attestation --bundle <json> --policy <json> --identity <json> --statement <json> [--pinned-root <json>] [--github-output <path>]")
+			_, writeErr := fmt.Fprintln(out, "Internal workflow command. Usage: slsa-builder-internal verify-attestation --bundle <json> --policy <json> --identity <json> --statement <json> --manifest-evidence <json> --tarball <path> [--pinned-root <json>] [--github-output <path>]")
 			return writeErr
 		}
 		return err
 	}
-	if flags.NArg() != 0 || *bundlePath == "" || *policyPath == "" || *identityPath == "" || *statementPath == "" {
-		return errors.New("--bundle, --policy, --identity, and --statement are required with no positional arguments")
+	if flags.NArg() != 0 || *bundlePath == "" || *policyPath == "" || *identityPath == "" || *statementPath == "" ||
+		*manifestEvidencePath == "" || *tarballPath == "" {
+		return errors.New("--bundle, --policy, --identity, --statement, --manifest-evidence, and --tarball are required with no positional arguments")
 	}
 
 	bundleBytes, err := readRegularFile(*bundlePath)
@@ -107,6 +110,21 @@ func (verifyAttestationCommand) Execute(ctx context.Context, args []string, out 
 		return emitFailure(out, "windlass.verify.error.verification-mode-invalid", "pinned-root", "online policy forbids --pinned-root", ErrInvocationFailure)
 	}
 
+	if err := verifyOfflineNPMInputs(statement, identityExpectation, *manifestEvidencePath, *tarballPath); err != nil {
+		if id := diagnosticIDOf(err); id != "" {
+			failure := ErrVerificationFailure
+			if id == diagnostic.IDInputUnavailable {
+				failure = ErrInvocationFailure
+			}
+			check := "npm-evidence"
+			var withCheck interface{ DiagnosticCheck() string }
+			if errors.As(err, &withCheck) && withCheck.DiagnosticCheck() != "" {
+				check = withCheck.DiagnosticCheck()
+			}
+			return emitFailure(out, id, check, err.Error(), failure)
+		}
+		return emitTypedVerificationFailure(out, err)
+	}
 	result, err := attestation.Verify(ctx, request)
 	if err != nil {
 		return emitTypedVerificationFailure(out, err)
@@ -131,13 +149,17 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 	if err != nil {
 		return attestation.IdentityExpectation{}, err
 	}
-	if parameters.Source.Repository != explicit.Source.RepositoryURI {
+	sources, err := npmprofile.ResolveStatementSources(statement)
+	if err != nil {
+		return attestation.IdentityExpectation{}, err
+	}
+	if sources.Repository != explicit.Source.RepositoryURI {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-identity-mismatch", "signed built-source repository conflicts with verifier policy")
 	}
-	if parameters.Source.Ref != explicit.Source.Ref {
+	if sources.BuiltRef != explicit.Source.Ref {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-ref-mismatch", "signed built-source ref conflicts with verifier policy")
 	}
-	if parameters.Source.Revision != explicit.Source.Digest {
+	if sources.BuiltCommit != explicit.Source.Digest {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-digest-mismatch", "signed built-source revision conflicts with verifier policy")
 	}
 	if identity.SourceRepositoryURI != explicit.Source.RepositoryURI ||
@@ -153,18 +175,32 @@ func bindIdentityPolicy(identity attestation.IdentityExpectation, explicit polic
 	if !strings.Contains(identity.SignerURI, wantWorkflow) {
 		return attestation.IdentityExpectation{}, errors.New("signer URI conflicts with verifier policy workflow path")
 	}
-	invocationRef := parameters.Source.Ref
-	invocationRevision := parameters.Source.Revision
-	if parameters.Source.InvocationRef != nil {
-		invocationRef = *parameters.Source.InvocationRef
-		invocationRevision = *parameters.Source.InvocationRevision
-	}
+	invocationRef := parameters.Workflow.Ref
+	invocationRevision := sources.InvocationCommit
 	if identity.SourceRef != invocationRef {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-ref-mismatch", "certificate source ref conflicts with the signed invocation record")
 	}
 	if identity.SourceDigest != invocationRevision {
 		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-digest-mismatch", "certificate source digest conflicts with the signed invocation record")
 	}
+	internal, err := provenance.DecodeInternalParameters(statement.Predicate.BuildDefinition.InternalParameters)
+	if err != nil {
+		return attestation.IdentityExpectation{}, err
+	}
+	if identity.BuildTrigger == "" {
+		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.build-trigger-mismatch", "identity expectation is missing the Build Trigger required for the signed GitHub event binding")
+	}
+	if internal.GitHub.EventName != identity.BuildTrigger {
+		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.build-trigger-mismatch", "certificate Build Trigger conflicts with the signed GitHub event")
+	}
+	if internal.GitHub.RepositoryID != identity.SourceRepositoryID || internal.GitHub.RepositoryOwnerID != identity.SourceRepositoryOwnerID {
+		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.source-numeric-id-mismatch", "signed GitHub numeric identity conflicts with the certificate")
+	}
+	derivedBuildConfigURI := identity.SourceRepositoryURI + "/" + parameters.Workflow.Path + "@" + invocationRef
+	if identity.BuildConfigURI != "" && identity.BuildConfigURI != derivedBuildConfigURI {
+		return attestation.IdentityExpectation{}, newIdentityPolicyBindingError("windlass.verify.error.build-config-uri-mismatch", "consumer Build Config URI pin conflicts with the signed invocation record")
+	}
+	identity.BuildConfigURI = derivedBuildConfigURI
 	identity.SourceRef = invocationRef
 	identity.SourceDigest = invocationRevision
 	return identity, nil

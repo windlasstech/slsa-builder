@@ -25,7 +25,7 @@ func TestWorkflowIntentConflicts(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := ResolvePublishIntent(test.registry, test.tag, test.access, test.source)
-			if err == nil || err.Error() != test.message || !reflect.DeepEqual(got, PublishParameters{}) {
+			if err == nil || err.Error() != test.message || !reflect.DeepEqual(got, PublishIntent{}) {
 				t.Fatalf("ResolvePublishIntent() = %#v, %v; want empty intent and %q", got, err, test.message)
 			}
 		})
@@ -36,10 +36,10 @@ func TestWorkflowIntentNormalizedInputs(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {
 		name, registry, tag, access string
-		want                        PublishParameters
+		want                        PublishIntent
 	}{
-		{"whitespace omissions", " \t", "\r\n", "\f\v", PublishParameters{ResolvedRegistryURL: "https://registry.npmjs.org/", ResolvedDistTag: "latest", EffectiveAccess: "existing-package-access", TrustedPublishing: true, ProvenanceFile: true}},
-		{"custom registry", " https://EXAMPLE.COM:443 ", " next ", " restricted ", PublishParameters{InputRegistryURL: testStringPointer("https://EXAMPLE.COM:443"), InputDistTag: testStringPointer("next"), InputAccess: testStringPointer("restricted"), ResolvedRegistryURL: "https://example.com/", ResolvedDistTag: "next", PublishAccessOption: testStringPointer("restricted"), EffectiveAccess: "restricted", TrustedPublishing: true, ProvenanceFile: true, CustomRegistrySupport: "unsupported-but-not-blocked"}},
+		{"whitespace omissions", " \t", "\r\n", "\f\v", PublishIntent{ResolvedRegistryURL: "https://registry.npmjs.org/", ResolvedDistTag: "latest", EffectiveAccess: "existing-package-access", TrustedPublishing: true, ProvenanceFile: true}},
+		{"custom registry", " https://EXAMPLE.COM:443 ", " next ", " restricted ", PublishIntent{InputRegistryURL: testStringPointer("https://EXAMPLE.COM:443"), InputDistTag: testStringPointer("next"), InputAccess: testStringPointer("restricted"), ResolvedRegistryURL: "https://example.com/", ResolvedDistTag: "next", PublishAccessOption: testStringPointer("restricted"), EffectiveAccess: "restricted", TrustedPublishing: true, ProvenanceFile: true, CustomRegistrySupport: "unsupported-but-not-blocked"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -66,7 +66,11 @@ func TestWorkflowIntentManifestFailures(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			got, err := ResolveWorkflowPublishIntent(Result{Package: Package{RealDirectory: directory}}, "", "", "")
+			selection := Result{Package: Package{RealDirectory: directory}}
+			if test.manifest != "" {
+				selection.Package.SourceManifest = SourceManifestSnapshot{Path: "package.json", Content: []byte(test.manifest)}
+			}
+			got, err := ResolveWorkflowPublishIntent(selection, "", "", "")
 			if test.manifest == "" {
 				if !errors.Is(err, os.ErrNotExist) {
 					t.Fatalf("missing manifest error = %v, want os.ErrNotExist", err)
@@ -74,7 +78,7 @@ func TestWorkflowIntentManifestFailures(t *testing.T) {
 			} else if err == nil || err.Error() != test.message {
 				t.Fatalf("manifest error = %v, want %q", err, test.message)
 			}
-			if !reflect.DeepEqual(got, PublishParameters{}) {
+			if !reflect.DeepEqual(got, PublishIntent{}) {
 				t.Fatalf("invalid manifest returned intent: %#v", got)
 			}
 		})
@@ -96,7 +100,7 @@ func TestWorkflowIntentFinalizeRejections(t *testing.T) {
 			_, _ = s, b
 			c.AccessInput = "private"
 		}},
-		{"package URL", "unsupported registry package URL input", "", func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
+		{"package URL", "", IDNPMSubjectMismatch, func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
 			_ = c
 			s.Package.Name = "bad\x00name"
 			b.PackageName = "bad\x00name"
@@ -108,13 +112,13 @@ func TestWorkflowIntentFinalizeRejections(t *testing.T) {
 			s.Manager.Version = "11.28.3"
 			b.Toolchain.PackageManagerVersion = "11.28.3"
 		}},
-		{"invalid runtime", "", IDUnexpectedExternalParameters, func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
+		{"invalid runtime", "", "windlass.verify.error.builder-version-mismatch", func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
 			_, _ = s, c
 			b.Toolchain.NodeVersion = "v22.0.0"
 		}},
 		{"invalid runner", "", IDResolvedDependenciesRunnerImage, func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
 			_, _ = s, c
-			b.Toolchain.Runner.ImageOS = ""
+			b.Toolchain.Runner.OperatingSystem = ""
 		}},
 		{"source ref drift", "", IDSourceRefInvalid, func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
 			_, _ = s, b
@@ -154,10 +158,34 @@ func TestWorkflowIntentMissingLockfile(t *testing.T) {
 	}
 }
 
+func TestWorkflowInvocationRefFallbackSkipsSourceRefDispatch(t *testing.T) {
+	t.Parallel()
+	selection, build, config := workflowIntentInputs(t)
+	config.SourceRefInput = "refs/tags/v1.2.3"
+	config.InvocationRevision = testSourceSHA
+	if _, err := FinalizeWorkflowBuildMetadata(selection, build, config); err == nil {
+		t.Fatal("source-ref with a complete invocation revision but no invocation ref must fail closed, not silently inherit the built ref")
+	}
+
+	selection, build, config = workflowIntentInputs(t)
+	metadata, err := FinalizeWorkflowBuildMetadata(selection, build, config)
+	if err != nil {
+		t.Fatalf("tag invocation without source-ref must keep its fallback: %v", err)
+	}
+	parameters, err := DecodeExternalParameters(metadata.ExternalParameters)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parameters.Workflow.Ref != "refs/tags/v1.2.3" {
+		t.Fatalf("workflow.ref = %q, want the tag invocation ref", parameters.Workflow.Ref)
+	}
+}
+
 func workflowIntentInputs(t *testing.T) (Result, BuildPackResult, WorkflowBuildMetadataConfig) {
 	t.Helper()
 	directory := t.TempDir()
-	for name, data := range map[string]string{"package.json": `{"name":"@windlass/slsa-builder","version":"1.2.3"}`, "package-lock.json": `{"lockfileVersion":3}`} {
+	manifest := testOriginalManifest()
+	for name, data := range map[string]string{"package.json": string(manifest), "package-lock.json": `{"lockfileVersion":3}`} {
 		if err := os.WriteFile(filepath.Join(directory, name), []byte(data), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -166,13 +194,14 @@ func workflowIntentInputs(t *testing.T) (Result, BuildPackResult, WorkflowBuildM
 		Package: Package{Directory: ".", RealDirectory: directory, RealManagerRoot: directory, ManagerRoot: ".", Name: "@windlass/slsa-builder", Version: "1.2.3", Repository: "https://github.com/example/project"},
 		Manager: ManagerSelection{Name: ManagerNPM, Version: "11.5.1", Source: SelectionPackageManager, SelectionManifestPath: "package.json", SelectedLockfilePath: "package-lock.json"},
 	}
+	selection.Package.SourceManifest = SourceManifestSnapshot{Path: "package.json", Content: manifest}
 	build := BuildPackResult{
 		PackageName: selection.Package.Name, PackageVersion: "1.2.3", TarballPath: filepath.Join(directory, "windlass-slsa-builder-1.2.3.tgz"),
 		SHA256: mustSHA256(t, testSHA256), SHA512: mustSHA512(t, testSHA512),
 		Packed: PackedMetadata{Name: selection.Package.Name, Version: "1.2.3"}, BuildScript: BuildScriptCapture{Present: true, Result: BuildScriptExecuted},
-		Toolchain: ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: RunnerCapture{ImageOS: "ubuntu24", ImageVersion: "20260801.1.0", IncludedSoftwareURL: "https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md"}},
+		Toolchain: ToolchainCapture{NodeVersion: "v24.0.0", NPMVersion: "11.5.1", PackageManagerVersion: "11.5.1", Runner: runnerProbeCapture()},
 	}
-	config := WorkflowBuildMetadataConfig{ArtifactName: "tarball", EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testSourceSHA, CallerWorkflowFilename: "release.yml", RegistryState: RegistryPreflightState{PackageExists: true}}
+	config := WorkflowBuildMetadataConfig{ArtifactName: "tarball", EventName: "push", RefType: "tag", Ref: "refs/tags/v1.2.3", Revision: testSourceSHA, WorkflowSHA: testSourceSHA, CallerWorkflowPath: ".github/workflows/release.yml", CallerWorkflowFilename: "release.yml", RegistryState: RegistryPreflightState{PackageExists: true}, Repository: "https://github.com/example/project"}
 	return selection, build, config
 }
 
@@ -183,18 +212,18 @@ func TestFinalizeWorkflowBuildMetadataRuntimeIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(first.ResolvedDependencies) != 3 {
-		t.Fatalf("resolved dependencies = %d, want 3", len(first.ResolvedDependencies))
+	if len(first.ResolvedDependencies) != 6 {
+		t.Fatalf("resolved dependencies = %d, want 6", len(first.ResolvedDependencies))
 	}
-	requireRuntimeDescriptor(t, first.ResolvedDependencies[1])
-	first.ResolvedDependencies[1].Digest["sha256"] = "mutated"
-	first.ResolvedDependencies[1].Annotations["platform"][1] = 'X'
+	requireRuntimeDescriptor(t, first.ResolvedDependencies[4])
+	first.ResolvedDependencies[4].Digest["sha256"] = "mutated"
+	first.ResolvedDependencies[4].Annotations["platform"][1] = 'X'
 	second, err := FinalizeWorkflowBuildMetadata(selection, build, config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(second.ResolvedDependencies) != 3 {
-		t.Fatalf("resolved dependencies = %d, want 3", len(second.ResolvedDependencies))
+	if len(second.ResolvedDependencies) != 6 {
+		t.Fatalf("resolved dependencies = %d, want 6", len(second.ResolvedDependencies))
 	}
-	requireRuntimeDescriptor(t, second.ResolvedDependencies[1])
+	requireRuntimeDescriptor(t, second.ResolvedDependencies[4])
 }

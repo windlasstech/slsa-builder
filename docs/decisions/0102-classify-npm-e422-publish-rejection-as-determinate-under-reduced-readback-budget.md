@@ -77,6 +77,9 @@ commit-ambiguous. The full budget exists to absorb attestation propagation after
 publish; a rejection the evidence says is pre-commit has nothing to propagate, so the wait and the
 manual-investigation trigger are operational cost without corresponding information.
 
+How should the trusted core classify an npm publish E422, and how much read-back evidence must it
+collect before reaching that classification?
+
 ## Decision Drivers
 
 - The canonical outcome report must never assert a registry state the trusted core did not verify.

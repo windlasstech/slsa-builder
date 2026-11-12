@@ -24,6 +24,8 @@ type npmProfilePublishInput struct {
 	TarballSHA256                                                    digest.SHA256
 	TarballSHA512                                                    digest.SHA512
 	BundleSHA256                                                     digest.SHA256
+	BuildMetadata                                                    npmprofile.BuildMetadata
+	Packed                                                           npmprofile.PackedMetadata
 }
 
 type npmProfilePublishCommand struct {
@@ -38,6 +40,9 @@ func (npmProfilePublishCommand) Name() string { return "npm-profile-publish" }
 func (command npmProfilePublishCommand) Execute(ctx context.Context, args []string, out io.Writer) error {
 	flags := flag.NewFlagSet("npm-profile-publish", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
+	metadataDir := flags.String("metadata-artifact-dir", "", "downloaded build metadata artifact directory")
+	metadataArtifact := flags.String("metadata-artifact-name", "", "same-run build metadata artifact name")
+	metadataDigest := flags.String("metadata-sha256", "", "expected build metadata SHA-256")
 	tarballDir := flags.String("tarball-artifact-dir", "", "downloaded tarball artifact directory")
 	tarballArtifact := flags.String("tarball-artifact-name", "", "tarball artifact name")
 	tarballName := flags.String("tarball-name", "", "tarball file name")
@@ -57,8 +62,28 @@ func (command npmProfilePublishCommand) Execute(ctx context.Context, args []stri
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if flags.NArg() != 0 || *tarballDir == "" || *tarballArtifact == "" || *tarballName == "" || *tarball256Text == "" || *tarball512Text == "" || *bundleDir == "" || *bundleArtifact == "" || *bundleName == "" || *bundle256Text == "" || *packageName == "" || *packageVersion == "" || *packageURL == "" || *registryURL == "" || *npmExecutable == "" || *reportPath == "" || *githubOutput == "" {
+	if flags.NArg() != 0 || *metadataDir == "" || *metadataArtifact == "" || *metadataDigest == "" ||
+		*tarballDir == "" || *tarballArtifact == "" || *tarballName == "" || *tarball256Text == "" || *tarball512Text == "" || *bundleDir == "" || *bundleArtifact == "" || *bundleName == "" || *bundle256Text == "" || *packageName == "" || *packageVersion == "" || *packageURL == "" || *registryURL == "" || *npmExecutable == "" || *reportPath == "" || *githubOutput == "" {
 		return errors.New("all npm-profile-publish flags are required with no positional arguments")
+	}
+	metadataSHA, err := digest.ParseSHA256(*metadataDigest)
+	if err != nil {
+		return err
+	}
+	metadataBytes, err := handoff.VerifyOneFile(*metadataDir, handoff.Handoff{Transport: handoff.TransportGitHubActionsArtifact, ArtifactName: *metadataArtifact, PayloadFileName: "build-metadata.json", PayloadKind: "application/vnd.windlass.npm-build-metadata.v1+json", Digest: handoff.Digest{Algorithm: handoff.AlgorithmSHA256, Value: metadataSHA}})
+	if err != nil {
+		return fmt.Errorf("verify build metadata handoff: %w", err)
+	}
+	metadata, err := decodeTypedJSON[npmprofile.BuildMetadata](metadataBytes, nil)
+	if err != nil {
+		return writePublishInputRejection(out, *reportPath, err)
+	}
+	verifiedPackage, err := npmprofile.VerifyProducerPackage(metadata)
+	if err != nil {
+		return writePublishInputRejection(out, *reportPath, err)
+	}
+	if verifiedPackage.Name != *packageName || verifiedPackage.Version != *packageVersion || verifiedPackage.PackageURL != *packageURL || verifiedPackage.Publish.ResolvedRegistryURL != *registryURL {
+		return writePublishInputRejection(out, *reportPath, newIdentityPolicyBindingError(npmprofile.IDPackageManifestEvidence, "publish arguments differ from authenticated manifest and raw input resolution"))
 	}
 	tarball256, err := digest.ParseSHA256(*tarball256Text)
 	if err != nil {
@@ -79,6 +104,14 @@ func (command npmProfilePublishCommand) Execute(ctx context.Context, args []stri
 		return fmt.Errorf("verify provenance handoff: %w", err)
 	}
 	input := npmProfilePublishInput{TarballPath: filepath.Join(*tarballDir, *tarballName), BundlePath: filepath.Join(*bundleDir, *bundleName), NPMExecutable: *npmExecutable, RegistryURL: *registryURL, PackageName: *packageName, TarballSHA256: tarball256, TarballSHA512: tarball512, BundleSHA256: bundle256}
+	if metadata.PrimaryArtifact.ArtifactName != *tarballArtifact || metadata.PrimaryArtifact.PayloadFileName != *tarballName || metadata.PrimaryArtifact.SHA256 != tarball256.String() || metadata.PrimaryArtifact.SHA512 != tarball512.String() {
+		return writePublishInputRejection(out, *reportPath, newIdentityPolicyBindingError("windlass.verify.error.digest-mismatch", "build metadata and tarball handoff disagree"))
+	}
+	input.BuildMetadata = metadata
+	input.Packed, err = npmprofile.VerifyPackedArtifact(input.TarballPath, metadata.PrimaryArtifact)
+	if err != nil {
+		return writePublishInputRejection(out, *reportPath, err)
+	}
 	publish := command.publish
 	if publish == nil {
 		publish = runNPMProfilePublish
@@ -125,8 +158,8 @@ func runNPMProfilePublish(ctx context.Context, input npmProfilePublishInput) (np
 	if err != nil {
 		return publishInvocationFailure(err)
 	}
-	verifier := npmprofile.NewSigstorePublishBundleVerifier(npmprofile.SigstorePublishVerifierConfig{Mode: attestation.ModeOnline, TrustRoot: policy.TrustRoot{Mode: "tuf", Instance: "sigstore-public-good"}, Identity: identity})
-	return npmprofile.Publish(ctx, npmprofile.PublishRequest{NPMExecutable: input.NPMExecutable, TarballPath: input.TarballPath, BundlePath: input.BundlePath, TarballSHA256: input.TarballSHA256, TarballSHA512: input.TarballSHA512, BundleSHA256: input.BundleSHA256, Registry: registry, RunID: os.Getenv("GITHUB_RUN_ID"), RunAttempt: os.Getenv("GITHUB_RUN_ATTEMPT"), SourceRepositoryURI: identity.SourceRepositoryURI, OIDCExchange: exchange, Verifier: verifier})
+	verifier := npmprofile.NewSigstorePublishBundleVerifier(npmprofile.SigstorePublishVerifierConfig{Mode: attestation.ModeOnline, TrustRoot: policy.TrustRoot{Mode: "tuf", Instance: "sigstore-public-good"}, Identity: identity, BuildMetadata: input.BuildMetadata, Packed: input.Packed})
+	return npmprofile.Publish(ctx, npmprofile.PublishRequest{NPMExecutable: input.NPMExecutable, TarballPath: input.TarballPath, BundlePath: input.BundlePath, TarballSHA256: input.TarballSHA256, TarballSHA512: input.TarballSHA512, BundleSHA256: input.BundleSHA256, Registry: registry, RunID: os.Getenv("GITHUB_RUN_ID"), RunAttempt: os.Getenv("GITHUB_RUN_ATTEMPT"), SourceRepositoryURI: identity.SourceRepositoryURI, OIDCExchange: exchange, Verifier: verifier, BuildMetadata: input.BuildMetadata})
 }
 
 func publishInvocationFailure(cause error) (npmprofile.PublishResult, error) {

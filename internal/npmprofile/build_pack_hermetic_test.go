@@ -47,6 +47,7 @@ func installFakeToolchain(t *testing.T) {
 // keeps the full reference and `--version` prints the plain version.
 func installFakeToolchainWithReferences(t *testing.T, pnpmReference, yarnReference string) string {
 	t.Helper()
+	redirectRunnerMetadata(t)
 	root := t.TempDir()
 	fakebin := filepath.Join(root, "fakebin")
 	data := filepath.Join(root, "data")

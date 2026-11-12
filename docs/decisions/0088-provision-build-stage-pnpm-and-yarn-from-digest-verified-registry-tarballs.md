@@ -64,6 +64,8 @@ relations:
     target: ADR-0092
   - type: see-also
     target: ADR-0096
+  - type: see-also
+    target: ADR-0110
 ---
 
 # Provision Build-Stage pnpm and Yarn from Digest-Verified npm Registry Tarballs

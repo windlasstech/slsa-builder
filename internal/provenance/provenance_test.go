@@ -108,10 +108,20 @@ func TestCommonRejectionMatrix(t *testing.T) {
 			if err != nil {
 				t.Fatalf("DecodeStatement() error = %v", err)
 			}
+			if test.name != "unexpected internal parameters" {
+				useGitHubInternalParameters(&statement)
+			}
 			if test.name != "builder dependency" {
 				useSigstoreGoDependency(&statement)
-				updateStatementFixture(t, test.fixture, statement)
 			}
+			if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" {
+				if test.name == "builder version" {
+					delete(statement.Predicate.RunDetails.Builder.Version, "npm")
+				} else {
+					statement.Predicate.RunDetails.Builder.Version["npm"] = "11.0.0"
+				}
+			}
+			updateStatementFixture(t, test.fixture, statement)
 			_, err = statement.Validate(expectations(nil), nil)
 			requireDiagnosticID(t, err, test.wantID)
 		})
@@ -157,6 +167,7 @@ func expectations(corepackVersion *string) provenance.Expectations {
 		SourceRepositoryURI: "https://github.com/example/acme-widget",
 		Builder: provenance.BuilderExpectations{
 			NodeJSVersion:   "v24.0.0",
+			NPMVersion:      "11.0.0",
 			CorepackVersion: corepackVersion,
 		},
 	}
@@ -169,6 +180,10 @@ func loadStatement(t *testing.T, name string) provenance.Statement {
 		t.Fatalf("DecodeStatement(%q) error = %v", name, err)
 	}
 	useSigstoreGoDependency(&statement)
+	useGitHubInternalParameters(&statement)
+	if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" {
+		statement.Predicate.RunDetails.Builder.Version["npm"] = "11.0.0"
+	}
 	updateStatementFixture(t, name, statement)
 	return statement
 }
@@ -179,6 +194,12 @@ func useSigstoreGoDependency(statement *provenance.Statement) {
 		Digest:      map[string]string{"h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="},
 		Annotations: map[string]string{"role": "signing-adapter"},
 	}}
+}
+
+func useGitHubInternalParameters(statement *provenance.Statement) {
+	if string(statement.Predicate.BuildDefinition.InternalParameters) == "{}" {
+		statement.Predicate.BuildDefinition.InternalParameters = json.RawMessage(`{"github":{"event_name":"workflow_dispatch","repository_id":"123456789","repository_owner_id":"987654321"}}`)
+	}
 }
 
 func updateStatementFixture(t *testing.T, name string, statement provenance.Statement) {
@@ -197,6 +218,23 @@ func updateStatementFixture(t *testing.T, name string, statement provenance.Stat
 
 func readFixture(t *testing.T, name string) []byte {
 	t.Helper()
+	if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" && name == "valid-statement.json" {
+		data, err := os.ReadFile(filepath.Join("..", "..", "testdata", "provenance", "valid-statement-corepack.json"))
+		if err != nil {
+			t.Fatalf("read base Statement fixture: %v", err)
+		}
+		var statement provenance.Statement
+		if err := json.Unmarshal(data, &statement); err != nil {
+			t.Fatalf("decode base Statement fixture: %v", err)
+		}
+		statement.Predicate.RunDetails.Builder.Version = map[string]string{"nodejs": "v24.0.0", "npm": "11.0.0"}
+		statement.Subject[0].Digest["sha512"] = sha256Hex + sha256Hex
+		encoded, err := statement.CanonicalJSON()
+		if err != nil {
+			t.Fatalf("encode base Statement fixture: %v", err)
+		}
+		return encoded
+	}
 	data, err := os.ReadFile(filepath.Join("..", "..", "testdata", "provenance", name))
 	if err != nil {
 		t.Fatalf("read fixture %q: %v", name, err)

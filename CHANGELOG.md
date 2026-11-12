@@ -123,12 +123,27 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Added the digest-verified build-stage Node.js runtime as a closed `node-runtime`
   `resolvedDependencies` descriptor in JS/TS npm provenance (ADR 0099), with the exact embedded
   `linux-x64` tarball URL and SHA-256 plus `builder-pinned-record` and `platform` annotations. npm
-  now records three dependency descriptors, pnpm and Yarn record four, and no separate `npm-cli`
+  records six dependency descriptors, pnpm and Yarn record seven, and no separate `npm-cli`
   descriptor is introduced.
-- Added the `runner-image` build-environment descriptor to JS/TS npm provenance (ADR 0100): the
-  descriptor's `image_version` carries the runner VM's baked image metadata version verbatim, while
-  the platform's control-plane deployment version is recorded as a separate non-authoritative
-  `deployment_version` annotation, so GitHub runner image rollout windows do not fail honest builds.
+- Added the `runner-image` build-environment descriptor to JS/TS npm provenance (ADR 0100, ADR 0111,
+  ADR 0112): the descriptor's annotation set is exactly `deployment_version`, `operating_system`,
+  `image_version`, and `runner_label`. `image_version` carries the runner VM's baked image metadata
+  version verbatim, and `operating_system` carries the on-disk image metadata's Operating System
+  detail from the same bounded snapshot, while the platform's control-plane deployment version is
+  recorded as a separate non-authoritative `deployment_version` annotation, so GitHub runner image
+  rollout windows do not fail honest builds. The ambient `ImageOS` variable is diagnostic-only and
+  never feeds the signed record.
+- Added the finalized JS/TS npm SLSA provenance contract (ADR 0103-0112).
+  `externalParameters.workflow` records exactly the called workflow's `ref`, `repository`, and
+  `path`, and `internalParameters.github` is a closed triple of `event_name`, `repository_id`, and
+  `repository_owner_id`, bound to the OIDC Build Trigger and Build Config URI claims and to the
+  signing certificate's platform-fixed claims. `resolvedDependencies` records the ordered chain of
+  `invocation-source`, `built-source`, `package-manifest`, `lockfile`, `node-runtime`, a
+  `package-manager-distribution` for non-npm managers, and `runner-image`; the signed
+  package-manifest descriptor carries offline `manifest_evidence` (`path` plus base64 content) so
+  verifiers can recompute it without repository access. `builder.version` records the observed
+  `nodejs`, `npm`, and conditionally `corepack` versions, and build script invocations are recorded
+  as `runDetails.metadata.windlass_build_script_disposition`.
 - Added redacted, best-effort human-readable stderr diagnostics for external-process lifecycle, npm
   publish failures, and registry read-back transitions, including a filtered stderr relay for
   allowlisted processes on success and failure. The relay redacts exact known token values, strips

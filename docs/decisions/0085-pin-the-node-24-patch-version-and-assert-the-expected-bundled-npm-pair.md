@@ -45,6 +45,11 @@ relations:
       untouched; the separate conclusion that the npm CLI receives no package-manager-distribution
       descriptor remains in force, with the bundled npm CLI covered transitively by the node-runtime
       descriptor"
+  - type: partially-superseded-by
+    target: ADR-0109
+    scope:
+      "the externalParameters.runtime.npm_version recording location; the bundled npm version moves
+      to builder.version.npm"
 ---
 
 # Pin the Node.js 24 Patch Version and Assert the Expected Bundled npm Pair

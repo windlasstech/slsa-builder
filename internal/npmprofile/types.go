@@ -49,6 +49,12 @@ type Config struct {
 	ObservedRepository string
 }
 
+// SourceManifestSnapshot preserves the selected package.json as captured before any package-manager command.
+type SourceManifestSnapshot struct {
+	Path    string
+	Content []byte
+}
+
 // Package describes the one selected package and its workspace context.
 type Package struct {
 	Directory                    string
@@ -59,6 +65,7 @@ type Package struct {
 	Name                         string
 	Version                      string
 	Repository                   string
+	SourceManifest               SourceManifestSnapshot
 }
 
 // DeclaredDigest is the optional integrity digest a pnpm or Yarn descriptor
@@ -130,6 +137,7 @@ type resolvedPackage struct {
 	managerRootReal    string
 	managerRoot        string
 	manifest           manifest
+	sourceManifest     SourceManifestSnapshot
 	manifestPath       string
 	rootManifest       *manifest
 	rootManifestPath   string

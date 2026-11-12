@@ -19,6 +19,8 @@ relations:
     target: ADR-0059
   - type: see-also
     target: ADR-0066
+  - type: see-also
+    target: ADR-0108
 ---
 
 # Unify the npm Profile Public Entrypoint with Release-Asset Mode

@@ -21,8 +21,6 @@ on:
       dist-tag: {type: string}
       access: {type: string}
       release-asset-mode: {type: boolean, default: false}
-      release-tag: {type: string}
-      provenance-sidecar: {type: string}
       linked-artifact-metadata: {type: boolean, default: false}
     outputs:
       package-name: {value: "${{ jobs.publish.outputs.package-name }}"}
@@ -141,8 +139,11 @@ jobs:
         with: {name: "js-ts-npm-package-tarball-${{ github.run_id }}-${{ github.run_attempt }}"}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with: {name: "js-ts-npm-provenance-bundle-${{ github.run_id }}-${{ github.run_attempt }}"}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with: {name: "js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}"}
       - if: needs.build.result == 'success' && needs.provenance-sign.result == 'success'
-        run: go run ./cmd/slsa-builder-internal npm-profile-publish --npm-executable "${{ steps.npm-provision.outputs.npm-executable }}"
+        env: {METADATA_ARTIFACT_NAME: "js-ts-npm-build-metadata-${{ github.run_id }}-${{ github.run_attempt }}", METADATA_DIRECTORY: "${{ runner.temp }}/windlass-publish-input/metadata", METADATA_SHA256: "${{ needs.build.outputs.build-metadata-sha256 }}"}
+        run: go run ./cmd/slsa-builder-internal npm-profile-publish --npm-executable "${{ steps.npm-provision.outputs.npm-executable }}" --metadata-artifact-dir "$METADATA_DIRECTORY" --metadata-artifact-name "$METADATA_ARTIFACT_NAME" --metadata-sha256 "$METADATA_SHA256"
       - if: always()
         run: go run ./cmd/slsa-builder-internal npm-profile-report
       - if: always()

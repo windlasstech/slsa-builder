@@ -46,11 +46,18 @@ func TestPublishExecutableBindingStepPrecedence(t *testing.T) {
 			// Given a trusted job binding overridden by the publish step.
 			contents := replaceOnce(t, validNPMOnlyWorkflow, "  publish:\n",
 				"  publish:\n    env:\n      NPM_EXECUTABLE: "+provisionOutput+"\n")
-			contents = replaceOnce(t, contents, "      - id: publish\n",
-				"      - id: publish\n        env:\n          NPM_EXECUTABLE: \""+binding+"\"\n")
 			contents = replaceOnce(t, contents, `--npm-executable "`+provisionOutput+`"`, `--npm-executable "${{ env.NPM_EXECUTABLE }}"`)
+			document, err := decodeWorkflow([]byte(contents))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for index, step := range document.Jobs["publish"].Steps {
+				if step.ID == "publish" {
+					document.Jobs["publish"].Steps[index].Env["NPM_EXECUTABLE"] = binding
+				}
+			}
 			// When the publish command uses environment indirection.
-			_, err := CheckPublishJob(writeWorkflow(t, contents))
+			_, err = CheckPublishJob(writeWorkflowDocument(t, document))
 			// Then the step binding wins, including an explicitly empty override.
 			if (err != nil) != (binding != provisionOutput) {
 				t.Fatalf("step override error = %v, binding = %q", err, binding)

@@ -117,9 +117,81 @@ func TestSigstorePublishVerifyOfflineSignerFixture(t *testing.T) {
 	requireNPMDiagnostic(t, err, IDUnexpectedExternalParameters)
 }
 
+func TestSigstorePublishVerifyRejectsStatementMetadataDivergence(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		mutate func(*ProvenanceSigningInput)
+		wantID string
+	}{
+		{name: "runner image annotation diverges from authenticated metadata", mutate: func(signing *ProvenanceSigningInput) {
+			for index := range signing.Predicate.BuildDefinition.ResolvedDependencies {
+				dependency := &signing.Predicate.BuildDefinition.ResolvedDependencies[index]
+				if dependency.Name == "runner-image" {
+					dependency.Annotations["operating_system"] = mustJSON("Tampered\nOS")
+				}
+			}
+		}, wantID: "windlass.verify.error.resolved-dependencies-runner-image"},
+		{name: "build script disposition diverges from authenticated metadata", mutate: func(signing *ProvenanceSigningInput) {
+			signing.Predicate.RunDetails.Metadata.BuildScriptDisposition = string(BuildScriptSkippedAbsent)
+		}, wantID: "windlass.verify.error.build-script-disposition-mismatch"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			config, signing := publishVerifyInputs(t)
+			test.mutate(&signing)
+			statement, err := signing.Statement().CanonicalJSON()
+			if err != nil {
+				t.Fatalf("encode diverged test Statement: %v", err)
+			}
+			bundle := publishBundleWithPayload(t, statement)
+			got, err := NewSigstorePublishBundleVerifier(config).Verify(t.Context(), bundle)
+			requireNPMDiagnostic(t, err, test.wantID)
+			if !reflect.DeepEqual(got, VerifiedPublishBundle{}) {
+				t.Fatalf("diverged bundle returned verified evidence: %#v", got)
+			}
+		})
+	}
+}
+
+func TestSigstorePublishVerifyRejectsMultiSubjectStatement(t *testing.T) {
+	t.Parallel()
+	config, signing := publishVerifyInputs(t)
+	statement := signing.Statement()
+	statement.Subject = append(statement.Subject, statement.Subject[0])
+	payload, err := statement.CanonicalJSON()
+	if err != nil {
+		t.Fatalf("encode two-subject Statement: %v", err)
+	}
+	bundle := publishBundleWithPayload(t, payload)
+	got, err := NewSigstorePublishBundleVerifier(config).Verify(t.Context(), bundle)
+	requireNPMDiagnostic(t, err, "windlass.verify.error.subject-cardinality-error")
+	if !reflect.DeepEqual(got, VerifiedPublishBundle{}) {
+		t.Fatalf("two-subject bundle returned verified evidence: %#v", got)
+	}
+}
+
+func TestSigstorePublishVerifyRejectsDistributionWithoutCorepackVersion(t *testing.T) {
+	t.Parallel()
+	config, _ := publishVerifyInputs(t)
+	signing, err := NewProvenanceSigningInput(validProvenanceInput(t, ManagerPNPM))
+	if err != nil {
+		t.Fatalf("assemble pnpm Statement: %v", err)
+	}
+	delete(signing.Predicate.RunDetails.Builder.Version, "corepack")
+	payload, err := signing.Statement().CanonicalJSON()
+	if err != nil {
+		t.Fatalf("encode pnpm Statement: %v", err)
+	}
+	bundle := publishBundleWithPayload(t, payload)
+	_, err = NewSigstorePublishBundleVerifier(config).Verify(t.Context(), bundle)
+	requireNPMDiagnostic(t, err, "windlass.verify.error.builder-version-mismatch")
+}
+
 func publishVerifyInputs(t *testing.T) (SigstorePublishVerifierConfig, ProvenanceSigningInput) {
 	t.Helper()
-	signing, err := NewProvenanceSigningInput(validProvenanceInput(t, ManagerNPM))
+	input := validProvenanceInput(t, ManagerNPM)
+	signing, err := NewProvenanceSigningInput(input)
 	if err != nil {
 		t.Fatalf("assemble valid npm Statement: %v", err)
 	}
@@ -131,6 +203,7 @@ func publishVerifyInputs(t *testing.T) (SigstorePublishVerifierConfig, Provenanc
 	identity.RunnerEnvironment = "github-hosted"
 	return SigstorePublishVerifierConfig{
 		Mode: attestation.ModeOffline, PinnedRoot: rootBytes, Identity: identity,
+		BuildMetadata: input.BuildMetadata, Packed: input.Packed,
 		TrustRoot: policy.TrustRoot{
 			Mode: "pinned", Instance: "sigstore-public-good",
 			Path: testStringPointer("trusted_root.json"), SHA256: testStringPointer(digest.SumSHA256(rootBytes).String()),
