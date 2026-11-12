@@ -1,0 +1,14 @@
+docs/architecture/github-release-asset-publisher.md
+  h_495200fbbeca45 97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f9001bd7cd3106b9bb66f395f90248a4c0852c7d",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
