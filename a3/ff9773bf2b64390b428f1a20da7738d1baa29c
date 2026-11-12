@@ -1,0 +1,35 @@
+internal/workflowcheck/check.go
+  s_99db6502452f0f::t_1d0c72bf31b8fe 344
+  s_99db6502452f0f::t_b314c7dd10cc78 345-350,353
+.github/workflows/js-ts-npm-package-slsa3.yml
+  s_99db6502452f0f::t_15191854c61973 206
+internal/npmprofile/workflow_metadata.go
+  s_99db6502452f0f::t_89db1ceb115d76 179
+internal/workflowcheck/check_test.go
+  s_99db6502452f0f::t_80dae0fdc56b56 385-420
+  s_c03c648a6239ec::t_5cfa619a339800 421-423
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a3ff9773bf2b64390b428f1a20da7738d1baa29c",
+  "prompts": {},
+  "sessions": {
+    "s_99db6502452f0f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e32787613ffdqWgboPJHVEfppW",
+        "model": "unknown"
+      },
+      "human_author": null
+    },
+    "s_c03c648a6239ec": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
