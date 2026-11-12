@@ -29,10 +29,10 @@ func (metadata *BuildMetadata) UnmarshalJSON(encoded []byte) error {
 	if raw, present := members["manifest_evidence"]; !present || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 		return npmValidationError(IDPackageManifestEvidence, "manifest_evidence", "original manifest evidence is required")
 	}
-	if _, present := members["build_script_disposition"]; !present {
+	if raw, present := members["build_script_disposition"]; !present || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 		return npmValidationError(IDBuildScriptDisposition, "build_script_disposition", "build script disposition is required")
 	}
-	for _, key := range []string{"schema_version", "started_on", "finished_on", "primary_artifact", "external_parameters", "resolved_dependencies", "manifest_evidence", "build_script_disposition"} {
+	for _, key := range []string{"schema_version", "started_on", "finished_on", "primary_artifact", "external_parameters", "resolved_dependencies", "manifest_evidence"} {
 		raw, present := members[key]
 		if !present || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 			return fmt.Errorf("build metadata requires non-null %s", key)

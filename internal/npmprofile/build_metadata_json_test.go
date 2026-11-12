@@ -177,3 +177,30 @@ func TestBuildMetadataRejectsCaseVariantMember(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildMetadataRejectsNullBuildScriptDisposition(t *testing.T) {
+	t.Parallel()
+	raw := string(mustJSON(validProvenanceInput(t, ManagerNPM).BuildMetadata))
+	t.Run("null disposition", func(t *testing.T) {
+		t.Parallel()
+		input := strings.Replace(raw, `"build_script_disposition":"executed"`, `"build_script_disposition":null`, 1)
+		var decoded BuildMetadata
+		err := json.Unmarshal([]byte(input), &decoded)
+		requireNPMDiagnostic(t, err, IDBuildScriptDisposition)
+	})
+	t.Run("missing disposition", func(t *testing.T) {
+		t.Parallel()
+		var members map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(raw), &members); err != nil {
+			t.Fatal(err)
+		}
+		delete(members, "build_script_disposition")
+		encoded, err := json.Marshal(members)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var decoded BuildMetadata
+		decodeErr := json.Unmarshal(encoded, &decoded)
+		requireNPMDiagnostic(t, decodeErr, IDBuildScriptDisposition)
+	})
+}
