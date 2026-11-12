@@ -1,0 +1,26 @@
+internal/npmprofile/build_pack.go
+  s_636baadbb9f5f6::t_d0fc687fb7ce2c 77
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_636baadbb9f5f6::t_8fac9b32bd4425 608
+  s_636baadbb9f5f6::t_d268bcf30d666b 609-610
+internal/npmprofile/manifest_evidence.go
+  s_636baadbb9f5f6::t_b4f886f1bee488 101
+internal/npmprofile/resolution.go
+  s_636baadbb9f5f6::t_33427ad4ba7e40 155-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df4d70f8e919b9ed69ec31963778a3ed5e668ef0",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
