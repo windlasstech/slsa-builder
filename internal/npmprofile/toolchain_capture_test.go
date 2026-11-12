@@ -125,6 +125,9 @@ func TestParseRunnerMetadataRejectsNonCanonicalURIs(t *testing.T) {
 		{name: "whitespace-only detail line", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n \n" +
 			"Included Software: " + runnerSoftwareURL + "\n" +
 			"Image Release: " + runnerReleaseURL},
+		{name: "whitespace-padded image label value", detail: "Image:  ubuntu-24.04\nVersion: 20261025.353.1\n" +
+			"Included Software: " + runnerSoftwareURL + "\n" +
+			"Image Release: " + runnerReleaseURL},
 		{name: "http image release", detail: "Image: ubuntu-24.04\nVersion: 20261025.353.1\n" +
 			"Included Software: " + runnerSoftwareURL + "\n" +
 			"Image Release: http://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353"},

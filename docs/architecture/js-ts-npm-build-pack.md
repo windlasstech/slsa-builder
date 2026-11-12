@@ -930,9 +930,10 @@ The annotation set is exactly `deployment_version`, `operating_system`, `image_v
 The verbatim Included Software URI and exact full `image_version` together are the sole reported
 identity pair. Producer and consumer conformance validate the supported projection offline: the full
 version's first two numeric components must agree with the release-tag component in the captured
-URI. Unsupported URI grammar or a projection mismatch fails descriptor validation with
-`windlass.verify.error.resolved-dependencies-runner-image` and exit code `1`; capture-time version
-failures retain the input-unavailable behavior above.
+URI. Unsupported URI grammar or a projection mismatch in an already-built descriptor fails
+descriptor validation with `windlass.verify.error.resolved-dependencies-runner-image` and exit code
+`1`; the same grammar or projection failure detected at capture is a malformed local-evidence
+failure with `windlass.verify.error.input-unavailable` and exit code `2`, as above.
 
 The projection is validation-only and never replaces, truncates, or rewrites either captured value.
 The pair asserts platform-reported identity, not immutable image bytes, report integrity, a unique

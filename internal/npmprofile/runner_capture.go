@@ -72,22 +72,38 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 				if capture.ImageLabel != "" {
 					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Image detail line", imageOS, deploymentVersion)
 				}
-				capture.ImageLabel = strings.TrimPrefix(line, "Image: ")
+				value, ok := runnerDetailValue(line, "Image: ")
+				if !ok {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata has a whitespace-padded detail value", imageOS, deploymentVersion)
+				}
+				capture.ImageLabel = value
 			case strings.HasPrefix(line, "Version: "):
 				if capture.ImageVersion != "" {
 					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Version detail line", imageOS, deploymentVersion)
 				}
-				capture.ImageVersion = strings.TrimPrefix(line, "Version: ")
+				value, ok := runnerDetailValue(line, "Version: ")
+				if !ok {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata has a whitespace-padded detail value", imageOS, deploymentVersion)
+				}
+				capture.ImageVersion = value
 			case strings.HasPrefix(line, "Included Software: "):
 				if capture.IncludedSoftwareURL != "" {
 					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Included Software detail line", imageOS, deploymentVersion)
 				}
-				capture.IncludedSoftwareURL = strings.TrimPrefix(line, "Included Software: ")
+				value, ok := runnerDetailValue(line, "Included Software: ")
+				if !ok {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata has a whitespace-padded detail value", imageOS, deploymentVersion)
+				}
+				capture.IncludedSoftwareURL = value
 			case strings.HasPrefix(line, "Image Release: "):
 				if capture.ImageReleaseURL != "" {
 					return RunnerCapture{}, runnerCaptureError("runner image metadata repeats the Image Release detail line", imageOS, deploymentVersion)
 				}
-				capture.ImageReleaseURL = strings.TrimPrefix(line, "Image Release: ")
+				value, ok := runnerDetailValue(line, "Image Release: ")
+				if !ok {
+					return RunnerCapture{}, runnerCaptureError("runner image metadata has a whitespace-padded detail value", imageOS, deploymentVersion)
+				}
+				capture.ImageReleaseURL = value
 			}
 		}
 		if capture.ImageLabel == "" || capture.ImageVersion == "" || capture.IncludedSoftwareURL == "" || capture.ImageReleaseURL == "" {
@@ -118,6 +134,11 @@ func parseRunnerMetadata(encoded []byte, imageOS, deploymentVersion string) (Run
 		return RunnerCapture{}, err
 	}
 	return capture, nil
+}
+
+func runnerDetailValue(line, prefix string) (string, bool) {
+	value := strings.TrimPrefix(line, prefix)
+	return value, strings.TrimSpace(value) == value
 }
 
 // validateRunnerCapture enforces the runner identity invariants on any capture
