@@ -112,6 +112,79 @@ func TestNPMProfileReportCommand(t *testing.T) {
 	}
 }
 
+func TestNPMProfilePublishInputClassification(t *testing.T) {
+	_, tarball := signSingleIdentityMetadata(t)
+	bundle := []byte(`{"bundle":"fixture"}`)
+
+	t.Run("missing metadata flags are invocation errors without a report", func(t *testing.T) {
+		reportPath := filepath.Join(t.TempDir(), "report.json")
+		args := publishArgs(t, oneFileDirectory(t, "package.tgz", tarball), oneFileDirectory(t, "package.tgz.intoto.jsonl", bundle),
+			reportPath, filepath.Join(t.TempDir(), "out"), tarball, bundle)
+		filtered := args[:0]
+		for index := 0; index < len(args); index += 2 {
+			if args[index] == "--metadata-artifact-dir" || args[index] == "--metadata-artifact-name" || args[index] == "--metadata-sha256" {
+				continue
+			}
+			filtered = append(filtered, args[index], args[index+1])
+		}
+		err := NewNPMProfilePublishCommand().Execute(context.Background(), filtered, &bytes.Buffer{})
+		if err == nil || err.Error() != "all npm-profile-publish flags are required with no positional arguments" || errors.Is(err, ErrVerificationFailure) {
+			t.Fatalf("Execute() error = %v, want the plain required-flags invocation error", err)
+		}
+		if _, statErr := os.Stat(reportPath); !errors.Is(statErr, os.ErrNotExist) {
+			t.Fatalf("invocation failure wrote a report: %v", statErr)
+		}
+	})
+
+	t.Run("publish arguments diverging from authenticated metadata persist a verification report", func(t *testing.T) {
+		reportPath := filepath.Join(t.TempDir(), "report.json")
+		args := publishArgs(t, oneFileDirectory(t, "package.tgz", tarball), oneFileDirectory(t, "package.tgz.intoto.jsonl", bundle),
+			reportPath, filepath.Join(t.TempDir(), "out"), tarball, bundle)
+		for index, arg := range args {
+			if arg == "--package-name" {
+				args[index+1] = "@windlass/other"
+			}
+		}
+		err := NewNPMProfilePublishCommand().Execute(context.Background(), args, &bytes.Buffer{})
+		if !errors.Is(err, ErrVerificationFailure) {
+			t.Fatalf("Execute() error = %v, want verification failure", err)
+		}
+		report, readErr := ReadTypedJSON[diagnostic.Report](reportPath, nil)
+		if readErr != nil || report.PrimaryID == nil || *report.PrimaryID != npmprofile.IDPackageManifestEvidence {
+			t.Fatalf("mismatch report = %#v, %v", report, readErr)
+		}
+	})
+
+	t.Run("packed artifact digest mismatch keeps its diagnostic in the report", func(t *testing.T) {
+		tampered := append(append([]byte{}, tarball...), 0x00)
+		reportPath := filepath.Join(t.TempDir(), "report.json")
+		tarballDir := oneFileDirectory(t, "package.tgz", tarball)
+		args := publishArgs(t, tarballDir, oneFileDirectory(t, "package.tgz.intoto.jsonl", bundle),
+			reportPath, filepath.Join(t.TempDir(), "out"), tarball, bundle)
+		// The handoff digests match the tampered file, but the authenticated
+		// metadata still records the original artifact digests.
+		for index, arg := range args {
+			switch arg {
+			case "--tarball-sha256":
+				args[index+1] = digest.SumSHA256(tampered).String()
+			case "--tarball-sha512":
+				args[index+1] = digest.SumSHA512(tampered).String()
+			}
+		}
+		if err := os.WriteFile(filepath.Join(tarballDir, "package.tgz"), tampered, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		err := NewNPMProfilePublishCommand().Execute(context.Background(), args, &bytes.Buffer{})
+		if !errors.Is(err, ErrVerificationFailure) {
+			t.Fatalf("Execute() error = %v, want verification failure", err)
+		}
+		report, readErr := ReadTypedJSON[diagnostic.Report](reportPath, nil)
+		if readErr != nil || report.PrimaryID == nil || *report.PrimaryID != "windlass.verify.error.digest-mismatch" {
+			t.Fatalf("digest mismatch report = %#v, %v", report, readErr)
+		}
+	})
+}
+
 func publishArgs(t *testing.T, tarballDir, bundleDir, reportPath, githubOutput string, tarball, bundle []byte) []string {
 	t.Helper()
 	metadata, _ := signSingleIdentityMetadata(t)

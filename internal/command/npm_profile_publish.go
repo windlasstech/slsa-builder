@@ -62,11 +62,9 @@ func (command npmProfilePublishCommand) Execute(ctx context.Context, args []stri
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if flags.NArg() != 0 || *tarballDir == "" || *tarballArtifact == "" || *tarballName == "" || *tarball256Text == "" || *tarball512Text == "" || *bundleDir == "" || *bundleArtifact == "" || *bundleName == "" || *bundle256Text == "" || *packageName == "" || *packageVersion == "" || *packageURL == "" || *registryURL == "" || *npmExecutable == "" || *reportPath == "" || *githubOutput == "" {
+	if flags.NArg() != 0 || *metadataDir == "" || *metadataArtifact == "" || *metadataDigest == "" ||
+		*tarballDir == "" || *tarballArtifact == "" || *tarballName == "" || *tarball256Text == "" || *tarball512Text == "" || *bundleDir == "" || *bundleArtifact == "" || *bundleName == "" || *bundle256Text == "" || *packageName == "" || *packageVersion == "" || *packageURL == "" || *registryURL == "" || *npmExecutable == "" || *reportPath == "" || *githubOutput == "" {
 		return errors.New("all npm-profile-publish flags are required with no positional arguments")
-	}
-	if *metadataDir == "" || *metadataArtifact == "" || *metadataDigest == "" {
-		return writePublishInputRejection(out, *reportPath, newIdentityPolicyBindingError(npmprofile.IDPackageManifestEvidence, "verified build metadata handoff is required"))
 	}
 	metadataSHA, err := digest.ParseSHA256(*metadataDigest)
 	if err != nil {
@@ -85,7 +83,7 @@ func (command npmProfilePublishCommand) Execute(ctx context.Context, args []stri
 		return writePublishInputRejection(out, *reportPath, err)
 	}
 	if verifiedPackage.Name != *packageName || verifiedPackage.Version != *packageVersion || verifiedPackage.PackageURL != *packageURL || verifiedPackage.Publish.ResolvedRegistryURL != *registryURL {
-		return errors.New("publish arguments differ from authenticated manifest and raw input resolution")
+		return writePublishInputRejection(out, *reportPath, newIdentityPolicyBindingError(npmprofile.IDPackageManifestEvidence, "publish arguments differ from authenticated manifest and raw input resolution"))
 	}
 	tarball256, err := digest.ParseSHA256(*tarball256Text)
 	if err != nil {
@@ -107,12 +105,12 @@ func (command npmProfilePublishCommand) Execute(ctx context.Context, args []stri
 	}
 	input := npmProfilePublishInput{TarballPath: filepath.Join(*tarballDir, *tarballName), BundlePath: filepath.Join(*bundleDir, *bundleName), NPMExecutable: *npmExecutable, RegistryURL: *registryURL, PackageName: *packageName, TarballSHA256: tarball256, TarballSHA512: tarball512, BundleSHA256: bundle256}
 	if metadata.PrimaryArtifact.ArtifactName != *tarballArtifact || metadata.PrimaryArtifact.PayloadFileName != *tarballName || metadata.PrimaryArtifact.SHA256 != tarball256.String() || metadata.PrimaryArtifact.SHA512 != tarball512.String() {
-		return errors.New("build metadata and tarball handoff disagree")
+		return writePublishInputRejection(out, *reportPath, newIdentityPolicyBindingError("windlass.verify.error.digest-mismatch", "build metadata and tarball handoff disagree"))
 	}
 	input.BuildMetadata = metadata
 	input.Packed, err = npmprofile.VerifyPackedArtifact(input.TarballPath, metadata.PrimaryArtifact)
 	if err != nil {
-		return err
+		return writePublishInputRejection(out, *reportPath, err)
 	}
 	publish := command.publish
 	if publish == nil {
