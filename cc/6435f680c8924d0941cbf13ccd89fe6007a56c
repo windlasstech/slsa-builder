@@ -1,0 +1,36 @@
+docs/architecture/slsa-provenance-v1.md
+  s_636baadbb9f5f6::t_da0b8896c48fcc 302
+  s_636baadbb9f5f6::t_0a747c7daf73a6 285-287
+  s_c03c648a6239ec::t_fba855f541977d 303
+internal/provenance/validate.go
+  s_636baadbb9f5f6::t_1135ef55d2cd48 182-184
+  s_636baadbb9f5f6::t_8690d68e109520 33,35-36
+  s_636baadbb9f5f6::t_fcbaa30498cf50 34
+internal/provenance/validation_edges_test.go
+  s_636baadbb9f5f6::t_7d7d8355921407 4
+  s_636baadbb9f5f6::t_9773e8f42a3d0e 41-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cc6435f680c8924d0941cbf13ccd89fe6007a56c",
+  "prompts": {},
+  "sessions": {
+    "s_636baadbb9f5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_c03c648a6239ec": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e3374c11bffelF2JFZTg0ppwd3",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
