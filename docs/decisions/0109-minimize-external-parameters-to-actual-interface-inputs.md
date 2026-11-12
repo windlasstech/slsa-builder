@@ -58,7 +58,9 @@ relations:
       "the closed resolvedDependencies set membership and cardinalities, extended by the
       package-manifest descriptor, and the preservation of existing descriptor shapes where the
       runner-image descriptor changes as scoped in ADR 0100's relation; the source descriptors,
-      index-0 serialization, and name-keyed verification remain in force"
+      index-0 serialization, and name-keyed verification remain in force, while the deterministic
+      producer serialization order gains the package-manifest descriptor at index 2, between
+      built-source and lockfile"
   - type: partially-supersedes
     target: ADR-0106
     scope:

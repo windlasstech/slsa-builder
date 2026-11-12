@@ -17,10 +17,18 @@ relations:
       authorization re-pointed to externalParameters.workflow.repository, release ref/commit
       expectations to the built-source descriptor, and certificate invocation comparisons to
       workflow.ref and the invocation-source descriptor"
-  - type: see-also
+  - type: partially-supersedes
     target: ADR-0103
-  - type: see-also
+    scope:
+      "the clauses retaining externalParameters.source.ref as the built release tag record: the
+      source group is consolidated onto the workflow group and descriptor bindings here, and the
+      caller's explicit selector keeps its interface-faithful spelling; the workflow group
+      definition and the internalParameters.github placement remain in force"
+  - type: partially-supersedes
     target: ADR-0104
+    scope:
+      "the clause retaining built source.ref as the release tag record; the external-parameter
+      builder-record removal remains in force"
   - type: partially-supersedes
     target: ADR-0105
     scope:
@@ -30,8 +38,12 @@ relations:
       cardinality, serialization order, and invocation-side invariants remain in force, while the
       built-source descriptor's closed shape is extended here with a required annotations.ref_type
       member"
-  - type: see-also
+  - type: partially-superseded-by
     target: ADR-0107
+    scope:
+      "the source.event_name member temporarily retained and the residual source-group shape
+      question deferred there: event_name moves to internalParameters.github, and the source group
+      reduces to the optional caller-selector ref"
   - type: partially-superseded-by
     target: ADR-0109
     scope:

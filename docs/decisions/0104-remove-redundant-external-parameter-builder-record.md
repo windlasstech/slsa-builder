@@ -15,8 +15,12 @@ relations:
     target: ADR-0103
   - type: see-also
     target: ADR-0105
-  - type: see-also
+  - type: partially-superseded-by
     target: ADR-0106
+    scope:
+      "the clause retaining built source.ref as the release tag record: ADR 0106 consolidates the
+      source group onto the workflow group and descriptor bindings; the external-parameter
+      builder-record removal remains in force"
   - type: see-also
     target: ADR-0109
 ---

@@ -9,8 +9,14 @@ relations:
     target: ADR-0028
   - type: see-also
     target: ADR-0029
-  - type: see-also
+  - type: partially-supersedes
     target: ADR-0079
+    scope:
+      "the omitted-source-ref byte-for-byte compatibility promise (the Decision Outcome and
+      Confirmation clauses that omitted-input flows are byte-for-byte compatible with the
+      pre-existing contract): this decision adds the required workflow invocation-identity group, so
+      pre-change bundles are not byte-compatible; the source-ref input grammar, tag-only validation,
+      and fixed-pipeline retry semantics remain in force"
   - type: partially-supersedes
     target: ADR-0080
     scope:
@@ -24,8 +30,13 @@ relations:
     target: ADR-0104
   - type: see-also
     target: ADR-0105
-  - type: see-also
+  - type: partially-superseded-by
     target: ADR-0106
+    scope:
+      "the clauses retaining externalParameters.source.ref as the built release tag record: ADR 0106
+      consolidates the source group onto the workflow group and descriptor bindings, and the
+      caller's explicit selector keeps its interface-faithful spelling there; the workflow group
+      definition and the internalParameters.github placement remain in force"
   - type: see-also
     target: ADR-0107
   - type: partially-superseded-by
