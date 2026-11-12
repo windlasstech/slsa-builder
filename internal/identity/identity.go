@@ -154,7 +154,7 @@ func splitRepositoryPath(path string, allowTrailingSlash, allowGitSuffix, requir
 		path = path[:len(path)-len(".git")]
 	}
 	parts := strings.Split(path, "/")
-	if len(parts) != 2 || !validRepositorySegment(parts[0]) || !validRepositorySegment(parts[1]) {
+	if len(parts) != 2 || !validRepositorySegment(parts[0]) || !validRepositoryName(parts[1]) {
 		return "", "", false
 	}
 	return parts[0], parts[1], true
@@ -162,6 +162,15 @@ func splitRepositoryPath(path string, allowTrailingSlash, allowGitSuffix, requir
 
 func validRepositorySegment(segment string) bool {
 	return segment != "." && segment != ".." && repositorySegmentExpression.MatchString(segment)
+}
+
+func validRepositoryName(segment string) bool {
+	// A repository name ending in ".git" (any case) is ambiguous with the
+	// case-insensitive suffix rule in splitRepositoryPath: the lowercased
+	// canonical output would lose the suffix on re-normalization, breaking
+	// idempotency. Only the repository segment carries the suffix rule; the
+	// owner segment is never stripped.
+	return validRepositorySegment(segment) && !strings.HasSuffix(strings.ToLower(segment), ".git")
 }
 
 // ValidateFullSHA requires the lowercase full Git commit form used by builder references.
