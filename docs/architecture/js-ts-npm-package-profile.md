@@ -24,8 +24,10 @@ profile.
   [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
   [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
-  and
-  [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md)
+  [0081](../decisions/0081-pin-npm-oidc-exchange-response-contract-and-correct-token-lifetime-assumption.md),
+  [0106](../decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md),
+  [0107](../decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md), and
+  [0108](../decisions/0108-remove-redundant-npm-release-asset-inputs.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md), [JS/TS npm build and pack](js-ts-npm-build-pack.md),
@@ -102,31 +104,29 @@ production use.
 | `access`                   | string  | unset   | `public`, `restricted`, or empty.                                          |
 | `source-ref`               | string  | unset   | Full `refs/tags/` ref of the release tag whose content is built.           |
 | `release-asset-mode`       | boolean | `false` | Enables GitHub Release asset publication for the verified package tarball. |
-| `release-tag`              | string  | unset   | Existing GitHub Release tag name for release-asset mode.                   |
-| `provenance-sidecar`       | string  | unset   | Sidecar policy; omitted or `required` for production release-asset mode.   |
 | `linked-artifact-metadata` | boolean | `false` | Enables linked artifact storage metadata after release asset upload.       |
 
-The public contract has exactly nine inputs: the required `package-directory` input and the eight
+The public contract has exactly seven inputs: the required `package-directory` input and the six
 optional inputs in this table. Their complete signed representation is defined by the
-[nine-input completeness mapping](js-ts-npm-provenance-publish.md#nine-input-completeness-mapping)
-in the provenance and publish spec. The workflow must reject an unknown public input through GitHub
-Actions schema validation before it starts; it must not add a second representation for any listed
-input.
+[seven-input completeness mapping](js-ts-npm-provenance-publish.md#seven-input-completeness-mapping)
+in the provenance and publish spec. A caller workflow supplying `release-tag` or
+`provenance-sidecar` is rejected as an unrecognized input. GitHub Actions rejects unknown
+`workflow_call` inputs at the call boundary before the workflow starts, and neither name is part of
+the profile contract. Every other unknown public input follows the same rejection path. The workflow
+must not add a second representation for any listed input.
 
 The workflow must not define GitHub Actions `workflow_call` defaults for `registry-url`, `dist-tag`,
-`access`, `source-ref`, `release-tag`, or `provenance-sidecar`. An omitted string input is
-represented as unset until the profile's intent resolution step. This keeps caller-supplied values
-distinguishable from source `publishConfig` values, Windlass/npm defaults, release-asset mode
-defaults, and the default built ref. Boolean inputs may use GitHub Actions defaults because `false`
-is the explicit disabled state.
+`access`, or `source-ref`. An omitted string input is represented as unset until the profile's
+intent resolution step. This keeps caller-supplied values distinguishable from source
+`publishConfig` values, Windlass/npm defaults, and the default built ref. Boolean inputs may use
+GitHub Actions defaults because `false` is the explicit disabled state.
 
 For the initial GitHub Actions reusable workflow contract, an optional string input whose value is
 an empty string after trimming ASCII whitespace is normalized as omitted before intent resolution.
-Empty `registry-url`, `dist-tag`, `access`, `release-tag`, and `provenance-sidecar` inputs are
-therefore not caller-supplied intent values. A caller-supplied value exists only when the normalized
-input is non-empty. `source-ref` follows the stricter exact-spelling rule defined in the input rules
-section because its raw value participates in job-level concurrency group computation and cannot be
-normalized there.
+Empty `registry-url`, `dist-tag`, and `access` inputs are therefore not caller-supplied intent
+values. A caller-supplied value exists only when the normalized input is non-empty. `source-ref`
+follows the stricter exact-spelling rule defined in the input rules section because its raw value
+participates in job-level concurrency group computation and cannot be normalized there.
 
 #### Optional input rules
 
@@ -178,43 +178,35 @@ publish attempt unless a separately proved failure condition below applies.
   conflict and fails with the same diagnostic. `source-ref` is a declared release-source selector,
   not a runtime override: it changes which existing repository content is built, never how the build
   runs.
+- A supplied `source-ref` is signed as optional `externalParameters.source.ref`, preserving the
+  exact full-ref selector. The `source` group is present only when that selector was supplied and is
+  omitted otherwise. The effective built ref is `source.ref` when present and
+  `externalParameters.workflow.ref` otherwise. The `invocation-source` descriptor records the
+  invocation ref and commit, while the `built-source` descriptor records the effective built ref,
+  its verified resolved commit, and `annotations.ref_type: "tag"`.
 - `release-asset-mode` must be `false` for npm-only publication and `true` for npm publication plus
   GitHub Release asset distribution. The workflow must not infer release-asset mode from the
   presence of release-related inputs.
-- `release-tag` is used only when `release-asset-mode` is `true`. It is a Git tag name, not a full
-  ref. When omitted, the effective release tag is the built release tag accepted by the runtime
-  guards. When supplied, it must equal the built release tag name, must reconstruct the same full
-  `refs/tags/<tag-name>` ref as the accepted built ref, and must equal `v${package.json version}`. A
-  branch name, pull request ref, full ref, empty tag name, tag name with a dot-prefixed path
-  component, path traversal, or ASCII control characters, or a tag that does not already have a
-  GitHub Release in the caller repository must be rejected before release mutation.
-- `provenance-sidecar` is used only when `release-asset-mode` is `true`. Omitted and `required` both
-  mean the unchanged producer provenance bundle is uploaded as the deterministic sidecar
-  `<package-tarball-name>.intoto.jsonl`. Any value that disables, renames, rewrites, re-signs, or
-  replaces the sidecar is rejected because ADR 0051 makes sidecar distribution mandatory for the
-  production release-asset path.
+- The effective GitHub Release target derives exclusively from the effective built release tag
+  established by the `source-ref` and invocation-resolution rules. The target must be an existing
+  GitHub Release in the caller repository, and the publisher must validate it against the verified
+  producer data before release mutation.
+- Release-asset mode always publishes the unchanged, verified producer provenance bundle as the
+  deterministic sidecar `<package-tarball-name>.intoto.jsonl`. Sidecar publication is mandatory
+  whenever the mode is enabled. There is no public option to disable it, choose an arbitrary path,
+  rename it, rewrite it, re-sign it, or replace it.
 - `linked-artifact-metadata` is used only when `release-asset-mode` is `true`. When `false`, the
   workflow must not request `artifact-metadata: write` or call the linked artifact metadata API.
   When `true`, the workflow derives the publisher `linked-artifact-settings` object from the caller
   repository, effective release tag, release download URL prefix, and package version; callers do
   not supply the publisher's internal JSON settings directly.
-- The signed `distribution` group normalizes the four distribution inputs without duplicating their
-  raw values. In npm-only mode, it is exactly `distribution.release_asset_mode: false`,
-  `distribution.release_tag_supplied: false`, `distribution.provenance_sidecar: null`, and
-  `distribution.linked_artifact_metadata: false`. In release-asset mode, it records the actual
-  `release-asset-mode` boolean, whether a non-empty `release-tag` was supplied,
-  `distribution.provenance_sidecar: "required"`, and the actual `linked-artifact-metadata` boolean.
-  A candidate provenance statement that cannot produce this closed normalized group must fail before
-  signing with `windlass.verify.error.release-asset-mode-schema-error`.
-- The raw `release-tag` input must not appear in `distribution` or another signed field. Its
-  suppliedness is represented only by `distribution.release_tag_supplied`; its effective identity
-  remains in the signed release fields defined by the provenance and publish spec. A statement that
-  duplicates the raw `release-tag` must fail before signing with
-  `windlass.verify.error.release-asset-mode-schema-error`.
-- Omitted and explicit `required` `provenance-sidecar` inputs normalize identically to
-  `distribution.provenance_sidecar: "required"` in release-asset mode. A statement that preserves
-  their spelling distinction, or assigns another normalized value, must fail before signing with
-  `windlass.verify.error.release-asset-mode-schema-error`.
+- The signed `distribution` group normalizes the two distribution inputs without duplicating their
+  raw values. It contains exactly `release_asset_mode` and `linked_artifact_metadata`. In npm-only
+  mode, both are `false`. In release-asset mode, it records the actual `release-asset-mode` and
+  `linked-artifact-metadata` booleans. The mandatory sidecar requirement derives from
+  `release_asset_mode`; no release-tag suppliedness or sidecar-policy member is added. A candidate
+  provenance statement that cannot produce this closed two-member group must fail before signing
+  with `windlass.verify.error.release-asset-mode-schema-error`.
 - The signed mapping keeps `package-directory`, `registry-url`, `dist-tag`, and `access` in their
   established signed locations. They must not be duplicated in `distribution`, `caller`, or another
   new field; a duplicate must fail before signing with
@@ -244,10 +236,12 @@ The public npm workflow has two modes:
 | npm-only      | `false`              | Build, sign, publish to npm, and emit npm package outputs only.                   |
 | release-asset | `true`               | Run npm-only behavior, then internally compose with the GitHub Release publisher. |
 
-Release-asset mode is explicit. The workflow must reject release-asset-only inputs when
-`release-asset-mode` is `false`, including non-empty `release-tag`, non-empty `provenance-sidecar`,
-or `linked-artifact-metadata: true`. This prevents callers from believing that release assets were
-published when the mode was not enabled.
+Release-asset mode is explicit. The workflow must reject `linked-artifact-metadata: true` when
+`release-asset-mode` is `false`. This prevents callers from believing that linked metadata was
+published when the mode was not enabled. The current npm-only implementation also rejects
+`release-asset-mode: true` and `linked-artifact-metadata: true` as enabled-but-unimplemented
+reserved modes. Both inputs remain in the seven-input public contract; this current rejection is an
+implementation boundary, not a change to the accepted composition behavior.
 
 When `release-asset-mode` is `true`, the workflow must construct the same-run internal handoff
 described by the [composition spec](npm-to-release-asset-composition.md). The caller cannot supply
@@ -258,8 +252,9 @@ GitHub Actions schema validation or be rejected before npm publish, signing, rel
 linked metadata publication.
 
 The public release target is always the caller repository's existing GitHub Release for the
-effective release tag. The workflow must not create the release or tag, change draft or prerelease
-status, change the latest marker, delete an existing asset, overwrite an asset, or upload to another
+effective built release tag, derived exclusively from `source-ref` when supplied and the invocation
+ref otherwise. The workflow must not create the release or tag, change draft or prerelease status,
+change the latest marker, delete an existing asset, overwrite an asset, or upload to another
 repository.
 
 After the pack-produced tarball and the unchanged signed producer provenance sidecar have known
@@ -549,8 +544,8 @@ provenance, release asset digests, or sidecar outputs.
 `package-url` is the registry package-version metadata URL for the published npm package.
 
 > [!WARNING]  
-> It is not a Package URL (PURL), and the initial profile must not emit `pkg:npm/...` in this output
-> or in `externalParameters.package.package_url`.
+> It is not a Package URL (PURL), and the initial profile must not emit `pkg:npm/...` in this
+> output. The signed provenance schema carries no package-URL field.
 
 For `https://registry.npmjs.org/`, the initial profile emits the npm registry package-version
 metadata URL:
@@ -579,11 +574,12 @@ using the same path construction rule. Windlass does not guarantee that the resu
 stable human page or metadata endpoint unless a later ADR defines that registry class.
 
 The profile must fail before signing or publishing when it cannot construct a URL from the
-normalized registry URL, validated package name, and validated package version. Producer-side
-verification must reject a provenance bundle before publish when
-`externalParameters.package.package_url` is not byte-for-byte equal to the expected registry
-package-version URL reconstructed from `externalParameters.publish.resolved_registry_url`,
-`externalParameters.package.name`, and `externalParameters.package.version`.
+normalized registry URL, validated package name, and validated package version. The `package-url`
+output is a recompute rule, not a signed field: consumers independently reconstruct the expected
+registry package-version URL from the authenticated manifest's `name` and `version` and the publish
+resolution derived from the raw publish inputs, the manifest's `publishConfig`, and the documented
+defaults, and reject an emitted `package-url` that is not byte-for-byte equal to that
+reconstruction.
 
 Rejected `package-url` examples for the initial profile:
 
@@ -599,8 +595,8 @@ Rejected `package-url` examples for the initial profile:
 
 The signed npm provenance Statement subject is a Package URL as defined by the
 [provenance and publish spec](js-ts-npm-provenance-publish.md#npm-package-subject-naming). That
-subject identity must not be exposed by overloading the public `package-url` output or
-`externalParameters.package.package_url`, both of which remain registry package-version URLs.
+subject identity must not be exposed by overloading the public `package-url` output, which remains a
+registry package-version URL.
 
 ## Supported caller triggers
 
@@ -616,7 +612,9 @@ dispatch that neither runs on the version tag nor names it through `source-ref`,
 
 ### Runtime guards
 
-- `github.event_name` must be one of the supported triggers.
+- `github.event_name` must be one of the supported triggers. Producer provenance records the
+  invocation event as `internalParameters.github.event_name`, which must also match the signing
+  certificate's Build Trigger claim.
 - The built ref (the `source-ref` value when supplied, the invocation ref otherwise) must be a tag
   ref (`refs/tags/...`), and its tag name must match `v${package.json version}` exactly as proven by
   the packed artifact metadata.
@@ -770,7 +768,8 @@ The workflow must fail before any registry mutation when:
 - `publishConfig.provenance` disables provenance or `publishConfig.directory` redirects the package
   root.
 - Any optional input fails validation.
-- Release-asset-only inputs are supplied while `release-asset-mode` is `false`.
+- A reserved distribution mode is enabled in the current npm-only implementation, or
+  `linked-artifact-metadata` is `true` while `release-asset-mode` is `false`.
 - The selected registry cannot complete tokenless trusted publishing with the supplied external
   provenance bundle. Custom registry failures use the fixed timing and diagnostics in Registry URL
   support: `custom-registry-token-required` and `custom-registry-provenance-weakened` fail before
@@ -786,9 +785,11 @@ linked metadata publication when:
 
 - The caller job does not grant `contents: write` to the reusable workflow invocation.
 - `linked-artifact-metadata` is `true` and the caller job does not grant `artifact-metadata: write`.
-- The effective release tag cannot be reconstructed as the same full ref as the runtime release ref.
-- The producer provenance `externalParameters.source.ref`, `externalParameters.release.ref`, or
-  `externalParameters.release.version_tag` does not bind to that same full release ref.
+- The effective release tag cannot be derived exclusively from the effective built release tag
+  established by optional `externalParameters.source.ref` when supplied and
+  `externalParameters.workflow.ref` otherwise.
+- The producer provenance `built-source` descriptor does not carry that same full release ref in its
+  URI, the verified resolved commit in `digest.gitCommit`, and `annotations.ref_type: "tag"`.
 - The effective release tag does not already have a GitHub Release in the caller repository.
 - The effective release target resolves outside the caller repository.
 - The pack-produced tarball, producer provenance bundle, or internal handoff manifest is missing,
@@ -797,7 +798,7 @@ linked metadata publication when:
   for a new `run_id`, a different run identity, or without the required binding and convergence
   proof. Existing names are not a failure when the target satisfies complete same-`run_id` read-only
   convergence.
-- The producer provenance sidecar is disabled, renamed, rewritten, re-signed, replaced by a native
+- The producer provenance sidecar is missing, renamed, rewritten, re-signed, replaced by a native
   locator, or otherwise not the exact signed bundle bytes produced and verified by the npm profile.
 - The internal mapping job attempts to derive publisher inputs from public workflow outputs, logs,
   deterministic names alone, or caller-controlled values instead of the digest-verified handoff
@@ -826,23 +827,29 @@ release target, weakening provenance verification, or using a custom token.
 
 - Positive fixture: valid tag push with root package and workspace package.
 - Positive fixture: valid dispatch retry from the caller's default branch with
-  `source-ref: refs/tags/vX.Y.Z`: the built tarball derives from the tag commit, the signed
-  `source.ref`/`source.revision` record the built tag identity, and the signed invocation record
-  carries the dispatch ref.
+  `source-ref: refs/tags/vX.Y.Z`: the built tarball derives from the tag commit, optional
+  `externalParameters.source.ref` records the exact full selector, `externalParameters.workflow.ref`
+  and the `invocation-source` descriptor record the dispatch ref and invocation commit, the
+  `built-source` descriptor records the tag and its resolved commit, and
+  `internalParameters.github.event_name` is `workflow_dispatch`.
 - Positive fixture: omitted `source-ref` on a tag-triggered run produces the single-identity
-  contract: `source.input_ref` is absent, the invocation record members are absent, and the run
-  behaves exactly as the pre-`source-ref` contract.
-- Positive fixture: valid release-asset mode run that publishes the npm package, uploads the same
-  tarball as the GitHub Release primary asset, uploads the unchanged producer provenance sidecar,
-  and emits release asset locator outputs.
+  contract: `externalParameters.source` is omitted entirely rather than emitted as an empty object,
+  `externalParameters.workflow.ref` is the tag, `invocation-source` and `built-source` carry
+  identical URI and digest values under their distinct role names, and
+  `internalParameters.github.event_name` is `push`.
+- Positive fixtures: valid release-asset mode runs for a tag push and a dispatch retry derive the
+  GitHub Release target exclusively from the effective built release tag, publish the npm package,
+  upload the same tarball as the GitHub Release primary asset, upload the unchanged producer
+  provenance sidecar, and emit release asset locator outputs.
 - Positive fixture: valid release-asset mode run with linked artifact metadata enabled and separated
   metadata permissions.
-- Positive fixture: all nine public inputs map exactly once to the signed locations in the
-  provenance spec's nine-input completeness mapping, including the normalized `distribution` group
-  and observed `caller.workflow_filename`.
-- Positive fixture: release-asset mode with omitted `provenance-sidecar` and the otherwise identical
-  mode with `provenance-sidecar: required` both produce
-  `distribution.provenance_sidecar: "required"`.
+- Positive fixture: all seven public inputs map exactly once to the signed locations in the
+  provenance spec's seven-input completeness mapping, including the closed two-member `distribution`
+  group and observed `caller.workflow_filename`.
+- Positive fixture: release-asset mode always publishes the unchanged, verified producer bundle as
+  the deterministic `<package-tarball-name>.intoto.jsonl` sidecar without any sidecar-specific
+  public input. The statement derives that mandatory behavior from
+  `distribution.release_asset_mode`, and the sidecar locator outputs remain available.
 - Rejected fixtures: wrong trigger, mismatched tag/version, missing `package.json`, arbitrary
   command input, npm token secret, private package, private dependency requirement, `publishConfig`
   conflict, unsupported `publishConfig.directory`, disabled provenance metadata, absent
@@ -859,28 +866,32 @@ release target, weakening provenance verification, or using a custom token.
   (`custom-registry-provenance-submission-rejected`), absent linkage metadata after publish
   (`custom-registry-linkage-metadata-absent`), and incompatible digest semantics after publish with
   possible partial publication reported (`custom-registry-digest-semantics-mismatch`).
-- Rejected fixtures: release-asset-only inputs while mode is disabled, missing caller
-  `contents: write` for release-asset mode, missing caller `artifact-metadata: write` when linked
-  metadata is enabled, supplied full-ref `release-tag`, release tag mismatch, missing target
-  release, cross-repository target attempt, custom GitHub token attempt, raw artifact upload
-  attempt, caller-supplied artifact digest attempt, overwrite attempt, release creation attempt,
-  sidecar disable or rename attempt, duplicate primary asset, duplicate sidecar asset, internal
-  handoff substitution, internal job permission-boundary violation, immutable target with either
-  expected asset absent before `npm publish` (`release-target-immutable`), and a complete immutable
-  target that cannot perform same-`run_id` read-only convergence (`release-target-immutable`).
+- Rejected fixtures: `linked-artifact-metadata: true` while release-asset mode is disabled;
+  enabled-but-unimplemented `release-asset-mode: true` or `linked-artifact-metadata: true` in the
+  current npm-only implementation; missing caller `contents: write` for release-asset mode; missing
+  caller `artifact-metadata: write` when linked metadata is enabled; a release target whose tag
+  differs from the effective built release tag; a missing target release; a cross-repository target
+  attempt; a custom GitHub token attempt; a raw artifact upload attempt; a caller-supplied artifact
+  digest attempt; an overwrite attempt; a release creation attempt; a missing, renamed, rewritten,
+  re-signed, replaced, or byte-mismatched sidecar; a duplicate primary asset; a duplicate sidecar
+  asset; internal handoff substitution; an internal job permission-boundary violation; an immutable
+  target with either expected asset absent before `npm publish` (`release-target-immutable`); and a
+  complete immutable target that cannot perform same-`run_id` read-only convergence
+  (`release-target-immutable`).
 - Rejected fixtures: a non-`refs/tags/` `source-ref` value, a `source-ref` tag that does not exist
   or does not resolve to a commit, a `source-ref` tag that does not equal
   `v${package.json version}`, and a `source-ref` that conflicts with the invocation tag on a
   tag-triggered run. Each fails with `windlass.verify.error.source-ref-invalid` before install,
   pack, signing, or publish.
-- Rejected fixtures: a raw `release-tag` duplicated in the signed `distribution` group
-  (`release-asset-mode-schema-error`); `package-directory`, `registry-url`, `dist-tag`, or `access`
-  duplicated outside its established signed location (`unexpected-external-parameters`); distinct
-  normalized values for omitted versus explicit `required` `provenance-sidecar`
-  (`release-asset-mode-schema-error`); unavailable or conflicting observed caller workflow filename,
-  including an OIDC `workflow_ref` and `github.workflow_ref` cross-check mismatch
+- Rejected fixtures: caller workflows supplying `release-tag` or `provenance-sidecar`, which GitHub
+  Actions rejects as unrecognized `workflow_call` inputs at the call boundary; a `distribution`
+  group containing `release_tag_supplied`, `provenance_sidecar`, or any other member beyond
+  `release_asset_mode` and `linked_artifact_metadata` (`release-asset-mode-schema-error`);
+  `package-directory`, `registry-url`, `dist-tag`, or `access` duplicated outside its established
+  signed location (`unexpected-external-parameters`); unavailable or conflicting observed caller
+  workflow filename, including an OIDC `workflow_ref` and `github.workflow_ref` cross-check mismatch
   (`trusted-publisher-mismatch`); and a caller-supplied workflow-filename input. The last fixture
-  must fail reusable-workflow schema validation, proving that no tenth public input exists.
+  must fail reusable-workflow schema validation, proving that no eighth public input exists.
 - A YAML review checklist that a human can apply to the workflow file.
 - A YAML review checklist proving that `.github/workflows/js-ts-npm-package-slsa3.yml` is the only
   public npm entrypoint and that release-asset mode does not expose internal handoff mechanics as

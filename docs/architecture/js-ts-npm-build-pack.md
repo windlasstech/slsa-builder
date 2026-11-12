@@ -21,7 +21,7 @@ installs dependencies, runs build scripts, packs the artifact, and validates pac
   and [0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md)
 - Related specs: [JS/TS npm package profile](js-ts-npm-package-profile.md),
   [JS/TS npm provenance and publish](js-ts-npm-provenance-publish.md),
-  [Core profile contract](core-profile-contract.md)
+  [SLSA provenance v1](slsa-provenance-v1.md), [Core profile contract](core-profile-contract.md)
 
 ## Scope and non-goals
 
@@ -205,6 +205,27 @@ claiming workspace root, that is still one selected package when every matching 
 the same normalized directory. If different patterns or metadata files identify different package
 directories for the same `package-directory` input, the profile must fail before install with a
 workspace resolution error.
+
+## Original source-manifest snapshot
+
+After the built source revision is verified and checked out, and after package directory selection
+identifies exactly one package, the profile captures the selected package's `package.json` bytes
+exactly once. This original source-manifest snapshot is taken before any caller-controlled install,
+build, or pack script and before package-manager selection consumes selected-package fields.
+
+The same snapshot supplies selected-package package-manager selection metadata, build-script
+detection and the signed build-script disposition, package identity and repository validation,
+`publishConfig` validation and publish resolution, and the `package-manifest` descriptor's
+`digest.sha256`. The descriptor's `mediaType` is exactly `application/json`, and its digest covers
+these original source bytes. It carries no `content`. The
+[common package-manifest contract](slsa-provenance-v1.md#package-manifest-and-offline-evidence)
+defines the descriptor identity and the offline evidence binding for consumers.
+
+A build-mutated manifest, a packed manifest, or a later re-read of the selected path never
+substitutes for the original snapshot in any of these checks. A missing, unreadable, or malformed
+selected `package.json` fails before install with `windlass.verify.error.package-manifest-invalid`
+and exit code `1`; the profile must not construct a predicate from partial or substituted manifest
+evidence.
 
 ## Package manager selection
 
@@ -470,30 +491,46 @@ Examples of conflicts:
 - Multiple lockfiles exist and no `packageManager` field resolves the ambiguity.
 
 When the result is a package-manager conflict, provenance must not be emitted. When lockfile
-inference selects npm, `package_manager.selection_source` is `lockfile`,
-`package_manager.selection_manifest` and `package_manager.selection_manifest_path` are `null`, and
-`package_manager.selection_lockfile_path` is the repository-root-relative path to
-`package-lock.json`.
+inference selects npm, the lockfile descriptor's selection metadata records `lockfile` as the source
+and the repository-root-relative `package-lock.json` path, with no manifest selection path. The
+[provenance and publish specification](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema)
+owns that closed annotation shape. No `externalParameters.package_manager` group is emitted.
 
 When manifest metadata selects a package manager and that manager's required lockfile is present,
 that selected lockfile is the only lockfile that constrains the release install. Other supported
 lockfile names in the package manager root are ignored as stale diagnostics. The workflow should
-warn about those ignored lockfiles and record their repository-root-relative paths in provenance,
-but reviewers and verifiers must not treat their presence as a package-manager conflict or as an
-input to the dependency graph used by the selected package manager's frozen install command.
+warn about those ignored lockfiles and record their repository-root-relative paths only as stale
+diagnostic metadata under the provenance and publish specification, but reviewers and verifiers must
+not treat their presence as a package-manager conflict or as an input to the dependency graph used
+by the selected package manager's frozen install command.
 
-The selected lockfile path and digest feed the name-keyed `lockfile` descriptor defined in the
+### Resolved dependency descriptors
+
+The selected lockfile path and digest feed the name-keyed `lockfile` descriptor, and the original
+source-manifest snapshot feeds the `package-manifest` descriptor, both defined in the
 [provenance and publish specification](js-ts-npm-provenance-publish.md#jsts-npm-resolveddependencies-schema).
-`externalParameters.package_manager` records how the package manager was selected. The selected
-manager name and exact effective version select the unordered dependency set by descriptor `name`:
-every selection emits exactly one `node-runtime`; npm emits exactly three descriptors (`lockfile`,
-`node-runtime`, and `runner-image`), while pnpm and Yarn each emit exactly four, adding exactly one
-`package-manager-distribution`. The profile must not select, create, or validate a descriptor by
-array position. A missing, duplicate, unexpected, or manager-incompatible descriptor must stop
+Under ADR 0105 and ADR 0109, the closed set contains exactly six descriptors for npm:
+`invocation-source`, `built-source`, `package-manifest`, `lockfile`, `node-runtime`, and
+`runner-image`. pnpm and Yarn selections contain exactly seven, adding
+`package-manager-distribution`. Semantic selection and validation are unordered and name-keyed,
+never positional. A missing, duplicate, unexpected, or manager-incompatible descriptor must stop
 before signing with the descriptor diagnostic defined in the provenance and publish specification.
-Stale non-selected lockfiles may be copied into both
-`externalParameters.package_manager.ignored_lockfile_paths` and the lockfile descriptor annotations
-as diagnostics, but they must not become separate dependency descriptors or selected graph inputs.
+The npm producer's deterministic emission order, including index-0 `invocation-source`, is owned by
+that same specification and is not duplicated here.
+
+Under ADR 0110, descriptor `mediaType` selection follows the actual digest-covered representation
+under the [common deterministic media-type matrix](slsa-provenance-v1.md#deterministic-media-types):
+`package-manifest` is `application/json`; a selected `package-lock.json` is `application/json`;
+selected `pnpm-lock.yaml` and supported Berry `yarn.lock` files are `application/yaml`;
+`node-runtime` is `application/gzip` for the compressed `.tar.gz` bytes; and
+`package-manager-distribution` is `application/gzip` for an npm registry `.tgz` or `text/javascript`
+only for the exact current single `yarn.js` bytes. `invocation-source` and `built-source` forbid
+`mediaType`. Selection never relies on a filename suffix alone, manager name alone, or a remote
+Content-Type header. There is no generic fallback and no `downloadLocation`. A missing, incorrect,
+forbidden value fails the owning descriptor's validation before signing.
+
+Stale non-selected lockfiles never become separate dependency descriptors or selected graph inputs,
+and they acquire no descriptor media type.
 
 ## Corepack for pnpm and Yarn
 
@@ -535,13 +572,14 @@ and `reference`) determines the captured distribution URL: for pnpm on the defau
 `https://registry.npmjs.org/pnpm/-/pnpm-<version>.tgz`. The Corepack cache retains only the
 extracted distribution tree, and a `corepack prepare --output` artifact is a repack from that cache
 rather than the original distribution bytes, so neither cache contents nor repacked output may serve
-as distribution byte evidence; Yarn `download-hash` evidence must be computed over the acquisition
-download itself, not recovered from the cache afterward. The `.corepack` metadata file is a
-Corepack-internal surface whose documented stability is unverified; per the ADR 0067
-undocumented-behavior precedent, the profile must treat it as verified behavior to watch against
-upstream Corepack changes. An absent or malformed `.corepack` file is missing capture evidence and
-stops with `windlass.verify.error.input-unavailable` and exit code `2`; a hash or locator that
-disagrees with the selected manager and exact version is a captured disagreement and stops with
+as distribution byte evidence or as the basis for `mediaType` selection; Yarn `download-hash`
+evidence must be computed over the acquisition download itself, not recovered from the cache
+afterward. The `.corepack` metadata file is a Corepack-internal surface whose documented stability
+is unverified; per the ADR 0067 undocumented-behavior precedent, the profile must treat it as
+verified behavior to watch against upstream Corepack changes. An absent or malformed `.corepack`
+file is missing capture evidence and stops with `windlass.verify.error.input-unavailable` and exit
+`2`; a hash or locator that disagrees with the selected manager and exact version is a captured
+disagreement and stops with
 `windlass.verify.error.resolved-dependencies-package-manager-distribution` and exit code `1`.
 
 Live Corepack keys the acquisition-time observation surfaces on different descriptor forms, a split
@@ -653,19 +691,24 @@ Under
 [ADR 0099](../decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md),
 the build's signed provenance records exactly one `node-runtime` entry in `resolvedDependencies` for
 the actual build platform. Its `uri` and sole lowercase `digest.sha256` are the embedded `linux-x64`
-artifact URL and compressed-tarball SHA-256 from the same pin record, and its annotations are
-exactly `digest_authority: "builder-pinned-record"` and `platform: "linux-x64"`. The resulting
-closed set has exactly three entries for npm and four for pnpm or Yarn. The
+artifact URL and compressed-tarball SHA-256 from the same pin record, its `mediaType` is
+`application/gzip`, and its annotations are exactly `digest_authority: "builder-pinned-record"` and
+`platform: "linux-x64"`. It belongs to the six-descriptor npm set or seven-descriptor pnpm/Yarn set
+defined above. The
 [provenance and publish specification](js-ts-npm-provenance-publish.md#nodejs-runtime-descriptor)
 defines the complete descriptor shape, deterministic producer order, unordered consumer semantics,
 and validation failures.
 
 The runtime descriptor transitively covers the build-stage bundled npm bytes. It adds no separate
-`npm-cli` descriptor, does not record the separately provisioned publish-stage npm CLI, and does not
-open dependency recording to unenumerated entries. Recording reuses the existing provisioning
-evidence without changing acquisition, trust, or provisioning behavior. `builder.version`,
-`builderDependencies`, the selected lockfile and runner-image descriptors, and the handoff schema
-remain unchanged.
+`npm-cli` descriptor and does not open dependency recording to unenumerated entries.
+
+Under ADR 0109, `builder.version` is the closed `{nodejs, npm, corepack?}` set. `nodejs` is the
+single home for the observed Node.js version, and `npm` records only the build-stage bundled npm
+from the pinned pair.
+
+`corepack` is present only when Corepack supplied the selected package manager. The separately
+provisioned publish-stage npm is recorded neither in `builder.version.npm` nor in this runtime
+descriptor. The `runner-image` descriptor carries no `node_version` annotation.
 
 ### Digest-verified runtime provisioning
 
@@ -768,11 +811,11 @@ invocation is an invocation of the npm CLI by a step of the job's workflow (for 
 diagnostics, install, build, or pack command); the pair assertion's own version observation and the
 runtime provisioning step's internal, read-only verification and reporting are part of the
 authenticated toolchain setup, touch no package operation, and are not npm invocations for the
-purposes of this specification. The observed npm version continues to be recorded in
-`externalParameters.runtime.npm_version` exactly as before: the recording semantics of ADR 0027, ADR
-0070, and ADR 0071 are unchanged, and the value is now validated against the pin rather than merely
-observed. The `>= 11.5.1` floor on `runtime.npm_version` is retained unchanged as defense in depth
-(ADR 0085).
+purposes of this specification. The observed versions feed `builder.version.nodejs` and
+`builder.version.npm` in the closed record described above. No
+`externalParameters.runtime.node_version` or `externalParameters.runtime.npm_version` member, and no
+`runner-image` `node_version` annotation, duplicates those observations. The build-stage bundled npm
+must also satisfy the `>= 11.5.1` floor as defense in depth (ADR 0085).
 
 The publish job is governed by
 [ADR 0082](../decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md)
@@ -791,62 +834,110 @@ section only.
 
 ## Runner image capture
 
-ADR 0070 records the GitHub-hosted runner image that hosts the build; under ADR 0098 the image no
-longer supplies the Node.js runtime, which is provisioned per the digest-verified runtime
-provisioning section above. ADR 0100 fixes the authority split between the two platform sources:
-during a runner image rollout window the Actions control plane injects the incoming deployment's
-version into `ImageVersion` while the virtual machine's baked `/imagegeneration/imagedata.json`
-still describes the previous image, so strict equality between the two is not a platform invariant
-and must not be required.
+ADR 0070 requires exactly one `runner-image` descriptor for the GitHub-hosted image that hosts the
+build. Under ADR 0098 the image no longer supplies the Node.js runtime, which is provisioned per the
+digest-verified runtime provisioning section above.
 
-At build time, the profile must observe `ImageOS`, `ImageVersion`, and the exact output of the
-provisioned runtime's `node --version`. It must read `/imagegeneration/imagedata.json` verbatim as a
-JSON array and select the entry whose `group` is `Runner Image`. That entry's `detail` must contain
-`Image: <label>`, `Version: <full-version>`, `Included Software: <url>`, and `Image Release: <url>`
-lines. If the file is unavailable or malformed, the group or any of those detail lines is
-unavailable, malformed, or repeated, or the Included Software URL is absent or empty, the profile
-must stop before predicate construction with `windlass.verify.error.input-unavailable` and exit code
-`2`; every such diagnostic carries both observed operands (the `ImageOS` and `ImageVersion`
-environment values) in its message.
+ADR 0100 separates the control-plane deployment observation from the virtual machine's baked
+metadata: during a rollout, `ImageVersion` can name the incoming deployment while
+`/imagegeneration/imagedata.json` still describes the image actually hosting the build. Strict
+equality is not a platform invariant.
 
-The two environment values have asymmetric roles. `ImageOS` feeds the required `image_os`
-annotation, so an absent `ImageOS` alongside a present `ImageVersion` is an incomplete observation
-and fails with `windlass.verify.error.input-unavailable`, exit code `2`. An absent `ImageVersion` is
-not a failure: `deployment_version` is then null. When both are absent (a non-GitHub-hosted
-environment), the profile emits no runner observations and the descriptor fails the closed-shape
-checks below.
+ADR 0111 defines the reported identity, and ADR 0112 defines the on-disk OS annotation.
 
-The canonical name-keyed `runner-image` descriptor `uri` must be the non-empty Included Software URL
-read verbatim from that file. Its annotations must be exactly:
+Before any caller-controlled install, build, or pack script executes, the profile takes one bounded
+logical snapshot of `/imagegeneration/imagedata.json`. The verbatim Included Software URI, exact
+full `image_version`, and exact decoded `operating_system` value all come from that same snapshot.
+The profile must not re-read the file for different descriptor fields, combine values from different
+reads, or substitute an environment or network value. The Actions runner label and `ImageVersion`,
+when supplied, are independent observations. `$ImageOS` is optional diagnostic-only context.
 
-- `image_os`: the observed `$ImageOS` environment value;
-- `image_version`: the file's `Version:` line, verbatim. The on-disk metadata is authoritative for
-  the image identity;
-- `deployment_version`: the observed `$ImageVersion` environment value verbatim, or null when the
-  platform supplied none. It is non-authoritative control-plane deployment evidence: a divergence
-  between `image_version` and `deployment_version` is a recorded fact (the rollout-window
-  signature), never a failure, and the profile must not compare the two;
-- `node_version`: the exact observed `node --version` output of the provisioned runtime.
+The snapshot decodes as a JSON array containing exactly one well-formed group whose `group` value is
+`Runner Image`. That group's `detail` contains exactly one each of the well-formed `Image: <label>`,
+`Version: <full-version>`, `Included Software: <url>`, and `Image Release: <url>` lines.
 
-The profile must not derive, reconstruct, or rewrite an undocumented runner URL from `ImageOS`,
-`ImageVersion`, or another source. A captured malformed runner descriptor, including a digest member
-or a mismatch with these observations, must stop before predicate construction with
+The full version must be non-empty and well formed, and the Included Software URI must be non-empty
+and well formed.
+
+An unavailable or malformed file, a missing, duplicate, or malformed Runner Image group or required
+detail, a missing, empty, or malformed full version, or a missing, empty, or malformed Included
+Software URI stops capture before predicate construction with
+`windlass.verify.error.input-unavailable` and exit code `2`.
+
+The same snapshot must also contain exactly one well-formed group whose `group` value is
+`Operating System`. That group must contain exactly one `detail` member whose value is a non-empty,
+non-whitespace string. A missing, duplicate, or malformed Operating System group, a missing or
+duplicate `detail`, a non-string detail, an empty string, or a whitespace-only string stops capture
+before predicate construction with `windlass.verify.error.input-unavailable` and exit code `2`.
+These requirements are conjunctive with the Runner Image requirements. `$ImageOS` cannot rescue any
+missing or malformed local evidence.
+
+The canonical descriptor has exactly the top-level members `name`, `uri`, and `annotations`. `name`
+is exactly `runner-image`.
+
+`uri` is the verbatim, non-empty, platform-supplied Included Software URI from the snapshot, never
+reconstructed, normalized, replaced, or rewritten.
+
+The annotation set is exactly `deployment_version`, `operating_system`, `image_version`, and
+`runner_label`:
+
+- `operating_system` is the exact decoded Operating System `detail` string. The producer does not
+  trim it, apply Unicode normalization, convert line endings, split or parse components, compact it,
+  or map it to another label. Leading or trailing whitespace in an otherwise non-whitespace value,
+  multiline structure, and decoded line-ending characters remain unchanged. The value is OS context,
+  not an identity component or host-OS proof.
+- `image_version` is the exact full `Version:` detail from the same snapshot, including every
+  version component.
+- `deployment_version` is the observed `$ImageVersion` value verbatim, or null when the platform
+  supplied none. It is nullable, non-authoritative, non-identifying rollout evidence. Divergence
+  from `image_version` is accepted, equality is never required, and it is never an identity or
+  evidence fallback.
+- `runner_label` is the independently observed Actions runner label. It is not derived from the OS
+  detail, `$ImageOS`, URI, `image_version`, or `deployment_version`, and it has no identity-fallback
+  role.
+
+The verbatim Included Software URI and exact full `image_version` together are the sole reported
+identity pair. Producer and consumer conformance validate the supported projection offline: the full
+version's first two numeric components must agree with the release-tag component in the captured
+URI. Unsupported URI grammar or a projection mismatch fails descriptor validation with
+`windlass.verify.error.resolved-dependencies-runner-image` and exit code `1`; capture-time version
+failures retain the input-unavailable behavior above.
+
+The projection is validation-only and never replaces, truncates, or rewrites either captured value.
+The pair asserts platform-reported identity, not immutable image bytes, report integrity, a unique
+tag-to-version mapping, or public availability. The
+[common runner-image contract](slsa-provenance-v1.md#runner-image) provides the conforming probe
+example and baseline consumer rules.
+
+`image_os`, `node_version`, `digest`, `content`, `mediaType`, `downloadLocation`, unknown top-level
+members, arbitrary additional annotations, raw metadata content or digests, and additional
+metadata-evidence descriptors are forbidden. A malformed descriptor or one that disagrees with the
+bounded snapshot stops before predicate construction with
 `windlass.verify.error.resolved-dependencies-runner-image` and exit code `1`.
 
-No network validation of the Included Software URL is required. During a rollout window the URL may
-dangle because the recorded image can precede its published tag; the recorded URL still names the
-image. If GitHub removes or reshapes the file, producers fail closed before signing with
-`windlass.verify.error.input-unavailable` and exit code `2`; they must not emit guessed provenance.
+`$ImageOS` is never required, compared, moved into another signed field, or used as a fallback. Its
+absence cannot invalidate an otherwise conforming capture, and its presence cannot rescue an invalid
+one. An absent `$ImageVersion` produces `deployment_version: null`; absence of either or both
+environment values does not reject complete local evidence when the independent runner label and all
+required snapshot evidence are valid.
+
+No DNS, HTTP, tag, release, or report lookup is required for predicate construction, signing, or
+baseline verification. HTTP 404 does not omit the `runner-image` descriptor, emit a warning, reject
+otherwise valid local evidence, or substitute another identity. A public success response is not an
+identity or integrity proof, and no network observation can rescue malformed or missing local
+evidence. Producers must not emit guessed provenance.
 
 ## Capture timing and signing boundary
 
-The profile must fix the selected manager, exact executed version, Corepack distribution evidence,
-runner observations, and named dependency descriptors before candidate predicate construction and
-before signing. If any required evidence becomes unavailable before predicate construction, the
-profile must stop with `windlass.verify.error.input-unavailable` and exit code `2`. It must not
-construct, sign, or publish a predicate after a capture failure. If evidence is captured but
-contradicts the selected manager or version, or produces malformed descriptor values, the profile
-must stop with the corresponding narrow descriptor diagnostic and exit code `1`.
+The profile must capture the original source-manifest snapshot and the bounded runner metadata
+snapshot at the pre-script points defined above. It must fix the selected manager, exact executed
+version, Corepack distribution evidence, runner observations, and named dependency descriptors
+before candidate predicate construction and before signing. If any required evidence becomes
+unavailable before predicate construction, the profile must stop with
+`windlass.verify.error.input-unavailable` and exit code `2`. It must not construct, sign, or publish
+a predicate after a capture failure. If evidence is captured but contradicts the selected manager or
+version, or produces malformed descriptor values, the profile must stop with the corresponding
+narrow descriptor diagnostic and exit code `1`.
 
 ## Yarn install mode
 
@@ -855,9 +946,10 @@ The stable initial Yarn path uses Yarn Berry v4 or newer in immutable install mo
 profile allows another reproducible Yarn install mode, that mode must be specified in this section
 before release builds may use it.
 
-The profile records the effective Yarn install mode in provenance so producer-side and consumer-side
-verification can distinguish a supported immutable install from an unsupported fallback or ambient
-Yarn invocation.
+Immutable install is fixed Yarn behavior of this buildType. No
+`externalParameters.package_manager.yarn_install_mode` assertion is emitted. An unsupported fallback
+or ambient Yarn invocation fails before install under the selection and distribution capture rules
+above.
 
 ## npm behavior
 
@@ -900,7 +992,8 @@ Command template variables have these meanings:
   from the package manager root because every command in this matrix starts there. For example, when
   `package.directory` is `apps/web/packages/a` and `package_manager.root` is `apps/web`, both
   arguments are `packages/a`, not `apps/web/packages/a`.
-- `<package-name>` is the selected package's validated `name` field from its source manifest.
+- `<package-name>` is the selected package's validated `name` field from the original
+  source-manifest snapshot.
 - `<pack-output-directory>` is the absolute real path of a trusted empty temporary directory created
   by the workflow for the pack output. npm and pnpm resolve `--pack-destination` from their command
   context, while Yarn resolves `--out` from its selected workspace context. The absolute path makes
@@ -977,15 +1070,21 @@ package.
 
 ### Build script detection
 
-- The profile reads the `scripts` field of `package.json`.
+- The profile reads the `scripts` field from the original source-manifest snapshot, never from a
+  manifest rewritten by install, build, or pack.
 - If `build` is declared, the profile runs it.
 - If `build` is not declared, the profile performs a successful no-op build step.
 - The profile must not fail when the `build` script is missing.
 - The profile must not run an arbitrary fallback command.
 
+The required `runDetails.metadata.windlass_build_script_disposition` value is `executed` when the
+script ran and `skipped-absent` when the snapshot declared no build script. A missing, unsupported,
+or snapshot-inconsistent disposition fails before signing with
+`windlass.verify.error.build-script-disposition-mismatch` and exit code `1`.
+
 ## Source manifest validation
 
-The profile reads and records the following fields from the source `package.json`:
+The profile reads the following fields from the original source-manifest snapshot:
 
 - `name`
 - `version`
@@ -1077,7 +1176,7 @@ profile must:
 
 1. Extract the packed `package/package.json`.
 2. Read the packed `name` and `version`.
-3. Compare packed `name` and `version` with the source `package.json`.
+3. Compare packed `name` and `version` with the original source-manifest snapshot.
 4. Fail if they differ.
 
 ### Packed metadata fields
@@ -1102,8 +1201,13 @@ The profile may route only the following raw source-manifest values to the close
 
 Absent values are omitted. Their raw JSON forms must follow that report surface's closed,
 source-preserving rules. Raw values are diagnostic-only and must not change trust decisions or enter
-SLSA `internalParameters` or `externalParameters`. The normalized repository identity defined above
-is verifier-relevant, but this task does not assign it a provenance field.
+SLSA `internalParameters` or `externalParameters`.
+
+Every raw value in that report comes from the original source-manifest snapshot.
+
+The normalized repository identity remains verifier-relevant through the authenticated snapshot and
+the repository identity chain defined by the
+[common package-manifest contract](slsa-provenance-v1.md#package-manifest-and-offline-evidence).
 
 ## Failure behavior
 
@@ -1174,18 +1278,47 @@ signing or publishing. Exit code `2` identifies unusable locally required captur
   sources.
 - Yarn 6 pins rejected before install with `windlass.verify.error.yarn-version-unsupported` from
   both manifest sources; Yarn Berry v4 and v5 pins remain accepted from both manifest sources.
-- Successful npm capture emits exactly three name-keyed descriptors: `lockfile`, `node-runtime`, and
-  `runner-image`; successful pnpm and Yarn captures each emit exactly four, adding their respective
-  registry-integrity or download-hash `package-manager-distribution`.
+- The original selected `package.json` bytes are captured once after verified checkout and package
+  selection and before any caller-controlled install, build, or pack script. Selection metadata,
+  build-script disposition, publish resolution, and the `package-manifest` SHA-256 all derive from
+  those same bytes. A build-mutated or packed manifest never substitutes for the snapshot, and
+  snapshot-inconsistent outcomes or packed identities are rejected.
+- Media-type fixtures accept `application/json` for the manifest and npm lockfile, and
+  `application/yaml` for selected pnpm and supported Berry Yarn lockfiles.
+- Node.js runtime media type fixtures require `application/gzip` for the exact compressed `.tar.gz`
+  bytes.
+- Distribution fixtures require `application/gzip` for every represented registry `.tgz` and
+  `text/javascript` only for the exact current single `yarn.js` bytes.
+- Missing, incorrect, forbidden, suffix-only, manager-name-only, and remote-header-derived values
+  are rejected, as is any `downloadLocation`.
+- `builder.version` fixtures require exactly `nodejs`, `npm`, and conditional `corepack`, with the
+  bundled build-stage npm in `npm`. Removed external runtime version fields and the runner-image
+  `node_version` annotation are rejected.
+- Successful npm capture emits exactly six name-keyed descriptors: `invocation-source`,
+  `built-source`, `package-manifest`, `lockfile`, `node-runtime`, and `runner-image`. pnpm and Yarn
+  captures each emit exactly seven, adding `package-manager-distribution`.
+- Semantic validation accepts permutations by name and rejects duplicate names, unknown names, and
+  wrong cardinalities before lookup or signing.
 - Unavailable package-manager distribution capture, unavailable runner-image file or Included
-  Software URL, and unavailable required runner observations each emit
-  `windlass.verify.error.input-unavailable`, exit `2`, and stop before signing.
+  Software URI, and each missing, duplicate, or malformed Operating System group or detail emit
+  `windlass.verify.error.input-unavailable`, exit `2`, and stop before predicate construction.
+  Non-string, empty, and whitespace-only OS details fail the same way, including when `$ImageOS` is
+  present.
+- The probe-shaped runner snapshot produces exactly the multiline operating system value represented
+  in JSON as `"Ubuntu\n24.04.5\nLTS"`, with no trimming, Unicode normalization, line-ending
+  conversion, or compaction. Escape-equivalent source strings decode to the same annotation. Capture
+  without `$ImageOS` succeeds when all local evidence is valid; a present `$ImageOS` remains
+  diagnostic-only and is never required, compared, or used as a fallback.
+- Offline projection fixtures accept an exact full `image_version` whose first two numeric
+  components match the Included Software URI's release-tag component. A projection mismatch is
+  rejected without rewriting either value.
+- Deployment-version divergence is accepted, and HTTP 404 causes no descriptor omission, warning,
+  rejection, or identity substitution. A network-disabled valid capture still succeeds.
 - Wrong pnpm or Yarn digest authority, wrong captured manager version, Known Good Release fallback,
   ambient pnpm or Yarn, and a registry override that changes the Corepack acquisition path each emit
   `windlass.verify.error.resolved-dependencies-package-manager-distribution`, exit `1`, and stop
   before signing.
-- A reconstructed or guessed runner URL, a runner URL missing from the `Runner Image` detail, a
-  runner Node.js version mismatch, or a descriptor-shape mismatch each stop before signing with
-  their specified runner-image or input-unavailable diagnostic and expected exit code. A divergence
-  between the file-recorded `image_version` and the environment-recorded `deployment_version` is not
-  a failure (ADR 0100).
+- A reconstructed or guessed runner URL, a missing, duplicate, or malformed `Runner Image` group or
+  required detail, a descriptor-shape mismatch, or forbidden `image_os`, `node_version`, `digest`,
+  `mediaType`, raw metadata, or arbitrary annotation each stops before signing with the specified
+  runner-image or input-unavailable diagnostic and expected exit code.

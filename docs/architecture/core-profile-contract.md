@@ -9,8 +9,14 @@ trusted **core** and **profile-owned reusable workflows**.
   [0042](../decisions/0042-use-acquired-domains-for-buildtype-uris.md),
   [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
   [0079](../decisions/0079-support-tags-only-caller-specified-build-source-ref-for-release-retries-across-profiles.md),
-  and
-  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md)
+  [0080](../decisions/0080-bind-source-identity-policy-to-signed-provenance-fields-and-treat-certificate-source-claims-as-invocation-context.md),
+  [0101](../decisions/0101-relay-external-cli-stderr-to-logs-under-hygiene-bounds-with-classification-as-enrichment.md),
+  [0103](../decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md),
+  [0104](../decisions/0104-remove-redundant-external-parameter-builder-record.md),
+  [0105](../decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md),
+  [0106](../decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md),
+  [0107](../decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md), and
+  [0109](../decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md)
 - Related specs: [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md)
 
@@ -49,17 +55,40 @@ The shared core owns the following:
 3. **Common SLSA provenance v1 construction**
    - The core defines the shared in-toto Statement and SLSA provenance v1 predicate shape used by
      all producer profiles.
-   - The core defines the shared two-identity source model: the signed predicate records the built
-     source identity (the ref whose content was checked out and attested) and, when it differs, the
-     invocation identity (the ref the run was dispatched on), per ADRs 0079 and 0080.
+   - The [common provenance contract](slsa-provenance-v1.md) defines the common source and
+     invocation model. Producer provenance records caller invocation identity in the required,
+     closed `externalParameters.workflow` object with exactly `ref`, `repository`, and `path`, and
+     records the invocation and built source in the role-named `invocation-source` and
+     `built-source` `resolvedDependencies` descriptors. A profile that exposes a caller-selected
+     source ref records that actual selector only in the optional `externalParameters.source.ref`
+     member, under the common contract's presence and closed-schema rules. `workflow.path` is the
+     caller workflow path, never the reusable builder path. Builder `sha` or `builder_id` members
+     and use of the reusable builder path as `workflow.path` are rejected; canonical builder
+     identity remains only in `runDetails.builder.id`.
+   - The effective built ref is `source.ref` when present and `workflow.ref` otherwise. Producer
+     profiles apply this derivation before constructing provenance, and consumers independently
+     recompute it. A statement whose `built-source` URI or resolved commit disagrees with the
+     recomputed identity is rejected.
+   - Invocation event metadata lives only in `internalParameters.github`. The object is required and
+     closed, with exactly the string members `event_name`, `repository_id`, and
+     `repository_owner_id`.
+   - Producer profiles compare all three values fail-closed with the corresponding
+     signing-certificate claims before any registry or release mutation. Missing, additional,
+     non-string, or certificate-mismatched members are rejected.
+   - Actor fields, including `actor_id` and `triggering_actor_id`, are forbidden. An
+     `externalParameters` duplicate or alias of the invocation event is also rejected.
    - The core does not define ecosystem-specific subject names or digest rules.
 4. **Builder identity and build type conventions**
    - The core defines how `builder.id` and `buildType` URIs are documented and how release metadata
      maps versions to workflow SHAs.
 5. **Validation of profile `externalParameters`**
-   - The core must ensure that every profile declares complete, explicit, and verifier-relevant
-     `externalParameters` and rejects unexpected fields when the verifier policy requires strict
-     matching.
+   - The core must ensure that every profile declares a complete, closed `externalParameters` schema
+     limited to actual values passed through its interface and rejects missing or unexpected fields.
+     Derived values, resolved artifact metadata, environment observations, manifest content, and
+     behavior fixed by the `buildType` are rejected rather than accepted as external parameters.
+     Their verification evidence instead uses the common invocation record, resolved dependencies,
+     builder versions, signed run metadata, authenticated input artifacts, or a profile-specified
+     recompute rule.
 6. **Signing adapter interface**
    - The core defines the interface between profile workflows and the Go-native `sigstore-go`
      signing adapter selected by ADR 0077.
@@ -83,8 +112,12 @@ Each profile-owned reusable workflow owns the following:
    - Which digest algorithms are recorded and where (for example, npm tarball `sha512` integrity and
      `sha256` sidecar digest).
 5. **Profile-specific `buildType` and `externalParameters` schema**
-   - The canonical `buildType` URI and the complete schema of `externalParameters` a verifier must
-     check.
+   - The canonical `buildType` URI and the complete, closed schema of actual interface inputs a
+     verifier must check. Missing or unexpected inputs and derived, observed, manifest-sourced, or
+     constant values projected into `externalParameters` are rejected.
+   - Input suppliedness, spelling, conflict, and consumer-recompute rules. A profile must not
+     redefine the common invocation object, event object, or source descriptors; it references the
+     common provenance contract for their closed shapes and verification behavior.
 6. **Registry publish and verification behavior**
    - How the profile publishes artifacts and what verification steps run before publication.
 7. **Profile fixtures, examples, and downstream verification commands**
@@ -126,19 +159,39 @@ invariant is not a valid `slsa-builder` profile.
 - Every producer profile must offer the optional `source-ref` input decided by ADR 0079: a
   tags-only, fail-closed selector for the Git ref whose content the profile builds, attests, and
   publishes. Publisher profiles do not build source and must not define it.
-- Runtime release guards must evaluate the **built** ref (the `source-ref` value when supplied, the
-  invocation ref otherwise) rather than the invocation ref. The built ref must satisfy the profile's
-  release tag convention before install, pack, signing, or publish.
-- The profile must resolve the built ref to a full commit SHA before building and must carry that
-  resolved SHA through the digest-verified handoff so that signing and publish jobs cannot disagree
-  with the build job about what was built.
-- The signed provenance must record the built source identity as the release source identity and,
-  when `source-ref` is supplied, must additionally record the invocation ref and its commit SHA as
-  the signed invocation record defined by the common provenance contract. Verification binds policy
-  to the signed built-source fields and binds the certificate's platform-fixed source claims to the
-  signed invocation record, per ADR 0080.
-- When `source-ref` is omitted, the invocation ref is the built ref and every comparison reduces to
-  the single-identity contract.
+- The effective built ref is `source.ref` when present and `workflow.ref` otherwise. The optional
+  `source` group is emitted exactly when the caller supplied a non-empty `source-ref`, contains the
+  exact full-ref selector in `ref`, and is omitted otherwise. An empty `source: {}` object,
+  malformed or conflicting selector, or input-suppliedness mismatch is rejected.
+- Runtime release guards must evaluate the effective built ref rather than always using the
+  invocation ref. The effective built ref must satisfy the profile's release tag convention before
+  install, pack, signing, or publish, and a violation rejects the run before those operations.
+- The profile must resolve the effective built ref to a full commit SHA before building and must
+  carry that resolved SHA through the digest-verified handoff so that signing and publish jobs
+  cannot disagree with the build job about what was built. A missing, malformed, or mismatched
+  resolution fails closed.
+- Signed provenance records caller invocation through `externalParameters.workflow` and the
+  `invocation-source` descriptor, and records built content through the `built-source` descriptor.
+  The common provenance contract owns their exact closed shapes and certificate and policy bindings.
+  Verification recomputes the effective built ref, binds release ref and commit expectations to
+  `built-source`, and binds certificate invocation claims to `workflow` and `invocation-source`.
+  Missing, duplicate, malformed, or mismatched records are rejected; a certificate invocation claim
+  is not a substitute for built-source identity.
+- Producer-side validation and post-sign verification compare the invocation repository, ref,
+  commit, caller workflow path, and event metadata with their corresponding certificate claims
+  fail-closed before any registry or release mutation.
+- Both source descriptors are required on every producer run that uses this common source model,
+  including when the identities coincide. When `source-ref` is omitted, the effective built ref
+  equals the invocation ref and the descriptors carry identical URI and digest values under their
+  distinct role names. Omitting either descriptor or substituting one role for the other is
+  rejected.
+
+For example, a dispatch on `refs/heads/main` with `source-ref` set to `refs/tags/v1.2.3` records
+`refs/heads/main` in `workflow.ref` and `invocation-source`, records the exact tag selector in
+`source.ref`, and derives `refs/tags/v1.2.3` as the effective built ref recorded by `built-source`.
+A tag push on `refs/tags/v1.2.3` without `source-ref` omits `source` and records the same tag and
+commit in both descriptors. Replacing the dispatch ref with the built tag in the invocation record,
+emitting an empty `source` object, or omitting either descriptor is rejected.
 
 ### Minimal permissions
 
@@ -381,14 +434,25 @@ provenance. In addition to the common requirements, every producer profile must 
 following:
 
 1. A canonical `buildType` URI under the `buildtype.dev` namespace.
-2. A complete `externalParameters` schema and a verifier policy that rejects unexpected fields.
+2. A complete, closed `externalParameters` schema limited to actual interface inputs, including the
+   required common `workflow` invocation group. The verifier policy rejects missing or unexpected
+   fields and any derived, observed, manifest-sourced, or constant value projected into
+   `externalParameters`.
 3. Subject naming and digest algorithm rules.
 4. Build, signing, and publish or upload job separation, unless a later ADR explicitly changes that
    boundary for the producer.
-5. SLSA provenance v1 generation with documented `builder.id`, `buildType`, and
-   `externalParameters`.
-6. The optional `source-ref` input, the built-ref runtime guards, and the built-versus-invocation
-   source recording required by the built source identity invariant above (ADRs 0079 and 0080).
+5. SLSA provenance v1 generation with documented `builder.id`, `buildType`, `externalParameters`,
+   and the closed `internalParameters.github` object containing exactly `event_name`,
+   `repository_id`, and `repository_owner_id` as strings. Missing, additional, non-string, actor, or
+   certificate-mismatched members are rejected before any registry or release mutation.
+6. A complete, unordered, name-keyed `resolvedDependencies` schema with deterministic producer
+   serialization, including the required `invocation-source` and `built-source` descriptors under
+   the common source model. Duplicate or unknown names, missing required descriptors, malformed
+   shapes or annotations, and identity mismatches are rejected before publication.
+7. The optional `source-ref` input, the effective built-ref derivation and runtime guards, and the
+   built-versus-invocation recording required by the built source identity invariant above. The
+   profile rejects a selector or statement that violates the derivation, suppliedness, conflict,
+   descriptor, or certificate-binding rules (ADRs 0079, 0080, and 0103 through 0107).
 
 ### Publisher profile requirements
 
@@ -426,13 +490,32 @@ Each profile conformance test must include:
 
 - A positive fixture showing the profile producing a valid artifact, provenance, and publish output.
 - A negative fixture for each prohibited caller injection (arbitrary command, runtime override,
-  broad permission, self-hosted runner, unexpected `externalParameters`).
+  broad permission, self-hosted runner, unexpected `externalParameters`) and for derived, observed,
+  manifest-sourced, or constant values misplaced in `externalParameters`.
 - A negative fixture proving that trusted provenance, digest, policy, or release manifest logic is
   not delegated to Node.js, npm, pnpm, Yarn, or shell parsing.
 - A review checklist that a human can run against the profile YAML.
 
 Producer profile conformance tests must additionally include source-to-artifact provenance fixtures
-with valid and rejected `builder.id`, `buildType`, subject, digest, and `externalParameters` values.
+with valid and rejected `builder.id`, `buildType`, subject, digest, and actual-interface
+`externalParameters` values. They must include:
+
+- Accepted tag-push and dispatch-retry fixtures proving the required `workflow` caller identity,
+  caller workflow path, exact `source.ref` selector when supplied, complete omission of `source`
+  otherwise, effective built-ref derivation, and required `invocation-source` and `built-source`
+  descriptors. A coincident-identity fixture retains both descriptors with identical URI and digest
+  values under their distinct names.
+- Rejected fixtures for missing or additional `workflow` members, builder `sha` or `builder_id`
+  members, reusable builder path substitution for `workflow.path`, an empty `source` object,
+  malformed or conflicting selectors, effective built-ref mismatches, missing, duplicate, unknown,
+  malformed, or identity-mismatched source descriptors and annotations, and certificate invocation
+  mismatches.
+- An accepted fixture with exactly the three string members in `internalParameters.github` and
+  supported invocation events. Rejected fixtures cover missing, additional, non-string, or actor
+  members, an `externalParameters` event duplicate or alias, an unsupported event, Build Trigger
+  disagreement, and numeric repository or owner identifier disagreement. Producer-side cases prove
+  that each certificate mismatch stops the run before any registry or release mutation.
+
 Publisher profile conformance tests must instead include producer handoff fixtures proving that raw
 artifacts, missing producer provenance, publisher-owned source-to-artifact `buildType` claims, and
 release mutation without producer provenance verification are rejected.

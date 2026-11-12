@@ -23,8 +23,12 @@ ecosystem-produced artifacts, not a source-to-artifact builder.
   [0072](../decisions/0072-use-sidecar-first-pair-binding-for-release-asset-run-ownership.md),
   [0074](../decisions/0074-use-single-job-mutation-segments-with-detection-based-cross-run-safety.md),
   [0075](../decisions/0075-queue-mutation-segment-contenders-with-queue-max.md),
-  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md), and
-  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md)
+  [0076](../decisions/0076-use-observation-preflights-and-first-mutation-classification.md),
+  [0077](../decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md),
+  [0105](../decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md),
+  [0106](../decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md),
+  [0108](../decisions/0108-remove-redundant-npm-release-asset-inputs.md), and
+  [0109](../decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -90,6 +94,7 @@ composition primitive, not the recommended npm caller surface selected by the pu
 | `release-tag`                       | string | yes      | none    | Full `refs/tags/<tag-name>` ref for an existing release.      |
 | `producer-provenance-artifact-name` | string | yes      | none    | Same-run artifact containing exactly one signed bundle.       |
 | `producer-provenance-sha256`        | string | yes      | none    | 64 lowercase hexadecimal SHA-256 of the signed bundle.        |
+| `manifest-evidence`                 | string | yes      | none    | UTF-8 JSON object with original selected manifest bytes.      |
 | `trusted-builder-id`                | string | yes      | none    | Narrowing constraint on the selected policy's `builder.id`.   |
 | `trusted-build-type`                | string | yes      | none    | Exact closed-registry selector and caller constraint.         |
 | `expected-subject-name`             | string | yes      | none    | Narrowing constraint on the registered producer subject.      |
@@ -253,15 +258,28 @@ This registry is the publisher's complete initial producer-policy admission set.
 exact observed producer `buildType`, has no wildcard, alias, default, union, or caller-extension
 mechanism, and is evaluated before any release upload. The sole registered entry is:
 
-| Exact `buildType`                                                  | Required baseline                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1` | The signer repository is `windlasstech/slsa-builder`; its signer workflow is `.github/workflows/js-ts-npm-package-slsa3.yml`; `builder.id` is SHA-based; `subject[0].name` is the npm Package URL; `subject[0].digest` contains matching SHA-512 and SHA-256 digests; `final-asset-name` equals `externalParameters.package.tarball_name`; canonical source repository, immutable source revision, and identical full source, release, and caller release-tag refs apply; and `externalParameters` uses the closed JS/TS npm schema. |
+| Exact `buildType`                                                  | Required baseline       |
+| ------------------------------------------------------------------ | ----------------------- |
+| `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1` | The npm baseline below. |
 
-For this entry, the publisher validates the signer repository and workflow, SHA-based `builder.id`,
-npm Package URL subject, both required subject digests, tarball filename binding, canonical source
-and release-ref rules, and the complete closed npm `externalParameters` schema. The profile
-baseline, caller constraints, digest-verified handoff, and authenticated release-manifest
-constraints are intersected. Every source that constrains an observed field must allow that value.
+For this entry, the publisher enforces this baseline:
+
+- The signer repository is `windlasstech/slsa-builder`.
+- The signer workflow is `.github/workflows/js-ts-npm-package-slsa3.yml`.
+- `builder.id` is SHA-based.
+- `subject[0].name` is the npm Package URL, with matching SHA-512 and SHA-256 subject digests.
+- The canonical source repository is `externalParameters.workflow.repository`.
+- The immutable source revision is `built-source.digest.gitCommit`.
+- The effective built ref is `externalParameters.source.ref ?? externalParameters.workflow.ref`.
+- `release-tag` and the `built-source` URI's ref component equal the effective built ref.
+- The final asset name binds to the verified pack output and digest-verified handoff.
+
+The `externalParameters` object must satisfy the
+[revised closed JS/TS npm schema](js-ts-npm-provenance-publish.md#jsts-npm-externalparameters-schema).
+
+The profile baseline, caller constraints, digest-verified handoff, and authenticated
+release-manifest constraints are intersected. Every source that constrains an observed field must
+allow that value.
 
 An absent or unknown observed `buildType` fails before upload with
 `windlass.verify.error.unregistered-producer-build-type`. A caller may select only the exact entry
@@ -282,6 +300,7 @@ following semantic fields:
 | `release-tag`                       | yes      | Existing full Git tag ref and target release.                           |
 | `producer-provenance-artifact-name` | yes      | Same-run artifact that contains the producer SLSA provenance bundle.    |
 | `producer-provenance-sha256`        | yes      | Expected SHA-256 of the provenance bundle bytes, lowercase hex.         |
+| `manifest-evidence`                 | yes      | Original selected manifest evidence for offline policy checks.          |
 | `trusted-builder-id`                | yes      | Narrowing constraint on the selected policy's `builder.id`.             |
 | `trusted-build-type`                | yes      | Exact registry selector and caller constraint, not an extension.        |
 | `expected-subject-name`             | yes      | Narrowing constraint on the selected policy's subject name.             |
@@ -319,32 +338,63 @@ asset name. `source-repository` must be a canonical HTTPS repository URL, and `s
 be the full immutable source revision expected by the producer policy; for GitHub-hosted Git sources
 this is a 40-character lowercase Git commit SHA. For the initial npm composition,
 `source-repository` must use the canonical GitHub repository URL rules defined by the
-[JS/TS npm provenance and publish spec](js-ts-npm-provenance-publish.md). The publisher must reject
-a `source-repository` value that cannot be canonicalized by those rules or that does not exactly
-match the canonical `externalParameters.source.repository` value in the verified producer
-provenance.
+[JS/TS npm provenance and publish spec](js-ts-npm-provenance-publish.md).
 
-`release-tag` is also the expected producer release ref unless an ADR-backed producer policy defines
-a different release-binding source for a future producer profile. For the initial npm composition,
-the publisher must verify that `release-tag`, producer `externalParameters.release.ref`, and
-producer `externalParameters.source.ref` are the same full `refs/tags/<tag-name>` ref and that
-producer `externalParameters.release.version_tag` reconstructs that same ref. A missing producer
-release ref, short tag, branch ref, pull request ref, or mismatch with `release-tag` fails before
-upload. Future producer profiles whose signed provenance does not use those npm `externalParameters`
-fields must define, before composition, which signed field or digest-verified handoff field binds
-the verified producer artifact to the target release ref.
+The publisher rejects a `source-repository` value when:
 
-Complex handoff fields in the public workflow contract are passed as UTF-8 JSON strings. The
-publisher must parse `native-provenance-locators` as a JSON array and `linked-artifact-settings` as
-a JSON object before validation. Empty or omitted optional inputs are treated as absent. Invalid
-JSON, duplicate object member names, top-level JSON values of the wrong kind, or fields not allowed
-by the closed schemas below must be rejected before upload. The parsed JSON values are validation
-inputs; their original string formatting is not trusted and is not used for digest calculation.
+- It cannot be canonicalized by those rules.
+- It does not exactly match `externalParameters.workflow.repository` in the verified provenance.
+- It differs from the `invocation-source` or `built-source` URI repository component.
 
-For the initial npm composition, `source-repository` and `source-revision` are always required
-because the publisher verifies them against the npm producer provenance
-`externalParameters.source.repository` and `externalParameters.source.revision`. A missing, short,
-branch-like, tag-like, or mismatched source identity must fail before upload.
+`release-tag` is the expected producer release ref for the initial npm composition.
+
+- The effective built ref is `externalParameters.source.ref ?? externalParameters.workflow.ref`.
+- `release-tag` and the `built-source` URI's ref equal that full `refs/tags/<tag-name>` ref.
+- A missing `built-source` descriptor fails before upload.
+- A short tag, branch ref, pull request ref, or mismatch with `release-tag` fails before upload.
+
+A future ADR-backed producer policy may define a different release-binding source. It must define
+the signed field or digest-verified handoff field that binds the artifact to the target release ref
+before composition.
+
+Complex handoff fields in the public workflow contract are passed as UTF-8 JSON strings.
+
+- `manifest-evidence` is parsed as a JSON object.
+- `native-provenance-locators` is parsed as a JSON array.
+- `linked-artifact-settings` is parsed as a JSON object.
+- Empty or omitted optional inputs are treated as absent.
+- Invalid JSON, duplicate members, or a wrong top-level JSON kind fails before upload.
+- Fields outside the closed schemas below fail before upload.
+- Original string formatting is not trusted or used for digest calculation.
+- Missing or malformed `manifest-evidence` is rejected.
+- Its diagnostic is `windlass.verify.error.package-manifest-evidence`.
+
+For the initial npm composition, `source-repository` and `source-revision` are always required.
+
+- `source-repository` is compared with `externalParameters.workflow.repository`.
+- `source-revision` is compared with `built-source.digest.gitCommit`.
+- A missing, short, branch-like, tag-like, or mismatched source identity fails before upload.
+
+For the initial npm composition, `manifest-evidence` is also required. Its closed object contains
+exactly `path` and `content_base64`, matching the handoff `manifest_evidence` object.
+
+- Decoded bytes are the original selected `package.json` bytes captured before any script.
+- Build-mutated or packed manifests are not evidence.
+- `path` is the repository-root-relative selected manifest path.
+- `content_base64` uses canonical standard RFC 4648 base64 without whitespace.
+- Decoded bytes over 16 MiB are rejected.
+- Strict manifest parsing, including duplicate-member rejection, is required.
+
+Before any Release mutation, the publisher binds the evidence to the verified producer provenance:
+
+- SHA-256 of the decoded bytes equals `package-manifest.digest.sha256`.
+- The encoded evidence path reproduces the descriptor URI fragment under the lockfile encoding rule.
+- The descriptor repository equals `externalParameters.workflow.repository` and `source-repository`.
+- The descriptor built commit equals `built-source.digest.gitCommit` and `source-revision`.
+- Missing, malformed, or oversized evidence is rejected.
+- Path, repository, commit, or digest mismatch is rejected.
+- The diagnostic is `windlass.verify.error.package-manifest-evidence`.
+- No network fallback or silent skipping of a manifest-dependent check is permitted.
 
 ### Final release asset name rules
 
@@ -416,16 +466,16 @@ constraints, the digest-verified handoff, and authenticated release-manifest con
    SHA-256 also matches `expected-subject-sha256`, `expected-sha256`, and the bytes to upload.
 7. The `subject[0].name` is the registered npm Package URL and exactly matches
    `expected-subject-name`.
-8. The final release asset name is authorized by producer policy and handoff fields. For the initial
-   npm composition, this means the asset name matches the pack-produced tarball filename recorded in
-   producer provenance and the same-run handoff, while `subject[0].name` remains the npm Package
-   URL.
-9. Source repository and revision match every applicable narrowing constraint. The canonical source
-   repository and `externalParameters.source.repository` match; `externalParameters.source.ref`,
-   `externalParameters.release.ref`, and `release-tag` are identical full tag refs; and
-   `externalParameters.release.version_tag` reconstructs that ref.
-10. `externalParameters.package.tarball_name` equals `final-asset-name`, and the closed JS/TS npm
-    `externalParameters` schema has no missing or unexpected member.
+8. The final asset name matches verified pack output and handoff; the subject is the npm PURL.
+9. `source-repository` equals `externalParameters.workflow.repository`.
+10. `source-revision` equals `built-source.digest.gitCommit`.
+11. The effective built ref is `externalParameters.source.ref ?? externalParameters.workflow.ref`.
+12. `release-tag` and the `built-source` URI ref component equal that effective built ref.
+13. The revised closed JS/TS npm `externalParameters` schema has no missing or unexpected member.
+14. Bound manifest evidence supplies the package identity and configuration checks.
+15. Manifest `name` and `version` match the subject PURL and the verified tarball's packed identity.
+16. Normalized manifest `repository` equals `externalParameters.workflow.repository`.
+17. Manifest `publishConfig` satisfies the publish-input and producer-policy checks.
 
 For schema version `1`, the release manifest constrains Windlass release identity, producer workflow
 path/SHA, producer `builder.id`, producer `buildType`, and publisher workflow path/SHA/role; it does
@@ -440,11 +490,15 @@ or use last-writer-wins behavior.
 
 The final release asset name must be bound to the upstream producer provenance by the selected
 producer policy. Producer profiles whose subject name is their release asset basename can satisfy
-this by requiring `final-asset-name` to equal `subject[0].name`. The initial npm composition cannot:
-ADR 0064 requires the npm producer subject to be the package Package URL. For npm producer
-provenance, the publisher must therefore verify that `subject[0].name` matches the expected npm
-Package URL and separately verify that `final-asset-name` exactly matches
-`externalParameters.package.tarball_name` and the digest-verified handoff.
+this by requiring `final-asset-name` to equal `subject[0].name`.
+
+The initial npm composition cannot use that rule because ADR 0064 requires an npm PURL subject.
+
+For npm producer provenance:
+
+- `subject[0].name` matches the expected npm Package URL.
+- `final-asset-name` equals the pack-produced filename in verified pack output and handoff.
+- The filename is not derived from the PURL or authenticated manifest.
 
 If the selected producer policy cannot bind the final release asset name to the verified producer
 artifact bytes and provenance subject, the publisher must fail before upload.
@@ -710,7 +764,7 @@ then apply the following pair gate before treating a pre-existing primary as
    binding required by ADR 0068.
 3. The sidecar's verified Fulcio Run Invocation URI has a run-id equal to `github.run_id`; the
    attempt component is ignored, so an earlier `run_attempt` is acceptable.
-4. The sidecar's signed subject and producer fields bind the expected primary asset name and digest.
+4. The signed subject binds the primary digest; verified pack output and handoff bind its name.
 5. The remote primary asset's authoritative GitHub `digest` equals that bound digest.
 
 Only when all five conditions hold may the retry classify the pre-existing primary as
@@ -914,8 +968,13 @@ The publisher must fail before sidecar or primary asset upload when:
 - The upstream subject digest does not match the bytes to upload.
 - The upstream subject name differs from `expected-subject-name`.
 - The selected producer policy cannot bind the final asset name to the verified producer artifact.
-- The producer policy does not allow the upstream `builder.id`, `buildType`, source, release ref, or
-  `externalParameters`.
+- `source-repository` differs from `externalParameters.workflow.repository`.
+- `source-revision` differs from `built-source.digest.gitCommit`.
+- `release-tag` differs from the effective built ref or the `built-source` URI's ref component.
+- Missing or mismatched `manifest-evidence` fails before Release mutation.
+- The evidence diagnostic is `windlass.verify.error.package-manifest-evidence`.
+- No network fallback or silent manifest-check skipping is allowed.
+- The producer policy rejects the `builder.id`, `buildType`, or revised closed `externalParameters`.
 - Explicit producer policy and verified signed release manifest policy conflict or have an empty
   intersection.
 - A caller constraint attempts to widen, replace, union with, or override a registered producer
@@ -946,12 +1005,22 @@ current field is `primary-artifact-name`.
   unresolved after ADR 0067 read-back and fails with
   `windlass.verify.error.publisher-indeterminate-primary-upload`, malformed JSON input for complex
   handoff fields, excessive job permissions, and attempted re-signing of producer provenance.
-- Producer-policy fixtures accept only
-  `https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1` with its signer, SHA-based
-  `builder.id`, npm PURL, SHA-512 plus SHA-256, tarball-name, canonical source/ref, and closed npm
-  `externalParameters` requirements. They reject an unknown build type before upload with
-  `unregistered-producer-build-type` and reject every caller baseline override or union attempt with
-  `trusted-producer-policy-conflict` or the narrower field diagnostic.
+- Producer-policy fixtures accept only the registered npm `buildType`.
+- They cover the signer, SHA-based `builder.id`, npm PURL, and SHA-512 plus SHA-256.
+- They bind the asset name to verified pack output and handoff.
+- They bind `source-repository` to `externalParameters.workflow.repository`.
+- They bind `source-revision` to `built-source.digest.gitCommit`.
+- They bind `release-tag` to the effective built ref and `built-source` URI ref component.
+- They enforce the revised closed npm `externalParameters` schema.
+- An unknown build type fails before upload with `unregistered-producer-build-type`.
+- Caller baseline overrides or unions fail with `trusted-producer-policy-conflict` or its narrower
+  field diagnostic.
+- Manifest-evidence fixtures bind original selected bytes to the descriptor SHA-256 and source.
+- They verify package identity and `publishConfig` from those bytes.
+- Missing, malformed, or oversized evidence is rejected.
+- Path, repository, commit, or digest mismatch is rejected.
+- Evidence failures use `windlass.verify.error.package-manifest-evidence` before Release mutation.
+- Fixtures prove there is no network fallback.
 - Immutable-target fixtures accept a mutable or draft existing release, reject an immutable target
   with either required asset absent using `release-target-immutable` before mutation, and accept a
   complete digest-proven same-`run_id` pair only as read-only convergence. They reject cross-run or
