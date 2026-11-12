@@ -98,7 +98,7 @@ func validateBuildDisposition(evidence ManifestEvidence, directory string, dispo
 		return npmValidationError(IDPackageManifestEvidence, "manifest_evidence", "source manifest is invalid")
 	}
 	want := BuildScriptSkippedAbsent
-	if manifest.Scripts["build"] != "" {
+	if manifestDeclaresBuildScript(manifest) {
 		want = BuildScriptExecuted
 	}
 	if disposition != want {

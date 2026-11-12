@@ -74,7 +74,7 @@ func BuildPack(ctx context.Context, config BuildPackConfig) (BuildPackResult, er
 	if err := verifySourceManifestCurrent(config.Selection.Package); err != nil {
 		return BuildPackResult{}, err
 	}
-	buildScript := BuildScriptCapture{Present: manifest.Scripts != nil && manifest.Scripts["build"] != "", Result: BuildScriptSkippedAbsent}
+	buildScript := BuildScriptCapture{Present: manifestDeclaresBuildScript(manifest), Result: BuildScriptSkippedAbsent}
 
 	if err := runManagerCommand(ctx, config.Selection, managerPath, environment, installArguments(config.Selection.Manager.Name)); err != nil {
 		return BuildPackResult{}, fmt.Errorf("install dependencies: %w", err)

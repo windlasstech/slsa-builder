@@ -152,6 +152,12 @@ func readManifest(manifestPath string) (manifest, *diagnostic.DiagnosticMetadata
 	return decoded, nil, err
 }
 
+// manifestDeclaresBuildScript is the single presence rule for the build
+// script: declared means a non-empty scripts.build command.
+func manifestDeclaresBuildScript(decoded manifest) bool {
+	return decoded.Scripts["build"] != ""
+}
+
 func decodeManifest(encoded []byte) (manifest, error) {
 	if err := canonicaljson.Validate(encoded); err != nil {
 		return manifest{}, err

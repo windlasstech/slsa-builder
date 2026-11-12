@@ -605,8 +605,9 @@ fields. Trusted publishing, external provenance-file submission, and the npmjs-o
 guarantee remain buildType behavior, not assertions that a candidate can toggle.
 
 The required signed `runDetails.metadata.windlass_build_script_disposition` is `executed` when the
-declared build script ran and `skipped-absent` when none was declared. Missing, unsupported, or
-manifest-inconsistent disposition fails with
+declared build script ran and `skipped-absent` when none was declared; declared means a non-empty
+`scripts.build` command, so an explicit empty string counts as not declared. Missing, unsupported,
+or manifest-inconsistent disposition fails with
 `windlass.verify.error.build-script-disposition-mismatch`. For example, a verified manifest without
 `scripts.build` and `skipped-absent` is valid; the same manifest with `executed` is invalid. Build
 failures never produce successful provenance.
