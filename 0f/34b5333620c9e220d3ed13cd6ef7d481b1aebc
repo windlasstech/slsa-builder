@@ -1,0 +1,19 @@
+CHANGELOG.md
+  s_16e89f0b599a12::t_393bd5054d391c 14-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f34b5333620c9e220d3ed13cd6ef7d481b1aebc",
+  "prompts": {},
+  "sessions": {
+    "s_16e89f0b599a12": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e2a77e389ffeD25s4sc86AiZAM",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
