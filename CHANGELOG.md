@@ -21,14 +21,16 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Expanded and synchronized the English and Korean READMEs with SLSA and provenance primers,
   security and trust guidance, profile comparisons, badge usage, and contributor and license
   information.
-- Added a fail-closed package-manager support boundary with Corepack provisioning: npm, pnpm 10.x
-  and 11.x, and Yarn Berry v4/v5 are supported; pnpm 12+ and Yarn 6+ are rejected before install.
+- Added a fail-closed package-manager support boundary: npm uses the pinned Node.js toolchain, while
+  Corepack provisions pnpm 10.x and 11.x and Yarn Berry v4/v5; pnpm 12+ and Yarn 6+ are rejected
+  before install.
 - Added support for standalone root packages with settings-only `pnpm-workspace.yaml` files that
   omit `packages`.
 - Added an optional tags-only `source-ref` input for fixed-pipeline release retries, with
   built-source provenance and signed invocation context.
-- Added redacted Node.js, npm, and non-npm package-manager configuration diagnostics to build and
-  publish jobs to aid trusted-publishing and provenance triage.
+- Added redacted Node.js and npm configuration diagnostics to build and publish jobs, plus non-npm
+  package-manager configuration diagnostics in the build job, to aid trusted-publishing and
+  provenance triage.
 - Added `devEngines.packageManager` as an alternative package-manager selection source, with exact
   versions for pnpm and Yarn; `yarn.lock`-only inference remains rejected.
 - Added optional SHA-256, SHA-384, and SHA-512 integrity digests for pnpm and Yarn descriptors.
@@ -49,8 +51,8 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
   or pin mismatches fail closed before registry mutation, and the observed npm version is recorded
   in outcome reports.
 - Added digest-verified Node.js runtime provisioning and a Node.js/npm pair check for governed build
-  jobs, failing closed on unsafe archives, unexpected layouts, or toolchain mismatches before any
-  Node.js, npm, npx, or Corepack command runs.
+  jobs, failing closed on unsafe archives, unexpected layouts, or toolchain mismatches before build,
+  install, pack, or publish commands run.
 - Added the finalized JS/TS npm SLSA provenance contract, binding workflow and invocation context
   and recording source, manifest, lockfile, runtime, package-manager, and runner-image dependencies.
   It includes embedded manifest evidence for offline verification, observed tool versions, and
