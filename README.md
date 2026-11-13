@@ -48,6 +48,7 @@ builder foundation.
 - [Why should I choose slsa-builder?](#why-should-i-choose-slsa-builder)
   - [Limitations of existing alternatives](#limitations-of-existing-alternatives)
   - [Strengths of slsa-builder](#strengths-of-slsa-builder)
+  - [Choosing between slsa-builder and the official SLSA tools](#choosing-between-slsa-builder-and-the-official-slsa-tools)
 - [Features](#features)
   - [Provenance issuance and publishing](#provenance-issuance-and-publishing)
   - [Package manager provisioning and support window](#package-manager-provisioning-and-support-window)
@@ -272,10 +273,16 @@ alternatives have the following limitations.
     - [GitHub Docs: Artifact attestations concepts](https://docs.github.com/en/actions/concepts/security/artifact-attestations)
     - [GitHub Blog: Enhance build security and reach SLSA Level 3 with GitHub Artifact Attestations](https://github.blog/enterprise-software/devsecops/enhance-build-security-and-reach-slsa-level-3-with-github-artifact-attestations/)
     - [GitHub Docs: Increase your security rating with artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating)
-  - In addition, the [`attest` action](https://github.com/actions/attest) supports only SHA-256
-    digest output in Provenance mode. This is fine in many cases, but for package managers and
-    registries like npm that accept only SHA-512 input, using `--provenance-file` or similar options
-    may not be possible.
+  - `actions/attest` uses SHA-256 for default `subject-path` hashing and runner artifact discovery.
+    For `npm publish --provenance-file`, use
+    [`actions/attest@v4.2.0` or later](https://github.com/actions/attest/releases/tag/v4.2.0), which
+    supports SHA-512 in `subject-digest`. Instead of relying on `subject-path` artifact discovery,
+    set the `with:` inputs `subject-name` to the package's exact versioned npm PURL and
+    `subject-digest` to `sha512:<tarball digest>` for the exact tarball being published, so the
+    bundle subject satisfies npm's package and tarball checks. This is only npm's minimum subject
+    requirement. slsa-builder additionally requires SHA-512 alongside SHA-256 in the same subject
+    for its handoff and consumer verification
+    ([ADR 0064](docs/decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)).
 
 ### Strengths of slsa-builder
 
@@ -350,6 +357,38 @@ alternatives have the following limitations.
   divergence is preserved as the rollout signature rather than treated as a build failure. Genuinely
   missing or malformed evidence still fails closed, with diagnostics carrying both observed operands
   ([ADR 0100](docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)).
+
+### Choosing between slsa-builder and the official SLSA tools
+
+The SLSA framework team's [slsa-framework/actions](https://github.com/slsa-framework/actions),
+[attester](https://github.com/slsa-framework/attester), and
+[verifier](https://github.com/slsa-framework/verifier) are the official successors to
+[`slsa-github-generator`](https://github.com/slsa-framework/slsa-github-generator) and
+[`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier), as documented in the
+[official migration guide](https://github.com/slsa-framework/actions/blob/main/docs/migration.md).
+Together, these official SLSA tools provide separate production and verification components.
+`actions` provides reusable workflows and composite actions, `attester` generates and signs
+attestations, and `verifier` verifies build provenance, source provenance, and VSAs. slsa-builder
+instead provides an integrated, profile-owned build, signing, and publication path. Choose according
+to the trust boundary and release responsibilities you need.
+
+The watcher-based flow differs from slsa-builder in who controls the build. The official attester's
+[watcher](https://github.com/slsa-framework/attester/blob/main/docs/buildtypes/watcher/v1.md)
+observes a caller-owned build in your workflow run and attests its outputs, but it is not the build
+system. Its `builder.id` is a claim that consumers must bind to the signing identity while also
+evaluating external parameters. slsa-builder runs build and signing inside profile-owned reusable
+workflows, with separate permissions, digest-rebound handoffs, and provenance-gated publication. The
+watcher-based model can fit an existing workflow with less migration, but the level of assurance
+depends on correct job separation and verification policy, which are your responsibility.
+slsa-builder directly owns and guarantees more of that boundary on your behalf.
+
+| Your goal                                                                                            | Recommended tool                              | Relative strength                                                                                                                                                                                                                                                                                                             | Tradeoff to accept                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Keep an existing GitHub Actions build and attest generic artifacts, release assets, or image digests | `slsa-framework/actions` + `attester`         | Preserve your build steps and add signed provenance, with Sigstore signing by default.                                                                                                                                                                                                                                        | You retain responsibility for build isolation and publication. Consumers must bind the claimed builder identity to the signing identity and evaluate external parameters. The [container flow](https://github.com/slsa-framework/actions/blob/main/docs/migration-generator.md#container-generator) writes an attestation file or workflow artifact rather than pushing to a registry, and verifier does not yet fetch registry attestations. |
+| Verify build or source provenance, or VSAs, from a CLI                                               | `slsa-framework/verifier`                     | Dedicated `build`, `source`, and `vsa` commands accept in-toto statements, DSSE envelopes, and Sigstore bundles.                                                                                                                                                                                                              | It is not a producer or release pipeline. Signatures are optional by default, so require them and bind expected signer and builder identities when your policy needs authenticity. Legacy keyless DSSE verification checks Rekor by default.                                                                                                                                                                                                  |
+| Adopt an integrated npm build, signing, and publishing path with builder-owned Build L3 isolation    | `slsa-builder`                                | Profile-owned reusable workflows isolate build, signing, and publishing, recompute handoff digests, and gate publication on provenance.                                                                                                                                                                                       | It is pre-release and currently limited to the [JS/TS npm package profile](docs/architecture/js-ts-npm-package-profile.md). It does not provide a [standalone verifier CLI](#provenance-verification).                                                                                                                                                                                                                                        |
+| Migrate an `slsa-github-generator` producer workflow                                                 | Depends on the generator and target ecosystem | The [official migration guidance](https://github.com/slsa-framework/actions/blob/main/docs/migration-generator.md) fits generic and container workflows that already keep the build in the caller. For npm packages that need a builder-owned model, slsa-builder preserves the reusable-builder trust boundary more closely. | Go has no drop-in replacement. The official path moves Node.js and Go builds into the caller workflow. slsa-builder is limited to its pre-release npm profile and requires new inputs and changes to builder identity and consumer verification policy, so neither path is a universal drop-in migration.                                                                                                                                     |
+| Migrate from `slsa-verifier` or verify Source provenance and VSAs                                    | Official `verifier`                           | The [verifier migration guide](https://github.com/slsa-framework/actions/blob/main/docs/migration-verifier.md) documents verification of existing generator provenance, and the CLI covers build provenance, source provenance, and VSAs.                                                                                     | Commands, trusted-builder and signer inputs, and output formats change. slsa-builder does not provide a standalone verifier CLI.                                                                                                                                                                                                                                                                                                              |
 
 ## Features
 
@@ -791,7 +830,7 @@ enforce this locally, while CI and branch protection perform the authoritative v
 
 ## Contributors
 
-Thanks to everyone who has contributed to this project. You can find the list of contributors on the
+Thanks to everyone who contributes to this project. You can find the list of contributors on the
 [GitHub contributors graph](https://github.com/windlasstech/slsa-builder/graphs/contributors).
 
 [![Contributors](https://contrib.rocks/image?repo=windlasstech/slsa-builder)](https://github.com/windlasstech/slsa-builder/graphs/contributors)

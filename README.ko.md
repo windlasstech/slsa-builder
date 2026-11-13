@@ -48,6 +48,7 @@
 - [slsa-builder를 선택해야 하는 이유](#slsa-builder를-선택해야-하는-이유)
   - [기존 대안들의 한계](#기존-대안들의-한계)
   - [slsa-builder의 강점](#slsa-builder의-강점)
+  - [slsa-builder와 공식 SLSA 도구 사이에서의 선택 기준](#slsa-builder와-공식-slsa-도구-사이에서의-선택-기준)
 - [기능](#기능)
   - [출처 증명 발급 및 게시](#출처-증명-발급-및-게시)
   - [패키지 매니저 프로비저닝 및 지원 윈도우](#패키지-매니저-프로비저닝-및-지원-윈도우)
@@ -58,7 +59,7 @@
 - [널리 퍼뜨려주세요](#널리-퍼뜨려주세요)
 - [기술 명세 및 아키텍처 의사결정 기록](#기술-명세-및-아키텍처-의사결정-기록)
 - [개발 환경 설정](#개발-환경-설정)
-- [기여자들](#기여자들)
+- [기여자](#기여자)
 - [라이선스](#라이선스)
 
 ## 목적과 목표
@@ -263,12 +264,17 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
     [`attest` 액션](https://github.com/actions/attest) 사용만으로는 해결되지 않으며, 상대적으로 도입
     장벽을 높이는 요인입니다.
     - [GitHub Docs: Artifact attestations 개념](https://docs.github.com/ko/actions/concepts/security/artifact-attestations)
-    - [GitHub Blog: GitHub Artifact Attestations로 빌드 보안 강화 및 SLSA Level 3 달성](https://github.blog/enterprise-software/devsecops/enhance-build-security-and-reach-slsa-level-3-with-github-artifact-attestations/)
+    - [GitHub Blog: GitHub Artifact Attestations로 빌드 보안 강화 및 SLSA Level 3 달성하기](https://github.blog/enterprise-software/devsecops/enhance-build-security-and-reach-slsa-level-3-with-github-artifact-attestations/)
     - [GitHub Docs: Artifact attestations로 보안 등급 높이기](https://docs.github.com/ko/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating)
-  - 또한, [`attest` 액션](https://github.com/actions/attest)은 Provenance 모드에서 SHA-256
-    다이제스트 출력만을 지원합니다. 많은 경우 문제가 없으나, npm처럼 SHA-512만을 입력으로 받는
-    패키지 매니저/저장소의 경우 `--provenance-file` 혹은 그와 비슷한 옵션 사용이 불가능할 수
-    있습니다.
+  - `actions/attest`는 기본 `subject-path` 해시와 러너 아티팩트 탐색에 SHA-256을 사용합니다.
+    `npm publish --provenance-file`을 사용할 때는 SHA-512 subject digest를 지원하는
+    [`actions/attest@v4.2.0` 이상](https://github.com/actions/attest/releases/tag/v4.2.0)을 사용해야
+    합니다. `subject-path` 아티팩트 탐색에 의존하지 말고 `with:` 입력으로 `subject-name`은 버전이
+    명시된 정확한 패키지 npm PURL로, `subject-digest`는 게시 대상 tarball의
+    `sha512:<tarball digest>`로 설정해야 합니다. 그래야 번들의 subject가 npm의 패키지 및 tarball
+    검증을 통과합니다. 이는 npm의 최소 subject 요건일 뿐입니다. slsa-builder는 자체 인계 및 소비자
+    검증을 위해 같은 subject에 SHA-256과 함께 SHA-512도 필수로 포함합니다
+    ([ADR 0064](docs/decisions/0064-use-npm-purl-subject-with-sha512-and-sha256.md)).
 
 ### slsa-builder의 강점
 
@@ -341,6 +347,39 @@ slsa-builder는 다양한 언어와 패키지 저장소 생태계의 구성원�
   롤아웃 시그니처로 보존합니다. 증거가 실제로 누락됐거나 형식이 잘못된 경우에는 여전히 fail-closed로
   빌드를 중단하며, 진단에는 관측된 두 값이 모두 담깁니다
   ([ADR 0100](docs/decisions/0100-record-runner-image-identity-from-on-disk-metadata-with-the-control-plane-deployment-version-as-separate-evidence.md)).
+
+### slsa-builder와 공식 SLSA 도구 사이에서의 선택 기준
+
+SLSA 프레임워크 팀의 [slsa-framework/actions](https://github.com/slsa-framework/actions),
+[attester](https://github.com/slsa-framework/attester),
+[verifier](https://github.com/slsa-framework/verifier)는
+[slsa-github-generator](https://github.com/slsa-framework/slsa-github-generator)와
+[slsa-verifier](https://github.com/slsa-framework/slsa-verifier)의 공식 후속 프로젝트입니다. 이
+관계는
+[공식 마이그레이션 안내](https://github.com/slsa-framework/actions/blob/main/docs/migration.md)에도
+명시되어 있습니다. 이들 공식 SLSA 도구는 생성과 검증 기능을 별도 구성 요소로 제공합니다. `actions`는
+재사용 가능한 워크플로와 컴포짓 액션을 제공하고, `attester`는 증명서를 생성하고 서명하며,
+`verifier`는 빌드 및 소스 출처 증명과 VSA를 검증합니다. slsa-builder는 이와 달리 프로파일이 소유하는
+통합된 빌드·서명·게시 경로를 제공합니다. 따라서 필요한 신뢰 경계와 릴리스 책임을 기준으로 선택해야
+합니다.
+
+watcher 기반 흐름과 slsa-builder의 핵심 차이는 빌드 통제 주체입니다. 공식 attester의
+[watcher](https://github.com/slsa-framework/attester/blob/main/docs/buildtypes/watcher/v1.md)는
+사용자 워크플로 실행을 관찰하고 그 산출물을 증명할 뿐, 빌드 시스템 자체는 아닙니다. watcher의
+`builder.id`는 주장(claim)에 해당하므로 소비자는 이를 서명 신원에 바인딩하고 `externalParameters`도
+함께 평가해야 합니다. 반면 slsa-builder는 프로파일 소유의 재사용 가능 워크플로 안에서 빌드와 서명을
+실행하며, 권한 분리와 고정된 다이제스트 기반 인계를 적용하고 출처 증명 검증 성공 시에만 게시를
+수행합니다. 이 watcher 기반 모델은 기존 워크플로를 유지한 채 비교적 적은 마이그레이션으로 도입할 수
+있지만, 보증 수준은 올바른 job 분리와 검증 정책에 달려 있고 해당 부분은 사용자 측의 책임입니다.
+slsa-builder는 그 경계의 더 많은 부분을 귀하 대신 직접 소유하고 보장합니다.
+
+| 목표                                                                                       | 권장 도구                                | 상대적 강점                                                                                                                                                                                                                                                                          | 수용해야 할 트레이드오프                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 기존 GitHub Actions 빌드를 유지하면서 일반 아티팩트, 릴리스 에셋, 이미지 다이제스트를 증명 | `slsa-framework/actions` + `attester`    | 기존 빌드 단계를 유지하면서 서명된 출처 증명을 추가하고, 기본적으로 Sigstore를 사용합니다.                                                                                                                                                                                           | 빌드 격리와 게시는 사용자가 책임집니다. 소비자는 주장된 빌더 신원을 서명 신원에 바인딩하고 `externalParameters`를 평가해야 합니다. [컨테이너 흐름](https://github.com/slsa-framework/actions/blob/main/docs/migration-generator.md#container-generator)은 레지스트리로 푸시하는 대신 증명서 파일이나 워크플로 아티팩트를 생성하며, verifier도 아직 레지스트리에서 증명서를 직접 가져오지는 않습니다. |
+| CLI로 빌드 및 소스 출처 증명 또는 VSA 검증                                                 | `slsa-framework/verifier`                | 전용 `build`, `source`, `vsa` 명령으로 in-toto statement, DSSE envelope, Sigstore bundle 입력을 처리합니다.                                                                                                                                                                          | 생산 도구나 릴리스 파이프라인은 아닙니다. 서명 검증은 기본적으로 선택 사항이므로 신원 보증이 필요하면 서명을 필수로 요구하고 기대하는 서명자와 빌더 신원을 바인딩해야 합니다. 레거시 keyless DSSE는 기본적으로 Rekor를 확인합니다.                                                                                                                                                                   |
+| 빌더 소유의 Build L3 격리를 갖춘 통합 npm 빌드·서명·게시 경로 도입                         | `slsa-builder`                           | 프로파일 소유의 재사용 가능 워크플로가 빌드·서명·게시를 격리하고, 인계 다이제스트를 재계산하며, 출처 증명을 검증한 뒤 게시합니다.                                                                                                                                                    | 프리릴리스이며 현재 [JS/TS npm 프로파일](docs/architecture/js-ts-npm-package-profile.md)만 제공합니다. [독립 verifier CLI는 제공하지 않습니다](#출처-증명-검증).                                                                                                                                                                                                                                     |
+| `slsa-github-generator` 생산 워크플로 이전                                                 | generator 유형과 대상 생태계에 따라 다름 | [공식 마이그레이션 안내](https://github.com/slsa-framework/actions/blob/main/docs/migration-generator.md)는 빌드를 호출자가 수행하는 generic 및 container 워크플로에 적합합니다. 빌더 소유 모델이 필요한 npm 패키지는 slsa-builder가 재사용 빌더의 신뢰 경계를 더 가깝게 유지합니다. | Go는 drop-in 대체재가 없습니다. 공식 경로는 Node.js와 Go 빌드를 호출자 워크플로로 옮깁니다. slsa-builder는 프리릴리스 npm 프로파일로 제한되며 새 입력과 빌더 신원 및 소비자 검증 정책 변경이 필요하므로, 어느 쪽도 범용 drop-in 이전 경로는 아닙니다.                                                                                                                                                |
+| `slsa-verifier`에서 이전하거나 소스 출처 증명 및 VSA 검증                                  | 공식 `verifier`                          | [verifier 마이그레이션 안내](https://github.com/slsa-framework/actions/blob/main/docs/migration-verifier.md)는 기존 generator의 출처 증명을 계속 검증하는 방법을 설명하며, CLI는 빌드·소스 출처 증명과 VSA를 지원합니다.                                                             | 명령, 신뢰할 빌더·서명자 입력, 출력 형식이 바뀝니다. slsa-builder는 독립 verifier CLI를 제공하지 않습니다.                                                                                                                                                                                                                                                                                           |
 
 ## 기능
 
@@ -768,9 +807,9 @@ mise lock
 이 프로젝트는 모든 커밋에 `Signed-off-by:` 트레일러(DCO)가 필요합니다. Lefthook이 로컬에서 이를
 강제하도록 구성되어 있으며, CI와 브랜치 보호가 권위 있는 검증을 수행합니다.
 
-## 기여자들
+## 기여자
 
-이 프로젝트에 기여해 주신 모든 분께 감사드립니다. 기여자 목록은
+이 프로젝트에 기여해 주시는 모든 분께 감사드립니다. 기여자 목록은
 [GitHub 기여자 그래프](https://github.com/windlasstech/slsa-builder/graphs/contributors)에서 확인할
 수 있습니다.
 
