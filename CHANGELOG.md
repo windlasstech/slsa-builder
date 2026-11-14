@@ -56,7 +56,8 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Added the finalized JS/TS npm SLSA provenance contract, binding workflow and invocation context
   and recording source, manifest, lockfile, runtime, package-manager, and runner-image dependencies.
   It includes embedded manifest evidence for offline verification, observed tool versions, and
-  build-script dispositions.
+  build-script dispositions. Invalid publish inputs and conflicts with authenticated `publishConfig`
+  produce classified diagnostics.
 - Added redacted human-readable diagnostics for external processes, npm publish failures, and
   registry read-back, with bounded stderr relay and recognized publish-rejection summaries.
   Diagnostics remain non-authoritative and cannot affect verification or publish outcomes.
