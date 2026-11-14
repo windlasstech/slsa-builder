@@ -23,6 +23,8 @@ const (
 	IDResolvedDependenciesRunnerImage     = "windlass.verify.error.resolved-dependencies-runner-image"
 	IDResolvedDependenciesUnexpectedEntry = "windlass.verify.error.resolved-dependencies-unexpected-entry"
 	IDBuilderDependenciesMismatch         = "windlass.verify.error.builder-dependencies-signing-adapter-mismatch"
+	IDInvalidPublishInput                 = "windlass.verify.error.invalid-publish-input"
+	IDPublishIntentConflict               = "windlass.verify.error.publish-intent-conflict"
 	IDReleaseRefMismatch                  = "windlass.verify.error.release-ref-mismatch"
 	IDSourceRefInvalid                    = "windlass.verify.error.source-ref-invalid"
 )
