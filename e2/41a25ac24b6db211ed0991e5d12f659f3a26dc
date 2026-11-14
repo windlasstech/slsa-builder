@@ -1,0 +1,19 @@
+internal/npmprofile/testdata/fuzz/FuzzDecodeExternalParameters/insecure-registry-url
+  s_e8cc365a4d709f::t_f3e9b10deb6142 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e241a25ac24b6db211ed0991e5d12f659f3a26dc",
+  "prompts": {},
+  "sessions": {
+    "s_e8cc365a4d709f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e26757bcdffeovVvNg4eEdBi5Y",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
