@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"workflow\":{\"ref\":\"refs/tags/v1.2.3\",\"repository\":\"https://github.com/example/project\",\"path\":\".github/workflows/publish.yml\"},\"package\":{\"directory\":\".\"},\"publish\":{\"input_registry_url\":\"http://registry.npmjs.org/\",\"input_dist_tag\":null,\"input_access\":null},\"distribution\":{\"release_asset_mode\":false,\"linked_artifact_metadata\":false}}")

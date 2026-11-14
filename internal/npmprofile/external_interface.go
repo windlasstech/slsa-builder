@@ -92,7 +92,10 @@ func validateFinalExternalParameters(parameters ExternalParameters, expectedRepo
 		}
 	}
 	_, err := ResolvePublishIntent(stringOrEmpty(parameters.Publish.InputRegistryURL), stringOrEmpty(parameters.Publish.InputDistTag), stringOrEmpty(parameters.Publish.InputAccess), nil)
-	return err
+	if err != nil {
+		return npmValidationError(IDUnexpectedExternalParameters, "externalParameters.publish", "publish inputs are invalid or conflict with publishConfig")
+	}
+	return nil
 }
 
 func effectiveBuiltRef(parameters ExternalParameters) string {

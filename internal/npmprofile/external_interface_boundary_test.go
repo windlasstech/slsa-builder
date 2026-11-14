@@ -32,6 +32,15 @@ func TestFinalExternalParametersBoundaryRejections(t *testing.T) {
 		{name: "release asset mode is not implemented", wantID: "windlass.verify.error.release-asset-mode-schema-error", mutate: func(s string) string {
 			return strings.Replace(s, `"release_asset_mode":false`, `"release_asset_mode":true`, 1)
 		}},
+		{name: "insecure registry URL", wantID: IDUnexpectedExternalParameters, mutate: func(s string) string {
+			return strings.Replace(s, `"input_registry_url":null`, `"input_registry_url":"http://registry.npmjs.org/"`, 1)
+		}},
+		{name: "invalid dist tag", wantID: IDUnexpectedExternalParameters, mutate: func(s string) string {
+			return strings.Replace(s, `"input_dist_tag":null`, `"input_dist_tag":"../next"`, 1)
+		}},
+		{name: "invalid access", wantID: IDUnexpectedExternalParameters, mutate: func(s string) string {
+			return strings.Replace(s, `"input_access":null`, `"input_access":"private"`, 1)
+		}},
 		{name: "whitespace dist tag is not an omission", wantID: IDUnexpectedExternalParameters, mutate: func(s string) string {
 			return strings.Replace(s, `"input_dist_tag":null`, `"input_dist_tag":" "`, 1)
 		}},
