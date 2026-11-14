@@ -1,0 +1,20 @@
+internal/npmprofile/provenance_types.go
+  s_e8cc365a4d709f::t_aaf0504a6580f5 27
+  s_e8cc365a4d709f::t_4269e1915cec8a 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a651768090d7cad54389d3f29dd1837b6f4b3daa",
+  "prompts": {},
+  "sessions": {
+    "s_e8cc365a4d709f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e26757bcdffeovVvNg4eEdBi5Y",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
