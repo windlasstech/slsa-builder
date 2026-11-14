@@ -163,6 +163,9 @@ func TestWorkflowIntentFinalizeRejections(t *testing.T) {
 			got, err := FinalizeWorkflowBuildMetadata(selection, build, config)
 			if test.id != "" {
 				requireNPMDiagnostic(t, err, test.id)
+				if test.message != "" && !strings.HasSuffix(err.Error(), ": "+test.message) {
+					t.Fatalf("FinalizeWorkflowBuildMetadata() error = %v; want suffix %q", err, ": "+test.message)
+				}
 			} else if err == nil || err.Error() != test.message {
 				t.Fatalf("FinalizeWorkflowBuildMetadata() error = %v, want %q", err, test.message)
 			}
