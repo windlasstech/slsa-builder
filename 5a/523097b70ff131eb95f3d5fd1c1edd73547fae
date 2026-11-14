@@ -1,0 +1,19 @@
+internal/npmprofile/workflow_metadata_intent_test.go
+  s_e8cc365a4d709f::t_e9054c1edd9539 166-168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5a523097b70ff131eb95f3d5fd1c1edd73547fae",
+  "prompts": {},
+  "sessions": {
+    "s_e8cc365a4d709f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e26757bcdffeovVvNg4eEdBi5Y",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
