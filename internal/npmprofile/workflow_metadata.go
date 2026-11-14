@@ -122,32 +122,46 @@ func ResolvePublishIntent(registryInput, distTagInput, accessInput string, sourc
 	if registryCaller != "" {
 		normalized, err := normalizeRegistryURL(registryCaller)
 		if err != nil {
-			return PublishIntent{}, err
+			return PublishIntent{}, npmValidationError(IDInvalidPublishInput, "externalParameters.publish.input_registry_url", err.Error())
 		}
 		registryCaller = normalized.String()
 	}
 	if registrySource != "" {
 		normalized, err := normalizeRegistryURL(registrySource)
 		if err != nil {
-			return PublishIntent{}, err
+			return PublishIntent{}, npmValidationError(IDInvalidPublishInput, "publishConfig.registry", err.Error())
 		}
 		registrySource = normalized.String()
 	}
 	registry, err := resolveStringIntent(registryCaller, registrySource, "https://registry.npmjs.org/", "registry-url")
 	if err != nil {
-		return PublishIntent{}, err
+		return PublishIntent{}, npmValidationError(IDPublishIntentConflict, "publishConfig.registry", err.Error())
 	}
 	normalizedRegistry, err := normalizeRegistryURL(registry)
 	if err != nil {
-		return PublishIntent{}, err
+		return PublishIntent{}, npmValidationError(IDInvalidPublishInput, "publish.registry", err.Error())
 	}
-	distTag, err := resolveStringIntent(distTagInput, trimASCII(sourceValue(source, "tag")), "latest", "dist-tag")
-	if err != nil || !validDistTag(distTag) {
-		return PublishIntent{}, errors.New("dist-tag is invalid or conflicts with publishConfig")
+	distTagSource := trimASCII(sourceValue(source, "tag"))
+	if distTagInput != "" && !validDistTag(distTagInput) {
+		return PublishIntent{}, npmValidationError(IDInvalidPublishInput, "externalParameters.publish.input_dist_tag", "dist-tag is invalid or conflicts with publishConfig")
 	}
-	access, err := resolveStringIntent(accessInput, trimASCII(sourceValue(source, "access")), "", "access")
-	if err != nil || access != "" && access != "public" && access != "restricted" {
-		return PublishIntent{}, errors.New("access is invalid or conflicts with publishConfig")
+	if distTagSource != "" && !validDistTag(distTagSource) {
+		return PublishIntent{}, npmValidationError(IDInvalidPublishInput, "publishConfig.tag", "dist-tag is invalid or conflicts with publishConfig")
+	}
+	distTag, err := resolveStringIntent(distTagInput, distTagSource, "latest", "dist-tag")
+	if err != nil {
+		return PublishIntent{}, npmValidationError(IDPublishIntentConflict, "publishConfig.tag", "dist-tag is invalid or conflicts with publishConfig")
+	}
+	accessSource := trimASCII(sourceValue(source, "access"))
+	if accessInput != "" && accessInput != "public" && accessInput != "restricted" {
+		return PublishIntent{}, npmValidationError(IDInvalidPublishInput, "externalParameters.publish.input_access", "access is invalid or conflicts with publishConfig")
+	}
+	if accessSource != "" && accessSource != "public" && accessSource != "restricted" {
+		return PublishIntent{}, npmValidationError(IDInvalidPublishInput, "publishConfig.access", "access is invalid or conflicts with publishConfig")
+	}
+	access, err := resolveStringIntent(accessInput, accessSource, "", "access")
+	if err != nil {
+		return PublishIntent{}, npmValidationError(IDPublishIntentConflict, "publishConfig.access", "access is invalid or conflicts with publishConfig")
 	}
 	result := PublishIntent{
 		InputRegistryURL: optionalString(registryInput), InputDistTag: optionalString(distTagInput), InputAccess: optionalString(accessInput),

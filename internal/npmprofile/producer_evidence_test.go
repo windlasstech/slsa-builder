@@ -37,6 +37,12 @@ func TestVerifyProducerPackageRejections(t *testing.T) {
 		{name: "manifest repository differs from caller", wantID: IDPackageRepositoryIdentityMismatch, mutate: func(metadata *BuildMetadata) {
 			replaceEvidenceManifest(t, metadata, `{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"other/project","scripts":{"build":"true"}}`)
 		}},
+		{name: "publish intent conflicts with authenticated manifest", wantID: IDPublishIntentConflict, mutate: func(metadata *BuildMetadata) {
+			replaceEvidenceManifest(t, metadata, `{"name":"@windlass/slsa-builder","version":"1.2.3","repository":"example/project","scripts":{"build":"true"},"publishConfig":{"tag":"next"}}`)
+			parameters := validExternalParameters(ManagerNPM)
+			parameters.Publish.InputDistTag = testStringPointer("latest")
+			metadata.ExternalParameters = mustJSON(parameters)
+		}},
 		{name: "disposition disagrees with evidence", wantID: IDBuildScriptDisposition, mutate: func(metadata *BuildMetadata) {
 			metadata.BuildScriptDisposition = BuildScriptSkippedAbsent
 		}},

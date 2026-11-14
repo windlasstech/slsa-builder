@@ -5,11 +5,23 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
 func TestWorkflowIntentConflicts(t *testing.T) {
 	t.Parallel()
+	wantIDs := map[string]string{
+		"registry conflict":        IDPublishIntentConflict,
+		"tag conflict":             IDPublishIntentConflict,
+		"access conflict":          IDPublishIntentConflict,
+		"insecure registry":        IDInvalidPublishInput,
+		"insecure source registry": IDInvalidPublishInput,
+		"invalid tag":              IDInvalidPublishInput,
+		"invalid source tag":       IDInvalidPublishInput,
+		"invalid access":           IDInvalidPublishInput,
+		"invalid source access":    IDInvalidPublishInput,
+	}
 	for _, test := range []struct {
 		name, registry, tag, access, message string
 		source                               *PublishConfigParameters
@@ -17,16 +29,29 @@ func TestWorkflowIntentConflicts(t *testing.T) {
 		{"provenance disabled", "", "", "", "publishConfig.provenance must not disable provenance", &PublishConfigParameters{Provenance: boolPointer(false)}},
 		{"registry conflict", "https://registry.npmjs.org/", "", "", "registry-url conflicts with publishConfig", &PublishConfigParameters{Registry: "https://example.com/"}},
 		{"insecure registry", "http://registry.npmjs.org/", "", "", "registry URL must be an absolute credential-free HTTPS root URL", nil},
+		{"insecure source registry", "", "", "", "registry URL must be an absolute credential-free HTTPS root URL", &PublishConfigParameters{Registry: "http://example.com/"}},
 		{"tag conflict", "", "latest", "", "dist-tag is invalid or conflicts with publishConfig", &PublishConfigParameters{Tag: "next"}},
 		{"invalid tag", "", "../next", "", "dist-tag is invalid or conflicts with publishConfig", nil},
+		{"invalid source tag", "", "latest", "", "dist-tag is invalid or conflicts with publishConfig", &PublishConfigParameters{Tag: "../next"}},
 		{"access conflict", "", "", "public", "access is invalid or conflicts with publishConfig", &PublishConfigParameters{Access: "restricted"}},
 		{"invalid access", "", "", "private", "access is invalid or conflicts with publishConfig", nil},
+		{"invalid source access", "", "", "public", "access is invalid or conflicts with publishConfig", &PublishConfigParameters{Access: "private"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := ResolvePublishIntent(test.registry, test.tag, test.access, test.source)
-			if err == nil || err.Error() != test.message || !reflect.DeepEqual(got, PublishIntent{}) {
-				t.Fatalf("ResolvePublishIntent() = %#v, %v; want empty intent and %q", got, err, test.message)
+			if err == nil || !reflect.DeepEqual(got, PublishIntent{}) {
+				t.Fatalf("ResolvePublishIntent() = %#v, %v; want empty intent and an error", got, err)
+			}
+			if wantID := wantIDs[test.name]; wantID != "" {
+				requireNPMDiagnostic(t, err, wantID)
+				if !strings.HasSuffix(err.Error(), ": "+test.message) {
+					t.Fatalf("error = %q; want suffix %q", err, ": "+test.message)
+				}
+				return
+			}
+			if err.Error() != test.message {
+				t.Fatalf("error = %q; want %q", err, test.message)
 			}
 		})
 	}
@@ -96,7 +121,7 @@ func TestWorkflowIntentFinalizeRejections(t *testing.T) {
 			c.CallerWorkflowFilename = "../release.yml"
 		}},
 		{"missing artifact", "build result is incomplete or conflicts with selected package", "", func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) { _, _ = s, b; c.ArtifactName = "" }},
-		{"invalid intent", "access is invalid or conflicts with publishConfig", "", func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
+		{"invalid intent", "access is invalid or conflicts with publishConfig", IDInvalidPublishInput, func(s *Result, b *BuildPackResult, c *WorkflowBuildMetadataConfig) {
 			_, _ = s, b
 			c.AccessInput = "private"
 		}},
