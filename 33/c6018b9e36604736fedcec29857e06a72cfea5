@@ -1,0 +1,21 @@
+internal/npmprofile/external_interface.go
+  s_e8cc365a4d709f::t_8dbb3a86f90e0e 95-98
+internal/npmprofile/external_interface_boundary_test.go
+  s_e8cc365a4d709f::t_2c97202ee4c7c0 35-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "33c6018b9e36604736fedcec29857e06a72cfea5",
+  "prompts": {},
+  "sessions": {
+    "s_e8cc365a4d709f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e26757bcdffeovVvNg4eEdBi5Y",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
