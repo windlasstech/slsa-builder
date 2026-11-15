@@ -7,7 +7,9 @@ decision-makers: Yunseo Kim
 relations:
   - type: partially-superseded-by
     target: ADR-0028
-    scope: "the tag-ref caller examples; the supported caller trigger patterns remain in force"
+    scope:
+      "the tag-ref caller examples; the supported caller trigger patterns and runtime guards remain
+      in force"
   - type: see-also
     target: ADR-0066
   - type: see-also

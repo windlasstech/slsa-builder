@@ -23,7 +23,9 @@ relations:
       decision remains in force"
   - type: partially-supersedes
     target: ADR-0026
-    scope: "the tag-ref caller examples; the supported caller trigger patterns remain in force"
+    scope:
+      "the tag-ref caller examples; the supported caller trigger patterns and runtime guards remain
+      in force"
   - type: see-also
     target: ADR-0068
   - type: see-also
