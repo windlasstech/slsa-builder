@@ -111,6 +111,61 @@ Use `partially-supersedes` when an implementer may no longer follow the earlier 
 use `amends` when the earlier clause still governs and the newer ADR only qualifies it. Resolve
 ambiguous cases in favor of `partially-supersedes`.
 
+### Full versus partial supersession
+
+Choose `supersedes` only when the newer ADR replaces the earlier decision in full. Apply this
+clause-survival test:
+
+1. Enumerate the earlier ADR's normative clauses (the Decision Outcome rules, not the rationale).
+2. Classify each clause against the newer ADR and the rest of the accepted set:
+   - **Replaced**: an implementer may no longer follow the clause as written because the newer ADR
+     contradicts or voids it.
+   - **Re-carried**: the newer ADR or another accepted ADR restates the substance, so nothing is
+     lost when the earlier text stops governing.
+   - **Spent**: the clause is realized or moot, such as a migration-path clause after the migration.
+   - **Standing**: the clause still governs, and no accepted ADR or specification carries it.
+3. If every clause is replaced, re-carried, or spent, use `supersedes` and change the earlier ADR's
+   `status`. If any clause is standing, use `partially-supersedes`, keep the earlier ADR `accepted`,
+   and write a `scope` that names the replaced clauses and notes what remains in force.
+
+Content inherited from an external standard (for example SLSA v1.2) or from another accepted ADR is
+not a standing clause of the earlier ADR; it survives independently. ADR bodies written before ADR
+0065 used "supersedes" loosely, so the word alone in an older body is not evidence of full
+replacement, while scoped wording in a Decision Outcome ("supersedes ADR X's \<clause\>") is
+evidence of partial scope. When one ADR supersedes several predecessors, cross-check them: a
+predecessor with strictly more surviving content must not receive a weaker classification than one
+with less. When clause survival is undecidable from the accepted texts, prefer
+`partially-supersedes`: full supersession removes the ADR from the accepted inventory and tells
+readers to disregard it entirely, which would hide a clause that still governs. This preference
+covers only genuinely undecidable survival; it does not license keeping an ADR `accepted` on the
+strength of its rationale or historical readability. When the enumeration finds no standing clause,
+`supersedes` is the required classification. An accepted-but-dead ADR misleads readers into treating
+obsolete clauses as governing and adds noise to the accepted inventory.
+
+### The core decision subject
+
+Every ADR has exactly one core decision subject, and it is read from the ADR's own framing: the
+title, the question in Context and Problem Statement, and the Considered Options set. The dimension
+along which the options vary is the decision axis; a parameter chosen within the winning option is a
+derivative clause, not the core subject. Identify the core subject from the earlier ADR's own
+framing, never from the newer ADR's diff. What the newer ADR changed is the replacement scope, not
+the earlier ADR's subject. For example, ADR 0020's core subject is the choice of builder identity
+basis (its options vary across workflow-path-with-ref, documentation URI, generic runner URI, and
+mode URI); the tag-versus-SHA ref form is a parameter inside the chosen option, so ADR 0028's
+replacement of it is partial.
+
+For classifying existing accepted ADR pairs, the clause-survival test above is the normative rule.
+The core-subject test supplements it at authoring time: when a new ADR replaces a predecessor's core
+decision subject and its decision, classify the relation as `supersedes`, not
+`partially-supersedes`, and do not keep the predecessor `accepted` merely because subsidiary clauses
+survive. In that case the new ADR must account for every derivative normative clause of the
+predecessor that is not spent at writing time: a clause the new ADR changes is replaced by the new
+ADR's own text, and a clause it does not change must be re-carried so it continues to govern from
+the new ADR. Re-carrying is not a requirement to preserve derivative clauses verbatim; the new ADR
+may replace any of them with new normative content. A live derivative clause silently left behind in
+the superseded predecessor is a content defect of the new ADR and must be fixed before acceptance,
+because accepted ADR bodies are immutable.
+
 Relation edges are bidirectional: when a new ADR declares `supersedes`, `partially-supersedes`, or
 `amends` against a target, the same change must add the matching reverse entry to the target ADR's
 `relations` field. A new ADR must enumerate every accepted ADR it affects. An omission is a
@@ -264,7 +319,10 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 7. **Declare relations, both directions.** If the new ADR supersedes, partially supersedes, or
    amends an earlier ADR, declare the forward entry in its own `relations` field, add the reverse
    entry to each target, and write a `scope` for partial and amendment relations. Enumerate every
-   affected predecessor; omissions are traceability defects.
+   affected predecessor; omissions are traceability defects. A new ADR that supersedes a
+   predecessor's core decision subject in full must account for every derivative clause of the
+   predecessor that is not spent at writing time, re-carrying it unchanged or replacing it with new
+   normative content.
 8. **Update traceability.** Add new ADRs to the inventory above and update architecture spec links
    when they define observable behavior.
 
@@ -289,6 +347,8 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 - [ ] `status` uses the closed grammar (no composite or prose values).
 - [ ] Relation types, targets, and required `scope` values follow ADR 0065, and every forward
       relation has its reverse edge on the target ADR.
+- [ ] For a full supersession, every derivative clause of the predecessor that is not spent is
+      either re-carried or replaced in the new ADR.
 - [ ] The traceability table maps the ADR to specs, tooling-only, or historical status.
 - [ ] Architecture specs were updated when the ADR changes observable behavior.
 - [ ] Formatting passes:
