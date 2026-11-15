@@ -17,11 +17,11 @@ relations:
     target: ADR-0106
     scope:
       "the coexistence equality invariants that reference the externalParameters.source members
-      removed there (built-source URI/digest equalities with source.repository/ref/revision and the
-      conditional source.invocation_* rows); the invocation-source descriptor shape, descriptor
-      cardinality, serialization order, and invocation-side invariants remain in force, while the
-      built-source descriptor's closed shape is extended there with a required annotations.ref_type
-      member"
+      removed by ADR 0106 (built-source URI/digest equalities with source.repository/ref/revision
+      and the conditional source.invocation_* rows); the invocation-source descriptor shape,
+      descriptor cardinality, serialization order, and invocation-side invariants remain in force,
+      while the built-source descriptor's closed shape is extended by ADR 0106 with a required
+      annotations.ref_type member"
   - type: partially-superseded-by
     target: ADR-0109
     scope:

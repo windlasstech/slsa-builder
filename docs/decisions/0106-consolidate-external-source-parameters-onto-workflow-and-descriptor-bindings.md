@@ -20,30 +20,31 @@ relations:
   - type: partially-supersedes
     target: ADR-0103
     scope:
-      "the clauses retaining externalParameters.source.ref as the built release tag record: the
-      source group is consolidated onto the workflow group and descriptor bindings here, and the
+      "the clauses retaining externalParameters.source.ref as the built release tag record: ADR 0106
+      consolidates the source group onto the workflow group and descriptor bindings, and the
       caller's explicit selector keeps its interface-faithful spelling; the workflow group
       definition and the internalParameters.github placement remain in force"
   - type: partially-supersedes
     target: ADR-0104
     scope:
-      "the clause retaining built source.ref as the release tag record; the external-parameter
+      "the clause retaining built source.ref as the release tag record: ADR 0106 consolidates the
+      source group onto the workflow group and descriptor bindings; the external-parameter
       builder-record removal remains in force"
   - type: partially-supersedes
     target: ADR-0105
     scope:
       "the coexistence equality invariants that reference the externalParameters.source members
-      removed here (built-source URI/digest equalities with source.repository/ref/revision and the
-      conditional source.invocation_* rows); the invocation-source descriptor shape, descriptor
-      cardinality, serialization order, and invocation-side invariants remain in force, while the
-      built-source descriptor's closed shape is extended here with a required annotations.ref_type
-      member"
+      removed by ADR 0106 (built-source URI/digest equalities with source.repository/ref/revision
+      and the conditional source.invocation_* rows); the invocation-source descriptor shape,
+      descriptor cardinality, serialization order, and invocation-side invariants remain in force,
+      while the built-source descriptor's closed shape is extended by ADR 0106 with a required
+      annotations.ref_type member"
   - type: partially-superseded-by
     target: ADR-0107
     scope:
       "the source.event_name member temporarily retained and the residual source-group shape
-      question deferred there: event_name moves to internalParameters.github, and the source group
-      reduces to the optional caller-selector ref"
+      question deferred to ADR 0107: event_name moves to internalParameters.github, and the source
+      group reduces to the optional caller-selector ref"
   - type: partially-superseded-by
     target: ADR-0109
     scope:

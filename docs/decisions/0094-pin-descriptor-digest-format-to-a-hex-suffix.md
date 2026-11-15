@@ -10,7 +10,7 @@ relations:
     scope:
       "the deferral of the digest format axis recorded in Decision Outcome ('This ADR deliberately
       does not define the accepted algorithm set or the digest format (Corepack-style
-      algorithm.<hex> versus SRI algorithm-<base64>)'): this ADR decides the format, pinning it to
+      algorithm.<hex> versus SRI algorithm-<base64>)'): ADR 0094 decides the format, pinning it to
       the Corepack-style +algorithm.<hex> suffix on the exact version in both manifest fields. Every
       other ADR 0092 clause remains in force"
   - type: see-also

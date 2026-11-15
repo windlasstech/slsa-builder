@@ -18,7 +18,9 @@ relations:
     target: ADR-0041
   - type: partially-supersedes
     target: ADR-0029
-    scope: "the repository-path buildType URI value"
+    scope:
+      "the repository-path buildType URI value; the Windlass-generated provenance decision remains
+      in force"
   - type: partially-superseded-by
     target: ADR-0049
     scope:

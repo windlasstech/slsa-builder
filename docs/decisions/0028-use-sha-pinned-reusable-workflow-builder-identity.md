@@ -18,10 +18,12 @@ relations:
       do not replace the version-specific `builder.id` remain in force"
   - type: partially-supersedes
     target: ADR-0022
-    scope: "the tag-ref builder.id expectation and tag-ref caller examples"
+    scope:
+      "the tag-ref builder.id expectation and tag-ref caller examples; the workflow filename
+      decision remains in force"
   - type: partially-supersedes
     target: ADR-0026
-    scope: "the tag-ref caller examples"
+    scope: "the tag-ref caller examples; the supported caller trigger patterns remain in force"
   - type: see-also
     target: ADR-0068
   - type: see-also
