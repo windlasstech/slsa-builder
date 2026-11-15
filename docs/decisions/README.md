@@ -151,6 +151,8 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0017 | Explicit package manager version enforcement                                                                      | JS/TS npm build and pack                                                                                                                                                                         |
 | 0018 | Publish one JS/TS package per profile run                                                                         | JS/TS npm profile, build and pack                                                                                                                                                                |
 | 0019 | Validate package metadata through packed artifacts                                                                | JS/TS npm build and pack                                                                                                                                                                         |
+| 0020 | Reusable workflow reference as `builder.id`                                                                       | Identity and build types                                                                                                                                                                         |
+| 0021 | Profile-specific `buildType` URIs                                                                                 | Identity and build types                                                                                                                                                                         |
 | 0022 | `js-ts-npm-package-slsa3.yml` workflow entrypoint                                                                 | JS/TS npm profile                                                                                                                                                                                |
 | 0023 | `package-directory` as required package selector                                                                  | JS/TS npm profile, build and pack                                                                                                                                                                |
 | 0024 | OIDC trusted publishing without publish secrets                                                                   | JS/TS npm profile, provenance and publish                                                                                                                                                        |
@@ -240,8 +242,6 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 
 | ADR  | Superseded by | Reason                                                                     |
 | ---- | ------------- | -------------------------------------------------------------------------- |
-| 0020 | 0028          | Reusable workflow ref identity replaced by SHA-pinned identity             |
-| 0021 | 0042          | Profile-specific buildType URIs replaced by acquired-domain URIs           |
 | 0038 | 0049          | Release asset provenance model changed from builder to distributor         |
 | 0040 | 0049          | `github-release-asset-slsa3.yml` entrypoint removed from production path   |
 | 0041 | 0042          | Release asset buildType URI replaced by acquired-domain namespace          |

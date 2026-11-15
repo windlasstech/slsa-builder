@@ -5,8 +5,12 @@ status: accepted
 date: 12026-07-04
 decision-makers: Yunseo Kim
 relations:
-  - type: supersedes
+  - type: partially-supersedes
     target: ADR-0020
+    scope:
+      "the tag-ref `builder.id` format clauses: the production `builder.id` form `<workflow
+      path>@refs/tags/vX.Y.Z` and the requirement that release provenance use a released builder tag
+      ref"
   - type: partially-supersedes
     target: ADR-0022
     scope: "the tag-ref builder.id expectation and tag-ref caller examples"

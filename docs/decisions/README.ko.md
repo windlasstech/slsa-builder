@@ -148,6 +148,8 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 | 0017 | Explicit package manager version enforcement                                                                      | JS/TS npm build and pack                                                                                                                                                            |
 | 0018 | Publish one JS/TS package per profile run                                                                         | JS/TS npm profile, build and pack                                                                                                                                                   |
 | 0019 | Validate package metadata through packed artifacts                                                                | JS/TS npm build and pack                                                                                                                                                            |
+| 0020 | Reusable workflow reference as `builder.id`                                                                       | Identity and build types                                                                                                                                                            |
+| 0021 | Profile-specific `buildType` URIs                                                                                 | Identity and build types                                                                                                                                                            |
 | 0022 | `js-ts-npm-package-slsa3.yml` workflow entrypoint                                                                 | JS/TS npm profile                                                                                                                                                                   |
 | 0023 | `package-directory` as required package selector                                                                  | JS/TS npm profile, build and pack                                                                                                                                                   |
 | 0024 | OIDC trusted publishing without publish secrets                                                                   | JS/TS npm profile, provenance and publish                                                                                                                                           |
@@ -239,8 +241,6 @@ ADR은 영향을 주는 모든 선행 ADR을 열거해야 하며, 누락은 추�
 
 | ADR  | 다음으로 대체 | 이유                                                                 |
 | ---- | ------------- | -------------------------------------------------------------------- |
-| 0020 | 0028          | reusable workflow ref identity를 SHA-pinned identity로 대체함        |
-| 0021 | 0042          | profile-specific buildType URI를 별도로 확보한 도메인 URI로 대체함   |
 | 0038 | 0049          | release asset 출처 모델을 builder에서 distributor로 변경함           |
 | 0040 | 0049          | `github-release-asset-slsa3.yml` 진입점을 production path에서 제거함 |
 | 0041 | 0042          | release asset buildType URI를 별도의 도메인 네임스페이스로 대체함    |

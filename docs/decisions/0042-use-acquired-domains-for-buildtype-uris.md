@@ -5,8 +5,11 @@ status: accepted
 date: 12026-07-06
 decision-makers: Yunseo Kim
 relations:
-  - type: supersedes
+  - type: partially-supersedes
     target: ADR-0021
+    scope:
+      "the repository-path `buildType` URI family, including the concrete JS/TS npm package
+      `buildType` value"
   - type: supersedes
     target: ADR-0041
   - type: partially-supersedes
