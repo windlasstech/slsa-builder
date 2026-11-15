@@ -1,0 +1,19 @@
+.agents/skills/adr-relations-check/scripts/check_relations.py
+  s_2196c4130b6c9e::t_0abdc712461b81 49-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "454745acf9a45cb909e0386797b1684b21f16400",
+  "prompts": {},
+  "sessions": {
+    "s_2196c4130b6c9e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
