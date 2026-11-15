@@ -1,0 +1,21 @@
+docs/decisions/README.ko.md
+  s_2196c4130b6c9e::t_1117c23389349b 135-137
+docs/decisions/README.md
+  s_2196c4130b6c9e::t_fc7819790f0e94 139-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "395d7a0c0f21ef962141023062f3d1d0446c8877",
+  "prompts": {},
+  "sessions": {
+    "s_2196c4130b6c9e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
