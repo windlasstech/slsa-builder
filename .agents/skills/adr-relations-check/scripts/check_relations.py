@@ -9,6 +9,9 @@ Verifies, for every ADR (docs/decisions/0*.md):
    `amends` / `see-also` edge has the matching reverse edge on the target ADR.
 3. Required `scope`: partial supersession and amendment relations (both
    directions) carry a non-empty `scope`.
+4. Scope symmetry: mirrored `partially-supersedes` / `amends` pairs carry
+   identical `scope` content on both edges after whitespace and YAML quoting
+   normalization.
 
 Exit code 0 when no problems are found, 1 otherwise. Run from anywhere; the
 repository root is resolved from this script's location unless --root is given.
@@ -30,6 +33,24 @@ REVERSE = {
 SCOPE_REQUIRED = "partially-supersedes|amends|partially-superseded-by|amended-by"
 
 
+def norm_scope(entry_tail: str) -> str:
+    """Extract and normalize a scope value from the entry text after `target:`.
+
+    Handles the two YAML string styles used in the corpus: double-quoted with
+    line folding and single-quoted with '' escaping. Normalization collapses
+    all whitespace so folded and unfolded spellings compare equal.
+    """
+    m = re.search(r"scope:\s*\n?\s*(.*)\Z", entry_tail, re.S)
+    if not m:
+        return ""
+    raw = m.group(1).strip()
+    if raw.startswith('"') and raw.endswith('"'):
+        raw = raw[1:-1]
+    elif raw.startswith("'") and raw.endswith("'"):
+        raw = raw[1:-1].replace("''", "'")
+    return " ".join(raw.split())
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -47,6 +68,7 @@ def main() -> int:
         return 1
 
     fwd: list[tuple[str, str, str]] = []
+    scoped: dict[tuple[str, str, str], str] = {}
     problems: list[str] = []
     for f in files:
         text = f.read_text(encoding="utf-8")
@@ -72,6 +94,8 @@ def main() -> int:
         ):
             if not re.search(r"scope:\s*\n?\s*\S", bm.group(3)):
                 problems.append(f"{f.name}: {bm.group(1)} ADR-{bm.group(2)} missing scope")
+            else:
+                scoped[(num, bm.group(1), bm.group(2))] = norm_scope(bm.group(3))
 
     by_target: dict[str, list[tuple[str, str]]] = {}
     for s, ty, t in fwd:
@@ -89,6 +113,12 @@ def main() -> int:
             rev_pattern = rf'- type:\s*{re.escape(rev)}\s*\n\s*target:\s*"?ADR-{s}"?'
             if not re.search(rev_pattern, ttext):
                 problems.append(f"ADR-{s} -> ADR-{t}: MISSING {rev}")
+
+    for (s, ty, t), sc in scoped.items():
+        if ty in ("partially-supersedes", "amends"):
+            rsc = scoped.get((t, REVERSE[ty], s))
+            if rsc is not None and rsc != sc:
+                problems.append(f"ADR-{s} -> ADR-{t}: scope differs from the reverse edge")
 
     summary = f"{len(files)} ADRs, {len(fwd)} edges"
     if problems:

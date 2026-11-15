@@ -30,6 +30,8 @@ with `--root <path>`).
    ADR (`superseded-by` / `partially-superseded-by` / `amended-by` / `see-also`).
 3. **Required scope**: `partially-supersedes`, `amends`, and their reverse forms carry a non-empty
    `scope` identifying the affected clauses.
+4. **Scope symmetry**: mirrored `partially-supersedes` / `amends` pairs carry identical `scope`
+   content on both edges (compared after whitespace and YAML quoting normalization).
 
 The script validates mechanics only. Whether a replacement is full or partial is a judgment call
 governed by the repair rules below; the script cannot make it.
