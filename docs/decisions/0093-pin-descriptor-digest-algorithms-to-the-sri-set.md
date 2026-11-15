@@ -10,7 +10,7 @@ relations:
     scope:
       "the deferral of the accepted digest algorithm set recorded in Decision Outcome ('This ADR
       deliberately does not define the accepted algorithm set or the digest format ... Those axes
-      are decided in the specification phase or a follow-up ADR'): this ADR decides the algorithm
+      are decided in the specification phase or a follow-up ADR'): ADR 0093 decides the algorithm
       set, pinning it to the W3C SRI v1 token set (sha256, sha384, sha512). The digest format axis
       is decided separately by ADR 0094, and every other ADR 0092 clause remains in force"
   - type: see-also

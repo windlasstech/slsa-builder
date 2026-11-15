@@ -108,6 +108,41 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 - **Discriminator**: `partially-supersedes` when an implementer may no longer follow the earlier
   clause as written; `amends` when the earlier clause still governs and the newer ADR only qualifies
   it. Resolve ambiguous cases in favor of `partially-supersedes`.
+- **Full vs. partial supersession**: choose `supersedes` only when the newer ADR replaces the
+  earlier decision in full. Before choosing it, enumerate the earlier ADR's normative clauses and
+  confirm each one is replaced (an implementer may no longer follow it as written), re-carried (the
+  substance is restated by the newer ADR or another accepted ADR), or spent (realized or moot, such
+  as a migration-path clause after the migration). If any self-owned clause still governs and no
+  accepted ADR or specification carries it, use `partially-supersedes` and keep the earlier ADR
+  `accepted`, with a `scope` naming the replaced clauses and the standing remainder. Write the same
+  `scope` content on the forward and reverse entries of a partial or amendment relation, and cite
+  ADRs by number rather than as `this ADR`. Content inherited from external standards (for example
+  SLSA v1.2) or from other accepted ADRs does not count as a surviving self-owned clause.
+  Pre-ADR-0065 bodies used "supersedes" loosely, so the word alone is not evidence of full
+  replacement; scoped wording in a Decision Outcome ("supersedes ADR X's \<clause\>") is evidence of
+  partial scope. Cross-check co-predecessors of the same superseding ADR: do not classify a
+  predecessor as fully superseded while a co-predecessor with strictly less surviving content is
+  classified as partially superseded. When clause survival is undecidable from the accepted texts,
+  prefer `partially-supersedes`, because full supersession removes the ADR from the accepted
+  inventory and tells readers to disregard it entirely. This preference covers only genuinely
+  undecidable survival; it does not license keeping an ADR `accepted` on the strength of its
+  rationale or historical readability. When the enumeration finds no standing clause, `supersedes`
+  is the required classification. An accepted-but-dead ADR misleads readers into treating obsolete
+  clauses as governing and adds noise to the accepted inventory.
+- **Core decision subject**: every ADR has exactly one, read from its own title, its Context and
+  Problem Statement question, and its Considered Options set. The dimension along which the options
+  vary is the decision axis; a parameter chosen within the winning option is a derivative clause,
+  not the core subject. Identify the core subject from the earlier ADR's own framing, never from the
+  newer ADR's diff: what the newer ADR changed is the replacement scope, not the earlier ADR's
+  subject. For existing pairs, the clause-survival test governs classification; the core-subject
+  test supplements it at authoring time. When a new ADR replaces a predecessor's core subject and
+  its decision, classify as `supersedes` rather than leaving the predecessor `accepted` on surviving
+  subsidiary clauses, and account for every derivative clause of the predecessor that is not spent
+  at writing time: a clause the new ADR changes is replaced by its own text, and a clause it does
+  not change must be re-carried so it continues to govern from the new ADR. Re-carrying is not a
+  verbatim-preservation requirement; the new ADR may replace derivative clauses with new normative
+  content. A live derivative clause silently left behind in the superseded predecessor is a content
+  defect of the new ADR and must be fixed before acceptance.
 - **Symmetry**: Relation edges are bidirectional. A new ADR must declare every accepted ADR it
   supersedes, partially supersedes, or amends, and the same change must add the matching reverse
   entry to each target. An omission is a traceability defect, repaired by adding the missing reverse

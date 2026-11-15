@@ -13,7 +13,9 @@ relations:
     target: ADR-0044
   - type: partially-supersedes
     target: ADR-0042
-    scope: "the concrete GitHub Release asset buildType value"
+    scope:
+      "the concrete GitHub Release asset buildType value; the domain and URI namespace decision
+      remains in force"
   - type: amends
     target: ADR-0045
     scope: "interpreted as publication-profile rules rather than artifact-production rules"

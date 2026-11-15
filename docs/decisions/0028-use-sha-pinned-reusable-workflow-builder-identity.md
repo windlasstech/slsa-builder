@@ -5,14 +5,27 @@ status: accepted
 date: 12026-07-04
 decision-makers: Yunseo Kim
 relations:
-  - type: supersedes
+  - type: partially-supersedes
     target: ADR-0020
+    scope:
+      "the tag-ref `builder.id` format clauses: the production `builder.id` form `<workflow
+      path>@refs/tags/vX.Y.Z` and the requirement that release provenance use a released builder tag
+      ref, replaced by ADR 0028's full-commit-SHA form. The distinct `builder.id` per profile and
+      per security mode rule, the `builder.id` documentation content requirements, the
+      production-`builder.id` form prohibitions (no generic runner URI, unversioned workflow URI,
+      GitHub `/blob/` UI URL, or caller workflow identity), the non-release identity allowance for
+      development and test provenance, and the rule that `builder.version` and `builderDependencies`
+      do not replace the version-specific `builder.id` remain in force"
   - type: partially-supersedes
     target: ADR-0022
-    scope: "the tag-ref builder.id expectation and tag-ref caller examples"
+    scope:
+      "the tag-ref builder.id expectation and tag-ref caller examples; the workflow filename
+      decision remains in force"
   - type: partially-supersedes
     target: ADR-0026
-    scope: "the tag-ref caller examples"
+    scope:
+      "the tag-ref caller examples; the supported caller trigger patterns and runtime guards remain
+      in force"
   - type: see-also
     target: ADR-0068
   - type: see-also

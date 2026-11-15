@@ -9,7 +9,7 @@ relations:
     target: ADR-0010
     scope:
       "the pnpm version line in force for development tooling: ADR 0010 chose pnpm and its
-      implementation initially ran the pnpm 11 line (pinned via devEngines.packageManager); this ADR
+      implementation initially ran the pnpm 11 line (pinned via devEngines.packageManager); ADR-0087
       adopts the pnpm 12 line as the development-tooling pnpm major. The choice of pnpm itself, the
       committed-lockfile and cooldown policies, and every other ADR 0010 clause remain in force"
   - type: see-also

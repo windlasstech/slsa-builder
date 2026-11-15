@@ -10,7 +10,7 @@ relations:
     scope:
       'the pnpm provisioning mechanism implied by the Decision Outcome''s declaration that a root
       mise.toml pins the pnpm version (''pnpm version (matching package.json)'') and by the
-      Confirmation criterion that mise.toml pins pnpm: under this ADR the pnpm version pin lives
+      Confirmation criterion that mise.toml pins pnpm: under ADR-0086 the pnpm version pin lives
       solely in package.json''s devEngines.packageManager and mise resolves and installs pnpm
       through its packageManager-field resolution (idiomatic version file) mode; the
       Corepack-mediated installation used at ADR 0012 implementation time (the node tool''s
@@ -21,7 +21,7 @@ relations:
     target: ADR-0010
     scope:
       "the pinned installation path clause ('pinned through the packageManager field in
-      package.json, with Corepack or an equivalent pinned installation path used in CI'): this ADR
+      package.json, with Corepack or an equivalent pinned installation path used in CI'): ADR-0086
       designates mise's packageManager-field resolution as the equivalent pinned installation path
       for both local development and CI, and withdraws Corepack from that role. The choice of pnpm
       itself and every other ADR 0010 clause remain in force"

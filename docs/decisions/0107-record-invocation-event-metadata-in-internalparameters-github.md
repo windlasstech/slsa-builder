@@ -15,8 +15,8 @@ relations:
     target: ADR-0106
     scope:
       "the source.event_name member temporarily retained and the residual source-group shape
-      question deferred to this decision: event_name moves to internalParameters.github, and the
-      source group reduces to the optional caller-selector ref"
+      question deferred to ADR 0107: event_name moves to internalParameters.github, and the source
+      group reduces to the optional caller-selector ref"
   - type: see-also
     target: ADR-0109
 ---

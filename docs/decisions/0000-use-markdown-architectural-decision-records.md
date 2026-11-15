@@ -8,8 +8,8 @@ relations:
   - type: amended-by
     target: ADR-0065
     scope:
-      "status field restricted to the closed grammar and relations frontmatter field added to the
-      project-local ADR format"
+      "MADR 4.0.0 template usage: the status field is restricted to a closed grammar, and a
+      relations frontmatter field is added to the project-local ADR format"
 ---
 
 # Use Markdown Architectural Decision Records

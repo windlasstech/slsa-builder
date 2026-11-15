@@ -1,12 +1,19 @@
 ---
 parent: Decisions
 nav_order: 21
-status: superseded by ADR-0042
+status: accepted
 date: 12026-06-29
 decision-makers: Yunseo Kim
 relations:
-  - type: superseded-by
+  - type: partially-superseded-by
     target: ADR-0042
+    scope:
+      "the repository-path `buildType` URI family
+      (`https://github.com/windlasstech/slsa-builder/buildtypes/<profile>/v<major>`), including the
+      concrete JS/TS npm package value, replaced by ADR 0042's `buildtype.dev` identifier namespace.
+      The profile-segment semantics and major-versioning rules (restated by ADR 0042), the
+      `builder.id`-versus-`buildType` separation, and the per-buildType specification content
+      requirements remain in force"
 ---
 
 # Use Profile-Specific `buildType` URIs

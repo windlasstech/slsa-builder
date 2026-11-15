@@ -10,7 +10,7 @@ relations:
     scope:
       "the v1 rejection and deferral recorded in Decision Outcome ('Yarn packageManager hash pinning
       ... are rejected for v1 as acquisition-path and input-requirement changes; either may return
-      as a later ADR on the reproducibility roadmap'): this ADR is that later ADR and realizes the
+      as a later ADR on the reproducibility roadmap'): ADR 0092 is that later ADR and realizes the
       deferred question in optional form — a digest declaration is accepted but never required, and
       the record model keeps the source-native observed authorities. The rejection of required hash
       pins, the source-native authority model, and every other ADR 0070 clause remain in force"
