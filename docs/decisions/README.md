@@ -136,8 +136,8 @@ clause-survival test:
 3. If every clause is replaced, re-carried, or spent, use `supersedes` and change the earlier ADR's
    `status`. If any clause is standing, use `partially-supersedes`, keep the earlier ADR `accepted`,
    and write a `scope` that names the replaced clauses and notes what remains in force. Write the
-   same `scope` content on the forward and the reverse entry of the relation, and refer to ADRs by
-   number rather than as `this ADR`.
+   same `scope` content on the forward and the reverse entry of a partial supersession or amendment
+   relation, and refer to ADRs by number rather than as `this ADR`.
 
 Content inherited from an external standard (for example SLSA v1.2) or from another accepted ADR is
 not a standing clause of the earlier ADR; it survives independently. ADR bodies written before ADR
