@@ -1,0 +1,38 @@
+docs/decisions/README.ko.md
+  s_2196c4130b6c9e::t_d1e88f9b447cd6 135-136,142-149
+  s_3fa0cb58a06134::t_c4a33bcd124f83 112-119
+.agents/skills/adr-relations-check/SKILL.md
+  s_2196c4130b6c9e::t_d1e88f9b447cd6 53-62
+  s_2196c4130b6c9e::t_90f4ba7e82ac2f 51-52
+docs/decisions/AGENTS.md
+  s_2196c4130b6c9e::t_1a682980c09e90 117-118
+  s_2196c4130b6c9e::t_d1e88f9b447cd6 119-131
+docs/decisions/README.md
+  s_2196c4130b6c9e::t_d1e88f9b447cd6 148-154
+  s_2196c4130b6c9e::t_30e66fa895b9cb 138-140,146-147
+  s_3fa0cb58a06134::t_c784a36e2fadbe 114-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7178b1e9c718ff414daf938cc64be353efa71c44",
+  "prompts": {},
+  "sessions": {
+    "s_2196c4130b6c9e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_3fa0cb58a06134": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
