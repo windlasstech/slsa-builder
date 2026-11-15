@@ -1,0 +1,19 @@
+.agents/skills/adr-relations-check/SKILL.md
+  s_2196c4130b6c9e::t_d4a18e1ce7ab8a 34-36,47-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d4ef38643c99b9e1f763894cec2cec765a029abc",
+  "prompts": {},
+  "sessions": {
+    "s_2196c4130b6c9e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
