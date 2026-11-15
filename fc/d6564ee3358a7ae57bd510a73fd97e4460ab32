@@ -1,0 +1,56 @@
+docs/decisions/0107-record-invocation-event-metadata-in-internalparameters-github.md
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 18-19
+docs/decisions/0049-separate-artifact-production-from-github-release-asset-publication.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 16
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 17-18
+docs/decisions/0097-reject-a-packed-corepack-env-at-the-post-pack-artifact-gate.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 12
+docs/decisions/0070-record-package-manager-distributions-and-runner-image-in-resolved-dependencies.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 37
+docs/decisions/0089-provision-the-development-node-js-runtime-through-mise-package-json-field-resolution.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 13
+docs/decisions/0000-use-markdown-architectural-decision-records.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 11-12
+docs/decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 20-24
+docs/decisions/0103-define-external-workflow-parameters-as-common-invocation-identity.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 17,38
+docs/decisions/0087-adopt-pnpm-12-for-node-js-development-tooling.md
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 12
+docs/decisions/0106-consolidate-external-source-parameters-onto-workflow-and-descriptor-bindings.md
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 23-24,37-41,46-47
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 30-31
+docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 22-23,26
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 21
+docs/decisions/0088-provision-build-stage-pnpm-and-yarn-from-digest-verified-registry-tarballs.md
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 26-38
+docs/decisions/0086-provision-pnpm-through-mise-packagemanager-field-resolution-instead-of-corepack.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 13
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 24
+docs/decisions/0042-use-acquired-domains-for-buildtype-uris.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 21
+  s_2196c4130b6c9e::t_35bb20bf25d4ba 22-23
+docs/decisions/0092-accept-optional-integrity-digests-in-package-manager-descriptors.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 13
+docs/decisions/0093-pin-descriptor-digest-algorithms-to-the-sri-set.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 13
+docs/decisions/0094-pin-descriptor-digest-format-to-a-hex-suffix.md
+  s_2196c4130b6c9e::t_3a6b43b34f26bd 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fcd6564ee3358a7ae57bd510a73fd97e4460ab32",
+  "prompts": {},
+  "sessions": {
+    "s_2196c4130b6c9e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
