@@ -114,19 +114,21 @@ confirms ADR/spec behavior but is not decision material and does not live here.
   substance is restated by the newer ADR or another accepted ADR), or spent (realized or moot, such
   as a migration-path clause after the migration). If any self-owned clause still governs and no
   accepted ADR or specification carries it, use `partially-supersedes` and keep the earlier ADR
-  `accepted`, with a `scope` naming the replaced clauses and the standing remainder. Content
-  inherited from external standards (for example SLSA v1.2) or from other accepted ADRs does not
-  count as a surviving self-owned clause. Pre-ADR-0065 bodies used "supersedes" loosely, so the word
-  alone is not evidence of full replacement; scoped wording in a Decision Outcome ("supersedes ADR
-  X's \<clause\>") is evidence of partial scope. Cross-check co-predecessors of the same superseding
-  ADR: a predecessor with strictly more surviving content must not receive a weaker classification
-  than one with less. When clause survival is undecidable from the accepted texts, prefer
-  `partially-supersedes`, because full supersession removes the ADR from the accepted inventory and
-  tells readers to disregard it entirely. This preference covers only genuinely undecidable
-  survival; it does not license keeping an ADR `accepted` on the strength of its rationale or
-  historical readability. When the enumeration finds no standing clause, `supersedes` is the
-  required classification. An accepted-but-dead ADR misleads readers into treating obsolete clauses
-  as governing and adds noise to the accepted inventory.
+  `accepted`, with a `scope` naming the replaced clauses and the standing remainder. Write the same
+  `scope` content on the forward and reverse entries of a partial or amendment relation, and cite
+  ADRs by number rather than as `this ADR`. Content inherited from external standards (for example
+  SLSA v1.2) or from other accepted ADRs does not count as a surviving self-owned clause.
+  Pre-ADR-0065 bodies used "supersedes" loosely, so the word alone is not evidence of full
+  replacement; scoped wording in a Decision Outcome ("supersedes ADR X's \<clause\>") is evidence of
+  partial scope. Cross-check co-predecessors of the same superseding ADR: do not classify a
+  predecessor as fully superseded while a co-predecessor with strictly less surviving content is
+  classified as partially superseded. When clause survival is undecidable from the accepted texts,
+  prefer `partially-supersedes`, because full supersession removes the ADR from the accepted
+  inventory and tells readers to disregard it entirely. This preference covers only genuinely
+  undecidable survival; it does not license keeping an ADR `accepted` on the strength of its
+  rationale or historical readability. When the enumeration finds no standing clause, `supersedes`
+  is the required classification. An accepted-but-dead ADR misleads readers into treating obsolete
+  clauses as governing and adds noise to the accepted inventory.
 - **Core decision subject**: every ADR has exactly one, read from its own title, its Context and
   Problem Statement question, and its Considered Options set. The dimension along which the options
   vary is the decision axis; a parameter chosen within the winning option is a derivative clause,

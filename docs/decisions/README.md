@@ -111,6 +111,15 @@ Use `partially-supersedes` when an implementer may no longer follow the earlier 
 use `amends` when the earlier clause still governs and the newer ADR only qualifies it. Resolve
 ambiguous cases in favor of `partially-supersedes`.
 
+Relation edges are bidirectional: when a new ADR declares `supersedes`, `partially-supersedes`, or
+`amends` against a target, the same change must add the matching reverse entry to the target ADR's
+`relations` field. A new ADR must enumerate every accepted ADR it affects. An omission is a
+traceability defect and is repaired by adding the missing reverse entry. No new ADR is required for
+the repair alone, and body text is never edited.
+
+After acceptance, only the `status` and `relations` frontmatter fields may change. See
+[ADR 0065](0065-use-closed-status-grammar-with-separate-relations-field.md) for the full decision.
+
 ### Full versus partial supersession
 
 Choose `supersedes` only when the newer ADR replaces the earlier decision in full. Apply this
@@ -126,21 +135,23 @@ clause-survival test:
    - **Standing**: the clause still governs, and no accepted ADR or specification carries it.
 3. If every clause is replaced, re-carried, or spent, use `supersedes` and change the earlier ADR's
    `status`. If any clause is standing, use `partially-supersedes`, keep the earlier ADR `accepted`,
-   and write a `scope` that names the replaced clauses and notes what remains in force.
+   and write a `scope` that names the replaced clauses and notes what remains in force. Write the
+   same `scope` content on the forward and the reverse entry of the relation, and refer to ADRs by
+   number rather than as `this ADR`.
 
 Content inherited from an external standard (for example SLSA v1.2) or from another accepted ADR is
 not a standing clause of the earlier ADR; it survives independently. ADR bodies written before ADR
 0065 used "supersedes" loosely, so the word alone in an older body is not evidence of full
 replacement, while scoped wording in a Decision Outcome ("supersedes ADR X's \<clause\>") is
-evidence of partial scope. When one ADR supersedes several predecessors, cross-check them: a
-predecessor with strictly more surviving content must not receive a weaker classification than one
-with less. When clause survival is undecidable from the accepted texts, prefer
-`partially-supersedes`: full supersession removes the ADR from the accepted inventory and tells
-readers to disregard it entirely, which would hide a clause that still governs. This preference
-covers only genuinely undecidable survival; it does not license keeping an ADR `accepted` on the
-strength of its rationale or historical readability. When the enumeration finds no standing clause,
-`supersedes` is the required classification. An accepted-but-dead ADR misleads readers into treating
-obsolete clauses as governing and adds noise to the accepted inventory.
+evidence of partial scope. When one ADR supersedes several predecessors, cross-check them: do not
+classify a predecessor as fully superseded while a co-predecessor with strictly less surviving
+content is classified as partially superseded. When clause survival is undecidable from the accepted
+texts, prefer `partially-supersedes`: full supersession removes the ADR from the accepted inventory
+and tells readers to disregard it entirely, which would hide a clause that still governs. This
+preference covers only genuinely undecidable survival; it does not license keeping an ADR `accepted`
+on the strength of its rationale or historical readability. When the enumeration finds no standing
+clause, `supersedes` is the required classification. An accepted-but-dead ADR misleads readers into
+treating obsolete clauses as governing and adds noise to the accepted inventory.
 
 ### The core decision subject
 
@@ -165,15 +176,6 @@ the new ADR. Re-carrying is not a requirement to preserve derivative clauses ver
 may replace any of them with new normative content. A live derivative clause silently left behind in
 the superseded predecessor is a content defect of the new ADR and must be fixed before acceptance,
 because accepted ADR bodies are immutable.
-
-Relation edges are bidirectional: when a new ADR declares `supersedes`, `partially-supersedes`, or
-`amends` against a target, the same change must add the matching reverse entry to the target ADR's
-`relations` field. A new ADR must enumerate every accepted ADR it affects. An omission is a
-traceability defect and is repaired by adding the missing reverse entry. No new ADR is required for
-the repair alone, and body text is never edited.
-
-After acceptance, only the `status` and `relations` frontmatter fields may change. See
-[ADR 0065](0065-use-closed-status-grammar-with-separate-relations-field.md) for the full decision.
 
 ## ADR traceability
 
