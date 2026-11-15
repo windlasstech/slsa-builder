@@ -46,6 +46,11 @@ def norm_scope(entry_tail: str) -> str:
     raw = m.group(1).strip()
     if raw.startswith('"') and raw.endswith('"'):
         raw = raw[1:-1]
+        raw = re.sub(
+            r"\\(.)",
+            lambda m: {"n": "\n", "t": "\t", "r": "\r", "0": "\0"}.get(m.group(1), m.group(1)),
+            raw,
+        )
     elif raw.startswith("'") and raw.endswith("'"):
         raw = raw[1:-1].replace("''", "'")
     return " ".join(raw.split())
