@@ -1,0 +1,32 @@
+docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md
+  s_2196c4130b6c9e::t_6e3499a63356b3 8,10-11
+  s_2196c4130b6c9e::t_7efb75306606bc 12-13
+docs/decisions/0042-use-acquired-domains-for-buildtype-uris.md
+  s_2196c4130b6c9e::t_4ea7b5e4cb7bb2 8,10-12
+docs/decisions/0021-use-profile-specific-buildtype-uris.md
+  s_2196c4130b6c9e::t_7efb75306606bc 13-15
+  s_2196c4130b6c9e::t_e7e00f5a40f865 4,8,10-12,16
+docs/decisions/0020-use-reusable-workflow-ref-as-builder-id.md
+  s_2196c4130b6c9e::t_5528ec4b6edbd0 4,8,10-11
+  s_2196c4130b6c9e::t_7efb75306606bc 12-16
+docs/decisions/README.md
+  s_2196c4130b6c9e::t_d4a18e1ce7ab8a 154-155
+docs/decisions/README.ko.md
+  s_2196c4130b6c9e::t_d4a18e1ce7ab8a 151-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1857336efe765618d0379b92481cd03cca545694",
+  "prompts": {},
+  "sessions": {
+    "s_2196c4130b6c9e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
