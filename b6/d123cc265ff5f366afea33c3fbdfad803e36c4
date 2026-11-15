@@ -1,0 +1,21 @@
+docs/decisions/0028-use-sha-pinned-reusable-workflow-builder-identity.md
+  s_2196c4130b6c9e::t_9adf4b29256a5d 26-28
+docs/decisions/0026-document-supported-release-caller-patterns-and-runtime-guards.md
+  s_2196c4130b6c9e::t_9adf4b29256a5d 10-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b6d123cc265ff5f366afea33c3fbdfad803e36c4",
+  "prompts": {},
+  "sessions": {
+    "s_2196c4130b6c9e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
