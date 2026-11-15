@@ -8,8 +8,12 @@ relations:
   - type: partially-supersedes
     target: ADR-0021
     scope:
-      "the repository-path `buildType` URI family, including the concrete JS/TS npm package
-      `buildType` value"
+      "the repository-path `buildType` URI family
+      (`https://github.com/windlasstech/slsa-builder/buildtypes/<profile>/v<major>`), including the
+      concrete JS/TS npm package value, replaced by ADR 0042's `buildtype.dev` identifier namespace.
+      The profile-segment semantics and major-versioning rules (restated by ADR 0042), the
+      `builder.id`-versus-`buildType` separation, and the per-buildType specification content
+      requirements remain in force"
   - type: supersedes
     target: ADR-0041
   - type: partially-supersedes

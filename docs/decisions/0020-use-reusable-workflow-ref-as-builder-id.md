@@ -11,9 +11,11 @@ relations:
       "the tag-ref `builder.id` format clauses: the production `builder.id` form `<workflow
       path>@refs/tags/vX.Y.Z` and the requirement that release provenance use a released builder tag
       ref, replaced by ADR 0028's full-commit-SHA form. The distinct `builder.id` per profile and
-      per security mode rule, the `builder.id` documentation content requirements, the non-release
-      identity allowance for development and test provenance, and the rule that `builder.version`
-      and `builderDependencies` do not replace the version-specific `builder.id` remain in force"
+      per security mode rule, the `builder.id` documentation content requirements, the
+      production-`builder.id` form prohibitions (no generic runner URI, unversioned workflow URI,
+      GitHub `/blob/` UI URL, or caller workflow identity), the non-release identity allowance for
+      development and test provenance, and the rule that `builder.version` and `builderDependencies`
+      do not replace the version-specific `builder.id` remain in force"
 ---
 
 # Use Reusable Workflow References as `builder.id`
