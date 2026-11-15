@@ -1,0 +1,24 @@
+.agents/skills/adr-relations-check/scripts/check_relations.py
+  s_2196c4130b6c9e::t_3c4fd6a2cf4d2a 12-14
+  s_2196c4130b6c9e::t_c54f62bf2ab5d7 36-53
+  s_2196c4130b6c9e::t_ffdd1f99834c1c 117-121
+  s_2196c4130b6c9e::t_5ebd98548e5ccf 122
+.agents/skills/adr-relations-check/SKILL.md
+  s_2196c4130b6c9e::t_af36efe72c0c6a 33-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6dea906c9b58f7148f02fc58cfbbaae369025ffd",
+  "prompts": {},
+  "sessions": {
+    "s_2196c4130b6c9e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20621c30ffeuEp0rYJMX7C8WV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
