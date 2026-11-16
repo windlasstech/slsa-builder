@@ -1,0 +1,37 @@
+docs/architecture/verification-policy-and-fixtures.md
+  s_0cef7c3f88c760::t_16f4ef9cca8e06 1272-1275
+  s_0cef7c3f88c760::t_7cc6ea2e0d86bd 778-780,786-787,1442-1444,1693-1697,1731-1780,1784-1919,1921-1939,1992-2019,2037-2039,2125-2130,2649-2682,2723-2725
+  s_0cef7c3f88c760::t_7d2fb9b0c17231 1940
+  s_0cef7c3f88c760::t_f0768009b1d1a1 1692,1698
+  s_0cef7c3f88c760::t_82e79f2a8d5493 2719-2722
+  s_0cef7c3f88c760::t_2f926b8eb8ee97 50-52
+  s_0cef7c3f88c760::t_ac07d2e4c98ee9 1920
+  s_0cef7c3f88c760::t_38a29343273ac2 773-777,781-785,788-790
+  s_0cef7c3f88c760::t_4ffc31cf178466 889-902
+  s_0cef7c3f88c760::t_0958986df47b33 1985-1991,2020-2036,2040-2042
+  s_1cd5d59ea91dd5::t_83079dc5d8dae4 2043
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e0935622244f0be85befbf6623611f7eabbed548",
+  "prompts": {},
+  "sessions": {
+    "s_0cef7c3f88c760": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e198d5eb8ffezMGK6d3MRHqbUq",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_1cd5d59ea91dd5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e198d5eb8ffezMGK6d3MRHqbUq",
+        "model": "k3.1-pro"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
