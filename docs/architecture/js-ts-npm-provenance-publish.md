@@ -48,7 +48,9 @@ the package to an npm registry through a three-job digest-verified graph.
   [0109](../decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md),
   [0110](../decisions/0110-record-deterministic-media-types-for-non-runner-dependencies.md),
   [0111](../decisions/0111-record-runner-image-reported-identity-with-included-software-uri-and-full-image-version.md),
-  and [0112](../decisions/0112-record-runner-image-operating-system-from-on-disk-metadata.md)
+  [0112](../decisions/0112-record-runner-image-operating-system-from-on-disk-metadata.md),
+  [0113](../decisions/0113-define-the-common-builderdependencies-descriptor-shape.md), and
+  [0114](../decisions/0114-record-the-publish-stage-npm-cli-in-builderdependencies.md)
 - Related specs: [Core profile contract](core-profile-contract.md),
   [Identity and build types](identity-and-buildtypes.md),
   [SLSA provenance v1](slsa-provenance-v1.md),
@@ -1246,43 +1248,98 @@ For example, the following npm-selected shape is invalid because `corepack` must
 }
 ```
 
-`runDetails.builder.builderDependencies` contains exactly one closed signing-adapter descriptor. It
-identifies the governed `sigstore-go` module version and checksum used by the signing binary:
+### JS/TS npm `builderDependencies` schema
+
+The npm profile emits exactly two closed descriptors in deterministic producer order:
+`signing-adapter` first, then `publish-cli`. Consumers select them by `name` and accept either
+order. The
+[common descriptor contract](slsa-provenance-v1.md#builderdependencies-descriptor-contract) owns the
+required common members, lowercase-kebab-case identity rule, presence equivalence, profile
+admission, and signer checks. The exact current array is:
 
 ```json
 [
   {
-    "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
+    "name": "signing-adapter",
+    "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.4.0",
     "digest": {
-      "h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="
+      "dirHash1": "0867457592e1612738db260dd3e94beb25a1eefd33dd2d22db5bf9d25bd260ac"
+    }
+  },
+  {
+    "name": "publish-cli",
+    "uri": "pkg:npm/npm@11.21.1",
+    "digest": {
+      "sha512": "613ccbe90044257c87713bb426251ced128ca7e9b3949b65eeb18b98445a5d441e14720c73d6ad76be86f4cf42f2f0d66efe347a9a13400ccd2f6fcfb5954385"
     },
+    "mediaType": "application/gzip",
     "annotations": {
-      "role": "signing-adapter"
+      "digest_authority": "builder-pinned-record"
     }
   }
 ]
 ```
 
-The profile must not add build-job actions or any other builder dependency. A missing or additional
-descriptor, malformed URI or checksum, URI/module-version disagreement, checksum disagreement with
-the signing binary, unknown member, or role other than `"signing-adapter"` fails candidate-predicate
-validation with `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity
-`error`, exit code `1`, before signing. Node.js and bundled npm versions are single-homed in
-`builder.version`; selected pnpm/Yarn versions remain in the distribution descriptor. Runner-image
-identity remains in the descriptor named `runner-image`.
+The signer remains exactly one descriptor with exactly the three effective members `name`, `uri`,
+and `digest`, no emitted annotations, and the governed sigstore-go module identity above. Non-empty
+signer annotations and any other effective signer member fail with
+`windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.
 
-This focused invalid descriptor fails with that diagnostic because the URI and digest revisions do
-not agree:
+The `publish-cli` descriptor records only the separately pinned publish-stage npm CLI:
+
+- `name` is exactly `publish-cli`.
+- `uri` is the npm Package URL whose version equals the current publish allowlist pin, currently
+  `11.21.1`.
+- `digest` contains exactly one `sha512` member, the 128-character lowercase-hex digest of the
+  digest-verified registry tarball. It is the hexadecimal rendering of the same digest bytes
+  recorded in registry-native SRI form by the allowlist, currently the value shown above.
+- `mediaType` is exactly `application/gzip`, describing the compressed tarball bytes covered by that
+  digest.
+- The producer emits exactly `annotations: {"digest_authority":"builder-pinned-record"}`. This
+  annotation is descriptive only. During consumer verification, `annotations` may be absent or carry
+  any valid JSON value; after duplicate-JSON-member rejection, the verifier ignores it. Annotations
+  never authenticate content, replace pin/digest agreement, or affect the result. The producer
+  defines no platform or version annotation because the URI carries the version and the tarball is
+  platform-independent.
+
+The build-stage bundled npm remains only in `builder.version.npm`. Node.js and package-manager
+distributions remain in `resolvedDependencies`; no `npm-cli` descriptor is added there. The unsigned
+outcome report continues to carry `diagnostic_metadata.publish_npm_version` without replacing this
+signed descriptor.
+
+A missing, duplicate, misnamed, malformed, extra-effective-member-bearing, or pin-mismatched
+`publish-cli` descriptor fails candidate or consumer validation with
+`windlass.verify.error.builder-dependencies-publish-cli-mismatch`, severity `error`, exit code `1`.
+This includes a wrong URI version, a digest set other than exactly `sha512`, a wrong digest, a
+missing or wrong `mediaType`, and any effective member beyond the declared shape. Signer failures
+retain `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`; otherwise
+unattributable common shape or admission failures use
+`windlass.verify.error.builder-dependencies-descriptor-invalid`. Multi-failure primary precedence is
+`publish-cli`, then `signing-adapter`, then common. Unknown extra descriptors are evaluated only
+after both required descriptors pass. Strict JSON parsing and duplicate-member rejection precede all
+of these semantic checks.
+
+This focused invalid array fails with the publish-cli diagnostic because the URI version differs
+from the pin, even though its digest is well-formed:
 
 ```json
 [
   {
-    "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
+    "name": "signing-adapter",
+    "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.4.0",
     "digest": {
-      "h1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      "dirHash1": "0867457592e1612738db260dd3e94beb25a1eefd33dd2d22db5bf9d25bd260ac"
+    }
+  },
+  {
+    "name": "publish-cli",
+    "uri": "pkg:npm/npm@11.21.0",
+    "digest": {
+      "sha512": "613ccbe90044257c87713bb426251ced128ca7e9b3949b65eeb18b98445a5d441e14720c73d6ad76be86f4cf42f2f0d66efe347a9a13400ccd2f6fcfb5954385"
     },
+    "mediaType": "application/gzip",
     "annotations": {
-      "role": "signing-adapter"
+      "digest_authority": "builder-pinned-record"
     }
   }
 ]
@@ -1290,7 +1347,7 @@ not agree:
 
 ## Go-native `sigstore-go` signing adapter
 
-The `provenance-sign` job uses `sigstore-go` v1.3.0 to sign the exact complete Statement bytes that
+The `provenance-sign` job uses `sigstore-go` v1.4.0 to sign the exact complete Statement bytes that
 Windlass assembled and validated:
 
 | Signer input | Required value                                                                    |
@@ -1301,8 +1358,8 @@ Windlass assembled and validated:
 Before invoking the adapter, the producer must validate the complete candidate Statement against the
 common SLSA and npm-profile closed schemas and expected captured values. This pre-sign gate includes
 the closed external-parameter groups, manager-dependent enumerated dependency set,
-`builder.version`, and sole signing-adapter builder dependency. Missing package-manager-distribution
-or runner-image capture evidence, or an embedded node-runtime pin load failure, fails with
+`builder.version`, and the two closed builder dependencies. Missing package-manager-distribution or
+runner-image capture evidence, or an embedded node-runtime pin load failure, fails with
 `windlass.verify.error.input-unavailable` and exit code `2`; an unobservable caller workflow
 filename fails with `windlass.verify.error.trusted-publisher-mismatch` as specified in the field
 rules; a constructed candidate that violates a closed shape or expected value fails with the field's
@@ -1444,8 +1501,12 @@ The publish-stage npm CLI is pinned. The single shared pin-data source is the ma
 `internal/toolchainpins/publish-npm.json`, which records, per allowlist entry, the pinned npm
 version, the exact npm registry tarball URL, and the SHA-512 digest of the compressed tarball in SRI
 form (`sha512-<base64>`), byte-identical to the registry packument's `dist.integrity` field. The
-provisioning step and the publish-side pin validation both read this file. The human-readable
-allowlist table below mirrors it, and a CI check fails on any drift between the file and the table.
+provisioning step and the publish-side pin validation both read this file. The drift check parses
+the normative allowlist table below and the designated `publish-cli` JSON example above, converts
+the table's SRI digest to lowercase hexadecimal, and compares the pinned version and digest bytes
+across those structured sources. Any disagreement fails with
+`windlass.verify.error.toolchain-pin-drift`. Narrative prose and text-search matches are not drift
+proof.
 
 | Version   | Tarball URL                                        | SHA-512 (SRI)                                                                                     |
 | --------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -1563,14 +1624,15 @@ is pinned independently, so equality between the two is no longer the invariant.
 continues to record the npm it observed in `runDetails.builder.version.npm`, and the floor that
 value must satisfy (`>= 11.5.1`) is retained as defense in depth (ADR 0085).
 
-The publish npm version is recorded in the publish job's outcome report as the
-`diagnostic_metadata.publish_npm_version` member defined by the
+The publish npm version and tarball digest are recorded in the signed `publish-cli`
+`builderDependencies` descriptor above. The publish job's outcome report also carries the observed
+version as `diagnostic_metadata.publish_npm_version`, defined by the
 [verification policy and fixtures specification](verification-policy-and-fixtures.md), on success
 and on failure whenever the version was observed; a pin-mismatch failure additionally carries the
-observed version in the failing diagnostic's `evidence`. It is not merged into the build-time
-record. A mismatch between the provisioned npm's version and the allowlist pin fails closed with
-`windlass.verify.error.publish-npm-pin-mismatch` (check `npm.publish.toolchain`) before any registry
-mutation.
+observed version in the failing diagnostic's `evidence`. The publish npm version is not merged into
+`builder.version` or `resolvedDependencies`. A mismatch between the provisioned npm's version and
+the allowlist pin fails closed with `windlass.verify.error.publish-npm-pin-mismatch` (check
+`npm.publish.toolchain`) before any registry mutation.
 
 ## `npm publish --provenance-file`
 
@@ -2066,8 +2128,10 @@ After signing and before `npm publish`, the `publish` job must verify:
     the full manifest/workflow/certificate/source-descriptor chain. Built release expectations bind
     to the effective built ref and built-source commit, not invocation claims.
 11. `builder.version` has the exact observed `nodejs`, `npm`, and conditional `corepack` shape.
-12. `builderDependencies` contains only the exact `sigstore-go` module descriptor whose URI, `h1`
-    checksum, role, and signing-binary dependency agree.
+12. `builderDependencies` contains exactly the governed `signing-adapter` and `publish-cli`
+    descriptors. Their names, URIs, `dirHash1`/`sha512` digests, publish media type, and pin
+    agreement satisfy the closed schema; signer non-empty annotations fail, and publish annotations
+    are ignored after duplicate-member rejection.
 13. The extracted DSSE payload is byte-for-byte equal to the complete candidate Statement that
     Windlass validated before invoking the signer.
 14. The same verified certificate binds Build Signer URI/Digest to canonical `builder.id`, Source
@@ -2138,10 +2202,20 @@ The `publish` job must fail before `npm publish` when:
 - `builder.version` is missing, has an extra or conditionally wrong key, or differs from observed
   versions. The primary diagnostic is `windlass.verify.error.builder-version-mismatch`, severity
   `error`, exit code `1`.
-- The sole signing-adapter builder dependency is missing, extra, malformed, or inconsistent with the
-  governed signer module version and checksum. The primary diagnostic is
+- The publish-cli builder dependency is missing, duplicated, misnamed, malformed, carries an extra
+  effective member, or is inconsistent with the pinned version or tarball digest. The primary
+  diagnostic is `windlass.verify.error.builder-dependencies-publish-cli-mismatch`, severity `error`,
+  exit code `1`.
+- The signing-adapter builder dependency is missing, duplicated, misnamed, malformed, carries a
+  non-empty annotation or extra effective member, or is inconsistent with the governed signer module
+  version and `dirHash1`. The primary diagnostic is
   `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity `error`, exit code
   `1`.
+- An otherwise unattributable common builder-descriptor shape or admission failure, including an
+  unknown extra after both required descriptors pass, uses
+  `windlass.verify.error.builder-dependencies-descriptor-invalid`, severity `error`, exit code `1`.
+  Multi-failure precedence is publish-cli, signing-adapter, then common, after parse and duplicate
+  member failures.
 - Required package-manager distribution or runner-image capture evidence is unavailable, or the
   embedded node-runtime pin cannot be loaded, before candidate predicate construction. The primary
   diagnostic is `windlass.verify.error.input-unavailable`, severity `error`, exit code `2`; no
@@ -2223,9 +2297,13 @@ The profile must not fall back to:
   including package-manifest between built-source and lockfile. Reordered valid sets pass name-keyed
   semantic verification; reordered signed payloads fail byte comparison. Duplicate names fail before
   lookup, and missing, unknown, or extra descriptors fail their owning rules.
-- `npm-builder-version-direct-npm-valid` proves required `nodejs` and `npm`;
-  `npm-builder-version-corepack-valid` adds conditional `corepack`; and
-  `npm-builder-signing-adapter-valid` proves the sole governed `sigstore-go` descriptor.
+- `npm-builder-version-direct-npm-valid` proves required `nodejs` and build-stage `npm`;
+  `npm-builder-version-corepack-valid` adds conditional `corepack`;
+  `npm-builder-signing-adapter-valid` proves the current `name`/`dirHash1` signer with no emitted
+  annotations; and `npm-builder-publish-cli-valid` proves the exact two-descriptor array in signer,
+  publish-cli order. `npm-builder-dependencies-reordered-valid` proves consumer acceptance by name.
+  Publish annotation-varied fixtures prove ignored arbitrary valid JSON after duplicate rejection;
+  they never authenticate content.
 - Existing `npm-resolved-lockfile-valid` and `npm-resolved-lockfile-stale-valid` fixtures continue
   to prove selection provenance and stale diagnostics, with the required media type and built-source
   commit binding. No stale file becomes a dependency.
@@ -2322,10 +2400,16 @@ The profile must not fall back to:
   members; removed caller group; raw release-tag duplication; distribution disagreement; unavailable
   or mismatched derived caller filename; and invalid selector suppliedness or spelling. Their
   expected primary IDs are the corresponding central diagnostics listed in Failure behavior.
-- Builder rejected mutations must cover missing `nodejs` or `npm`, absent conditional `corepack`,
-  `corepack` present for npm, an unknown version key, missing or extra signing adapters,
-  URI/module/checksum disagreement, and a wrong role. Their expected primary IDs are
-  `builder-version-mismatch` or `builder-dependencies-signing-adapter-mismatch` as applicable.
+- Builder rejected mutations must cover missing `nodejs` or build-stage `npm`, absent conditional
+  `corepack`, `corepack` present for npm, and an unknown version key. Descriptor mutations cover
+  missing, duplicate, misnamed, malformed, extra-effective-member, and pin-mismatched publish-cli
+  cases; the analogous signer cases plus non-empty signer annotations; and otherwise unattributable
+  common shape or admission failures. Presence cases distinguish required
+  absent/null/empty/malformed values from undeclared null/empty unset values and present `false`,
+  `0`, or whitespace-only values. Their expected primary IDs are `builder-version-mismatch`,
+  `builder-dependencies-publish-cli-mismatch`, `builder-dependencies-signing-adapter-mismatch`, or
+  `builder-dependencies-descriptor-invalid` as applicable. Multi-failure fixtures prove publish-cli,
+  signer, then common precedence, with parse and duplicate-member failures first.
 - Candidate-predicate fixtures must prove capture unavailability exits `2` with `input-unavailable`,
   malformed constructed candidates exit `1` with the narrow field diagnostic, no failing candidate
   reaches signing, and post-sign comparison rejects any adapter-altered predicate before publish.
@@ -2356,8 +2440,9 @@ The profile must not fall back to:
   distribution digest mismatch (`npm-provision-digest-mismatch`), unsafe archive layout
   (`npm-provision-archive-unsafe`), post-extraction version mismatch
   (`npm-provision-version-mismatch`), and publish npm pin mismatch (`publish-npm-pin-mismatch`).
-  Each fails before any npm execution and before any registry mutation, and the pin file and the
-  human-readable allowlist table are proven drift-free.
+  Each fails before any npm execution and before any registry mutation. Drift proof parses the pin
+  record, normative allowlist table, and designated descriptor JSON example and compares their
+  structured version and digest values; narrative-prose text searches are not accepted as proof.
 - Successful registry-conformance fixtures use `https://registry.npmjs.org/` only. Synthetic custom
   registry fixtures cover warning and fail-clearly behavior only.
 - Operational-diagnostics TDD and fixtures cover late-`E422` recognition with output truncation and

@@ -139,6 +139,8 @@ build-type-not-canonical
 build-config-uri-mismatch
 build-script-disposition-mismatch
 build-trigger-mismatch
+builder-dependencies-descriptor-invalid
+builder-dependencies-publish-cli-mismatch
 builder-dependencies-signing-adapter-mismatch
 builder-id-not-immutable
 builder-version-mismatch
