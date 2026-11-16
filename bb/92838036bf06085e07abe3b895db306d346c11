@@ -1,0 +1,27 @@
+docs/architecture/README.ko.md
+  s_6a4b84c87d9f2c::t_0db009c128c1b2 37
+  s_6a4b84c87d9f2c::t_f1f728ba423417 42
+  s_6a4b84c87d9f2c::t_dc1b74bcb4f700 34
+  s_6a4b84c87d9f2c::t_dc0901cf818ff6 97-98
+docs/architecture/README.md
+  s_6a4b84c87d9f2c::t_0ee6eb0b4a0329 98-99
+  s_6a4b84c87d9f2c::t_0fcd051a2b6e13 34
+  s_6a4b84c87d9f2c::t_7d789213db9f4f 42
+  s_6a4b84c87d9f2c::t_c28c967019509c 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bb92838036bf06085e07abe3b895db306d346c11",
+  "prompts": {},
+  "sessions": {
+    "s_6a4b84c87d9f2c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e198d0fbcffdRxDFFFA7t6WGvF",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
