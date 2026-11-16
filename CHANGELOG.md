@@ -61,6 +61,15 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Added redacted human-readable diagnostics for external processes, npm publish failures, and
   registry read-back, with bounded stderr relay and recognized publish-rejection summaries.
   Diagnostics remain non-authoritative and cannot affect verification or publish outcomes.
+- Added signed `builderDependencies` records for the digest-pinned publish-stage npm CLI, including
+  its tarball SHA-512 and media type, with fail-closed verification and representative fixtures.
+
+### Changed
+
+- Changed the signing-adapter builder dependency to the common name-keyed descriptor shape and
+  DigestSet `dirHash1` lowercase-hex encoding, synchronized with sigstore-go v1.4.0.
+  Profile-declared builder dependencies are admitted by name, while unknown or malformed descriptors
+  fail closed.
 
 ### Security
 
