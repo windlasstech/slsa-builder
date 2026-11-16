@@ -1,0 +1,42 @@
+docs/architecture/core-profile-contract.md
+  s_0cef7c3f88c760::t_326ced96ca7a7a 409-413
+  s_0cef7c3f88c760::t_06e27eb2e1d5b2 390
+docs/architecture/release-manifest.md
+  s_0cef7c3f88c760::t_7cc6ea2e0d86bd 479-480
+  s_0cef7c3f88c760::t_13bc460105fb7b 477-478
+docs/dependency-selection.md
+  s_6a4b84c87d9f2c::t_79e215197c37a2 103-105,108-127
+  s_6a4b84c87d9f2c::t_42388434a8444a 71-75
+  s_6a4b84c87d9f2c::t_e7be6334348899 79,84
+  s_6a4b84c87d9f2c::t_6585a83fb612fa 253,256,258,260,262,264
+  s_6a4b84c87d9f2c::t_b0c8d3632600b4 33
+  s_6a4b84c87d9f2c::t_a9b2c0618e1dab 303
+  s_6a4b84c87d9f2c::t_54648ca80b4987 6
+  s_6a4b84c87d9f2c::t_893085628acafa 162-163
+  s_6a4b84c87d9f2c::t_d6a45f34be2678 88-92,106-107
+  s_6a4b84c87d9f2c::t_beeab687970a00 15-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0788c24f044c7e289797f2697c1969112ce40f49",
+  "prompts": {},
+  "sessions": {
+    "s_0cef7c3f88c760": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e198d5eb8ffezMGK6d3MRHqbUq",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_6a4b84c87d9f2c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e198d0fbcffdRxDFFFA7t6WGvF",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
