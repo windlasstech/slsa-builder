@@ -1,0 +1,21 @@
+.github/workflows/lint.yml
+  s_a0944a39c86cef::t_641d304fa087c0 223-224
+.github/workflows/fuzz.yml
+  s_a0944a39c86cef::t_641d304fa087c0 110-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cf863c6ffc9e85457e64a1ca96ca3bdfd89083c8",
+  "prompts": {},
+  "sessions": {
+    "s_a0944a39c86cef": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e19582a38ffe3jXnVIlX1WBZVz",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
