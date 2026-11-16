@@ -1,0 +1,99 @@
+docs/decisions/README.ko.md
+  s_776bca7a3db24c::t_08cf55ea7511a1 48,293
+  s_776bca7a3db24c::t_ff7291764f44f6 292
+  s_776bca7a3db24c::t_ce04ac8c3308c5 31
+docs/decisions/0082-pin-publish-stage-npm-cli-version-with-integrity-verified-provisioning-and-reviewed-allowlist.md
+  s_776bca7a3db24c::t_39529a2e9e17c1 56-61
+docs/decisions/AGENTS.md
+  s_776bca7a3db24c::t_a5b780e417bb15 51
+  s_776bca7a3db24c::t_08cf55ea7511a1 79
+  s_84b78a549bfa2e::t_eb3468dec8c72e 7
+docs/decisions/0110-record-deterministic-media-types-for-non-runner-dependencies.md
+  s_776bca7a3db24c::t_daef663b42549e 26-27
+docs/decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md
+  s_776bca7a3db24c::t_abcda600dae664 19-21
+  s_776bca7a3db24c::t_ff7291764f44f6 22
+  s_776bca7a3db24c::t_89fa2ae4b610f2 28-33
+  s_776bca7a3db24c::t_65efc9728ede7a 23-27
+docs/decisions/0113-define-the-common-builderdependencies-descriptor-shape.md
+  s_776bca7a3db24c::t_361ce113263477 261-267,270-271
+  s_776bca7a3db24c::t_ab65920d49796a 268-269
+  s_776bca7a3db24c::t_4c6b5ce8ad9021 120,131
+  s_776bca7a3db24c::t_2d5d55c2688b40 239-243
+  s_776bca7a3db24c::t_d2498f3f948772 244-251,254-255
+  s_776bca7a3db24c::t_2dbe304411beda 4
+  s_776bca7a3db24c::t_560aeb0515bf1e 1-3,5-10,17-36,47-51,57-94,103-106,112-119,122-124,138-139,141-143,159-191,198-231,235-238,252-253,256-260
+  s_776bca7a3db24c::t_5c99796d1cabb4 55-56
+  s_776bca7a3db24c::t_96220b045f343a 145-147,149-150
+  s_776bca7a3db24c::t_353b9f8d3208f1 11,52-54,95-96,196-197
+  s_776bca7a3db24c::t_65efc9728ede7a 12-16,97-102,126-130,232-234
+  s_776bca7a3db24c::t_3e013bb7c06de3 37-46
+  s_776bca7a3db24c::t_a217530bc7f9f7 144,148,151-158
+  s_776bca7a3db24c::t_f350d447934aa0 192-195
+  s_776bca7a3db24c::t_776be93161e9fa 121,125,132-137,140
+  s_776bca7a3db24c::t_2a0fa68e33a8b5 272-273
+  s_776bca7a3db24c::t_f9b21feb19db29 107-111
+docs/decisions/0105-record-invocation-and-built-source-as-role-named-resolved-dependencies.md
+  s_776bca7a3db24c::t_6661a5694f76ab 38-39
+docs/decisions/0109-minimize-external-parameters-to-actual-interface-inputs.md
+  s_776bca7a3db24c::t_193f21e256c2d6 120-121
+  s_776bca7a3db24c::t_89a54dec2bef8e 122-127
+docs/decisions/0114-record-the-publish-stage-npm-cli-in-builderdependencies.md
+  s_776bca7a3db24c::t_eb4682571667f2 165
+  s_776bca7a3db24c::t_baf5da74832dac 268-269,272-273
+  s_776bca7a3db24c::t_e13f7322c85b08 104-105
+  s_776bca7a3db24c::t_d4083aa22ef670 152-154
+  s_776bca7a3db24c::t_cee0a79adb4fa4 208-209
+  s_776bca7a3db24c::t_f12d91ddfe8e9b 12-19
+  s_776bca7a3db24c::t_48953fa1869ceb 215
+  s_776bca7a3db24c::t_47b714257f84a2 112-114
+  s_776bca7a3db24c::t_0fff23017152da 92
+  s_776bca7a3db24c::t_65efc9728ede7a 142-145
+  s_776bca7a3db24c::t_f03afbd774d491 122
+  s_776bca7a3db24c::t_3649447791a183 3
+  s_776bca7a3db24c::t_ff7291764f44f6 102-103
+  s_776bca7a3db24c::t_ae2aad96cd9635 166-170
+  s_776bca7a3db24c::t_4cbd66f432d028 124-137,146-149
+  s_776bca7a3db24c::t_896e8063c10243 140-141
+  s_776bca7a3db24c::t_a0a2690a6e954d 270-271
+  s_84b78a549bfa2e::t_bbc7a0dd2b899a 1-2,4-11,20-91,93-101,106-111,115-121,123,138-139,150-151,155-164,171-207,210-214,216-267,274-276
+docs/decisions/README.md
+  s_776bca7a3db24c::t_276e1fc56656d8 32
+  s_776bca7a3db24c::t_08cf55ea7511a1 49,298
+  s_776bca7a3db24c::t_ff7291764f44f6 297
+docs/decisions/0098-provision-the-build-stage-nodejs-runtime-from-a-digest-verified-release-tarball.md
+  s_776bca7a3db24c::t_93dd30c72ff9ff 30-31
+docs/decisions/0071-activate-builder-version-and-builderdependencies-for-platform-components.md
+  s_776bca7a3db24c::t_245a35ce6bff60 32-33
+  s_776bca7a3db24c::t_5597c8f5fd7495 34-39
+docs/decisions/0099-record-the-digest-verified-nodejs-runtime-in-resolveddependencies.md
+  s_776bca7a3db24c::t_15f6044490afde 36-37
+docs/decisions/0104-remove-redundant-external-parameter-builder-record.md
+  s_776bca7a3db24c::t_d61ec69da67f61 26-27
+docs/decisions/0084-provision-the-publish-stage-npm-cli-from-a-digest-verified-registry-tarball.md
+  s_776bca7a3db24c::t_6dad35e92b2804 38-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef00d67177145a54d98c9dc830804eb52bded779",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_84b78a549bfa2e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
