@@ -220,6 +220,8 @@ jobs:
             target: FuzzOperationalStderrRelayFilter
           - package: internal/provenance
             target: FuzzDecodeInternalParameters
+          - package: internal/provenance
+            target: FuzzDecodeBuilderDependencies
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
     steps:
