@@ -16,3 +16,15 @@ and inline-code delimiters do not affect comparison. Missing sections/tables, ma
 unreadable inputs, and unequal values fail with `windlass.verify.error.toolchain-pin-drift` (check
 `toolchain.pins.drift`), a canonical report, and exit 1. Success exits 0; missing flags exit 2. Do
 not duplicate pin literals in provisioning or publish-side validation code.
+
+`ParseSigningAdapterModule` reads explicitly supplied `go.mod` and `go.sum` bytes for generation and
+drift tooling only. It accepts canonical exact candidate versions independently of the compiled
+signer pin, rejects signer replacements, and requires exactly one matching module-content `h1`
+checksum (never a `/go.mod` checksum). Strict base64 decoding must yield 32 bytes; `DirHash1` is
+their lowercase hexadecimal representation. Invalid or ambiguous inputs return `DriftError` with
+`windlass.verify.error.toolchain-pin-drift`.
+
+Production issuance and verification use `provenance.SigningAdapterBuilderDependency()` and its
+compiled constants. They never read module manifests at runtime or panic during initialization.
+Candidate parsing is not an allowlist decision: graph-to-compiled-pin agreement belongs to drift
+checks and tests.

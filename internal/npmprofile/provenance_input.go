@@ -111,6 +111,10 @@ func NewProvenanceSigningInput(input NPMProvenanceInput) (ProvenanceSigningInput
 	if err != nil {
 		return ProvenanceSigningInput{}, fmt.Errorf("encode GitHub internal parameters: %w", err)
 	}
+	publishCLI, err := publishCLIBuilderDependency()
+	if err != nil {
+		return ProvenanceSigningInput{}, err
+	}
 	predicate := provenance.Predicate{
 		BuildDefinition: provenance.BuildDefinition{
 			BuildType:            NPMBuildType,
@@ -120,13 +124,9 @@ func NewProvenanceSigningInput(input NPMProvenanceInput) (ProvenanceSigningInput
 		},
 		RunDetails: provenance.RunDetails{
 			Builder: provenance.Builder{
-				ID:      input.BuilderID,
-				Version: version,
-				BuilderDependencies: []provenance.BuilderDependency{{
-					URI:         "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
-					Digest:      map[string]string{"h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="},
-					Annotations: map[string]string{"role": "signing-adapter"},
-				}},
+				ID:                  input.BuilderID,
+				Version:             version,
+				BuilderDependencies: []provenance.BuilderDependency{provenance.SigningAdapterBuilderDependency(), publishCLI},
 			},
 			Metadata: provenance.Metadata{InvocationID: input.InvocationID, StartedOn: input.StartedOn, FinishedOn: input.FinishedOn, BuildScriptDisposition: string(input.BuildMetadata.BuildScriptDisposition)},
 		},

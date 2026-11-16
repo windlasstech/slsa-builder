@@ -70,13 +70,9 @@ func TestSignGitHubActionsOnline(t *testing.T) {
 			BuildDefinition: provenance.BuildDefinition{BuildType: "https://buildtype.dev/windlass/slsa-builder/js-ts-npm-package/v1", ExternalParameters: []byte(`{}`), InternalParameters: []byte(`{}`), ResolvedDependencies: []provenance.ResourceDescriptor{}},
 			RunDetails: provenance.RunDetails{
 				Builder: provenance.Builder{
-					ID:      serverURL + "/" + workflowRef,
-					Version: map[string]string{"nodejs": "v24.0.0"},
-					BuilderDependencies: []provenance.BuilderDependency{{
-						URI:         "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
-						Digest:      map[string]string{"h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="},
-						Annotations: map[string]string{"role": "signing-adapter"},
-					}},
+					ID:                  serverURL + "/" + workflowRef,
+					Version:             map[string]string{"nodejs": "v24.0.0"},
+					BuilderDependencies: []provenance.BuilderDependency{provenance.SigningAdapterBuilderDependency()},
 				},
 				Metadata: provenance.Metadata{InvocationID: serverURL + "/" + repository + "/actions/runs/" + runID + "/attempts/" + runAttempt, StartedOn: "2026-08-07T00:00:00Z", FinishedOn: "2026-08-07T00:00:00Z"},
 			},

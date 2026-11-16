@@ -11,6 +11,9 @@ import (
 
 func contractVariants(t *testing.T, spec contractFixtureSpec) []contractFixtureVariant {
 	t.Helper()
+	if strings.HasPrefix(spec.mutation, "builder-") && spec.mutation != "builder-id" {
+		return builderContractVariants(t, spec)
+	}
 	if spec.mutation == "matrix" {
 		return []contractFixtureVariant{contractVariant(t, ManagerNPM, "tag"), contractVariant(t, ManagerPNPM, "tag"), contractVariant(t, ManagerYarn, "tag")}
 	}
