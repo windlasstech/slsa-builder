@@ -1,0 +1,51 @@
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_0cef7c3f88c760::t_6f6829da587bf9 2403-2406,2411-2412
+  s_0cef7c3f88c760::t_981d5995ea4a90 1350
+  s_0cef7c3f88c760::t_06b65d89296e21 1251-1253,1258,1263-1271,1273,1275,1277,1286-1293,1296-1300,1303-1312,1317,1321,1328-1336,1338,1340,1342
+  s_0cef7c3f88c760::t_1db1b7ee93d048 1627-1629,1632
+  s_0cef7c3f88c760::t_9c3333673a921d 2300-2306
+  s_0cef7c3f88c760::t_7cc6ea2e0d86bd 1254-1257,1283-1285,1294-1295,1301-1302,1313-1316,1318-1320,1322-1323,1361-1362,1504-1509,1633-1635,2132-2134,2407-2410
+  s_0cef7c3f88c760::t_aab35986f76f64 2205-2211,2214-2218
+  s_0cef7c3f88c760::t_9b6a2a9d04fdde 2443-2445
+  s_0cef7c3f88c760::t_2c70c223bf7442 2131
+  s_0cef7c3f88c760::t_62a9f950b818b6 51-53
+docs/architecture/slsa-provenance-v1.md
+  s_0cef7c3f88c760::t_7e06568b091ce1 159-172
+  s_0cef7c3f88c760::t_eca9cfebe7a12d 754,775
+  s_0cef7c3f88c760::t_818a2eb763f128 989-994
+  s_0cef7c3f88c760::t_d6aa3348753fad 557
+  s_0cef7c3f88c760::t_7cc6ea2e0d86bd 558-562,600-603,607-609,613-620,622-624,673-676,921-949,951-960,987-988
+  s_0cef7c3f88c760::t_0658a7019bcf7c 1041-1044
+  s_0cef7c3f88c760::t_959d92f4ea685f 31-33
+  s_0cef7c3f88c760::t_f09bb6d11dda14 595-599,604-606,610-612,621,625-626,630-634,638-646,650-672,677-690
+  s_0cef7c3f88c760::t_e6aff99e985618 1033-1036
+  s_0cef7c3f88c760::t_83dcb28a748b8c 950
+internal/diagnostic/registry.go
+  s_776bca7a3db24c::t_d34febbf2d824e 142-143
+internal/diagnostic/diagnostic_test.go
+  s_776bca7a3db24c::t_1772311f8b0311 163-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef94a1cf9a7138d21a01ab81c657a281ab6cdb97",
+  "prompts": {},
+  "sessions": {
+    "s_0cef7c3f88c760": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e198d5eb8ffezMGK6d3MRHqbUq",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
