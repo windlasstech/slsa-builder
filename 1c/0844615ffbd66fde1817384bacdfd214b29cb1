@@ -1,0 +1,337 @@
+internal/npmprofile/provenance_input_test.go
+  s_86db1ee51fcd0b::t_7d00a017528fbf 36
+testdata/npm/provenance/contract-npm-builder-publish-cli-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-runtime-media-type-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-external-parameters-removed-members-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+internal/provenance/signing_adapter_candidate_test.go
+  s_2cd9913b2c2dff::t_5948e466f620da 1-40
+testdata/npm/provenance/contract-npm-runner-image-operating-system-group-malformed.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-missing.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-build-script-disposition-missing.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-publish-resolution-recompute-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/npm-predicate-source-ref-dispatch-retry.jcs.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-package-manifest-descriptor-missing.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+internal/npmprofile/provenance_input.go
+  s_561e5c41a3ee34::t_57dea55b93ca89 114-117,129
+  s_fde18d835a278d::t_6caf29e48bd838 127-128
+testdata/provenance/reject-internal-parameters.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-builder-version-npm-missing.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-built-source-commit-mismatch.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/fixtures/index.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 2078-2231
+internal/fixture/contract_registry_test.go
+  s_a0944a39c86cef::t_1c7fa13d6d1d3c 17
+testdata/npm/provenance/contract-npm-runner-image-image-os-rejected.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+cmd/slsa-builder-internal/signing_adapter_test.go
+  s_2cd9913b2c2dff::t_70dc32ca2a4060 1-55
+testdata/npm/provenance/contract-npm-distribution-media-type-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-missing.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-distribution-removed-member-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-builder-dependencies-common-shape-invalid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-path-mismatch.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-built-source-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/toolchainpins/signing_adapter_test.go
+  s_2cd9913b2c2dff::t_70dc32ca2a4060 1-3,6-41,44,64-67,69,79-88
+  s_2cd9913b2c2dff::t_5948e466f620da 4-5,42-43,45-63,68,70-78
+internal/toolchainpins/signing_adapter.go
+  s_d59491df1c5c65::t_3ea554b58dafd4 1-68
+testdata/npm/provenance/contract-npm-builder-publish-cli-duplicate.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/provenance/reject-run-invocation.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-built-source-classifier-mismatch.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-manifest-media-type-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-duplicate-member.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-external-parameters-minimized-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/provenance/reject-timestamp-ordering.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-built-source-missing.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-non-string.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-builder-signing-adapter-legacy-digest.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/provenance/reject-predicate-type.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-annotations-ignored-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-source-selector-whitespace.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/provenance/valid-statement-corepack.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-build-script-disposition-inconsistent.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+internal/provenance/model_test.go
+  s_2cd9913b2c2dff::t_d0b7794c5b051f 31
+internal/npmprofile/contract_fixture_mutation_test.go
+  s_a0944a39c86cef::t_60c829ed6f9149 14
+  s_a0944a39c86cef::t_1c7fa13d6d1d3c 15-16
+testdata/npm/provenance/contract-npm-invocation-source-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/npmprofile/publish_cli_builder_test.go
+  s_86db1ee51fcd0b::t_7d00a017528fbf 1-12,14,17-96,98-100
+  s_e5ce9e442577d9::t_274c0a06d50732 13,15-16,97
+testdata/npm/provenance/contract-npm-internal-parameters-github-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/npm-predicate.jcs.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/provenance/builder_dependency.go
+  s_d59491df1c5c65::t_d87d243929330a 99-101
+  s_ff0131fe24b6ca::t_74164052e7d161 13-17
+  s_d59491df1c5c65::t_db17fc8394687d 1-12,20-61,63-98,102-118,120-135
+  s_ff0131fe24b6ca::t_9493806202f95d 18-19
+  s_d59491df1c5c65::t_dfe79801323f42 62,119
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-duplicate.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-builder-version-direct-npm-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-noncanonical.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-digest-mismatch.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-invocation-source-missing.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+internal/npmprofile/provenance_types.go
+  s_561e5c41a3ee34::t_57dea55b93ca89 26
+  s_fde18d835a278d::t_6caf29e48bd838 15-25,27-30
+testdata/provenance/reject-timestamp-format.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-build-script-disposition-skipped-absent-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/fixture/registry.go
+  s_a0944a39c86cef::t_1c7fa13d6d1d3c 60
+  s_e5ce9e442577d9::t_274c0a06d50732 11-12,59,61-86,124-125
+testdata/npm/provenance/contract-npm-runner-image-operating-system-group-duplicate.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/provenance/valid-predicate.jcs.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-invocation-source-duplicate.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-media-type-matrix-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/provenance/signing_adapter_graph_test.go
+  s_2cd9913b2c2dff::t_893737eb364cf9 1-48
+testdata/npm/provenance/contract-npm-runner-image-metadata-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/provenance/reject-zero-subjects.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-lockfile-media-type-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-invocation-source-media-type-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-builder-version-corepack-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/provenance/provenance_test.go
+  s_2cd9913b2c2dff::t_d0b7794c5b051f 46,80,117,161,186,195-196,199-200
+  s_2cd9913b2c2dff::t_2c8ffbcc0c7e0d 197-198,201
+  s_2cd9913b2c2dff::t_893737eb364cf9 147
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-whitespace.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/provenance/reject-statement-type.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-package-manifest-descriptor-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-package-manifest-path-mismatch.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-distribution-interface-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/command/verify_attestation_publish_cli_test.go
+  s_86db1ee51fcd0b::t_fc671edaca27cf 25
+  s_86db1ee51fcd0b::t_51454b7579d0f1 1-24,26-45
+testdata/npm/provenance/contract-npm-builder-dependencies-reordered-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-wrong-digest.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-canonical-builder-identity-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-invocation-source-commit-mismatch.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-build-config-uri-mismatch.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/provenance/builder_dependencies_test.go
+  s_2cd9913b2c2dff::t_893737eb364cf9 129-131,165-166
+  s_2cd9913b2c2dff::t_d0b7794c5b051f 1-128,132-164,167-173
+internal/signing/signing_test.go
+  s_776bca7a3db24c::t_2650bb2141061b 73-74
+  s_2cd9913b2c2dff::t_893737eb364cf9 75
+internal/npmprofile/contract_fixture_test.go
+  s_a0944a39c86cef::t_1c7fa13d6d1d3c 82-84
+testdata/npm/provenance/contract-npm-runner-image-additional-annotation-rejected.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-workflow-invocation-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/npmprofile/builder_dependencies.go
+  s_561e5c41a3ee34::t_57dea55b93ca89 1-67
+testdata/npm/provenance/contract-npm-source-selector-bindings-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-built-source-media-type-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/provenance/valid-clock-skew.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-runner-image-projection-mismatch.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-package-manifest-evidence-missing.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-runner-image-operating-system-group-missing.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/provenance/validate.go
+  s_d59491df1c5c65::t_db17fc8394687d 89,200,204
+testdata/npm/provenance/contract-npm-runner-image-operating-system-annotation-missing.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/provenance/reject-multiple-subjects.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-source-selector-conflict.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-diagnostic-publish-preexisting-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-builder-dependencies-unknown-extra.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/provenance/builder_dependencies.go
+  s_d59491df1c5c65::t_d87d243929330a 50
+  s_ff0131fe24b6ca::t_9493806202f95d 9-10,12,22-23
+  s_d59491df1c5c65::t_db17fc8394687d 1-8,11,13-21,24-49,51-95
+testdata/provenance/valid-statement.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/npmprofile/contract_fixture_catalog_test.go
+  s_a0944a39c86cef::t_1c7fa13d6d1d3c 11-21
+internal/npmprofile/publish_cli_consumer_test.go
+  s_86db1ee51fcd0b::t_5c53a57d554340 1-73,75-130
+  s_86db1ee51fcd0b::t_fc671edaca27cf 74
+testdata/npm/provenance/contract-npm-build-script-disposition-executed-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-runner-image-reported-identity-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-build-trigger-mismatch.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+testdata/npm/provenance/contract-npm-canonical-builder-id-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+internal/provenance/builder_dependencies_fuzz_test.go
+  s_776bca7a3db24c::t_2650bb2141061b 42
+  s_2cd9913b2c2dff::t_70dc32ca2a4060 1-38,43-58
+  s_2cd9913b2c2dff::t_893737eb364cf9 39-41
+testdata/npm/provenance/contract-npm-package-manifest-evidence-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/toolchainpins/AGENTS.md
+  s_d59491df1c5c65::t_3ea554b58dafd4 19-30
+testdata/npm/provenance/contract-npm-runner-image-operating-system-detail-empty.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-runner-image-imageos-absent-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/npmprofile/contract_fixture_builder_test.go
+  s_a0944a39c86cef::t_1c7fa13d6d1d3c 1-4,7-42,48-67
+  s_a0944a39c86cef::t_17919bdf7c4951 5-6,43-47
+testdata/provenance/reject-builder-version.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-builder-signing-adapter-valid.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+internal/provenance/builder_dependencies_profile_test.go
+  s_2cd9913b2c2dff::t_70dc32ca2a4060 1-40,42-49
+  s_776bca7a3db24c::t_2650bb2141061b 41
+testdata/npm/provenance/contract-npm-builder-publish-cli-extra-effective-member.json
+  s_e5ce9e442577d9::t_2f6738236dbfdb 1
+testdata/npm/provenance/contract-npm-github-internal-parameters-actor-rejected.json
+  s_e5ce9e442577d9::t_fe9e63e0471f68 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1c0844615ffbd66fde1817384bacdfd214b29cb1",
+  "prompts": {},
+  "sessions": {
+    "s_2cd9913b2c2dff": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e196ff003ffeB6pKQvwayN7j9D",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_561e5c41a3ee34": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e195d122fffeZQ3F13FdYkOxyb",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_86db1ee51fcd0b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e196fad15ffeFEK5tJfjVKCRPL",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_a0944a39c86cef": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e19582a38ffe3jXnVIlX1WBZVz",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d59491df1c5c65": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e1963af4effepf45QyeXOe21rf",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_e5ce9e442577d9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e19582a38ffe3jXnVIlX1WBZVz",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fde18d835a278d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e195d122fffeZQ3F13FdYkOxyb",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_ff0131fe24b6ca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e1963af4effepf45QyeXOe21rf",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
