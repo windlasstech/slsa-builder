@@ -3,7 +3,7 @@
 This document records the current toolchain artifacts and third-party Go modules approved for the
 trusted core, together with the standing policy for selecting and reviewing dependencies. It selects
 dependencies; it does not implement production verification, canonicalization, workflow checks, or
-runtime provisioning. ADRs 0004, 0061, and 0069 and the
+runtime provisioning. ADRs 0004, 0061, 0069, 0077, 0113, and 0114 and the
 [verification policy](architecture/verification-policy-and-fixtures.md) remain governing context.
 
 ## Current Selection
@@ -12,7 +12,11 @@ runtime provisioning. ADRs 0004, 0061, and 0069 and the
 
 The trusted core uses Go 1.27.3. The JS/TS npm build toolchain pairs Node.js 24.22.1 with its
 bundled npm 11.19.1 and asserts that pair before first use. The publish-stage npm CLI is selected
-independently as npm 11.21.1; it does not inherit or replace the build toolchain's bundled npm.
+independently as npm 11.21.1; it does not inherit or replace the build toolchain's bundled npm. ADR
+0114 records it in signed `builderDependencies` as `publish-cli`, with URI `pkg:npm/npm@11.21.1`,
+tarball SHA-512
+`613ccbe90044257c87713bb426251ced128ca7e9b3949b65eeb18b98445a5d441e14720c73d6ad76be86f4cf42f2f0d66efe347a9a13400ccd2f6fcfb5954385`,
+and media type `application/gzip`. Its `digest_authority` annotation is descriptive only.
 
 The Linux x64 Node.js runtime archive is pinned to the official Node.js distribution:
 
@@ -26,7 +30,7 @@ Go's standard-library `compress/gzip` package decodes the `.tar.gz` runtime arch
 
 | Capability                  | Module and exact version                                                         | License      |
 | --------------------------- | -------------------------------------------------------------------------------- | ------------ |
-| Sigstore verification       | `github.com/sigstore/sigstore-go v1.3.0`                                         | Apache-2.0   |
+| Sigstore verification       | `github.com/sigstore/sigstore-go v1.4.0`                                         | Apache-2.0   |
 | RFC 8785 JCS                | `github.com/cyberphone/json-canonicalization v0.0.0-20261011152517-32a48195b9b2` | Apache-2.0   |
 | Workflow YAML parsing       | `github.com/goccy/go-yaml v1.19.3-0.20260407131736-edee2f91616c`                 | MIT          |
 | SemVer and module selection | `golang.org/x/mod v0.42.0`                                                       | BSD-3-Clause |
@@ -64,22 +68,28 @@ Dependency selection and every subsequent version change follow these rules:
 6. **No selection by update hint alone:** an upstream-test-only update hint is not a selection
    argument. Eligibility, necessity, compatibility, and the full review above must independently
    support the selected version.
+7. **Synchronize descriptor-coupled bumps:** a version-only sigstore-go bump must update the module
+   graph, compiled signing-adapter descriptor expectations, normative documentation, and byte-exact
+   fixtures together. A publish-cli version-and-digest bump must likewise update its pin, compiled
+   descriptor expectations, normative documentation, and fixtures together. Any drift between the
+   selected dependency, signed descriptor, and governed expectations blocks the change.
 
 ## Selection Rationale and Trust Boundaries
 
-### Sigstore: `github.com/sigstore/sigstore-go v1.3.0`
+### Sigstore: `github.com/sigstore/sigstore-go v1.4.0`
 
 #### Rationale
 
 - **License:** Apache-2.0, confirmed by the repository
-  [license](https://github.com/sigstore/sigstore-go/blob/v1.3.0/LICENSE).
+  [license](https://github.com/sigstore/sigstore-go/blob/v1.4.0/LICENSE).
 - **Maintainer and reputation:** this is the official Go verification library maintained by the
   Sigstore project. Its README describes the library as stable, production-ready, and covered by
   Sigstore conformance testing.
-- **Release and compatibility:** `v1.3.0` was released on 12026-07-30. The preceding `v1.2.0`,
-  `v1.2.1`, and `v1.2.2` releases were published during 12026-06 and 12026-07, showing active
-  maintenance at selection time. Its module requires Go 1.25.8, which is compatible with the
-  repository's Go 1.27.3 toolchain.
+- **Release and compatibility:**
+  [`v1.4.0`](https://github.com/sigstore/sigstore-go/releases/tag/v1.4.0) was released on
+  12026-10-29, following `v1.3.0` on 12026-07-30 and the `v1.2.x` releases during 12026-06 and
+  12026-07. Its tagged [`go.mod`](https://github.com/sigstore/sigstore-go/blob/v1.4.0/go.mod)
+  declares Go 1.27.0, which is compatible with the repository's Go 1.27.3 toolchain.
 - **Capability fit:** the library parses Sigstore bundles and verifies message signatures or DSSE
   envelopes, Fulcio certificate chains, embedded SCTs, Rekor inclusion proofs or SETs, observer
   timestamps including SET-covered integrated time, and optional RFC 3161 timestamps. The selected
@@ -89,6 +99,31 @@ Dependency selection and every subsequent version change follow these rules:
 - **Footprint:** this is the only approved direct dependency with a substantial transitive graph.
   Reimplementing its cryptographic and transparency-log behavior would be less auditable and would
   conflict with ADR 0069's alignment with Sigstore semantics.
+
+#### Module Evidence and Signed Descriptor
+
+The selected module's `go.sum` module-content checksum is
+`h1:CGdFdZLhYSc42yYN0+lL6yWh7v0z3S0i21v50lvSYKw=`. It remains valid source evidence for the module
+directory. The separate `github.com/sigstore/sigstore-go v1.4.0/go.mod` checksum covers only
+`go.mod` and must not be substituted for the module-content checksum.
+
+ADR 0113's signed signing-adapter descriptor carries the same module-content digest bytes in
+DigestSet `dirHash1` form, rendered as lowercase hexadecimal:
+
+```json
+{
+  "name": "signing-adapter",
+  "uri": "pkg:golang/github.com/sigstore/sigstore-go@v1.4.0",
+  "digest": {
+    "dirHash1": "0867457592e1612738db260dd3e94beb25a1eefd33dd2d22db5bf9d25bd260ac"
+  }
+}
+```
+
+Strictly base64-decoding the `h1` payload and encoding the resulting bytes as lowercase hexadecimal
+produces this `dirHash1` value. The `h1` and `dirHash1` names identify different encodings of the
+same module-directory hash, not different digest evidence. The descriptor has no `annotations`
+member; its identity key is `name`.
 
 #### Online and Offline Trust-Root Paths
 
@@ -124,8 +159,8 @@ Relevant upstream APIs and implementation evidence:
   [`root.FetchTrustedRoot`](https://pkg.go.dev/github.com/sigstore/sigstore-go/pkg/root#FetchTrustedRoot)
 - [`verify.NewVerifier`](https://pkg.go.dev/github.com/sigstore/sigstore-go/pkg/verify#NewVerifier)
   and its SCT, transparency-log, and timestamp options
-- [verification guide](https://github.com/sigstore/sigstore-go/blob/v1.3.0/docs/verification.md)
-- [TUF options](https://github.com/sigstore/sigstore-go/blob/v1.3.0/pkg/tuf/options.go), including
+- [verification guide](https://github.com/sigstore/sigstore-go/blob/v1.4.0/docs/verification.md)
+- [TUF options](https://github.com/sigstore/sigstore-go/blob/v1.4.0/pkg/tuf/options.go), including
   the air-gapped trusted-root-file path
 
 ### RFC 8785 JCS: `github.com/cyberphone/json-canonicalization v0.0.0-20261011152517-32a48195b9b2`
@@ -215,18 +250,18 @@ rejected cases. The upstream package does not provide a separate vector director
 
 ### Sigstore
 
-`sigstore-go v1.3.0` provides:
+`sigstore-go v1.4.0` provides:
 
 - the Sigstore verifier conformance runner in
-  [`test/conformance`](https://github.com/sigstore/sigstore-go/tree/v1.3.0/test/conformance);
+  [`test/conformance`](https://github.com/sigstore/sigstore-go/tree/v1.4.0/test/conformance);
 - end-to-end verification tests in
-  [`test/e2e`](https://github.com/sigstore/sigstore-go/tree/v1.3.0/test/e2e);
+  [`test/e2e`](https://github.com/sigstore/sigstore-go/tree/v1.4.0/test/e2e);
 - package tests for bundle parsing, trust roots, TUF, SCT, Rekor/tlog, TSA, DSSE, and verifier
-  policy under [`pkg`](https://github.com/sigstore/sigstore-go/tree/v1.3.0/pkg);
+  policy under [`pkg`](https://github.com/sigstore/sigstore-go/tree/v1.4.0/pkg);
 - bundle, trusted-root, and public-key vectors in
-  [`pkg/testing/data`](https://github.com/sigstore/sigstore-go/tree/v1.3.0/pkg/testing/data); and
+  [`pkg/testing/data`](https://github.com/sigstore/sigstore-go/tree/v1.4.0/pkg/testing/data); and
 - public-good bundle and trusted-root examples in
-  [`examples`](https://github.com/sigstore/sigstore-go/tree/v1.3.0/examples).
+  [`examples`](https://github.com/sigstore/sigstore-go/tree/v1.4.0/examples).
 
 Fixture selection copies only the upstream vectors needed to prove the accepted bundle and the
 required missing-SCT, missing-or-mismatched-Rekor, invalid-signing-time, and ungoverned-root
@@ -265,7 +300,7 @@ selection and review policy.
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `github.com/sigstore/cosign/v2`                  | CLI-oriented and materially heavier; its legacy offline flag was deprecated, while `sigstore-go` exposed the required library boundary directly.                                        |
 | `github.com/sigstore/sigstore` alone             | Lower-level primitives did not replace `sigstore-go`'s bundle and policy verification orchestration. It remains an indirect dependency of the selected official library.                |
-| Older `sigstore-go` releases                     | Superseded by compatible stable `v1.3.0`; no benefit justified starting on an older verifier.                                                                                           |
+| Older `sigstore-go` releases                     | Superseded by compatible stable `v1.4.0`; no benefit justified starting on an older verifier.                                                                                           |
 | `github.com/deszhou/jcs v1.0.0`                  | Strict and tagged, but newly maintained and not the RFC editor's reference repository; it would have added a second implementation while Sigstore already brought the reference module. |
 | `github.com/gowebpki/jcs v1.0.1`                 | Stable fork, but less direct provenance to the RFC reference implementation and its official vectors.                                                                                   |
 | `github.com/ucarion/jcs v0.1.2`                  | Operated on already-decoded Go values and documented incomplete surrogate validation, weakening raw-input assurance.                                                                    |

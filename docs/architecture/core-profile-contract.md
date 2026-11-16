@@ -387,7 +387,7 @@ npm error code E422
 
 ## Signing adapter boundary
 
-- The Go-native `sigstore-go` v1.3.0 signer defined by ADR 0077 is the Windlass signing adapter for
+- The Go-native `sigstore-go` v1.4.0 signer defined by ADR 0077 is the Windlass signing adapter for
   every production profile. The npm profile adopts it first, Wave 4 release-manifest signing reuses
   it, and future profiles use it by default as their contracts are admitted. `actions/attest` is not
   a Windlass signing adapter.
@@ -406,8 +406,11 @@ npm error code E422
   normalize, or reserialize them. The npm GitHub attestation storage path is disabled while that
   service rejects the profile's custom `buildType`; storage integration is separate from signer
   selection.
-- Any future adapter migration must preserve the verifier-visible trust contract and update the
-  profile's closed `builderDependencies` descriptor through a follow-up ADR.
+- The [common descriptor contract](slsa-provenance-v1.md#builderdependencies-descriptor-contract)
+  owns the signing descriptor's current `name`, sigstore-go URI version, lowercase `dirHash1`, and
+  closed member set. A governed signer version/digest refresh updates those values without changing
+  this adapter boundary. Any future adapter migration must preserve the verifier-visible trust
+  contract and change the descriptor shape or signer selection only through a follow-up ADR.
 
 ## Profile extension contract
 
