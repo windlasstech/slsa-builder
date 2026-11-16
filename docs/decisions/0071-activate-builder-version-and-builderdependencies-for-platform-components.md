@@ -29,6 +29,14 @@ relations:
       reference to externalParameters.package_manager version recording"
   - type: see-also
     target: ADR-0111
+  - type: see-also
+    target: ADR-0113
+  - type: partially-superseded-by
+    target: ADR-0114
+    scope:
+      "the closed 'exactly one signing-adapter descriptor' rule for builderDependencies; the field
+      classification rationale remains in force, and the signing-adapter descriptor's shape is
+      governed by ADR 0113"
 ---
 
 # Activate builder.version and builderDependencies for Build Platform Components

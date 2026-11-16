@@ -53,6 +53,12 @@ relations:
     scope:
       "the externalParameters.runtime.npm_version recording location; the bundled npm version moves
       to builder.version.npm"
+  - type: partially-superseded-by
+    target: ADR-0114
+    scope:
+      "the recording-location clause placing the publish npm version only in outcome evidence; the
+      pinning, integrity-verified provisioning, reviewed allowlist, and bump-procedure clauses
+      remain in force"
 ---
 
 # Pin the Publish-Stage npm CLI Version with Integrity-Verified Provisioning and a Reviewed Allowlist

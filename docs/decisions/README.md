@@ -29,7 +29,7 @@ accepted ADR, stop and write a new ADR rather than editing the accepted ADR body
 ## ADR inventory
 
 ADR files are MADR 4.0.0 documents with sequential four-digit numbers and kebab-case titles. The
-sequence currently runs from `0000` through `0112`.
+sequence currently runs from `0000` through `0114`.
 
 | ADRs                 | Topic                                                | Notes                                                                                                                                                                                                                                     |
 | -------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -46,7 +46,7 @@ sequence currently runs from `0000` through `0112`.
 | 0065                 | ADR lifecycle metadata                               | Closed status grammar, separate relations field and bidirectional traceability.                                                                                                                                                           |
 | 0066–0067, 0074–0076 | Common run convergence and mutation policy           | Job-class concurrency, run-identity idempotency, single-job mutation segments, detection-based safety, `queue: max` FIFO, observation preflights and first-mutation classification.                                                       |
 | 0068–0069            | Verifier identity and transparency trust             | Immutable builder/source identities, Rekor inclusion, offline verification and governed Sigstore trust root.                                                                                                                              |
-| 0070–0071            | Build-environment and builder recording              | Package-manager distributions, initial runner-image descriptor, `builder.version` and `builderDependencies`.                                                                                                                              |
+| 0070–0071, 0113–0114 | Build-environment and builder recording              | Package-manager distributions, initial runner-image descriptor, `builder.version` and `builderDependencies`, the common `builderDependencies` descriptor shape, and the publish-stage npm CLI descriptor.                                 |
 | 0072                 | Release asset run ownership binding                  | Sidecar-first pair binding and custody non-attribution for release assets.                                                                                                                                                                |
 | 0073, 0102           | npm publish convergence and read-back classification | Published-attestation run identity, E422 reduced read-back budget, determinate absence and full budget when the version exists.                                                                                                           |
 | 0077                 | Windlass provenance signing adapter                  | Go-native exact-byte Sigstore DSSE signing for all profiles, superseding `0035` and `0055`.                                                                                                                                               |
@@ -294,6 +294,8 @@ of this table; they are recorded in each ADR's `relations` frontmatter field.
 | 0110 | Record deterministic media types for non-runner dependencies                                                      | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                                 |
 | 0111 | Record runner-image reported identity with the Included Software URI and full image version                       | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                                 |
 | 0112 | Record runner-image operating system from on-disk metadata                                                        | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                                 |
+| 0113 | Define the common `builderDependencies` descriptor shape with `name` as the identity key                          | SLSA provenance v1, verification policy and fixtures                                                                                                                                             |
+| 0114 | Record the publish-stage npm CLI in `builderDependencies`                                                         | SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                                           |
 
 ### Superseded or deprecated ADRs (historical only)
 

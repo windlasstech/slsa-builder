@@ -28,7 +28,7 @@
 ## ADR 목록
 
 ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을 사용합니다. 현재 순번은 `0000`부터
-`0112`까지입니다.
+`0114`까지입니다.
 
 | ADR                  | 주제                                        | 설명                                                                                                                                                                                                                   |
 | -------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,7 +45,7 @@ ADR 파일은 MADR 4.0.0 문서이며, 네 자리 순번과 kebab-case 제목을
 | 0065                 | ADR 생애주기 메타데이터                     | 닫힌 status 문법, 분리된 relations 필드, 양방향 추적성.                                                                                                                                                                |
 | 0066–0067, 0074–0076 | 공통 실행 수렴 및 변경 정책                 | Job-class concurrency, run-identity 멱등성, 단일 job mutation segment, 탐지 기반 cross-run 안전, `queue: max` FIFO, 관측 preflight와 첫 mutation 분류.                                                                 |
 | 0068–0069            | 검증 신원 및 투명성 신뢰                    | 불변 builder 및 source 신원, Rekor inclusion, 오프라인 검증, Sigstore trust root 거버넌스.                                                                                                                             |
-| 0070–0071            | 빌드 환경 및 빌더 기록                      | 패키지 매니저 배포본, 초기 runner image descriptor, `builder.version` 및 `builderDependencies`.                                                                                                                        |
+| 0070–0071, 0113–0114 | 빌드 환경 및 빌더 기록                      | 패키지 매니저 배포본, 초기 runner image descriptor, `builder.version` 및 `builderDependencies`, 공용 `builderDependencies` descriptor 형태, 그리고 publish-stage npm CLI descriptor.                                   |
 | 0072                 | 릴리스 에셋 실행 소유권 바인딩              | Sidecar-first pair 바인딩과 릴리스 에셋 custody 비귀속.                                                                                                                                                                |
 | 0073, 0102           | npm 게시 수렴 및 읽기 확인 분류             | Published-attestation run identity, E422의 축소된 read-back budget, determinate absence, 버전이 있으면 full budget 유지.                                                                                               |
 | 0077                 | Windlass provenance 서명 어댑터             | 모든 프로필의 정확한 바이트를 서명하는 Go-native Sigstore DSSE. `0035`와 `0055`를 대체.                                                                                                                                |
@@ -289,6 +289,8 @@ generic runner URI, mode URI 사이에서 변화하므로 그것이 결정 축�
 | 0110 | Record deterministic media types for non-runner dependencies                                                      | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                    |
 | 0111 | Record runner-image reported identity with the Included Software URI and full image version                       | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                    |
 | 0112 | Record runner-image operating system from on-disk metadata                                                        | SLSA provenance v1, JS/TS npm provenance and publish, JS/TS npm build and pack, verification policy and fixtures                                                                    |
+| 0113 | Define the common `builderDependencies` descriptor shape with `name` as the identity key                          | SLSA provenance v1, verification policy and fixtures                                                                                                                                |
+| 0114 | Record the publish-stage npm CLI in `builderDependencies`                                                         | SLSA provenance v1, JS/TS npm provenance and publish, verification policy and fixtures                                                                                              |
 
 ### 대체 혹은 폐기된 ADR (과거 맥락으로만 참조)
 

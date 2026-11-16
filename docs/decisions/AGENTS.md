@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0112`.
+`0114`.
 
 ## STRUCTURE
 
@@ -48,7 +48,7 @@ docs/decisions/
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0112`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0114`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -76,7 +76,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | ADR lifecycle metadata                               | `0065`                         | Closed status grammar, separate relations field and bidirectional traceability.                                                                                                                                                           |
 | Common run convergence and mutation policy           | `0066`–`0067`, `0074`–`0076`   | Job-class concurrency, run-identity idempotency, single-job mutation segments, detection-based safety, `queue: max` FIFO, observation preflights and first-mutation classification.                                                       |
 | Verifier identity and transparency trust             | `0068`–`0069`                  | Immutable builder/source identities, Rekor inclusion, offline verification and governed Sigstore trust root.                                                                                                                              |
-| Build-environment and builder recording              | `0070`–`0071`                  | Package-manager distributions, initial runner-image descriptor, `builder.version` and `builderDependencies`.                                                                                                                              |
+| Build-environment and builder recording              | `0070`–`0071`, `0113`–`0114`   | Package-manager distributions, initial runner-image descriptor, `builder.version` and `builderDependencies`, the common `builderDependencies` descriptor shape, and the publish-stage npm CLI descriptor.                                 |
 | Release asset run ownership binding                  | `0072`                         | Sidecar-first pair binding and custody non-attribution for release assets.                                                                                                                                                                |
 | npm publish convergence and read-back classification | `0073`, `0102`                 | Published-attestation run identity, E422 reduced read-back budget, determinate absence and full budget when the version exists.                                                                                                           |
 | Windlass provenance signing adapter                  | `0077`                         | Go-native exact-byte Sigstore DSSE signing for all profiles, superseding `0035` and `0055`.                                                                                                                                               |
