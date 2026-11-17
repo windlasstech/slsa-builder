@@ -606,14 +606,15 @@ members:
 The producer emits exactly the common members plus any additional members declared for that
 descriptor by its accepted governing ADR. No other effective member is admitted. A descriptor with
 an undeclared name, a duplicate name, a missing or malformed required member, or an undeclared
-effective member fails closed before signing or consumer acceptance.
+effective member fails closed before signing or consumer acceptance, except for the consumer-only
+signing-adapter `annotations` handling defined below.
 
 Presence equivalence in this section applies only to `builderDependencies` descriptors. A required
 member that is absent, `null`, an empty string, an empty map, or malformed fails the owning
 descriptor's check. An undeclared member whose value is `null`, `""`, `[]`, or `{}` is unset and
 does not count as an effective member. `false`, `0`, whitespace-only strings, and non-empty values
-are present and are rejected when undeclared. Producers never emit undeclared members, including
-members that consumers would treat as unset.
+are present and are rejected when undeclared, apart from that consumer-only exception. Producers
+never emit undeclared members, including members that consumers would treat as unset or ignore.
 
 Every producer profile emits exactly one `signing-adapter` descriptor. A profile emits only
 additional descriptors declared for that profile by accepted ADRs. The npm profile emits exactly one
@@ -623,7 +624,8 @@ Producer serialization places `signing-adapter` first and `publish-cli` second. 
 verification selects by `name` and accepts either order; reordering signed bytes still changes the
 signed payload.
 
-The current signing-adapter descriptor has exactly these three effective members and no annotations:
+The producer emits exactly `name`, `uri`, and `digest` for the current signing-adapter descriptor,
+with no `annotations` member:
 
 ```json
 {
@@ -637,11 +639,14 @@ The current signing-adapter descriptor has exactly these three effective members
 
 The URI and `dirHash1` value must agree with the governed module dependency used by the signing
 binary. `dirHash1` is the lowercase-hex DigestSet representation of the module's directory hash. A
-missing, duplicate, misnamed, malformed, or dependency-inconsistent signer, any additional effective
-member, or any non-empty `annotations` value is rejected with
-`windlass.verify.error.builder-dependencies-signing-adapter-mismatch`. The producer emits no signer
-`annotations` member; consumer presence handling for an undeclared empty value follows the common
-rule above.
+missing, duplicate, misnamed, malformed, or dependency-inconsistent signer, or any additional
+effective member other than consumer-ignored `annotations`, is rejected with
+`windlass.verify.error.builder-dependencies-signing-adapter-mismatch`. Producer-side emission of
+`annotations` remains forbidden. After recursive duplicate-member rejection, consumer verification
+ignores arbitrary valid JSON annotations on the descriptor named `signing-adapter` as descriptive
+metadata. Annotations never affect descriptor identity or integrity, including signer selection and
+URI or digest agreement. This exception applies only to that descriptor name and admits no other
+member. Every other undeclared effective member remains fail-closed.
 
 Invalid, because the digest does not identify the governed signer module:
 
@@ -655,7 +660,8 @@ Invalid, because the digest does not identify the governed signer module:
 }
 ```
 
-Invalid, because signer annotations are forbidden when non-empty:
+Valid for consumer verification only, because signer annotations are ignored as descriptive
+metadata. The producer never emits this member:
 
 ```json
 {
@@ -918,46 +924,46 @@ apply to `externalParameters`, `resolvedDependencies` entries, `builder.version`
 
 A verifier must reject provenance if any of the following are true:
 
-| Condition                                                                                                                                                       | Diagnostic ID                                                              | Phase        | Exit code | Mutation possible |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------ | --------- | ----------------- |
-| `_type` is not `https://in-toto.io/Statement/v1`                                                                                                                | `windlass.verify.error.statement-type-invalid`                             | verification | `1`       | `false`           |
-| `predicateType` is not `https://slsa.dev/provenance/v1`                                                                                                         | `windlass.verify.error.predicate-type-invalid`                             | verification | `1`       | `false`           |
-| Signature is missing or invalid                                                                                                                                 | `windlass.verify.error.signature-invalid`                                  | verification | `1`       | `false`           |
-| Signer identity is not trusted                                                                                                                                  | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
-| Any JSON object in the signed Statement payload contains duplicate member names after unescaping                                                                | `windlass.verify.error.duplicate-json-member`                              | policy       | `1`       | `false`           |
-| Any security-relevant bundle or DSSE JSON object contains duplicate member names after unescaping                                                               | `windlass.verify.error.duplicate-json-member`                              | policy       | `1`       | `false`           |
-| `builder.id` uses a branch, tag, or short SHA                                                                                                                   | `windlass.verify.error.builder-id-not-immutable`                           | verification | `1`       | `false`           |
-| `builder.id` is unauthorized or disagrees with Build Signer URI or Digest                                                                                       | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
-| `buildType` is not in the canonical namespace                                                                                                                   | `windlass.verify.error.build-type-not-canonical`                           | verification | `1`       | `false`           |
-| `externalParameters` is incomplete                                                                                                                              | `windlass.verify.error.external-parameters-incomplete`                     | verification | `1`       | `false`           |
-| `externalParameters` contains unexpected fields                                                                                                                 | `windlass.verify.error.external-parameters-unexpected`                     | verification | `1`       | `false`           |
-| Source Repository Ref or URI disagrees with `workflow.ref` or `workflow.repository`                                                                             | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
-| `workflow.path` differs from Build Config URI or uses the reusable builder path                                                                                 | `windlass.verify.error.build-config-uri-mismatch`                          | verification | `1`       | `false`           |
-| `internalParameters` violates the closed `github` three-string-field shape                                                                                      | `windlass.verify.error.unexpected-internal-parameters`                     | verification | `1`       | `false`           |
-| `internalParameters.github.event_name` differs from Build Trigger                                                                                               | `windlass.verify.error.build-trigger-mismatch`                             | verification | `1`       | `false`           |
-| Numeric repository or owner identifiers disagree with `internalParameters.github`                                                                               | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
-| A dependency name is unknown, non-enumerated, or duplicated before lookup                                                                                       | `windlass.verify.error.resolved-dependencies-unexpected-entry`             | verification | `1`       | `false`           |
-| An invocation-source descriptor is missing, duplicated, malformed, wrongly typed, or mismatched                                                                 | `windlass.verify.error.resolved-dependencies-invocation-source`            | verification | `1`       | `false`           |
-| A built-source descriptor is missing, duplicated, malformed, or identity/annotation mismatched                                                                  | `windlass.verify.error.resolved-dependencies-built-source`                 | verification | `1`       | `false`           |
-| A package-manifest descriptor is missing, duplicated, malformed, wrongly typed, or mismatched                                                                   | `windlass.verify.error.resolved-dependencies-package-manifest`             | verification | `1`       | `false`           |
-| Required offline package-manifest evidence is missing, malformed, or mismatched                                                                                 | `windlass.verify.error.package-manifest-evidence`                          | verification | `1`       | `false`           |
-| A node-runtime descriptor is missing, duplicated, malformed, wrongly typed, or mismatched                                                                       | `windlass.verify.error.resolved-dependencies-node-runtime`                 | verification | `1`       | `false`           |
-| A package-manager-distribution descriptor is missing, duplicated, forbidden, or malformed                                                                       | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | verification | `1`       | `false`           |
-| A runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched                                                                      | `windlass.verify.error.resolved-dependencies-runner-image`                 | verification | `1`       | `false`           |
-| A required build-script disposition is missing, unsupported, or manifest-inconsistent                                                                           | `windlass.verify.error.build-script-disposition-mismatch`                  | verification | `1`       | `false`           |
-| `builder.version` has an invalid key, conditional shape, or observed version                                                                                    | `windlass.verify.error.builder-version-mismatch`                           | verification | `1`       | `false`           |
-| The npm `publish-cli` descriptor is missing, duplicated, misnamed, malformed, has an extra effective member, or differs from the pin                            | `windlass.verify.error.builder-dependencies-publish-cli-mismatch`          | verification | `1`       | `false`           |
-| The signing-adapter descriptor is missing, duplicated, misnamed, malformed, has a non-empty annotation or extra effective member, or is dependency-inconsistent | `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      | verification | `1`       | `false`           |
-| An otherwise unattributable builder descriptor fails common shape or admission, including an unknown extra after required descriptors pass                      | `windlass.verify.error.builder-dependencies-descriptor-invalid`            | verification | `1`       | `false`           |
-| `metadata.invocationId` is malformed or differs from Fulcio OID `.21`                                                                                           | `windlass.verify.error.run-invocation-uri-invalid`                         | verification | `1`       | `false`           |
-| `subject` contains zero or multiple entries                                                                                                                     | `windlass.verify.error.subject-cardinality-invalid`                        | verification | `1`       | `false`           |
-| `subject[0].digest.sha256` is missing                                                                                                                           | `windlass.verify.error.subject-sha256-missing`                             | verification | `1`       | `false`           |
-| `subject[0].name` does not match the profile rule                                                                                                               | `windlass.verify.error.subject-name-mismatch`                              | verification | `1`       | `false`           |
-| Digest encoding is not lowercase hex                                                                                                                            | `windlass.verify.error.digest-encoding-invalid`                            | verification | `1`       | `false`           |
-| Sidecar, SBOM, or checksum is in `subject[0].digest`                                                                                                            | `windlass.verify.error.subject-digest-scope-invalid`                       | verification | `1`       | `false`           |
-| `startedOn` or `finishedOn` is not canonical whole-second UTC RFC 3339                                                                                          | `windlass.verify.error.timestamp-format-invalid`                           | verification | `1`       | `false`           |
-| `finishedOn` precedes `startedOn` by more than five seconds                                                                                                     | `windlass.verify.error.timestamp-ordering-invalid`                         | verification | `1`       | `false`           |
-| Emitted Statement differs from validated signing inputs                                                                                                         | `windlass.verify.error.statement-assembly-mismatch`                        | verification | `1`       | `false`           |
+| Condition                                                                                                                                                                          | Diagnostic ID                                                              | Phase        | Exit code | Mutation possible |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------ | --------- | ----------------- |
+| `_type` is not `https://in-toto.io/Statement/v1`                                                                                                                                   | `windlass.verify.error.statement-type-invalid`                             | verification | `1`       | `false`           |
+| `predicateType` is not `https://slsa.dev/provenance/v1`                                                                                                                            | `windlass.verify.error.predicate-type-invalid`                             | verification | `1`       | `false`           |
+| Signature is missing or invalid                                                                                                                                                    | `windlass.verify.error.signature-invalid`                                  | verification | `1`       | `false`           |
+| Signer identity is not trusted                                                                                                                                                     | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
+| Any JSON object in the signed Statement payload contains duplicate member names after unescaping                                                                                   | `windlass.verify.error.duplicate-json-member`                              | policy       | `1`       | `false`           |
+| Any security-relevant bundle or DSSE JSON object contains duplicate member names after unescaping                                                                                  | `windlass.verify.error.duplicate-json-member`                              | policy       | `1`       | `false`           |
+| `builder.id` uses a branch, tag, or short SHA                                                                                                                                      | `windlass.verify.error.builder-id-not-immutable`                           | verification | `1`       | `false`           |
+| `builder.id` is unauthorized or disagrees with Build Signer URI or Digest                                                                                                          | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
+| `buildType` is not in the canonical namespace                                                                                                                                      | `windlass.verify.error.build-type-not-canonical`                           | verification | `1`       | `false`           |
+| `externalParameters` is incomplete                                                                                                                                                 | `windlass.verify.error.external-parameters-incomplete`                     | verification | `1`       | `false`           |
+| `externalParameters` contains unexpected fields                                                                                                                                    | `windlass.verify.error.external-parameters-unexpected`                     | verification | `1`       | `false`           |
+| Source Repository Ref or URI disagrees with `workflow.ref` or `workflow.repository`                                                                                                | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
+| `workflow.path` differs from Build Config URI or uses the reusable builder path                                                                                                    | `windlass.verify.error.build-config-uri-mismatch`                          | verification | `1`       | `false`           |
+| `internalParameters` violates the closed `github` three-string-field shape                                                                                                         | `windlass.verify.error.unexpected-internal-parameters`                     | verification | `1`       | `false`           |
+| `internalParameters.github.event_name` differs from Build Trigger                                                                                                                  | `windlass.verify.error.build-trigger-mismatch`                             | verification | `1`       | `false`           |
+| Numeric repository or owner identifiers disagree with `internalParameters.github`                                                                                                  | `windlass.verify.error.signer-identity-untrusted`                          | verification | `1`       | `false`           |
+| A dependency name is unknown, non-enumerated, or duplicated before lookup                                                                                                          | `windlass.verify.error.resolved-dependencies-unexpected-entry`             | verification | `1`       | `false`           |
+| An invocation-source descriptor is missing, duplicated, malformed, wrongly typed, or mismatched                                                                                    | `windlass.verify.error.resolved-dependencies-invocation-source`            | verification | `1`       | `false`           |
+| A built-source descriptor is missing, duplicated, malformed, or identity/annotation mismatched                                                                                     | `windlass.verify.error.resolved-dependencies-built-source`                 | verification | `1`       | `false`           |
+| A package-manifest descriptor is missing, duplicated, malformed, wrongly typed, or mismatched                                                                                      | `windlass.verify.error.resolved-dependencies-package-manifest`             | verification | `1`       | `false`           |
+| Required offline package-manifest evidence is missing, malformed, or mismatched                                                                                                    | `windlass.verify.error.package-manifest-evidence`                          | verification | `1`       | `false`           |
+| A node-runtime descriptor is missing, duplicated, malformed, wrongly typed, or mismatched                                                                                          | `windlass.verify.error.resolved-dependencies-node-runtime`                 | verification | `1`       | `false`           |
+| A package-manager-distribution descriptor is missing, duplicated, forbidden, or malformed                                                                                          | `windlass.verify.error.resolved-dependencies-package-manager-distribution` | verification | `1`       | `false`           |
+| A runner-image descriptor is missing, duplicated, malformed, digest-bearing, or mismatched                                                                                         | `windlass.verify.error.resolved-dependencies-runner-image`                 | verification | `1`       | `false`           |
+| A required build-script disposition is missing, unsupported, or manifest-inconsistent                                                                                              | `windlass.verify.error.build-script-disposition-mismatch`                  | verification | `1`       | `false`           |
+| `builder.version` has an invalid key, conditional shape, or observed version                                                                                                       | `windlass.verify.error.builder-version-mismatch`                           | verification | `1`       | `false`           |
+| The npm `publish-cli` descriptor is missing, duplicated, misnamed, malformed, has an extra effective member, or differs from the pin                                               | `windlass.verify.error.builder-dependencies-publish-cli-mismatch`          | verification | `1`       | `false`           |
+| The signing-adapter descriptor is missing, duplicated, misnamed, malformed, has an extra effective member other than consumer-ignored `annotations`, or is dependency-inconsistent | `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`      | verification | `1`       | `false`           |
+| An otherwise unattributable builder descriptor fails common shape or admission, including an unknown extra after required descriptors pass                                         | `windlass.verify.error.builder-dependencies-descriptor-invalid`            | verification | `1`       | `false`           |
+| `metadata.invocationId` is malformed or differs from Fulcio OID `.21`                                                                                                              | `windlass.verify.error.run-invocation-uri-invalid`                         | verification | `1`       | `false`           |
+| `subject` contains zero or multiple entries                                                                                                                                        | `windlass.verify.error.subject-cardinality-invalid`                        | verification | `1`       | `false`           |
+| `subject[0].digest.sha256` is missing                                                                                                                                              | `windlass.verify.error.subject-sha256-missing`                             | verification | `1`       | `false`           |
+| `subject[0].name` does not match the profile rule                                                                                                                                  | `windlass.verify.error.subject-name-mismatch`                              | verification | `1`       | `false`           |
+| Digest encoding is not lowercase hex                                                                                                                                               | `windlass.verify.error.digest-encoding-invalid`                            | verification | `1`       | `false`           |
+| Sidecar, SBOM, or checksum is in `subject[0].digest`                                                                                                                               | `windlass.verify.error.subject-digest-scope-invalid`                       | verification | `1`       | `false`           |
+| `startedOn` or `finishedOn` is not canonical whole-second UTC RFC 3339                                                                                                             | `windlass.verify.error.timestamp-format-invalid`                           | verification | `1`       | `false`           |
+| `finishedOn` precedes `startedOn` by more than five seconds                                                                                                                        | `windlass.verify.error.timestamp-ordering-invalid`                         | verification | `1`       | `false`           |
+| Emitted Statement differs from validated signing inputs                                                                                                                            | `windlass.verify.error.statement-assembly-mismatch`                        | verification | `1`       | `false`           |
 
 ## Failure behavior
 
@@ -984,12 +990,16 @@ error category from the rejection matrix above.
 - `npm-builder-version-direct-npm-valid` proves direct-npm `builder.version`.
 - `npm-builder-version-corepack-valid` proves Corepack `builder.version`.
 - Both version fixtures require `nodejs` and `npm`; Corepack adds conditional `corepack`.
-- `npm-builder-signing-adapter-valid` proves the current `name`/`dirHash1` signing descriptor with
-  no emitted annotations, and `npm-builder-publish-cli-valid` proves the exact publish descriptor.
+- `npm-builder-signing-adapter-valid` remains the producer fixture for the current `name`/`dirHash1`
+  signing descriptor with no emitted annotations, and `npm-builder-publish-cli-valid` proves the
+  exact publish descriptor.
 - `npm-builder-dependencies-reordered-valid` proves name-keyed consumer acceptance while producer
   fixtures pin `signing-adapter` then `publish-cli` order.
+- `npm-builder-signing-adapter-annotations-ignored-valid` is the accepted consumer fixture for
+  arbitrary valid signing-adapter annotations after recursive duplicate-member rejection. The
+  annotations never affect identity or integrity.
 - Annotation-varied publish fixtures prove that arbitrary valid JSON annotations are ignored after
-  duplicate-member rejection and never authenticate content; signer non-empty annotations fail.
+  duplicate-member rejection and never authenticate content.
 - Builder-dependency presence fixtures cover required absent/null/empty/malformed values, undeclared
   empty values as unset, and present `false`, `0`, or whitespace-only undeclared values as rejected.
 - `npm-invocation-id-certificate-uri-valid` proves a run-attempt URI equal to Fulcio OID `.21`.

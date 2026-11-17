@@ -1280,10 +1280,15 @@ admission, and signer checks. The exact current array is:
 ]
 ```
 
-The signer remains exactly one descriptor with exactly the three effective members `name`, `uri`,
-and `digest`, no emitted annotations, and the governed sigstore-go module identity above. Non-empty
-signer annotations and any other effective signer member fail with
-`windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.
+The signer remains exactly one descriptor with exactly the three producer-emitted members `name`,
+`uri`, and `digest`, no emitted annotations, and the governed sigstore-go module identity above.
+During consumer verification, `annotations` may be absent or carry any valid JSON value. Recursive
+duplicate-JSON-member rejection runs before semantic validation, including duplicate keys at any
+depth inside `annotations`; the consumer then ignores the annotation value as descriptive metadata.
+Annotations have no identity or integrity role and cannot repair a wrong real `name`, `uri`, or
+`digest`. Any other effective signer member fails with
+`windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, and all existing signer
+identity and `dirHash1` checks remain fail-closed.
 
 The `publish-cli` descriptor records only the separately pinned publish-stage npm CLI:
 
@@ -2130,8 +2135,11 @@ After signing and before `npm publish`, the `publish` job must verify:
 11. `builder.version` has the exact observed `nodejs`, `npm`, and conditional `corepack` shape.
 12. `builderDependencies` contains exactly the governed `signing-adapter` and `publish-cli`
     descriptors. Their names, URIs, `dirHash1`/`sha512` digests, publish media type, and pin
-    agreement satisfy the closed schema; signer non-empty annotations fail, and publish annotations
-    are ignored after duplicate-member rejection.
+    agreement satisfy the closed schema. After recursive duplicate-member rejection, including
+    duplicate keys inside `annotations`, consumer verification ignores any valid JSON value in
+    signer `annotations`; publish annotations remain ignored as before. Signer annotations have no
+    identity or integrity role and cannot repair a wrong real `name`, `uri`, or `digest`. Every
+    other signer member and identity check remains fail-closed.
 13. The extracted DSSE payload is byte-for-byte equal to the complete candidate Statement that
     Windlass validated before invoking the signer.
 14. The same verified certificate binds Build Signer URI/Digest to canonical `builder.id`, Source
@@ -2206,9 +2214,13 @@ The `publish` job must fail before `npm publish` when:
   effective member, or is inconsistent with the pinned version or tarball digest. The primary
   diagnostic is `windlass.verify.error.builder-dependencies-publish-cli-mismatch`, severity `error`,
   exit code `1`.
-- The signing-adapter builder dependency is missing, duplicated, misnamed, malformed, carries a
-  non-empty annotation or extra effective member, or is inconsistent with the governed signer module
-  version and `dirHash1`. The primary diagnostic is
+- The signing-adapter builder dependency is missing, duplicated, misnamed, malformed, carries an
+  extra effective member other than `annotations`, or is inconsistent with the governed signer
+  module version and `dirHash1`. After recursive duplicate-member rejection, consumer verification
+  ignores any valid JSON value in `annotations` as descriptive metadata. Duplicate keys inside
+  `annotations` still fail before semantic checks. Annotations have no identity or integrity role
+  and cannot repair a wrong real `name`, `uri`, or `digest`; all other signer members and identity
+  fields remain fail-closed. The primary diagnostic is
   `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`, severity `error`, exit code
   `1`.
 - An otherwise unattributable common builder-descriptor shape or admission failure, including an
@@ -2300,10 +2312,14 @@ The profile must not fall back to:
 - `npm-builder-version-direct-npm-valid` proves required `nodejs` and build-stage `npm`;
   `npm-builder-version-corepack-valid` adds conditional `corepack`;
   `npm-builder-signing-adapter-valid` proves the current `name`/`dirHash1` signer with no emitted
-  annotations; and `npm-builder-publish-cli-valid` proves the exact two-descriptor array in signer,
-  publish-cli order. `npm-builder-dependencies-reordered-valid` proves consumer acceptance by name.
-  Publish annotation-varied fixtures prove ignored arbitrary valid JSON after duplicate rejection;
-  they never authenticate content.
+  annotations; `npm-builder-signing-adapter-annotations-ignored-valid` proves consumer acceptance of
+  an annotation-varied signer with unchanged real `name`, `uri`, and `digest`; and
+  `npm-builder-publish-cli-valid` proves the exact two-descriptor array in signer, publish-cli
+  order. `npm-builder-dependencies-reordered-valid` proves consumer acceptance by name. Signer and
+  publish annotation-varied consumer cases prove that arbitrary valid JSON values are ignored after
+  recursive duplicate-member rejection. Duplicate keys inside annotations fail before semantic
+  checks. Annotations have no identity or integrity role, cannot repair a wrong real `name`, `uri`,
+  or `digest`, and never authenticate content.
 - Existing `npm-resolved-lockfile-valid` and `npm-resolved-lockfile-stale-valid` fixtures continue
   to prove selection provenance and stale diagnostics, with the required media type and built-source
   commit binding. No stale file becomes a dependency.
@@ -2403,13 +2419,18 @@ The profile must not fall back to:
 - Builder rejected mutations must cover missing `nodejs` or build-stage `npm`, absent conditional
   `corepack`, `corepack` present for npm, and an unknown version key. Descriptor mutations cover
   missing, duplicate, misnamed, malformed, extra-effective-member, and pin-mismatched publish-cli
-  cases; the analogous signer cases plus non-empty signer annotations; and otherwise unattributable
-  common shape or admission failures. Presence cases distinguish required
-  absent/null/empty/malformed values from undeclared null/empty unset values and present `false`,
-  `0`, or whitespace-only values. Their expected primary IDs are `builder-version-mismatch`,
-  `builder-dependencies-publish-cli-mismatch`, `builder-dependencies-signing-adapter-mismatch`, or
-  `builder-dependencies-descriptor-invalid` as applicable. Multi-failure fixtures prove publish-cli,
-  signer, then common precedence, with parse and duplicate-member failures first.
+  cases; the analogous signer cases with extra effective members other than `annotations`; and
+  otherwise unattributable common shape or admission failures. Non-empty signer annotations are not
+  rejected mutations. Accepted annotation-varied consumer cases carry arbitrary valid JSON values,
+  which consumers ignore after recursive duplicate-member rejection. They have no identity or
+  integrity role and cannot repair a wrong real signer `name`, `uri`, or `digest`. Duplicate keys
+  inside annotations fail before semantic checks. Presence cases for non-annotation members
+  distinguish required absent/null/empty/malformed values from undeclared null/empty unset values
+  and present `false`, `0`, or whitespace-only values. Their expected primary IDs are
+  `builder-version-mismatch`, `builder-dependencies-publish-cli-mismatch`,
+  `builder-dependencies-signing-adapter-mismatch`, or `builder-dependencies-descriptor-invalid` as
+  applicable. Multi-failure fixtures prove publish-cli, signer, then common precedence, with parse
+  and duplicate-member failures first.
 - Candidate-predicate fixtures must prove capture unavailability exits `2` with `input-unavailable`,
   malformed constructed candidates exit `1` with the narrow field diagnostic, no failing candidate
   reaches signing, and post-sign comparison rejects any adapter-altered predicate before publish.
