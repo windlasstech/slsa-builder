@@ -1,0 +1,37 @@
+.github/workflows/lint.yml
+  s_b04a0e5795ff33::t_47c55bedb02680 227-230
+.github/workflows/dependabot-companion.yml
+  s_b04a0e5795ff33::t_4f03310460eeed 22,36,47-48,57-59,62-65,70,94-95
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 11-13,18-21,34-35,82-83
+  s_15bee8f4b9d1df::t_5c0b9e14c82efc 54-56,60-61,113-115
+  s_b04a0e5795ff33::t_47c55bedb02680 1-10,14-17,23-33,37-46,49-53,66-69,71-81,84-93,96-112
+.github/workflows/fuzz.yml
+  s_b04a0e5795ff33::t_47c55bedb02680 114-117
+.github/workflows/AGENTS.md
+  s_b04a0e5795ff33::t_34c848e2adf27e 18,71
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 72-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4640e1aa064d0eec218f9fd586b2cf41ee927297",
+  "prompts": {},
+  "sessions": {
+    "s_15bee8f4b9d1df": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e192eb27fffe3JDuqzh6UO50IV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b04a0e5795ff33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e192eb27fffe3JDuqzh6UO50IV",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
