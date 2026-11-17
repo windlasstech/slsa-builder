@@ -15,6 +15,9 @@ func builderContractVariants(t *testing.T, spec contractFixtureSpec) []contractF
 	if spec.mutation == "builder-annotations" {
 		annotationValues = []string{"", "null", "false", "0", `"untrusted"`, `[]`, `["untrusted"]`, `{"digest_authority":"untrusted","other":true}`}
 	}
+	if spec.mutation == "builder-signer-annotations" {
+		annotationValues = []string{"", "null", "false", "0", `"untrusted"`, `[]`, `["untrusted"]`, `{"digest":{"dirHash1":"0000000000000000000000000000000000000000000000000000000000000000"},"digest_authority":"untrusted","name":"forged-signing-adapter","uri":"pkg:golang/example.com/forged@v0.0.0"}`}
+	}
 	var variants []contractFixtureVariant
 	for _, annotation := range annotationValues {
 		// Given the real producer's valid two-descriptor Statement.
@@ -34,6 +37,12 @@ func builderContractVariants(t *testing.T, spec contractFixtureSpec) []contractF
 			delete(descriptors[1], "annotations")
 			if annotation != "" {
 				descriptors[1]["annotations"] = json.RawMessage(annotation)
+			}
+		case "builder-signer-annotations":
+			variant.Name = "annotations-" + annotation
+			delete(descriptors[0], "annotations")
+			if annotation != "" {
+				descriptors[0]["annotations"] = json.RawMessage(annotation)
 			}
 		case "builder-unknown":
 			descriptors = append(descriptors, map[string]json.RawMessage{"name": mustJSON("unknown"), "uri": mustJSON("pkg:npm/unknown@1.0.0"), "digest": mustJSON(map[string]string{"sha256": testSHA256})})

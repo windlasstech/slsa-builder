@@ -79,7 +79,7 @@ func TestFinalContractCorpus(t *testing.T) {
 				variants = document.Cases
 			}
 			wantCount := 1
-			if spec.mutation == "builder-annotations" {
+			if spec.mutation == "builder-annotations" || spec.mutation == "builder-signer-annotations" {
 				wantCount = 8
 			}
 			if spec.mutation == "matrix" || spec.mutation == "diagnostics" {
