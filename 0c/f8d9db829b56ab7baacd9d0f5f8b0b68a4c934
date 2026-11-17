@@ -1,0 +1,22 @@
+docs/architecture/release-manifest.md
+  s_776bca7a3db24c::t_dfca32eb657acf 477
+docs/architecture/core-profile-contract.md
+  s_776bca7a3db24c::t_12108693d6d65a 391
+  s_776bca7a3db24c::t_f7cf45eb9c12a6 392-393
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0cf8d9db829b56ab7baacd9d0f5f8b0b68a4c934",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
