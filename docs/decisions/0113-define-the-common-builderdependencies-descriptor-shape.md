@@ -107,8 +107,10 @@ This decision defines no additional common members. A descriptor's governing ADR
 additional members (for example `mediaType` or `annotations`) for that descriptor; such definitions
 are outside this decision's scope, which sets no admission condition on them beyond their
 declaration by that governing ADR. The closed-shape rule then applies to the union: the producer
-emits exactly the common members plus the declared additional members, and any undeclared member
-fails closed.
+emits exactly the common members plus the declared additional members, and producer-side emission of
+any undeclared member fails closed. For the incumbent signing-adapter descriptor, consumer
+verification ignores `annotations` as descriptive metadata even though the producer emits no such
+member. This exception admits no other member and gives annotations no identity or integrity role.
 
 ### Incumbent migration
 
@@ -148,11 +150,14 @@ presence is evaluated under the in-toto equivalence of unset, null, and empty va
 
 Shape failures are rejected fail-closed: a descriptor missing a required common member, carrying an
 undeclared `name`, duplicating another descriptor's `name`, or carrying any member beyond its
-declared shape. Duplicate JSON members are already rejected at parse time under ADR 0061 before
-these semantic checks run. Producer-side emission of such a descriptor aborts before signing;
-consumer-side verification fails the Statement at the expectations stage, after envelope signature
-verification. Value-level agreement of `uri` and `digest` members with their governed expectations
-is defined per descriptor by its governing ADR and is outside this decision.
+declared shape, except that consumer verification ignores the signing-adapter's `annotations` member
+as descriptive metadata. The producer still emits no annotations on that descriptor, and no other
+additional member is admitted by this exception. Duplicate JSON members are already rejected at
+parse time under ADR 0061 before these semantic checks run. Producer-side emission of such a
+descriptor aborts before signing; consumer-side verification of every other shape violation fails
+the Statement at the expectations stage, after envelope signature verification. Value-level
+agreement of `uri` and `digest` members with their governed expectations is defined per descriptor
+by its governing ADR and is outside this decision.
 
 The closed diagnostic registry gains the corresponding `windlass.verify.error.*` entries, with the
 specification tables updated to match.
@@ -178,8 +183,9 @@ This decision is confirmed when:
 - the common SLSA provenance v1 specification defines the common required members, the `name`
   identity-key rule, the additional-member governance, and the failure behavior above, each with a
   valid example and rejection cases;
-- the incumbent signing-adapter descriptor in the specification, validator constants, and fixture
-  corpus carries `name: "signing-adapter"` and no `annotations` member;
+- the incumbent signing-adapter descriptor in the producer specification, validator constants, and
+  canonical emitted fixture carries `name: "signing-adapter"` and no `annotations` member, while
+  consumer verification ignores annotation-varied descriptors as descriptive metadata;
 - the diagnostic registry and specification tables contain the new shape-failure entries, enforced
   by the registry parity test;
 - `fixture-check` passes with the updated corpus.
