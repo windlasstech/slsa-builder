@@ -1,0 +1,19 @@
+CHANGELOG.md
+  s_776bca7a3db24c::t_b52a767d48de65 64-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9d2ee63c632ac3a8cc95b5b2ed5db9d474d27c62",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
