@@ -474,7 +474,7 @@ identifier and must be rejected when a release manifest predicate is expected.
 
 ## Signed payload rules
 
-Wave 4 release-manifest signing reuses the Go-native `sigstore-go` v1.4.0 adapter selected by
+Release-manifest signing (M01/M02) reuses the Go-native `sigstore-go` v1.4.0 adapter selected by
 ADR 0077. The [common signing adapter contract](slsa-provenance-v1.md#signing-adapter-role) owns the
 current signer version and dependency-descriptor reference; the release manifest schema is
 unchanged. After validating the subject name, subject digest, predicate type, manifest predicate
