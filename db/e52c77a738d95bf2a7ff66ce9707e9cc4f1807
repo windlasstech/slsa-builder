@@ -1,0 +1,24 @@
+internal/provenance/builder_dependencies.go
+  s_8072ba83b707da::t_f3d8a306753ef6 50
+internal/provenance/builder_dependencies_test.go
+  s_8072ba83b707da::t_ac6d3473ab0ed8 16
+  s_8072ba83b707da::t_ff6c2ac4385900 233
+  s_8072ba83b707da::t_c87d94354d4361 39-62,73-125
+  s_8072ba83b707da::t_92544b1a84b01a 126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dbe52c77a738d95bf2a7ff66ce9707e9cc4f1807",
+  "prompts": {},
+  "sessions": {
+    "s_8072ba83b707da": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e15d2c044ffe36y2exGLXQIqPm",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
