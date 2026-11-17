@@ -20,6 +20,7 @@ spec'd but not yet implemented.
 ├── cmd/slsa-builder-internal/   # sole internal executable; subcommand registry only
 ├── internal/                    # trusted-core Go packages (see internal/AGENTS.md)
 │   ├── command/                 # typed dispatcher + adapters (see internal/command/AGENTS.md)
+│   ├── dependabot/              # companion dry-run/remote plan/gated App apply (see its AGENTS.md)
 │   └── npmprofile/              # npm profile domain (see internal/npmprofile/AGENTS.md)
 ├── testdata/                    # governed byte-exact fixture corpus (see testdata/AGENTS.md)
 ├── docs/decisions/              # MADR ADRs 0000-0102 (see docs/decisions/AGENTS.md)
@@ -39,23 +40,24 @@ spec'd but not yet implemented.
 
 ## WHERE TO LOOK
 
-| Task                     | Location                                                   | Notes                                                              |
-| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------ |
-| Why a decision was made  | `docs/decisions/`                                          | MADR 4.0.0 ADRs, numbered `0000`–`0102`.                           |
-| Exact behavior contracts | `docs/architecture/`                                       | Specs per SDD; see `docs/architecture/AGENTS.md`.                  |
-| Trusted-core Go code     | `internal/`                                                | Shared rules in `internal/AGENTS.md`; sub-packages have their own. |
-| CLI subcommands          | `cmd/slsa-builder-internal/main.go`                        | 14 subcommands; adapter rules in `internal/command/AGENTS.md`.     |
-| npm profile domain       | `internal/npmprofile/`                                     | See `internal/npmprofile/AGENTS.md`.                               |
-| Fixture corpus rules     | `testdata/`                                                | See `testdata/AGENTS.md`; byte-exact, prettier-excluded.           |
-| Writing Go tests         | `docs/testing-guide.md`                                    | Hermetic default, fuzz policy, gated `Live` tests.                 |
-| Live dogfood evidence    | `docs/dogfood/`                                            | M1 verification procedure + evidence record.                       |
-| Bootstrap / dev setup    | `README.md`, `mise.toml`                                   | `mise install` + `pnpm install`.                                   |
-| CI / workflow security   | `.github/workflows/`                                       | See `.github/workflows/AGENTS.md`.                                 |
-| Lint/format policy       | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc` | Go, Markdown, shell.                                               |
-| Git hooks / DCO          | `lefthook.yml`                                             | Commit-msg `Signed-off-by:` check.                                 |
-| ADR relations check      | `.agents/skills/adr-relations-check/`                      | Status grammar + relations symmetry.                               |
-| Badge regeneration       | `.agents/skills/badge-generator/`                          | shields-style badge SVG pipeline.                                  |
-| Dependency security      | `pnpm-workspace.yaml`                                      | Cooldown, trust policy, frozen lockfile.                           |
+| Task                     | Location                                                              | Notes                                                              |
+| ------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Why a decision was made  | `docs/decisions/`                                                     | MADR 4.0.0 ADRs, numbered `0000`–`0102`.                           |
+| Exact behavior contracts | `docs/architecture/`                                                  | Specs per SDD; see `docs/architecture/AGENTS.md`.                  |
+| Trusted-core Go code     | `internal/`                                                           | Shared rules in `internal/AGENTS.md`; sub-packages have their own. |
+| CLI subcommands          | `cmd/slsa-builder-internal/main.go`                                   | 15 subcommands; adapter rules in `internal/command/AGENTS.md`.     |
+| Dependabot companion     | `internal/dependabot/` + `.github/workflows/dependabot-companion.yml` | Read-only automatic plan; App apply requires explicit activation.  |
+| npm profile domain       | `internal/npmprofile/`                                                | See `internal/npmprofile/AGENTS.md`.                               |
+| Fixture corpus rules     | `testdata/`                                                           | See `testdata/AGENTS.md`; byte-exact, prettier-excluded.           |
+| Writing Go tests         | `docs/testing-guide.md`                                               | Hermetic default, fuzz policy, gated `Live` tests.                 |
+| Live dogfood evidence    | `docs/dogfood/`                                                       | M1 verification procedure + evidence record.                       |
+| Bootstrap / dev setup    | `README.md`, `mise.toml`                                              | `mise install` + `pnpm install`.                                   |
+| CI / workflow security   | `.github/workflows/`                                                  | See `.github/workflows/AGENTS.md`.                                 |
+| Lint/format policy       | `.golangci.yml`, `.prettierrc`, `.markdownlint-cli2.jsonc`            | Go, Markdown, shell.                                               |
+| Git hooks / DCO          | `lefthook.yml`                                                        | Commit-msg `Signed-off-by:` check.                                 |
+| ADR relations check      | `.agents/skills/adr-relations-check/`                                 | Status grammar + relations symmetry.                               |
+| Badge regeneration       | `.agents/skills/badge-generator/`                                     | shields-style badge SVG pipeline.                                  |
+| Dependency security      | `pnpm-workspace.yaml`                                                 | Cooldown, trust policy, frozen lockfile.                           |
 
 ## COMMANDS
 

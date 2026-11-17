@@ -10,6 +10,11 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
+- Added a Dependabot companion with local dry-run and automatic authenticated read-only planning for
+  eligible sigstore-go updates. Optional App apply is disabled by default and uses a single
+  expected-head commit with App-bot DCO and fail-closed signature/content reconciliation;
+  independent dependency security checks remain required.
+
 - Added Go-native keyless DSSE signing for npm provenance, with digest-verified handoffs and offline
   statement verification before bundle upload.
 - Added the public npm-only reusable workflow with trusted-publisher preflights, serialized

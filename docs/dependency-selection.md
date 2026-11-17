@@ -74,6 +74,126 @@ Dependency selection and every subsequent version change follow these rules:
    descriptor expectations, normative documentation, and fixtures together. Any drift between the
    selected dependency, signed descriptor, and governed expectations blocks the change.
 
+## Dependabot companion integration
+
+The internal `dependabot-companion` command synchronizes descriptor-coupled files for a narrow
+sigstore-go update. It does not approve a dependency, merge a PR, or replace security review.
+Dependency Review remains an independent required check. OSV Scanner, code review, and branch
+protection remain unchanged.
+
+### Eligibility and release review
+
+Remote modes accept the actual `workflow_run` JSON payload, not a local dry-run projection. The
+source run must be a completed `Lint` pull-request run, with any nonempty conclusion, including
+failure. The command binds the PR through the run's single `pull_requests` entry or, when that array
+is empty, a unique same-repository open PR for the exact head branch and SHA. PR titles, logs, and
+artifacts never identify a dependency or authorize an operation.
+
+Authenticated API reads must establish all of the following:
+
+- The PR is open, authored by `dependabot[bot]`, and has a `dependabot/` head branch in
+  `windlasstech/slsa-builder`. Its base is `main`.
+- The current trusted checkout SHA equals the PR base SHA. A moved base or head stops the operation.
+- The complete changed-file list contains only modified `go.mod` and/or `go.sum` files. Renames,
+  duplicate paths, forks, and companion-file edits are rejected. Pagination is bounded at 200 items.
+- Exact base/head module bytes pass the existing local transition parser. It admits increases to
+  existing Sigstore/in-toto group requirements, including sigstore-go, but not new requirements,
+  unrelated transitive changes, directive changes, or replacement directives.
+- The candidate has a published, non-draft, non-prerelease GitHub release with a matching tag and
+  valid publication date. Tagged commits supply the candidate `go.mod` and both versions' `LICENSE`
+  bytes. GitHub must identify both licenses as Apache-2.0, their bytes must be identical, and the
+  candidate's declared Go version must fit the trusted base toolchain.
+
+These checks supply release evidence; they are not a compatibility or security approval. A
+maintainer must still review release notes, API compatibility, maintenance state, and the transitive
+graph under the selection policy above. Unsupported module transitions produce
+`manual-action-required` with no generated files and an empty patch. An unchanged signer produces
+`skip`. Invalid event bindings, unavailable API evidence, or unconfirmed remote release/license
+evidence fail closed without mutation. Resolve those cases manually rather than broadening the
+companion's allowlist to make a PR pass.
+
+### Local dry-run and automatic read-only plan
+
+Local `dry-run` retains its closed event/snapshot contract and does not access GitHub. Remote `plan`
+uses `GITHUB_TOKEN` for authenticated reads only. Both modes use the same generator and write only
+`plan.json`, `patch.diff`, and allowlisted full file contents under `files/` in a separate output
+directory. Existing outputs must match exactly; they are not overwritten with different plans.
+
+```bash
+go run ./cmd/slsa-builder-internal dependabot-companion \
+  --mode dry-run --event "$LOCAL_EVENT" --snapshot "$LOCAL_SNAPSHOT" \
+  --trusted-root "$TRUSTED_ROOT" --trusted-sha "$TRUSTED_SHA" --output "$PLAN_OUTPUT"
+
+go run ./cmd/slsa-builder-internal dependabot-companion \
+  --mode plan --event "$GITHUB_EVENT_PATH" \
+  --trusted-root "$TRUSTED_ROOT" --trusted-sha "$TRUSTED_SHA" --output "$PLAN_OUTPUT"
+```
+
+`.github/workflows/dependabot-companion.yml` automatically runs the read-only plan after eligible
+`Lint` completions. It checks out trusted `main`, never the PR head, and grants only
+`contents: read` and `pull-requests: read`. The plan job has no App secret. Both jobs use SHA-pinned
+actions, block-mode Harden Runner first, bounded job timeouts, disabled checkout credential
+persistence, and branch-scoped concurrency with a run-ID fallback and `cancel-in-progress: false`.
+The plan job uploads only `plan.json` and `patch.diff` as data-only review evidence, using an
+artifact name scoped to the source workflow run and current attempt. It grants artifact-upload
+egress only to that job. Reviewers can download this artifact from the companion workflow run. Apply
+never downloads or consumes it. Both jobs run on `ubuntu-24.04`, cache trusted base modules with
+`go mod download`, and invoke `go run -mod=readonly ./cmd/slsa-builder-internal` directly. They
+download no workflow artifacts and execute no candidate dependencies. Only trusted base modules are
+compiled; candidate module files remain generator data.
+
+### Disabled apply and activation prerequisites
+
+Apply is disabled unless the repository variable `DEPENDABOT_COMPANION_APPLY_ENABLED` equals `true`.
+The CLI independently requires the environment variable of the same name to equal `true`, plus
+`APP_SLUG` and a repository-scoped App installation token in `GITHUB_TOKEN`. Local snapshot inputs
+cannot authorize apply. The workflow's apply job depends on plan, recomputes its own plan, and never
+consumes an uploaded plan or patch.
+
+Before enabling the variable, the operator must:
+
+1. Review the automation's Developer Certificate of Origin (DCO) authority and explicitly authorize
+   the configured App to certify these generated changes. A bot account alone is not authorization.
+2. Configure `DEPENDABOT_COMPANION_APP_ID` and `DEPENDABOT_COMPANION_APP_PRIVATE_KEY` for the
+   dedicated App. Restrict its installation token to this repository, `contents: write`, and
+   `pull-requests: read`. Keep the token action's default post-job revocation enabled.
+3. Confirm, in a separately approved activation exercise, that GitHub resolves the installation
+   token's GraphQL viewer to that App's bot identity, creates a verified commit, and records the
+   expected DCO identity. A human identity is never a fallback.
+4. Confirm that the App-authored commit retriggers the required CI checks and is subject to the
+   existing signed-commit, DCO, review, and branch-protection rules. Do not grant a required-check
+   bypass or enable automatic merge.
+
+The command authenticates installation scope and the GraphQL viewer, then cross-checks the bot's
+numeric user ID. Only after that authorization does it replace the plan's DCO placeholder with
+`<app-slug>[bot] <numeric-id>+<app-slug>[bot]@users.noreply.github.com` in an explicit
+`Signed-off-by: Name <email>` trailer. It never uses a human signatory. The commit headline retains
+`[dependabot skip]`.
+
+### Single mutation and reconciliation
+
+Apply regenerates the plan twice from fresh API projections and compares the exact plan hashes,
+including patch and file hashes. It validates each output's full contents and the remote preimage,
+then re-reads PR state, author, base/head identity, and the complete changed-file list immediately
+before mutation. It calls GraphQL `createCommitOnBranch` exactly once, with `expectedHeadOid` and
+base64-encoded full file contents. It sends no custom author, committer, or signature fields.
+
+Read-back must confirm the returned commit OID, exactly one parent equal to the expected PR head,
+the commit message, `verification.verified`, exact contents for every planned file, and the branch
+ref pointing to the returned OID. A mutation timeout, missing response, missing/wrong read-back, or
+unverified signature is **post-mutation indeterminate**. The command does not retry mutation or roll
+back. Inspect the branch and checks manually before any further action. A later run whose PR already
+contains companion edits is ineligible, rather than an excuse to append another commit.
+
+The production client accepts only HTTPS `api.github.com`, with bounded response bodies and
+timeouts, duplicate-member-rejecting JSON decoding, and no redirects, custom proxies, or custom TLS
+hooks. There is no API-base CLI flag. Tests inject only local `httptest` servers.
+
+**Live App, GraphQL signing, CI-retrigger, and branch-protection behavior is not proven locally.**
+Hermetic API tests and static workflow tests establish local request/response and gating behavior,
+not GitHub's live installation or policy configuration. No live mutation or App activation is part
+of local validation.
+
 ## Selection Rationale and Trust Boundaries
 
 ### Sigstore: `github.com/sigstore/sigstore-go v1.4.0`

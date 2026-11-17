@@ -12,6 +12,7 @@ internal/
 ├── attestation/      # Sigstore bundle + in-toto Statement verification; Fulcio/SCT/Rekor/SET; TUF online + offline pins.
 ├── canonicaljson/    # Duplicate-member-rejecting strict JSON + RFC 8785 JCS canonicalization.
 ├── command/          # Typed dispatcher + subcommand adapters. Has its own AGENTS.md.
+├── dependabot/       # Local companion generator, authenticated read-only plan, gated single App commit.
 ├── dependencyproof/  # Dependency-proof model and validation.
 ├── diagnostic/       # Closed diagnostic registry + canonical reports.
 ├── digest/           # Typed SHA-256/SHA-512 digests.
@@ -61,6 +62,10 @@ internal/
 - **Exit codes**: 0 pass, 1 verification/policy failure, 2 invocation failure.
 - **Secret handling**: Tokens are wrapped in redacting types (`String`/`GoString` return
   `[REDACTED]`). Command adapters re-redact unexpected errors.
+- **Dependabot companion**: Candidate modules remain data. Remote modes project authenticated GitHub
+  reads into the local planner, and require trusted checkout SHA = PR base SHA. Apply is explicitly
+  gated, uses an authenticated App-bot DCO identity, and performs one expected-head GraphQL mutation
+  followed by read-only reconciliation. Ambiguity never triggers retry or rollback.
 
 ## ANTI-PATTERNS
 
