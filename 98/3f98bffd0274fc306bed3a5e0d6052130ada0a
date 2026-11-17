@@ -1,0 +1,23 @@
+internal/npmprofile/contract_fixture_builder_test.go
+  s_f4a2afd2cca811::t_17fb502305dfce 18-20
+  s_f4a2afd2cca811::t_5a19c79a8714d5 41-45
+  s_f4a2afd2cca811::t_38b1f8f6ed7908 46
+internal/npmprofile/contract_fixture_test.go
+  s_f4a2afd2cca811::t_c9d66dadf950ad 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "983f98bffd0274fc306bed3a5e0d6052130ada0a",
+  "prompts": {},
+  "sessions": {
+    "s_f4a2afd2cca811": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e15d29815ffe0xxeY700CRPOYC",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
