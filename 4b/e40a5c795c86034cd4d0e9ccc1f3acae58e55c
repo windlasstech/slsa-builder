@@ -1,0 +1,22 @@
+docs/decisions/0113-define-the-common-builderdependencies-descriptor-shape.md
+  s_776bca7a3db24c::t_5d7f82fb4d8ab4 186-188
+  s_776bca7a3db24c::t_48b4380e410812 153-156
+  s_776bca7a3db24c::t_346b9a9db3943d 157-160
+  s_776bca7a3db24c::t_0dccbc9dee8231 110-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4be40a5c795c86034cd4d0e9ccc1f3acae58e55c",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
