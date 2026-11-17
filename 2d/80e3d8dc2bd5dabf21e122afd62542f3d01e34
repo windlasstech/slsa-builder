@@ -1,0 +1,34 @@
+docs/architecture/verification-policy-and-fixtures.md
+  s_0c4ff2e289dc35::t_ca3152937e6d59 1447,1735-1785,1789-1945,1997-1999,2001-2024,2114-2151,2397-2399,2655-2688
+  s_0c4ff2e289dc35::t_47e39f3540131d 2026-2030
+  s_0c4ff2e289dc35::t_0dd3f9560b97b5 1276-1277,1279
+  s_0c4ff2e289dc35::t_8c8b679763375c 2728-2732
+  s_0c4ff2e289dc35::t_86d232492a38ca 781-785
+  s_0c4ff2e289dc35::t_6b7660a2fd8055 2000
+  s_0c4ff2e289dc35::t_021d0fdedb85f5 2396
+  s_d8837305664fee::t_ec9bcfdbb144d0 2025
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d80e3d8dc2bd5dabf21e122afd62542f3d01e34",
+  "prompts": {},
+  "sessions": {
+    "s_0c4ff2e289dc35": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e15d9ea06ffeFFjfEzyNwkKU0j",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d8837305664fee": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e15d9ea06ffeFFjfEzyNwkKU0j",
+        "model": "k3.1-pro"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
