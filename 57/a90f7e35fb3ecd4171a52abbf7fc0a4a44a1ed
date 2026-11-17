@@ -1,0 +1,39 @@
+docs/architecture/slsa-provenance-v1.md
+  s_73309e7b15af3d::t_7392ab43340ed6 956
+  s_73309e7b15af3d::t_7fbcbb2bf2590b 609-610,616-617
+  s_73309e7b15af3d::t_1623a0f27a99b4 627-628,642-649
+  s_73309e7b15af3d::t_8832877e196d4a 663-664
+  s_73309e7b15af3d::t_484553bfd50761 993-995,998-1000,1002
+  s_73309e7b15af3d::t_d513e30ed08409 927-955,957-966
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_fc1300464adffb::t_d6676571fc3176 2218-2223,2317-2319
+  s_fc1300464adffb::t_ce8f4cae608192 2315-2316,2320-2322
+  s_fc1300464adffb::t_135cdb0cfd6261 2422-2433
+  s_fc1300464adffb::t_8e4f6c4ef523f6 1283-1291
+  s_fc1300464adffb::t_e0a1770db48798 2138-2142
+  s_fc1300464adffb::t_645a40f60e00bd 2217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "57a90f7e35fb3ecd4171a52abbf7fc0a4a44a1ed",
+  "prompts": {},
+  "sessions": {
+    "s_73309e7b15af3d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e15da206effe6xftDRXmTrSt8C",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fc1300464adffb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e15d9ffe1ffeTCvS1SB2V7P42F",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
