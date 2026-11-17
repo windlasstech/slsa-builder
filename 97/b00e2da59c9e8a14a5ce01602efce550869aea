@@ -1,0 +1,43 @@
+AGENTS.md
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 43-60
+  s_b04a0e5795ff33::t_34c848e2adf27e 23
+internal/AGENTS.md
+  s_b04a0e5795ff33::t_34c848e2adf27e 15
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 65-68
+internal/command/AGENTS.md
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 16,38-39
+  s_b04a0e5795ff33::t_34c848e2adf27e 33-37
+  s_b04a0e5795ff33::t_c1aee0234bbb99 40
+docs/dependency-selection.md
+  s_b04a0e5795ff33::t_34c848e2adf27e 77-87,91-106,114-132,144-146,152-187,191-196
+  s_15bee8f4b9d1df::t_5c0b9e14c82efc 137-143
+  s_15bee8f4b9d1df::t_8d44bd26710c7a 110-113
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 88-90,107-109,133-136,147-151,188-190
+CHANGELOG.md
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 13-16
+  s_b04a0e5795ff33::t_34c848e2adf27e 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "97b00e2da59c9e8a14a5ce01602efce550869aea",
+  "prompts": {},
+  "sessions": {
+    "s_15bee8f4b9d1df": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e192eb27fffe3JDuqzh6UO50IV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b04a0e5795ff33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e192eb27fffe3JDuqzh6UO50IV",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
