@@ -9,6 +9,7 @@ type contractFixtureSpec struct {
 
 var finalContractFixtures = []contractFixtureSpec{
 	{"npm-builder-signing-adapter-valid", "ADR-0113.builder-dependencies-common-shape", "", "", ManagerNPM, "tag", false},
+	{"npm-builder-signing-adapter-annotations-ignored-valid", "ADR-0113.builder-dependencies-common-shape", "", "builder-signer-annotations", ManagerNPM, "tag", false},
 	{"npm-builder-publish-cli-valid", "ADR-0114.publish-cli-descriptor", "", "", ManagerNPM, "tag", false},
 	{"npm-builder-dependencies-reordered-valid", "ADR-0114.publish-cli-descriptor", "", "builder-reordered", ManagerNPM, "tag", false},
 	{"npm-builder-publish-cli-annotations-ignored-valid", "ADR-0114.publish-cli-descriptor", "", "builder-annotations", ManagerNPM, "tag", false},

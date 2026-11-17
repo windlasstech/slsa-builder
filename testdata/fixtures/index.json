@@ -2229,6 +2229,20 @@
       "expected-primary-id": "windlass.verify.error.builder-dependencies-publish-cli-mismatch",
       "expected-secondary-ids": [],
       "covered-requirement": "ADR-0114.publish-cli-descriptor"
+    },
+    {
+      "name": "npm-builder-signing-adapter-annotations-ignored-valid",
+      "type": "accepted",
+      "surface": "npm",
+      "artifact": "testdata/npm/provenance/contract-artifact-tag.tgz",
+      "provenance": "testdata/npm/provenance/contract-npm-builder-signing-adapter-annotations-ignored-valid.json",
+      "manifest-evidence": null,
+      "release-manifest": null,
+      "expected-result": "pass",
+      "expected-failure-category": null,
+      "expected-primary-id": null,
+      "expected-secondary-ids": [],
+      "covered-requirement": "ADR-0113.builder-dependencies-common-shape"
     }
   ]
 }
