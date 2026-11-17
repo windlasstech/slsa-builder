@@ -1,0 +1,250 @@
+internal/dependabot/remote_contents.go
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 13,15-17,19-22,26-28,30-32,38-40,42-44,50-52,56,60-65,67-72,75-77,79-80,90,93-95
+  s_15bee8f4b9d1df::t_ac0948bfc3d804 84-89
+  s_b04a0e5795ff33::t_e5a9279664d9f7 49,53-55,58-59,74,81-83,91
+  s_b04a0e5795ff33::t_76edb0fab8bd37 1-12,14,18,23-25,29,33-37,41,45-48,57,66,73,78,92,96-97
+internal/dependabot/remote_fixture_test.go
+  s_b04a0e5795ff33::t_45f1c78b8bd403 1-14,17-19,23-24,29-33,37-49,53,64,66-70,74-77,79-85,91-94,96,98-107,111,121-123,127-129,133-136,140-145,150,158-161
+  s_b04a0e5795ff33::t_2ea85421793624 63,65
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 20-22,26-28,34-36,50-52,54-56,71-73,78,95,108-110,113-120,124-126,130-132,137-139,146-149,151-157
+  s_b04a0e5795ff33::t_e62fdab197b215 15-16,57
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 25
+  s_b04a0e5795ff33::t_d058c35ee92bba 61-62
+  s_b04a0e5795ff33::t_ff8aefee62429b 112
+  s_15bee8f4b9d1df::t_8d44bd26710c7a 58-60
+  s_b04a0e5795ff33::t_8b025f6ae7deca 86-90
+  s_b04a0e5795ff33::t_7c1d201eb3104e 97
+internal/dependabot/testdata/base/go.mod
+  s_fbb45ba2a1ecaf::t_2f3d9ede5b9259 1-9
+internal/dependabot/github_test.go
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 36-38,51-53
+  s_b04a0e5795ff33::t_7af35cf66e08c8 1-35,39-50,54
+internal/dependabot/generate_drift_integration_test.go
+  s_b04a0e5795ff33::t_f692988d60c3cf 1-17,21-22,26,30-31,36-41,45-48,52,56,63-64,68,72-81,85-86,90,97,104-107,111-112
+  s_15bee8f4b9d1df::t_7ebc42a70c5c9b 18-20,23-25,27-29,32-35,42-44,49-51,53-55,57-62,65-67,69-71,82-84,87-89,91-96,98-103,108-110
+internal/dependabot/testdata/event.json
+  s_fbb45ba2a1ecaf::t_8b857fd894f118 1
+internal/dependabot/sites.go
+  s_fbb45ba2a1ecaf::t_c2d9c88e9859ff 1-29,34-35,39,49-51,68,91
+  s_fbb45ba2a1ecaf::t_f1b7692bd6564f 78
+  s_2ba57c4b958eaa::t_26208d728072eb 30-33,36-38,40-48,52-67,69-77,79-90
+internal/command/dependabot_companion_test.go
+  s_fbb45ba2a1ecaf::t_bcc78c2b1454e2 1-11,48
+  s_2ba57c4b958eaa::t_268be9e68a4880 12-18,21-31,47
+  s_b04a0e5795ff33::t_b60b730b83e956 19-20,32-42,46
+  s_15bee8f4b9d1df::t_8d44bd26710c7a 43-45
+internal/command/dependabot_companion.go
+  s_2ba57c4b958eaa::t_268be9e68a4880 16-17,19-20,26-31,33-34,39,41-44
+  s_fbb45ba2a1ecaf::t_2bb9fc6d070564 1-8,10-15,18,21-23,35-36,45,71
+  s_15bee8f4b9d1df::t_7140c7555f9ad5 51-53,56-58,60-62,64-66
+  s_b04a0e5795ff33::t_7c1d201eb3104e 9,24-25,32,37-38,40,46-50,54-55,59,63,67-70
+internal/dependabot/remote_event.go
+  s_b04a0e5795ff33::t_2b6dc10d9239d3 1-12,16,19-21,23,31,37-41,45-50,54-64,69,76-81,85,87,97-100
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 13-15,17-18,22,24-30,32-36,42-44,51-53,65-68,70-75,82-84,88-93,95-96
+  s_b04a0e5795ff33::t_7c1d201eb3104e 86,94
+internal/dependabot/testdata/release.json
+  s_fbb45ba2a1ecaf::t_8b857fd894f118 1
+internal/dependabot/transition.go
+  s_fbb45ba2a1ecaf::t_0818f99324500d 97-99,103
+  s_fbb45ba2a1ecaf::t_867b76467b89f9 1-18,20-22,24-29,33,37,47-54,61-66,81-82,96,107-117,124-125,130-140
+  s_2ba57c4b958eaa::t_26208d728072eb 19,23,30-32,34-36,38-46,55-60,67-80,83-95,100-102,104-106,118-123,126-129
+internal/dependabot/app_identity.go
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 11-14,17-19,21,24-29,31-33,35-43,45-58
+  s_b04a0e5795ff33::t_5d6f799f9d8941 1-10,15-16,20,22-23,30,34,44,59-64
+internal/dependabot/committed_tree_test.go
+  s_b04a0e5795ff33::t_f228542a96f26b 1-11,15,19,23,27-31,35-43,47-48,52-53,57-62
+  s_15bee8f4b9d1df::t_ec0be1e89712aa 12-14,16-18,20-22,24-26,32-34,44-46,49-51,54-56
+internal/provenance/signing_adapter_candidate_test.go
+  s_b04a0e5795ff33::t_a1847aa52d63cd 13
+internal/dependabot/release_tag.go
+  s_b04a0e5795ff33::t_e5a9279664d9f7 1-12,18-21,23-25,27-31,35-38,42,46,50-52,56-59,63-64,68,70-71,78-86,93-94
+  s_15bee8f4b9d1df::t_ac0948bfc3d804 13-17,22,26,32-34,39-41,43-45,47-49,53-55,60-62,65-67,69,72-77,87-92
+internal/dependabot/release_tag_test.go
+  s_b04a0e5795ff33::t_c4b9a619a08a7e 1-11,13-27,36-40,46,50-55,59-69,77-78,82-84,90-92,98,100,107-111,118-121,125-127
+  s_b04a0e5795ff33::t_a4b660618bd8bb 12,41-45,70-76,85,89,93,97,99,101-102,106,112
+  s_15bee8f4b9d1df::t_ac0948bfc3d804 28-35,47-49,56-58,79-81,86-88,94-96,103-105,113-117,122-124
+internal/dependabot/input.go
+  s_fbb45ba2a1ecaf::t_f006cf0be01151 1-4,6-14,16-22,25,27,29-31,33,35-36,38,87,97,101-106,110,117-129,138-142,153,161,168-169
+  s_b04a0e5795ff33::t_9f2683401fdcd2 5,37,80,84
+  s_2ba57c4b958eaa::t_26208d728072eb 15,23-24,26,28,32,34,39-60,72-79,81-83,85-86,88-96,98-100,107-109,111-116,130-137,143-152,162-167
+  s_fbb45ba2a1ecaf::t_431fe8b54a1dfa 61-62,66,70-71,154
+  s_2ba57c4b958eaa::t_d97eff1f60e824 63-65,67-69,155-160
+internal/dependabot/github.go
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 23,29,33-35,37-39,43,49-51,53-55,57-59,63-65,67-69,71-73,75-77,87-89,95-98
+  s_b04a0e5795ff33::t_2b6dc10d9239d3 1-22,24-28,30-32,36,40-42,44-48,52,56,60-62,66,70,74,78-86,90-94,99-100
+internal/dependabot/event_test.go
+  s_fbb45ba2a1ecaf::t_15bc3ff07c1f64 29,38
+  s_2ba57c4b958eaa::t_d97eff1f60e824 31-32,37
+  s_b04a0e5795ff33::t_7a396a31a0a104 1,14,30
+  s_2ba57c4b958eaa::t_26208d728072eb 11,15-16,22-25
+  s_fbb45ba2a1ecaf::t_8b857fd894f118 2-10,12-13,17-21,26-27,39
+  s_b04a0e5795ff33::t_47c55bedb02680 28,33-36
+internal/dependabot/committed_boundary_test.go
+  s_15bee8f4b9d1df::t_ec0be1e89712aa 14-16,20-22,28-30,32-35
+  s_b04a0e5795ff33::t_b6053160238d5d 1-13,17-19,23-27,31,36-39
+internal/dependabot/plan.go
+  s_fbb45ba2a1ecaf::t_ad98428c502229 1-13,15,17-19,32-33,44-45,58,87,107-108,110,115-117
+  s_2ba57c4b958eaa::t_26208d728072eb 14,16,20-31,34-43,46-51,53-57,59-86,88-106,109,111-114,118
+  s_b04a0e5795ff33::t_9f2683401fdcd2 52
+internal/dependabot/remote_preimage.go
+  s_b04a0e5795ff33::t_422c38fa5047fe 1-9,15,17-21
+  s_b04a0e5795ff33::t_cc3ff4af660c55 10-14,16
+internal/dependabot/cli_integration_test.go
+  s_fbb45ba2a1ecaf::t_904116d1307117 95-100,102
+  s_fbb45ba2a1ecaf::t_0b0705513b6c6a 1-4,7-12,14-20,22,114,156
+  s_fbb45ba2a1ecaf::t_15bc3ff07c1f64 88
+  s_2ba57c4b958eaa::t_5b38f4af5ae909 64-68,122-129,131-136,140-143,145-146,148-153
+  s_2ba57c4b958eaa::t_268be9e68a4880 21,23-35,38-62,69-70,72-87,90-94,101,103-113,115-120,154-155
+  s_fbb45ba2a1ecaf::t_e2fdf6a0a37e73 71
+  s_fbb45ba2a1ecaf::t_5ecb3b024193f9 5-6,121,130,137-139,144,147
+  s_fbb45ba2a1ecaf::t_0426761a2bfa35 13,63
+  s_b04a0e5795ff33::t_cbfff86cebb2dd 36-37,89
+internal/dependabot/reconcile.go
+  s_b04a0e5795ff33::t_5d6f799f9d8941 1-11,16,21-22,26-27,39-41
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 12-15,17-20,23-25,28-38
+internal/dependabot/remote.go
+  s_b04a0e5795ff33::t_422c38fa5047fe 158-159
+  s_b04a0e5795ff33::t_9f2683401fdcd2 49-52
+  s_b04a0e5795ff33::t_5d6f799f9d8941 1-15,17-21,25-30,34,38,42-45,53-54,58-64,68,72-76,80-81,85-88,92,99-102,106-108,112,116,120,125,132,136-139,143,147,154,168,172-173
+  s_b04a0e5795ff33::t_7c1d201eb3104e 121-124,160-162,164-166
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 16,22-24,31-33,35-37,39-41,46-48,55-57,65-67,69-71,77-79,82-84,89-91,93-98,103-105,109-111,113-115,117-119,126-131,133-135,140-142,144-146,148-153,155-157,163,167,169-171
+internal/dependabot/remote_race_test.go
+  s_b04a0e5795ff33::t_77a46f64a18f28 1-20,24-26,41,46,62-63,67-72,74-78,83,90-93,100-106,110,114
+  s_b04a0e5795ff33::t_8020bf4a511a40 73
+  s_15bee8f4b9d1df::t_7140c7555f9ad5 21-23,27-40,42-45,47-61,64-66,79-82,84-89,94-99,107-109,112-113
+  s_b04a0e5795ff33::t_ff8aefee62429b 111
+internal/dependabot/remote_preimage_test.go
+  s_15bee8f4b9d1df::t_5c0b9e14c82efc 49-51,53-55,57-59,61-66
+  s_b04a0e5795ff33::t_0c63b6aba93ebc 1-48,52,56,60,67-73
+internal/dependabot/generate.go
+  s_2ba57c4b958eaa::t_5b38f4af5ae909 84-86,123-126
+  s_fbb45ba2a1ecaf::t_3390c4c9d57116 101,120-122
+  s_b04a0e5795ff33::t_f692988d60c3cf 108
+  s_b04a0e5795ff33::t_9f2683401fdcd2 29,38
+  s_fbb45ba2a1ecaf::t_c2d9c88e9859ff 1-13,37,63,81-82,98-100,103,119,127-128,136-137
+  s_2ba57c4b958eaa::t_26208d728072eb 14-28,30-36,39-62,64-80,83,91-97,102,104-107,109-118,129,131-135
+  s_2ba57c4b958eaa::t_d97eff1f60e824 88-90
+  s_b04a0e5795ff33::t_0dd30b9857d62c 130
+  s_fbb45ba2a1ecaf::t_15bc3ff07c1f64 87
+cmd/slsa-builder-internal/main.go
+  s_fbb45ba2a1ecaf::t_2bb9fc6d070564 17
+internal/dependabot/graphql_commit.go
+  s_b04a0e5795ff33::t_5d6f799f9d8941 1-10,15,20,28-31,35,39-43,47,51-57,62-64,71,75,86,90-91
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 11-14,16-19,21-27,32-34,36-38,44-46,48-50,58-61,65-70,72-74,76-85,87-89
+internal/dependabot/remote_author_test.go
+  s_15bee8f4b9d1df::t_97382650ed00e0 15-20,22-26,32-34
+  s_b04a0e5795ff33::t_8950d6b1bf385b 1-14,21,27-31,35-36
+internal/dependabot/AGENTS.md
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 11-12,18-22
+  s_b04a0e5795ff33::t_34c848e2adf27e 1-10,13-17,23-32
+internal/dependabot/remote_test.go
+  s_b04a0e5795ff33::t_d058c35ee92bba 48
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 18-19,26-28,30-32,37-43,45,53-57,60-62,74-76,80-85,87-88,90-92,94-99,104-106,115-117,119-121,123-125
+  s_b04a0e5795ff33::t_ff8aefee62429b 17
+  s_b04a0e5795ff33::t_8020bf4a511a40 10,44,69,72,78-79
+  s_b04a0e5795ff33::t_45f1c78b8bd403 1-9,11-16,20-25,29,33-36,46-47,49-52,58-59,63-68,70-71,73,77,86,89,93,100-103,107-114,118,122,126
+internal/dependabot/generate_test.go
+  s_fbb45ba2a1ecaf::t_7c8441ed6dbecd 1-11,20,27,31-41,45-46,56
+  s_b04a0e5795ff33::t_a1847aa52d63cd 42-44
+  s_2ba57c4b958eaa::t_5b38f4af5ae909 12-19,21-26,28-30,47-55
+internal/dependabot/transition_test.go
+  s_fbb45ba2a1ecaf::t_2f3d9ede5b9259 1-14,31,33-39,43-48,57-59,71-74,79
+  s_2ba57c4b958eaa::t_d97eff1f60e824 66-68
+  s_fbb45ba2a1ecaf::t_15bc3ff07c1f64 76
+  s_fbb45ba2a1ecaf::t_8a0432f8369b78 60-65,69-70
+  s_2ba57c4b958eaa::t_26208d728072eb 15-30,32,40-42,49-56,75,77-78
+internal/dependabot/committed_tree.go
+  s_15bee8f4b9d1df::t_ec0be1e89712aa 13,16-18,30-32,37-39,42-44,49-51,53-55,57-62,64-68
+  s_b04a0e5795ff33::t_b6053160238d5d 19,33
+  s_b04a0e5795ff33::t_9f2683401fdcd2 1-12,14-15,20-29,34-36,40-41,45-48,52,56,63,69-71
+internal/dependabot/testdata/head/go.mod
+  s_fbb45ba2a1ecaf::t_2f3d9ede5b9259 1-9
+internal/dependabot/remote_projection.go
+  s_b04a0e5795ff33::t_76edb0fab8bd37 1-13,23-25,28-31,34-39,46,53-54,58-63,67-71,75-77,81,85-87,94-97,104-105,112-116,120-121
+  s_15bee8f4b9d1df::t_7706b4b0dfde5f 14-22,26-27,32-33,40-42,44-45,47-52,55-57,64-66,72-74,78-80,82-84,88-93,98-103,106-111,117-119
+  s_b04a0e5795ff33::t_39948b3658329f 43
+internal/dependabot/event.go
+  s_2ba57c4b958eaa::t_26208d728072eb 19-30,35-37,39-41,48-50,52-54,57-59,81-83,86-88
+  s_fbb45ba2a1ecaf::t_f006cf0be01151 1-18,31-34,38,42-47,51,55-56,60-80,84-85,89-91
+internal/dependabot/plan_test.go
+  s_fbb45ba2a1ecaf::t_63c55dca2f5128 1-3,5,8-10,13-15,17-20,32,34-35,44,49-50,56-62,65,85-88,98-101,140-141,143,150
+  s_fbb45ba2a1ecaf::t_bfb431ec11c7ad 6-7,11-12,16,103-105,121-126,129-130
+  s_2ba57c4b958eaa::t_d97eff1f60e824 75-77,79-81
+  s_b04a0e5795ff33::t_cbfff86cebb2dd 4
+  s_b04a0e5795ff33::t_2ea85421793624 131,136,138-139
+  s_2ba57c4b958eaa::t_26208d728072eb 21-31,33,36-43,45-48,51-55,63-64,66-73,82-84,89-97,102,116-120,127-128,132-135,137,142,144-149
+  s_2ba57c4b958eaa::t_5b38f4af5ae909 106-115
+  s_fbb45ba2a1ecaf::t_15bc3ff07c1f64 74,78
+internal/dependabot/remote_checkout_test.go
+  s_b04a0e5795ff33::t_f228542a96f26b 1-11,13-14,16-17,30-31,39-44
+  s_b04a0e5795ff33::t_cbfff86cebb2dd 12,15
+  s_15bee8f4b9d1df::t_ec0be1e89712aa 18-29,32-38
+internal/dependabot/output.go
+  s_fbb45ba2a1ecaf::t_f54d45a35bdb66 89-92
+  s_2ba57c4b958eaa::t_26208d728072eb 13-15,17-37,41-43,45-74,76-78,82-88,93-96,98-107,110,112-131
+  s_fbb45ba2a1ecaf::t_ad98428c502229 1-12,16,38-40,44,75,97,108-109,111,132-134
+  s_2ba57c4b958eaa::t_5b38f4af5ae909 79-81
+internal/dependabot/remote_binding_test.go
+  s_b04a0e5795ff33::t_2be369987b1c95 1-15,19,25-27,31,35-38,40-43,45-50,54,58-72,76
+  s_15bee8f4b9d1df::t_4a57ece9f9faca 16-18,20-24,28-30,32-34,39,44,51-53,55-57,73-75
+internal/dependabot/committed_fixture_test.go
+  s_15bee8f4b9d1df::t_ec0be1e89712aa 16-18,28-33
+  s_b04a0e5795ff33::t_f228542a96f26b 1-15,19-27,34-49
+internal/dependabot/workflow_security_test.go
+  s_b04a0e5795ff33::t_81a00de4b1991a 24,51,55,58,62,64,70,78,85-86,89-92,134,167-175
+  s_15bee8f4b9d1df::t_7140c7555f9ad5 14-17,19-22,25-27,29-31,33,40-42,45-47,52-53,56-57,65-69,72-74,99-101,105-107,109-111,114-119,122-131,133,135,144-150,182-187
+  s_15bee8f4b9d1df::t_5c0b9e14c82efc 59-61,93-95
+  s_b04a0e5795ff33::t_0972a5a3add25b 75-77,81-84,96,160-162
+  s_b04a0e5795ff33::t_8def3f2071c9e1 1-13,18,23,28,32,34-39,43-44,48-50,54,63,71,97-98,102-104,108,112-113,120-121,132,136-143,151-159,163-166,178-181,188-190
+  s_15bee8f4b9d1df::t_61a08f3ffc48c4 79-80,87-88
+  s_b04a0e5795ff33::t_25797bba5ec61e 176-177
+internal/dependabot/dirty_dryrun_test.go
+  s_b04a0e5795ff33::t_b6053160238d5d 1-15,19-23,27
+  s_15bee8f4b9d1df::t_ec0be1e89712aa 16-18,24-26
+internal/dependabot/rejection_test.go
+  s_2ba57c4b958eaa::t_d97eff1f60e824 14,16-31,40-43,47-54,57,59,69-89
+  s_fbb45ba2a1ecaf::t_bfb431ec11c7ad 36,44-46
+  s_fbb45ba2a1ecaf::t_2644cc0e25ec0b 1-13,15,55-56,58,90
+  s_2ba57c4b958eaa::t_5b38f4af5ae909 32-35,37-39,60-67
+  s_fbb45ba2a1ecaf::t_968cc4f6ab9b50 68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f04e137e34756992229243930eb979c828cd7644",
+  "prompts": {},
+  "sessions": {
+    "s_15bee8f4b9d1df": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e192eb27fffe3JDuqzh6UO50IV",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_2ba57c4b958eaa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e1946079effeH1FLGpbqTGX57w",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b04a0e5795ff33": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e192eb27fffe3JDuqzh6UO50IV",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_fbb45ba2a1ecaf": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e1946079effeH1FLGpbqTGX57w",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
