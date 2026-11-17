@@ -1,0 +1,23 @@
+testdata/npm/provenance/contract-npm-builder-signing-adapter-annotations-ignored-valid.json
+  s_f4a2afd2cca811::t_a7e794205c470f 1
+testdata/fixtures/index.json
+  s_f4a2afd2cca811::t_a7e794205c470f 2232-2245
+internal/npmprofile/contract_fixture_catalog_test.go
+  s_f4a2afd2cca811::t_a8ca95bdf80f7f 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef48abc4578493c2f7014e35087986f98f78d724",
+  "prompts": {},
+  "sessions": {
+    "s_f4a2afd2cca811": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e15d29815ffe0xxeY700CRPOYC",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
