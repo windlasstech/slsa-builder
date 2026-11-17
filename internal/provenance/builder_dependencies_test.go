@@ -13,6 +13,7 @@ const signerDescriptorJSON = `{"name":"signing-adapter","uri":"pkg:golang/github
 const signerMismatchID = "windlass.verify.error.builder-dependencies-signing-adapter-mismatch"
 const descriptorInvalidID = "windlass.verify.error.builder-dependencies-descriptor-invalid"
 const extraDescriptorJSON = `{"name":"release-bot","uri":"pkg:generic/release-bot@1.0.0","digest":{"sha256":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}}`
+const misleadingSignerAnnotationsJSON = `{"name":"not-signing-adapter","uri":"pkg:golang/example.com/not-signing-adapter@v0.0.0","digest":{"dirHash1":"0000000000000000000000000000000000000000000000000000000000000000"},"role":"not-signing-adapter","verified":false}`
 
 func TestBuilderDependencyShape(t *testing.T) {
 	t.Parallel()
@@ -35,6 +36,30 @@ func TestBuilderDependencyShape(t *testing.T) {
 			})
 		}
 	}
+	for _, test := range []struct{ name, annotations string }{
+		{"false", "false"},
+		{"zero", "0"},
+		{"non-empty text", `" "`},
+		{"non-empty array", `[1]`},
+		{"non-empty object", `{"role":"signing-adapter"}`},
+		{"forged conflicting claims", misleadingSignerAnnotationsJSON},
+	} {
+		t.Run("annotations accepted "+test.name, func(t *testing.T) {
+			t.Parallel()
+			// Given a valid signer with descriptive annotations that cannot authenticate content.
+			raw := signerDescriptorWithAnnotations(test.annotations)
+			// When the full Statement boundary and common consumer validator consume it.
+			statement, err := decodeDependencyStatement(t, "["+raw+"]")
+			if err == nil {
+				_, err = statement.Validate(expectations(nil), nil)
+			}
+			// Then annotations are ignored without changing the real signer identity fields.
+			if err != nil {
+				t.Fatalf("consumer annotations %s rejected: %v", test.annotations, err)
+			}
+			requireSignerConsumerFields(t, statement.Predicate.RunDetails.Builder.BuilderDependencies)
+		})
+	}
 	t.Run("exact signer", func(t *testing.T) {
 		t.Parallel()
 		statement, err := decodeDependencyStatement(t, "["+signerDescriptorJSON+"]")
@@ -43,6 +68,60 @@ func TestBuilderDependencyShape(t *testing.T) {
 		}
 		requireSignerShape(t, statement.Predicate.RunDetails.Builder.BuilderDependencies)
 	})
+}
+
+func TestBuilderDependencyAnnotationRejections(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct{ name, from, to string }{
+		{"wrong real URI with forged annotations", "@v1.4.0", "@v1.3.0"},
+		{"wrong real digest with forged annotations", "0867457592e1612738db260dd3e94beb25a1eefd33dd2d22db5bf9d25bd260ac", "0000000000000000000000000000000000000000000000000000000000000000"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			// Given forged annotations beside a wrong authenticated signer field.
+			raw := strings.ReplaceAll(signerDescriptorWithAnnotations(misleadingSignerAnnotationsJSON), test.from, test.to)
+			// When decoding and semantic verification run in that order.
+			statement, err := decodeDependencyStatement(t, "["+raw+"]")
+			if err == nil {
+				_, err = statement.Validate(expectations(nil), nil)
+			}
+			// Then the annotations cannot repair the real field mismatch.
+			requireDiagnosticID(t, err, signerMismatchID)
+		})
+	}
+	t.Run("escaped-equivalent duplicate nested annotation keys", func(t *testing.T) {
+		t.Parallel()
+		// Given two escaped-equivalent spellings of one nested annotation key.
+		raw := signerDescriptorWithAnnotations(`{"role":"first"}`)
+		data := readFixture(t, "valid-statement.json")
+		data = replaceDependencyJSON(t, data, []string{"predicate", "runDetails", "builder"}, json.RawMessage("["+raw+"]"))
+		duplicated := strings.Replace(string(data), `"annotations":{"role":"first"}`, `"annotations":{"role":"first","\u0072ole":"second"}`, 1)
+		// When the Statement decoder consumes the hostile signed bytes.
+		_, err := provenance.DecodeStatement([]byte(duplicated))
+		// Then recursive duplicate rejection precedes consumer annotation ignoring.
+		requireDiagnosticID(t, err, "windlass.verify.error.duplicate-json-member")
+	})
+}
+
+func signerDescriptorWithAnnotations(annotations string) string {
+	return signerDescriptorJSON[:len(signerDescriptorJSON)-1] + `,"annotations":` + annotations + `}`
+}
+
+func requireSignerConsumerFields(t *testing.T, dependencies []provenance.BuilderDependency) {
+	t.Helper()
+	if len(dependencies) != 1 {
+		t.Fatalf("builder dependencies = %d, want exactly one signing adapter", len(dependencies))
+	}
+	dependency := dependencies[0]
+	if dependency.Name != "signing-adapter" {
+		t.Fatalf("signer name = %q, want signing-adapter", dependency.Name)
+	}
+	if dependency.URI != "pkg:golang/github.com/sigstore/sigstore-go@v1.4.0" {
+		t.Fatalf("signer URI = %q, want governed sigstore-go v1.4.0 URI", dependency.URI)
+	}
+	if len(dependency.Digest) != 1 || dependency.Digest["dirHash1"] != "0867457592e1612738db260dd3e94beb25a1eefd33dd2d22db5bf9d25bd260ac" {
+		t.Fatalf("signer digest = %v, want only governed dirHash1", dependency.Digest)
+	}
 }
 
 func requireSignerShape(t *testing.T, dependencies []provenance.BuilderDependency) {
@@ -151,7 +230,7 @@ func builderDependencyRejections() []dependencyRejection {
 			tests = append(tests, dependencyRejection{member + " required " + value, "[" + string(encoded) + "]", signerMismatchID})
 		}
 	}
-	for _, member := range []string{"annotations", "mediaType", "content", "downloadLocation", "unknown"} {
+	for _, member := range []string{"mediaType", "content", "downloadLocation", "unknown"} {
 		for _, value := range []string{"false", "0", `" "`, `{"role":"signing-adapter"}`, `[1]`} {
 			raw := signer[:len(signer)-1] + `,"` + member + `":` + value + `}`
 			tests = append(tests, dependencyRejection{member + " present " + value, "[" + raw + "]", signerMismatchID})

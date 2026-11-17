@@ -47,7 +47,7 @@ func validateBuilderDependencies(dependencies []BuilderDependency, profile Profi
 		}
 		signers++
 		if dependency.URI != signingAdapterURI || len(dependency.Digest) != 1 ||
-			dependency.Digest["dirHash1"] != signingAdapterDigest || effectiveBuilderMember(dependency.Annotations) ||
+			dependency.Digest["dirHash1"] != signingAdapterDigest ||
 			dependency.MediaType != "" || dependency.HasMalformedMembers() || dependency.HasUnexpectedFields() {
 			return validationError(idBuilderDependenciesMismatch, builderDependenciesField, "signing adapter must match the compiled descriptor exactly")
 		}
