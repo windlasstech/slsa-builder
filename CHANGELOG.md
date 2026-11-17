@@ -10,11 +10,6 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 
 ### Added
 
-- Added a Dependabot companion with local dry-run and automatic authenticated read-only planning for
-  eligible sigstore-go updates. Optional App apply is disabled by default and uses a single
-  expected-head commit with App-bot DCO and fail-closed signature/content reconciliation;
-  independent dependency security checks remain required.
-
 - Added Go-native keyless DSSE signing for npm provenance, with digest-verified handoffs and offline
   statement verification before bundle upload.
 - Added the public npm-only reusable workflow with trusted-publisher preflights, serialized
@@ -66,15 +61,8 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Added redacted human-readable diagnostics for external processes, npm publish failures, and
   registry read-back, with bounded stderr relay and recognized publish-rejection summaries.
   Diagnostics remain non-authoritative and cannot affect verification or publish outcomes.
-- Added signed `builderDependencies` records for the digest-pinned publish-stage npm CLI, including
-  its tarball SHA-512 and media type, with fail-closed verification and representative fixtures.
-
-### Changed
-
-- Changed the signing-adapter builder dependency to the common name-keyed descriptor shape and
-  DigestSet `dirHash1` lowercase-hex encoding, synchronized with sigstore-go v1.4.0.
-  Profile-declared builder dependencies are admitted by name, while unknown or malformed descriptors
-  fail closed.
+- Added digest-verified signing-adapter and publish-stage npm CLI records to signed provenance
+  `builderDependencies`.
 
 ### Security
 
