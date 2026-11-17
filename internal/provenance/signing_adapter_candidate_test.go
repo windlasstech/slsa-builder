@@ -10,7 +10,7 @@ import (
 func TestSigningAdapterCandidateDrift(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct{ name, version, sum string }{
-		{"version-only drift", "v1.5.0", "h1:CGdFdZLhYSc42yYN0+lL6yWh7v0z3S0i21v50lvSYKw="},
+		{"version-only drift", "v1.3.0", "h1:CGdFdZLhYSc42yYN0+lL6yWh7v0z3S0i21v50lvSYKw="},
 		{"digest-only drift", "v1.4.0", "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
 	} {
 		t.Run(test.name, func(t *testing.T) {
