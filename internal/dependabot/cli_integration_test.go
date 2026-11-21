@@ -5,8 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"net/http"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,17 +17,8 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
-type denyTransport struct{ t *testing.T }
-
-func (guard denyTransport) RoundTrip(*http.Request) (*http.Response, error) {
-	guard.t.Error("unexpected network request")
-	return nil, fmt.Errorf("network denied")
-}
-
 func TestCompanionCLIIntegration(t *testing.T) {
-	previous := http.DefaultTransport
-	http.DefaultTransport = denyTransport{t}
-	t.Cleanup(func() { http.DefaultTransport = previous })
+	t.Parallel()
 	root, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +34,7 @@ func TestCompanionCLIIntegration(t *testing.T) {
 	}
 	git := exec.CommandContext(t.Context(), "git", "-C", root, "rev-parse", "HEAD")
 	git.Env = append(os.Environ(), "GIT_MASTER=1")
-	sha, err := git.Output()
+	sha, err := runOfflineChild(t, git)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +78,7 @@ func TestCompanionCLIIntegration(t *testing.T) {
 	build := exec.CommandContext(t.Context(), "go", "build", "-o", binary, "./cmd/slsa-builder-internal")
 	build.Dir = buildRoot
 	build.Env = append(os.Environ(), "GOPROXY=off", "GOSUMDB=off", "GOTOOLCHAIN=local", "GOWORK=off")
-	if output, err := build.CombinedOutput(); err != nil {
+	if output, err := runOfflineChild(t, build); err != nil {
 		t.Fatalf("build: %v\n%s", err, output)
 	}
 	args := []string{"dependabot-companion", "--mode", "dry-run", "--event", filepath.Join(work, "snapshot/event.json"), "--snapshot", filepath.Join(work, "snapshot"), "--trusted-root", root, "--trusted-sha", event.TrustedSHA, "--output", filepath.Join(work, "output")}
@@ -101,7 +91,7 @@ func TestCompanionCLIIntegration(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		cmd := exec.CommandContext(t.Context(), executable, invocation...)
 		cmd.Env = append(os.Environ(), "GOPROXY=off", "GOSUMDB=off", "GOTOOLCHAIN=local")
-		if output, err := cmd.CombinedOutput(); err != nil {
+		if output, err := runOfflineChild(t, cmd); err != nil {
 			t.Fatalf("dry-run: %v\n%s", err, output)
 		} else {
 			t.Logf("run %d: %s", i+1, output)
@@ -137,16 +127,22 @@ func TestCompanionCLIIntegration(t *testing.T) {
 	}
 	check := exec.CommandContext(t.Context(), "git", "-C", root, "apply", "--check", filepath.Join(work, "output/patch.diff"))
 	check.Env = append(os.Environ(), "GIT_MASTER=1")
-	if output, err := check.CombinedOutput(); err != nil {
+	if output, err := runOfflineChild(t, check); err != nil {
 		t.Fatalf("patch does not apply: %v\n%s", err, output)
 	}
 	writeTestFile(t, filepath.Join(work, "malformed.json"), []byte(`{"number":1,"number":2}`))
 	badArgs := append([]string(nil), args...)
 	badArgs[4] = filepath.Join(work, "malformed.json")
 	badArgs[len(badArgs)-1] = filepath.Join(work, "rejected-output")
-	bad := exec.CommandContext(t.Context(), binary, badArgs...)
-	if err := bad.Run(); err == nil {
+	badInvocation := badArgs
+	if executable != binary {
+		badInvocation = append([]string{"-p", "(version 1)(allow default)(deny network*)", binary}, badArgs...)
+	}
+	bad := exec.CommandContext(t.Context(), executable, badInvocation...)
+	if _, err := runOfflineChild(t, bad); err == nil {
 		t.Fatal("malformed CLI input succeeded")
+	} else if errors.Is(err, errChildNetwork) {
+		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(work, "rejected-output")); !os.IsNotExist(err) {
 		t.Fatalf("malformed CLI left output: %v", err)
