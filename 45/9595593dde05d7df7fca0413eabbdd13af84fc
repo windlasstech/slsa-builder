@@ -1,0 +1,35 @@
+docs/architecture/slsa-provenance-v1.md
+  s_bbef9dc9a2436b::t_762f66f62231b7 66-68
+docs/dependency-selection.md
+  s_bbef9dc9a2436b::t_762f66f62231b7 106-107,110-111,132-135,138-147,150-155,158-160,178
+  s_89ac8877ae50f4::t_1a07b99856a4a5 108-109,112-113,130-131,136-137,148-149,156-157
+docs/architecture/core-profile-contract.md
+  s_89ac8877ae50f4::t_1a07b99856a4a5 391-394
+  s_bbef9dc9a2436b::t_762f66f62231b7 390
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_bbef9dc9a2436b::t_824da995587638 1356-1357
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "459595593dde05d7df7fca0413eabbdd13af84fc",
+  "prompts": {},
+  "sessions": {
+    "s_89ac8877ae50f4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0160d1d9ffdp1FX6j0k63BoMU",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bbef9dc9a2436b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0160d1d9ffdp1FX6j0k63BoMU",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
