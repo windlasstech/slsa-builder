@@ -183,6 +183,7 @@ func loadStatement(t *testing.T, name string) provenance.Statement {
 	}
 	useGitHubInternalParameters(&statement)
 	if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" {
+		useSigstoreGoDependency(t, &statement)
 		statement.Predicate.RunDetails.Builder.Version["npm"] = "11.0.0"
 	}
 	updateStatementFixture(t, name, statement)
