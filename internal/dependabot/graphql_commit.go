@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"path/filepath"
 	"strings"
 )
@@ -15,7 +16,7 @@ type fileAddition struct {
 type commitInput struct {
 	Branch struct {
 		Repository string `json:"repositoryNameWithOwner"`
-		RefName    string `json:"refName"`
+		RefName    string `json:"branchName"`
 	} `json:"branch"`
 	ExpectedHeadOID string `json:"expectedHeadOid"`
 	FileChanges     struct {
@@ -70,6 +71,10 @@ func (api *githubAPI) commitAndReconcile(ctx context.Context, input commitInput)
 	}
 	raw, err := api.request(ctx, "/graphql", body)
 	if err != nil {
+		var status *githubStatusError
+		if errors.As(err, &status) && status.Code >= 400 && status.Code < 500 && status.Code != 408 {
+			return err
+		}
 		return ErrIndeterminate
 	}
 	result, err := decodeGitHub[struct {
