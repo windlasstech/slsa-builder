@@ -1,0 +1,28 @@
+internal/dependabot/remote_module_inventory_test.go
+  s_8e9d8fed777dac::t_d2a1ccb671fc55 14,16-22,24-27,29-60,62-70,79-88,90-91,93-97,99-109,111-119,121-124
+  s_4836e620b452e0::t_cf7997db50b1dc 1-13,15,23,28,61,71-78,89,92,98,110,120,125-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fd82986f0e317120cb9c76ac5ee53babb10a5a2f",
+  "prompts": {},
+  "sessions": {
+    "s_4836e620b452e0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e01475f0dffewqBTFbcIrsIR9u",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_8e9d8fed777dac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e01475f0dffewqBTFbcIrsIR9u",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
