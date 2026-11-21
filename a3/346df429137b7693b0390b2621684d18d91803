@@ -1,0 +1,30 @@
+internal/dependabot/graphql_commit.go
+  s_4836e620b452e0::t_0a22b86b174c36 7,19,74-77
+internal/dependabot/remote_graphql_test.go
+  s_4836e620b452e0::t_5002389bd2e5ff 1-14,16-17,19-21,23-25,36-38,43,47
+  s_8e9d8fed777dac::t_d2a1ccb671fc55 15,18,22,26-35,39-42,44-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a3346df429137b7693b0390b2621684d18d91803",
+  "prompts": {},
+  "sessions": {
+    "s_4836e620b452e0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e01475f0dffewqBTFbcIrsIR9u",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_8e9d8fed777dac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e01475f0dffewqBTFbcIrsIR9u",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
