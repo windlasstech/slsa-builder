@@ -1,0 +1,21 @@
+internal/dependabot/workflow_security_test.go
+  s_f04ab73187e366::t_51e437d46e1ae6 54-56
+internal/dependabot/workflow_contract_test.go
+  s_f04ab73187e366::t_45dbaf0431df3a 1-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c06f20a291e7e66c76a6ab3b9e227bfa7d6c0231",
+  "prompts": {},
+  "sessions": {
+    "s_f04ab73187e366": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0160cfe6ffeYzozEIo7nc5166",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
