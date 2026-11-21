@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/windlasstech/slsa-builder/internal/provenance"
@@ -16,9 +15,13 @@ const publishCLIBuilderField = "predicate.runDetails.builder.builderDependencies
 
 // publishCLIBuilderDependency derives the descriptor from the provisioning trust anchor.
 func publishCLIBuilderDependency() (provenance.BuilderDependency, error) {
-	pin, err := toolchainpins.PublishPin()
+	return loadPublishCLIBuilderDependency(toolchainpins.PublishPin)
+}
+
+func loadPublishCLIBuilderDependency(load func() (toolchainpins.PublishNPM, error)) (provenance.BuilderDependency, error) {
+	pin, err := load()
 	if err != nil {
-		return provenance.BuilderDependency{}, fmt.Errorf("load publish CLI pin: %w", err)
+		return provenance.BuilderDependency{}, npmValidationError("windlass.verify.error.input-unavailable", publishCLIBuilderField, "embedded publish CLI pin is unavailable")
 	}
 	encoded, ok := strings.CutPrefix(pin.Integrity, "sha512-")
 	if !ok {
