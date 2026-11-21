@@ -144,6 +144,8 @@ func (api *githubAPI) moduleBlob(ctx context.Context, file *moduleFile) error {
 	if err != nil || int64(len(data)) != file.Size() {
 		return ErrInput
 	}
+	// Git blob IDs are SHA-1 content addresses, not signature primitives.
+	// nosemgrep: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-sha1
 	h := sha1.New()
 	fmt.Fprintf(h, "blob %d\x00", len(data))
 	h.Write(data)
