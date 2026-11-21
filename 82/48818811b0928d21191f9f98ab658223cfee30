@@ -1,0 +1,28 @@
+internal/dependabot/sites.go
+  s_776bca7a3db24c::t_7f9794e5e8c1dd 76,80,85,87,90,106-107,110
+  s_776bca7a3db24c::t_79f859104e987c 77-79,81-84,86,88-89,91-105,108-109
+internal/dependabot/generate_test.go
+  s_776bca7a3db24c::t_549f82f029bc01 135,146
+  s_776bca7a3db24c::t_b7f8854ffc5314 60
+  s_776bca7a3db24c::t_5cecd0c1cfb6b1 7-8
+  s_776bca7a3db24c::t_7a6e1eaf46f35e 91,127
+  s_776bca7a3db24c::t_5d176cc8336e9f 59,61-90,92-126,128-133,149-152,154-168
+  s_776bca7a3db24c::t_49a25403563692 134,136-145,147-148
+  s_776bca7a3db24c::t_33453a5ca34e74 153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8248818811b0928d21191f9f98ab658223cfee30",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
