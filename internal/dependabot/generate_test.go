@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/windlasstech/slsa-builder/internal/toolchainpins"
 )
 
 func TestRegenerateCompilesBaseBeforeInstallingCandidateData(t *testing.T) {
@@ -52,5 +54,115 @@ chmod 700 "$1"
 	t.Setenv("UPDATE_P02_FIXTURE", "1")
 	if err := regenerate(t.Context(), root, Transition{base: base, head: head}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestEditChangelogSynchronizesVersionBump(t *testing.T) {
+	t.Parallel()
+	transition := Transition{
+		old:       toolchainpins.SigningAdapterModule{Version: "v1.4.0", DirHash1: "old-digest", Sum: "h1:old-sum"},
+		candidate: toolchainpins.SigningAdapterModule{Version: "v1.5.0", DirHash1: "new-digest", Sum: "h1:new-sum"},
+	}
+	tests := []struct {
+		name, input, want string
+	}{
+		{
+			name: "creates changed section without an existing signer reference",
+			input: `## [Unreleased]
+
+### Added
+
+- Existing addition.
+
+### Security
+
+- Existing security entry.
+
+## [0.1.0] - 12026-01-01
+`,
+			want: `## [Unreleased]
+
+### Added
+
+- Existing addition.
+
+### Changed
+
+- Updated sigstore-go from v1.4.0 to v1.5.0.
+
+### Security
+
+- Existing security entry.
+
+## [0.1.0] - 12026-01-01
+`,
+		},
+		{
+			name: "appends after the last existing changed entry",
+			input: `## [Unreleased]
+
+### Added
+
+- Existing addition.
+
+### Changed
+
+- First change.
+- Last existing change.
+
+### Fixed
+
+- Existing fix.
+`,
+			want: `## [Unreleased]
+
+### Added
+
+- Existing addition.
+
+### Changed
+
+- First change.
+- Last existing change.
+- Updated sigstore-go from v1.4.0 to v1.5.0.
+
+### Fixed
+
+- Existing fix.
+`,
+		},
+		{
+			name: "advances the existing bump target without adding an entry",
+			input: `## [Unreleased]
+
+### Changed
+
+- Updated sigstore-go from v1.3.0 to v1.4.0.
+`,
+			want: `## [Unreleased]
+
+### Changed
+
+- Updated sigstore-go from v1.3.0 to v1.5.0.
+`,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			// Given unreleased changelog inputs with different category boundaries.
+			prepared := prepared{transition: transition}
+
+			// When the companion edits the unreleased changelog.
+			edited, err := editSite("CHANGELOG.md", []byte(test.input), prepared)
+
+			// Then the bump entry appears at the required category boundary.
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(edited) != test.want {
+				t.Fatalf("changelog mismatch:\n got:\n%s\nwant:\n%s", edited, test.want)
+			}
+		})
 	}
 }

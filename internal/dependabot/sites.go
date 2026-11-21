@@ -73,7 +73,41 @@ func editSite(path string, raw []byte, prepared prepared) ([]byte, error) {
 		text, suffix = text[:end], text[end:]
 	}
 	replacer := strings.NewReplacer(old.Version, next.Version, old.DirHash1, next.DirHash1, strings.ToUpper(old.DirHash1), strings.ToUpper(next.DirHash1), strings.TrimPrefix(old.Sum, "h1:"), strings.TrimPrefix(next.Sum, "h1:"))
-	text = replacer.Replace(text)
+	if path == "CHANGELOG.md" {
+		updated := strings.ReplaceAll(text, old.Version, next.Version)
+		if updated != text {
+			text = updated
+		} else {
+			entry := "- Updated sigstore-go from " + old.Version + " to " + next.Version + "."
+			if start := strings.Index(text, "\n### Changed\n"); start >= 0 {
+				bodyStart := start + len("\n### Changed\n")
+				bodyEnd := len(text)
+				if nextHeading := strings.Index(text[bodyStart:], "\n### "); nextHeading >= 0 {
+					bodyEnd = bodyStart + nextHeading
+				}
+				section := strings.TrimRight(text[bodyStart:bodyEnd], "\n")
+				text = text[:bodyStart] + section + "\n" + entry + "\n" + text[bodyEnd:]
+			} else {
+				block := "### Changed\n\n" + entry + "\n"
+				insert := len(text)
+				if start := strings.Index(text, "\n### Added\n"); start >= 0 {
+					bodyStart := start + len("\n### Added\n")
+					if nextHeading := strings.Index(text[bodyStart:], "\n### "); nextHeading >= 0 {
+						insert = bodyStart + nextHeading
+					}
+				} else if nextHeading := strings.Index(text, "\n### "); nextHeading >= 0 {
+					insert = nextHeading
+				}
+				if insert == len(text) {
+					text = strings.TrimRight(text, "\n") + "\n\n" + block
+				} else {
+					text = text[:insert] + "\n" + block + text[insert:]
+				}
+			}
+		}
+	} else {
+		text = replacer.Replace(text)
+	}
 	if path == "docs/dependency-selection.md" {
 		date := regexp.MustCompile(`(was released on\n[ \t]*)1[0-9]{4}-[0-9]{2}-[0-9]{2}`)
 		goRequirement := regexp.MustCompile(`declares Go [0-9]+\.[0-9]+(?:\.[0-9]+)?, which is compatible`)
