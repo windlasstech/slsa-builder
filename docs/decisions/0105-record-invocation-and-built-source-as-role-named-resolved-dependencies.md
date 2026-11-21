@@ -35,6 +35,8 @@ relations:
     target: ADR-0110
   - type: see-also
     target: ADR-0111
+  - type: see-also
+    target: ADR-0113
 ---
 
 # Record Invocation and Built Source as Role-Named Resolved Dependencies

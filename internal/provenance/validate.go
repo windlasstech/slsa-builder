@@ -23,8 +23,6 @@ const (
 	idTimestampOrderingInvalid       = "windlass.verify.error.timestamp-ordering-invalid"
 	idBuilderVersionMismatch         = "windlass.verify.error.builder-version-mismatch"
 	idBuilderDependenciesMismatch    = "windlass.verify.error.builder-dependencies-signing-adapter-mismatch"
-	signingAdapterURI                = "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0"
-	signingAdapterDigest             = "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="
 	canonicalTimestampLayout         = "2006-01-02T15:04:05Z"
 	maximumAcceptedNegativeClockSkew = 5 * time.Second
 )
@@ -88,7 +86,7 @@ func (statement Statement) Validate(expectations Expectations, profile ProfileVa
 	if err := validateInternalParameters(statement.Predicate.BuildDefinition.InternalParameters); err != nil {
 		return nil, err
 	}
-	if err := validateBuilder(statement.Predicate.RunDetails.Builder, expectations.Builder); err != nil {
+	if err := validateBuilder(statement.Predicate.RunDetails.Builder, expectations.Builder, profile); err != nil {
 		return nil, err
 	}
 	metadata := statement.Predicate.RunDetails.Metadata
@@ -199,11 +197,11 @@ func DecodeInternalParameters(parameters json.RawMessage) (InternalParameters, e
 	return decoded, nil
 }
 
-func validateBuilder(builder Builder, expected BuilderExpectations) error {
+func validateBuilder(builder Builder, expected BuilderExpectations, profile ProfileValidator) error {
 	if err := validateBuilderVersion(builder.Version, expected); err != nil {
 		return err
 	}
-	return validateBuilderDependencies(builder.BuilderDependencies)
+	return validateBuilderDependencies(builder.BuilderDependencies, profile)
 }
 
 func validateBuilderVersion(version map[string]string, expected BuilderExpectations) error {
@@ -230,19 +228,6 @@ func validateBuilderVersion(version map[string]string, expected BuilderExpectati
 	if !hasCorepack || !componentVersionPattern.MatchString(corepackVersion) ||
 		!componentVersionPattern.MatchString(*expected.CorepackVersion) || corepackVersion != *expected.CorepackVersion {
 		return validationError(idBuilderVersionMismatch, "predicate.runDetails.builder.version.corepack", "corepack must equal the exact observed version")
-	}
-	return nil
-}
-
-func validateBuilderDependencies(dependencies []BuilderDependency) error {
-	if len(dependencies) != 1 {
-		return validationError(idBuilderDependenciesMismatch, "predicate.runDetails.builder.builderDependencies", "builderDependencies must contain exactly one signing adapter")
-	}
-	dependency := dependencies[0]
-	if dependency.URI != signingAdapterURI || len(dependency.Digest) != 1 ||
-		dependency.Digest["h1"] != signingAdapterDigest || len(dependency.Annotations) != 1 ||
-		dependency.Annotations["role"] != "signing-adapter" {
-		return validationError(idBuilderDependenciesMismatch, "predicate.runDetails.builder.builderDependencies[0]", "sigstore-go signing adapter URI, module digest, and role must match")
 	}
 	return nil
 }

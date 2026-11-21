@@ -14,6 +14,7 @@ func TestFinalContractRequirementRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range []string{
+		"ADR-0113.builder-dependencies-common-shape", "ADR-0114.publish-cli-descriptor",
 		"ADR-0103.workflow-invocation-identity", "ADR-0104.canonical-builder-identity",
 		"ADR-0105.invocation-source-descriptor", "ADR-0105.built-source-descriptor",
 		"ADR-0106.source-selector-bindings", "ADR-0107.github-internal-parameters",

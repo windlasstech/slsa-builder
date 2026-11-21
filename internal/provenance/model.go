@@ -151,13 +151,6 @@ type Builder struct {
 	BuilderDependencies []BuilderDependency `json:"builderDependencies"`
 }
 
-// BuilderDependency records one orchestrator-side dependency.
-type BuilderDependency struct {
-	URI         string            `json:"uri"`
-	Digest      map[string]string `json:"digest"`
-	Annotations map[string]string `json:"annotations"`
-}
-
 // Metadata records the canonical run identity and whole-second event times.
 type Metadata struct {
 	InvocationID           string `json:"invocationId"`

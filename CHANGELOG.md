@@ -61,6 +61,8 @@ Era five-digit years (e.g., `## [0.1.0] - 12026-06-13`).
 - Added redacted human-readable diagnostics for external processes, npm publish failures, and
   registry read-back, with bounded stderr relay and recognized publish-rejection summaries.
   Diagnostics remain non-authoritative and cannot affect verification or publish outcomes.
+- Added digest-verified signing-adapter and publish-stage npm CLI records to signed provenance
+  `builderDependencies`.
 
 ### Security
 

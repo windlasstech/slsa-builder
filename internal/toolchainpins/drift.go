@@ -1,7 +1,11 @@
 package toolchainpins
 
 import (
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"slices"
 	"strings"
@@ -61,7 +65,7 @@ func CheckDrift(inputs DriftInputs) error {
 			[]string{platform, artifact.URL, artifact.SHA256}},
 	}
 	for _, check := range checks {
-		data, err := os.ReadFile(check.path)
+		data, err := readDriftSpec(check.path)
 		if err != nil {
 			return &DriftError{message: "cannot read specification for " + check.heading}
 		}
@@ -72,6 +76,75 @@ func CheckDrift(inputs DriftInputs) error {
 		if err := checkPinTable(section, check.headers, check.values); err != nil {
 			return fmt.Errorf("%s: %w", check.heading, err)
 		}
+		if check.path == inputs.PublishSpec && check.heading == "## Publish-stage npm CLI allowlist" {
+			if err := checkPublishExample(string(data), pin); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func readDriftSpec(path string) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, &DriftError{message: "cannot open specification"}
+	}
+	defer file.Close()
+	const maxSpecBytes = 16 << 20
+	data, err := io.ReadAll(io.LimitReader(file, maxSpecBytes+1))
+	if err != nil || len(data) > maxSpecBytes {
+		return nil, &DriftError{message: "unreadable or oversized specification"}
+	}
+	return data, nil
+}
+
+func checkPublishExample(markdown string, pin PublishNPM) error {
+	section, err := pinSection(markdown, "### JS/TS npm `builderDependencies` schema")
+	if err != nil {
+		return err
+	}
+	const designation = "The exact current array is:"
+	text := strings.Join(section, "\n")
+	if strings.Count(text, designation) != 1 {
+		return &DriftError{message: "expected exactly one designated builder dependency example"}
+	}
+	_, text, _ = strings.Cut(text, designation)
+	text, ok := strings.CutPrefix(strings.TrimSpace(text), "```json\n")
+	if !ok {
+		return &DriftError{message: "designated builder dependency example must be JSON"}
+	}
+	raw, _, closed := strings.Cut(text, "\n```")
+	if !closed {
+		return &DriftError{message: "unterminated builder dependency example"}
+	}
+	type exampleDescriptor struct {
+		Name        string            `json:"name"`
+		URI         string            `json:"uri"`
+		Digest      map[string]string `json:"digest"`
+		MediaType   string            `json:"mediaType"`
+		Annotations json.RawMessage   `json:"annotations"`
+	}
+	descriptors, err := decodeClosed[[]exampleDescriptor]([]byte(raw))
+	if err != nil {
+		return &DriftError{message: "malformed builder dependency example"}
+	}
+	digest, err := base64.StdEncoding.Strict().DecodeString(strings.TrimPrefix(pin.Integrity, "sha512-"))
+	if err != nil {
+		return &DriftError{message: "invalid publish pin integrity"}
+	}
+	count := 0
+	for _, descriptor := range descriptors {
+		if descriptor.Name != "publish-cli" {
+			continue
+		}
+		count++
+		if descriptor.URI != "pkg:npm/npm@"+pin.Version || len(descriptor.Digest) != 1 || descriptor.Digest["sha512"] != hex.EncodeToString(digest) {
+			return &DriftError{message: "publish-cli example differs from pin and allowlist"}
+		}
+	}
+	if count != 1 {
+		return &DriftError{message: "expected exactly one publish-cli example descriptor"}
 	}
 	return nil
 }

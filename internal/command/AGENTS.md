@@ -10,24 +10,33 @@ here.
 
 Registered via constructors in the `NewDispatcher(...)` call in `cmd/slsa-builder-internal/main.go`.
 
-| Subcommand                     | Delegates to                                         | Purpose                                                          |
-| ------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------- |
-| `fixture-check`                | `fixture`                                            | Validate the fixture registry and corpus.                        |
-| `npm-profile-build`            | `npmprofile` + `handoff` + `digest`                  | Build, pack, and hand off the npm tarball.                       |
-| `npm-profile-publish`          | `npmprofile` + `attestation` + `policy` + `handoff`  | Publish with provenance and attestation.                         |
-| `npm-profile-provision-npm`    | `npmprofile.ProvisionNPM`                            | Provision the digest-verified publish npm without execution.     |
-| `npm-profile-provision-node`   | `npmprofile.ProvisionNode`                           | Provision the digest-verified Node.js runtime without execution. |
-| `npm-profile-report`           | `diagnostic`                                         | Validate and persist the outcome report.                         |
-| `npm-profile-sign`             | `npmprofile` + `signing` + `attestation` + `handoff` | Sign and attest built provenance.                                |
-| `npm-profile-select`           | `npmprofile.Analyze`                                 | Resolve and describe the target package.                         |
-| `npm-profile-source-ref`       | `npmprofile.ResolveSourceRefTag`                     | Resolve the tags-only build source ref.                          |
-| `npm-profile-toolchain-assert` | `npmprofile.AssertToolchainPair`                     | Assert the embedded Node.js/npm pair before install.             |
-| `pin-check`                    | `toolchainpins.CheckDrift`                           | Compare disk pin records with specification tables.              |
-| `verify-handoff`               | `handoff`                                            | Verify a producer-to-publisher handoff.                          |
-| `verify-attestation`           | `attestation` + `policy` + `provenance`              | Verify a signed attestation against policy.                      |
-| `workflow-check`               | `workflowcheck`                                      | Static workflow conformance check.                               |
+| Subcommand                     | Delegates to                                         | Purpose                                                                       |
+| ------------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `fixture-check`                | `fixture`                                            | Validate the fixture registry and corpus.                                     |
+| `dependabot-companion`         | `dependabot`                                         | Local dry-run, remote read-only plan, or gated App apply.                     |
+| `npm-profile-build`            | `npmprofile` + `handoff` + `digest`                  | Build, pack, and hand off the npm tarball.                                    |
+| `npm-profile-publish`          | `npmprofile` + `attestation` + `policy` + `handoff`  | Publish with provenance and attestation.                                      |
+| `npm-profile-provision-npm`    | `npmprofile.ProvisionNPM`                            | Provision the digest-verified publish npm without execution.                  |
+| `npm-profile-provision-node`   | `npmprofile.ProvisionNode`                           | Provision the digest-verified Node.js runtime without execution.              |
+| `npm-profile-report`           | `diagnostic`                                         | Validate and persist the outcome report.                                      |
+| `npm-profile-sign`             | `npmprofile` + `signing` + `attestation` + `handoff` | Sign and attest built provenance.                                             |
+| `npm-profile-select`           | `npmprofile.Analyze`                                 | Resolve and describe the target package.                                      |
+| `npm-profile-source-ref`       | `npmprofile.ResolveSourceRefTag`                     | Resolve the tags-only build source ref.                                       |
+| `npm-profile-toolchain-assert` | `npmprofile.AssertToolchainPair`                     | Assert the embedded Node.js/npm pair before install.                          |
+| `pin-check`                    | `toolchainpins.CheckDrift`                           | Compare disk pins with specification tables and the publish-cli JSON example. |
+| `verify-handoff`               | `handoff`                                            | Verify a producer-to-publisher handoff.                                       |
+| `verify-attestation`           | `attestation` + `policy` + `provenance`              | Verify a signed attestation against policy.                                   |
+| `workflow-check`               | `workflowcheck`                                      | Static workflow conformance check.                                            |
 
 ## WHERE TO LOOK
+
+`dependabot-companion` requires `--mode`, `--event`, `--trusted-root`, `--trusted-sha`, and
+`--output`. Only `dry-run` accepts and requires `--snapshot`. `plan` and `apply` require an actual
+`workflow_run` payload and `GITHUB_TOKEN`; `apply` additionally requires `APP_SLUG` and
+`DEPENDABOT_COMPANION_APPLY_ENABLED=true`. API-base overrides and human DCO identities are not
+supported. The adapter only routes arguments; `internal/dependabot` owns all eligibility and
+mutation policy. See
+[integration guidance](../../docs/dependency-selection.md#dependabot-companion-integration).
 
 `pin-check` requires `--publish-pin <path>`, `--pair-record <path>`, `--publish-spec <path>`, and
 `--build-spec <path>`. It compares disk files, not embedded records. Success exits 0; drift or

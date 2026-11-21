@@ -76,6 +76,7 @@ func TestValidSLSAv1(t *testing.T) {
 
 func TestCommonRejectionMatrix(t *testing.T) {
 	t.Parallel()
+	t.Run("builder dependency routing", testBuilderDependencyRejections)
 
 	tests := []struct {
 		name     string
@@ -112,7 +113,7 @@ func TestCommonRejectionMatrix(t *testing.T) {
 				useGitHubInternalParameters(&statement)
 			}
 			if test.name != "builder dependency" {
-				useSigstoreGoDependency(&statement)
+				useSigstoreGoDependency(t, &statement)
 			}
 			if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" {
 				if test.name == "builder version" {
@@ -155,6 +156,7 @@ func TestBuilderFields(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			statement := loadStatement(t, test.fixture)
+			requireSignerShape(t, statement.Predicate.RunDetails.Builder.BuilderDependencies)
 			if _, err := statement.Validate(expectations(test.corepackVersion), nil); err != nil {
 				t.Fatalf("Validate() error = %v", err)
 			}
@@ -179,21 +181,22 @@ func loadStatement(t *testing.T, name string) provenance.Statement {
 	if err != nil {
 		t.Fatalf("DecodeStatement(%q) error = %v", name, err)
 	}
-	useSigstoreGoDependency(&statement)
 	useGitHubInternalParameters(&statement)
 	if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" {
+		useSigstoreGoDependency(t, &statement)
 		statement.Predicate.RunDetails.Builder.Version["npm"] = "11.0.0"
 	}
 	updateStatementFixture(t, name, statement)
 	return statement
 }
 
-func useSigstoreGoDependency(statement *provenance.Statement) {
-	statement.Predicate.RunDetails.Builder.BuilderDependencies = []provenance.BuilderDependency{{
-		URI:         "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0",
-		Digest:      map[string]string{"h1": "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE="},
-		Annotations: map[string]string{"role": "signing-adapter"},
-	}}
+func useSigstoreGoDependency(t *testing.T, statement *provenance.Statement) {
+	t.Helper()
+	var dependencies []provenance.BuilderDependency
+	if err := json.Unmarshal([]byte("["+signerDescriptorJSON+"]"), &dependencies); err != nil {
+		t.Fatal(err)
+	}
+	statement.Predicate.RunDetails.Builder.BuilderDependencies = dependencies
 }
 
 func useGitHubInternalParameters(statement *provenance.Statement) {

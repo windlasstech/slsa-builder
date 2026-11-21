@@ -14,6 +14,7 @@ func main() {
 	diagnostics, closeDiagnostics := operationalDebugStderr()
 	ctx := npmprofile.WithOperationalDebugOutput(context.Background(), diagnostics)
 	result := command.NewDispatcher(
+		command.NewDependabotCompanionCommand(),
 		command.NewFixtureCheckCommand(),
 		command.NewNPMProfileBuildCommand(),
 		command.NewNPMProfileProvisionNPMCommand(),

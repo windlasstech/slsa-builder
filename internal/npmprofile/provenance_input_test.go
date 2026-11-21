@@ -33,6 +33,7 @@ func TestNPMProvenanceInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewProvenanceSigningInput() error = %v", err)
 	}
+	requirePublishBuilderJSON(t, signing.PredicateJSON)
 	if signing.PredicateType != provenance.PredicateType || signing.StatementFileName != NPMProvenanceStatementFile {
 		t.Fatalf("signing input = %#v", signing)
 	}
@@ -346,35 +347,6 @@ func TestResolvedDependencies(t *testing.T) {
 			validDependencies(ManagerPNPM, validExternalParameters(ManagerPNPM))[1])
 		requireNPMDiagnostic(t, newProvenanceInputError(input), IDResolvedDependenciesDistribution)
 	})
-}
-
-func TestBuilderFields(t *testing.T) {
-	t.Parallel()
-
-	for _, manager := range []Manager{ManagerNPM, ManagerPNPM} {
-		t.Run(string(manager), func(t *testing.T) {
-			input := validProvenanceInput(t, manager)
-			signing, err := NewProvenanceSigningInput(input)
-			if err != nil {
-				t.Fatalf("NewProvenanceSigningInput() error = %v", err)
-			}
-			version := signing.Predicate.RunDetails.Builder.Version
-			if version["nodejs"] != input.NodeJSVersion || version["npm"] != input.NPMVersion {
-				t.Fatalf("builder.version = %#v", version)
-			}
-			_, hasCorepack := version["corepack"]
-			if hasCorepack != (manager != ManagerNPM) {
-				t.Fatalf("corepack presence = %t for %s", hasCorepack, manager)
-			}
-			dependencies := signing.Predicate.RunDetails.Builder.BuilderDependencies
-			if len(dependencies) != 1 ||
-				dependencies[0].URI != "pkg:golang/github.com/sigstore/sigstore-go@v1.3.0" ||
-				dependencies[0].Digest["h1"] != "hnIMHREyCNTYFtOE1o7ae3Axa9B5W5EjUSBJICP2NBE=" ||
-				dependencies[0].Annotations["role"] != "signing-adapter" {
-				t.Fatalf("builderDependencies = %#v", dependencies)
-			}
-		})
-	}
 }
 
 func TestReleaseRefEquality(t *testing.T) {

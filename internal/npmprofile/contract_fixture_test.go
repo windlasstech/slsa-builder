@@ -11,6 +11,7 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/canonicaljson"
 	"github.com/windlasstech/slsa-builder/internal/diagnostic"
 	"github.com/windlasstech/slsa-builder/internal/fixture"
+	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
 
 func TestFinalContractCorpus(t *testing.T) {
@@ -79,6 +80,9 @@ func TestFinalContractCorpus(t *testing.T) {
 				variants = document.Cases
 			}
 			wantCount := 1
+			if strings.HasPrefix(spec.name, "npm-builder-") && spec.mutation != "" {
+				wantCount = len(builderContractEdits(spec.mutation))
+			}
 			if spec.mutation == "matrix" || spec.mutation == "diagnostics" {
 				wantCount = 3
 			}
@@ -87,6 +91,12 @@ func TestFinalContractCorpus(t *testing.T) {
 			}
 			if len(variants) != wantCount {
 				t.Fatalf("variant count %d, want %d", len(variants), wantCount)
+			}
+			if strings.HasPrefix(spec.name, "npm-builder-") {
+				want, err := canonicaljson.Canonicalize(mustJSON(contractFixtureDocument{Phase: "provenance-inputs", Cases: contractVariants(t, spec)}))
+				if err != nil || !bytes.Equal(raw, want) {
+					t.Fatalf("builder fixture differs from its mutation recipe: %v", err)
+				}
 			}
 			for _, variant := range variants {
 				t.Run(variant.Name, func(t *testing.T) {
@@ -134,7 +144,19 @@ func runContractVariant(t *testing.T, spec contractFixtureSpec, variant contract
 		}
 		capturedRunner = &capture
 	}
-	statement := decodeContractStatement(t, variant.Statement)
+	raw := variant.Statement
+	if spec.mutation == "builder-duplicate-json" {
+		if variant.StatementJSON == "" || !bytes.Equal(raw, []byte("null")) && len(raw) != 0 {
+			t.Fatal("duplicate-member case must carry only raw statement_json")
+		}
+		raw = []byte(variant.StatementJSON)
+	} else if variant.StatementJSON != "" {
+		t.Fatal("only duplicate-member cases may use statement_json")
+	}
+	statement, err := provenance.DecodeStatement(raw)
+	if err != nil {
+		return err
+	}
 	if capturedRunner != nil {
 		produced := runnerImageDescriptor(*capturedRunner)
 		if err := validateRunnerDescriptor(produced); err != nil {

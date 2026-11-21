@@ -15,6 +15,7 @@ workflows are hardened by default; the authoritative security policy lives in
 ├── lint.yml                    # markdownlint, actionlint, golangci-lint, go test + Codecov, fuzz smoke matrix
 ├── fuzz.yml                    # scheduled/manual deep fuzz matrix (10 min/target), corpus upload
 ├── autofix.yml                 # autoformat PRs/pushes with Prettier, golangci-lint fmt, shfmt
+├── dependabot-companion.yml    # automatic Lint-completed read-only plan; disabled-by-default App apply
 ├── dependency-review.yml       # PR/merge-group dependency review gate (org reusable)
 ├── osv-scanner.yml             # PR/merge-group scan + full scan on push to main and weekly schedule
 └── scorecard.yml               # OpenSSF Scorecard on branch-protection/main/schedule events
@@ -67,6 +68,13 @@ Also: `.github/actionlint.yaml` — scoped suppressions, see below.
   no `NPM_TOKEN`/`NODE_AUTH_TOKEN` path anywhere.
 - **Go formatting**: use `golangci-lint fmt`/`golangci-lint run`; there is no standalone `gofmt` CI
   step.
+- **Dependabot companion**: `workflow_run` for completed `Lint` is the only trigger. Check out
+  trusted `main` only, with credentials disabled. Both jobs start with block-mode hardening and use
+  branch/run-fallback concurrency without cancellation. Plan has read permissions and no App secret.
+  Apply needs plan and the explicit repository variable, with the same CLI env gate. Only apply
+  obtains a repository-scoped App token with default revocation. Never download or execute PR
+  artifacts, authorize from logs, auto-merge, or bypass Dependency Review. Static rejection tests
+  live in `internal/dependabot/workflow_security_test.go`.
 - **Signing**: provenance signing is Go-native (ADR 0077); `actions/attest` is forbidden in the
   production workflow and `workflow-check` rejects it.
 

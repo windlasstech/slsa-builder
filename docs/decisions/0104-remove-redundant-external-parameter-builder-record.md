@@ -23,6 +23,8 @@ relations:
       builder-record removal remains in force"
   - type: see-also
     target: ADR-0109
+  - type: see-also
+    target: ADR-0114
 ---
 
 # Remove Redundant External-Parameter Builder Record

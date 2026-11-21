@@ -23,6 +23,8 @@ relations:
     target: ADR-0088
   - type: see-also
     target: ADR-0099
+  - type: see-also
+    target: ADR-0113
 ---
 
 # Record Deterministic Media Types for Non-Runner Dependencies

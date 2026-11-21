@@ -117,6 +117,14 @@ relations:
       every runner-image decision remain in force"
   - type: see-also
     target: ADR-0111
+  - type: see-also
+    target: ADR-0113
+  - type: partially-superseded-by
+    target: ADR-0114
+    scope:
+      "the clause leaving publish-stage npm recording to outcome evidence only; the
+      builder.version.npm build-stage-only clause and the externalParameters minimization remain in
+      force"
 ---
 
 # Minimize External Parameters to Actual Interface Inputs

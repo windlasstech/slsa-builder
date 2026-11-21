@@ -4,7 +4,7 @@
 
 Architecture decision records for the SLSA builder. Each ADR is a MADR 4.0.0 document with a
 sequential four-digit number and a kebab-case title. The sequence currently runs from `0000` through
-`0112`.
+`0115`.
 
 ## STRUCTURE
 
@@ -44,11 +44,14 @@ docs/decisions/
 ├── 0110-record-deterministic-media-types-for-non-runner-dependencies.md
 ├── 0111-record-runner-image-reported-identity-with-included-software-uri-and-full-image-version.md
 ├── 0112-record-runner-image-operating-system-from-on-disk-metadata.md
+├── 0113-define-the-common-builderdependencies-descriptor-shape.md
+├── 0114-record-the-publish-stage-npm-cli-in-builderdependencies.md
+├── 0115-record-revision-specific-descriptor-expectations-in-signed-release-manifests.md
 ├── README.md / README.ko.md
 └── AGENTS.md
 ```
 
-ADR numbering is sequential from `0000` through `0112`. See the WHERE TO LOOK table below for topic
+ADR numbering is sequential from `0000` through `0115`. See the WHERE TO LOOK table below for topic
 groupings.
 
 Live operational evidence (the npm M1 dogfood records and verification procedure in `docs/dogfood/`)
@@ -66,7 +69,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | Dev tooling runtime                                  | `0009`, `0010`, `0011`, `0012` | Node/pnpm, Lefthook, mise bootstrap.                                                                                                                                                                                                      |
 | JS/TS npm package profile                            | `0013`–`0037`                  | Package selection, manifest-first managers, build/pack, workflow entrypoint, OIDC publishing, provenance, initial signing adapter and historical decisions.                                                                               |
 | GitHub Release asset profile                         | `0038`–`0052`                  | Release asset subjects, buildType URIs, publisher model, producer handoff, sidecar distribution, npm composition and historical decisions.                                                                                                |
-| Release manifest and trusted producer policy         | `0053`–`0054`, `0062`          | Three-job signing boundary, release manifest predicate URI, trusted producer policy intersection and conflict handling.                                                                                                                   |
+| Release manifest and trusted producer policy         | `0053`–`0054`, `0062`, `0115`  | Three-job signing boundary, release manifest predicate URI, trusted producer policy intersection and conflict handling. ADR 0115 supplies revision-specific descriptor expectations in the manifest.                                      |
 | Signing adapter Statement construction               | `0055`                         | `actions/attest` custom mode and post-sign Statement checks, later superseded by the Go-native signer.                                                                                                                                    |
 | Non-selected lockfile diagnostics                    | `0056`                         | Stale lockfile handling under manifest-selected package managers.                                                                                                                                                                         |
 | Public npm release interface and publisher authority | `0057`–`0060`, `0108`          | Single public entrypoint, minimal `workflow_call` interface, same-repository least-privilege publisher, separated internal authority, removed `release-tag` and `provenance-sidecar` inputs, built-tag derivation and mandatory sidecars. |
@@ -76,7 +79,7 @@ confirms ADR/spec behavior but is not decision material and does not live here.
 | ADR lifecycle metadata                               | `0065`                         | Closed status grammar, separate relations field and bidirectional traceability.                                                                                                                                                           |
 | Common run convergence and mutation policy           | `0066`–`0067`, `0074`–`0076`   | Job-class concurrency, run-identity idempotency, single-job mutation segments, detection-based safety, `queue: max` FIFO, observation preflights and first-mutation classification.                                                       |
 | Verifier identity and transparency trust             | `0068`–`0069`                  | Immutable builder/source identities, Rekor inclusion, offline verification and governed Sigstore trust root.                                                                                                                              |
-| Build-environment and builder recording              | `0070`–`0071`                  | Package-manager distributions, initial runner-image descriptor, `builder.version` and `builderDependencies`.                                                                                                                              |
+| Build-environment and builder recording              | `0070`–`0071`, `0113`–`0114`   | Package-manager distributions, initial runner-image descriptor, `builder.version` and `builderDependencies`, the common `builderDependencies` descriptor shape, and the publish-stage npm CLI descriptor.                                 |
 | Release asset run ownership binding                  | `0072`                         | Sidecar-first pair binding and custody non-attribution for release assets.                                                                                                                                                                |
 | npm publish convergence and read-back classification | `0073`, `0102`                 | Published-attestation run identity, E422 reduced read-back budget, determinate absence and full budget when the version exists.                                                                                                           |
 | Windlass provenance signing adapter                  | `0077`                         | Go-native exact-byte Sigstore DSSE signing for all profiles, superseding `0035` and `0055`.                                                                                                                                               |

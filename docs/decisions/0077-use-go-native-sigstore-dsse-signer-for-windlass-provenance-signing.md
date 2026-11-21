@@ -16,6 +16,23 @@ relations:
       module instead of actions/attest; field classification and closed-set policy remain"
   - type: see-also
     target: ADR-0108
+  - type: partially-superseded-by
+    target: ADR-0113
+    scope:
+      'the signing-adapter descriptor''s member set: the descriptor gains `name` with the value
+      "signing-adapter", drops the `annotations` member whose identity function moves to `name`, and
+      migrates the digest member from the Go-native h1 base64 form to the DigestSet dirHash1
+      lowercase-hex form over the same digest bytes; the signer selection, the descriptor''s URI
+      form, the underlying digest bytes, the single-descriptor cardinality, and the validation
+      obligations remain in force'
+  - type: partially-superseded-by
+    target: ADR-0114
+    scope:
+      "the clause that every producer's builderDependencies contains exactly one descriptor; the
+      sigstore-go signing-adapter selection, URI, digest values, and validation remain in force,
+      with the descriptor's member shape governed by ADR 0113"
+  - type: see-also
+    target: ADR-0115
 ---
 
 # Use a Go-Native Sigstore DSSE Signer for Windlass Provenance Signing

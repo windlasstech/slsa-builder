@@ -35,6 +35,12 @@ relations:
     scope:
       "the externalParameters.runtime.npm_version recording location; the bundled npm version moves
       to builder.version.npm"
+  - type: partially-superseded-by
+    target: ADR-0114
+    scope:
+      "the clause that the publish npm version 'is not merged into the build-time record', insofar
+      as it excluded any signed-provenance record; the digest-verified registry tarball provisioning
+      mechanism and the committed SHA-512 pin remain in force"
 ---
 
 # Provision the Publish-Stage npm CLI from a Digest-Verified Registry Tarball

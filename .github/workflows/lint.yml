@@ -220,8 +220,16 @@ jobs:
             target: FuzzOperationalStderrRelayFilter
           - package: internal/provenance
             target: FuzzDecodeInternalParameters
+          - package: internal/provenance
+            target: FuzzDecodeBuilderDependencies
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
+          - package: internal/toolchainpins
+            target: FuzzParseSigningAdapterModule
+          - package: internal/dependabot
+            target: FuzzDependabotEvent
+          - package: internal/dependabot
+            target: FuzzSigstoreModuleTransition
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4

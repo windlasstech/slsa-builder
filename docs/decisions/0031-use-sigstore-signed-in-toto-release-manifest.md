@@ -10,6 +10,8 @@ relations:
     scope:
       "the release manifest predicate type URI example; the Sigstore-signed in-toto Statement
       manifest decision remains in force"
+  - type: see-also
+    target: ADR-0115
 ---
 
 # Use Sigstore-Signed in-toto Release Manifest
