@@ -1,0 +1,33 @@
+internal/dependabot/event_test.go
+  s_e57f90c8b83334::t_24a249de4eec1f 47,60-62,66
+  s_d3be10ea987003::t_1922e2d30aba73 31-39,53-55,57-59,77-84,105-107,110-112,115-120
+  s_e57f90c8b83334::t_2fb2241508bb32 4-5,7,17-18,30,40-42,46,48-49,51-52,56,73-76,85-104,108-109,113-114,121-122
+  s_d3be10ea987003::t_8217584fd18eb1 63-65,67-69
+  s_e57f90c8b83334::t_8e4febdc428840 123
+internal/dependabot/testdata/workflow-event.json
+  s_e57f90c8b83334::t_2fb2241508bb32 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d2eb9e7d8c1ded59e51321ad3df7621f54868a51",
+  "prompts": {},
+  "sessions": {
+    "s_d3be10ea987003": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0160370affeoAS71KhRVEzAsE",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_e57f90c8b83334": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0160370affeoAS71KhRVEzAsE",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
