@@ -27,7 +27,13 @@ type githubAPI struct {
 	client *http.Client
 	origin string
 	token  githubToken
+	budget *moduleRequestBudget
 }
+
+type githubStatusError struct{ Code int }
+
+func (err *githubStatusError) Error() string { return fmt.Sprintf("%s: HTTP %d", ErrGitHub, err.Code) }
+func (*githubStatusError) Unwrap() error     { return ErrGitHub }
 
 func newGitHub(token string) (*githubAPI, error) {
 	if token == "" || strings.ContainsAny(token, " \t\r\n") {
@@ -46,6 +52,12 @@ func newGitHub(token string) (*githubAPI, error) {
 func refuseRedirect(*http.Request, []*http.Request) error { return ErrGitHub }
 
 func (api *githubAPI) request(ctx context.Context, path string, body []byte) ([]byte, error) {
+	if api.budget != nil {
+		if api.budget.requests >= maxModuleFiles+2 || api.budget.bytes >= maxModuleResponseBytes {
+			return nil, ErrInput
+		}
+		api.budget.requests++
+	}
 	if !strings.HasPrefix(path, "/") || strings.HasPrefix(path, "//") {
 		return nil, ErrInput
 	}
@@ -69,11 +81,21 @@ func (api *githubAPI) request(ctx context.Context, path string, body []byte) ([]
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: HTTP %d", ErrGitHub, response.StatusCode)
+		return nil, &githubStatusError{Code: response.StatusCode}
 	}
-	raw, err := io.ReadAll(io.LimitReader(response.Body, maxInput+1))
+	limit := maxInput
+	if api.budget != nil {
+		limit = min(limit, maxModuleResponseBytes-api.budget.bytes)
+	}
+	raw, err := io.ReadAll(io.LimitReader(response.Body, int64(limit)+1))
 	if err != nil || len(raw) > maxInput {
 		return nil, ErrGitHub
+	}
+	if api.budget != nil {
+		api.budget.bytes += len(raw)
+		if api.budget.bytes > maxModuleResponseBytes {
+			return nil, ErrInput
+		}
 	}
 	return raw, nil
 }

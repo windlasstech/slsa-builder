@@ -1,12 +1,47 @@
 package dependabot
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
+
+func TestGitHubModuleBudgetAndCancellation(t *testing.T) {
+	t.Parallel()
+	for _, scenario := range []string{"request limit", "byte limit", "cancelled", "invalid path", "invalid origin"} {
+		t.Run(scenario, func(t *testing.T) {
+			var calls atomic.Int64
+			api := testAPI(t, func(w http.ResponseWriter, r *http.Request) { _ = r; calls.Add(1); fmt.Fprint(w, `{}`) })
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			path, want, wantCalls := "/test", ErrInput, int64(0)
+			switch scenario {
+			case "request limit":
+				api.budget = &moduleRequestBudget{requests: maxModuleFiles + 2}
+			case "byte limit":
+				api.budget = &moduleRequestBudget{bytes: maxModuleResponseBytes - 1}
+				wantCalls = 1
+			case "cancelled":
+				cancel()
+				want = ErrGitHub
+			case "invalid path":
+				path = "//other"
+			case "invalid origin":
+				api.origin = ":"
+				want = ErrGitHub
+			}
+			_, err := api.request(ctx, path, nil)
+			if !errors.Is(err, want) || calls.Load() != wantCalls {
+				t.Fatalf("err=%v calls=%d", err, calls.Load())
+			}
+		})
+	}
+}
 
 // Internal tests inject only the httptest transport; production has no injection API.
 func testAPI(t *testing.T, handler http.HandlerFunc) *githubAPI {
@@ -42,13 +77,13 @@ func TestGitHubReadRejectsUnsafeResponses(t *testing.T) {
 
 func TestGitHubRefusesRedirect(t *testing.T) {
 	t.Parallel()
-	calls := 0
+	var calls atomic.Int64
 	api := testAPI(t, func(w http.ResponseWriter, r *http.Request) {
-		calls++
+		calls.Add(1)
 		http.Redirect(w, r, "/other", http.StatusFound)
 	})
 	_, err := getJSON[struct{}](t.Context(), api, "/test")
-	if err == nil || calls != 1 {
-		t.Fatalf("err=%v calls=%d", err, calls)
+	if !errors.Is(err, ErrGitHub) || calls.Load() != 1 {
+		t.Fatalf("err=%v calls=%d", err, calls.Load())
 	}
 }
