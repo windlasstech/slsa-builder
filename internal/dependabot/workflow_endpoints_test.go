@@ -11,16 +11,17 @@ import (
 )
 
 func mutateCompanionEndpoints(section, endpoint, replacement string) string {
-	block := regexp.MustCompile(`(?m)          allowed-endpoints: >\n(?:            [^\n]*\n)+`)
+	block := regexp.MustCompile(`(?m)^(          allowed-endpoints: [>|][+-]?)[ \t]*\r?\n((?:            [^\r\n]*\r?\n)+)`)
 	return block.ReplaceAllStringFunc(section, func(value string) string {
-		_, list, _ := strings.Cut(value, "\n")
+		lines := strings.SplitN(value, "\n", 2)
+		list := strings.TrimSuffix(lines[1], "\n")
 		endpoints := strings.Fields(list)
 		for i, item := range endpoints {
 			if item == endpoint {
 				endpoints[i] = replacement
 			}
 		}
-		return "          allowed-endpoints: >\n            " + strings.TrimSpace(strings.Join(endpoints, " ")) + "\n"
+		return strings.TrimSuffix(lines[0], "\r") + "\n            " + strings.TrimSpace(strings.Join(endpoints, " ")) + "\n"
 	})
 }
 
@@ -100,6 +101,8 @@ func TestCompanionWorkflowAcceptsPresentationChanges(t *testing.T) {
 		{"predicate spacing", "'pull_request' &&", "'pull_request'   &&"},
 		{"apply spacing", "ENABLED == 'true'", "ENABLED   ==   'true'"},
 		{"quoted runner", "runs-on: ubuntu-24.04", "runs-on: 'ubuntu-24.04'"},
+		{"stripped folded endpoint block", "allowed-endpoints: >", "allowed-endpoints: >-"},
+		{"literal endpoint block", "allowed-endpoints: >", "allowed-endpoints: |"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
