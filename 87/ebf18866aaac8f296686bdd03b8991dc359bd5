@@ -1,0 +1,22 @@
+internal/npmprofile/builder_dependencies.go
+  s_746da24661a28d::t_694e5dd2a5ca7d 24
+  s_746da24661a28d::t_831d7c80eb2cfc 18-22
+internal/npmprofile/builder_dependencies_loader_test.go
+  s_746da24661a28d::t_831d7c80eb2cfc 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87ebf18866aaac8f296686bdd03b8991dc359bd5",
+  "prompts": {},
+  "sessions": {
+    "s_746da24661a28d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e01539618ffd1V4e9FIsz6X77n",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
