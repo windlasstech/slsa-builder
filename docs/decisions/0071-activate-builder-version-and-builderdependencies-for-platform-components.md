@@ -29,8 +29,13 @@ relations:
       reference to externalParameters.package_manager version recording"
   - type: see-also
     target: ADR-0111
-  - type: see-also
+  - type: partially-superseded-by
     target: ADR-0113
+    scope:
+      "the builderDependencies descriptor member-set and role-annotation identity convention; ADR
+      0113 requires name, uri, and digest with name as the identity key and governs additional
+      members; field activation, platform-component classification, and closed-set admission remain
+      in force subject to their other scoped relations"
   - type: partially-superseded-by
     target: ADR-0114
     scope:

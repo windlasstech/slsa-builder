@@ -14,8 +14,13 @@ relations:
       lowercase-hex form over the same digest bytes; the signer selection, the descriptor''s URI
       form, the underlying digest bytes, the single-descriptor cardinality, and the validation
       obligations remain in force'
-  - type: see-also
+  - type: partially-supersedes
     target: ADR-0071
+    scope:
+      "the builderDependencies descriptor member-set and role-annotation identity convention; ADR
+      0113 requires name, uri, and digest with name as the identity key and governs additional
+      members; field activation, platform-component classification, and closed-set admission remain
+      in force subject to their other scoped relations"
   - type: see-also
     target: ADR-0105
   - type: see-also
