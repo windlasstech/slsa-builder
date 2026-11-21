@@ -1,0 +1,86 @@
+docs/decisions/0062-intersect-trusted-producer-policies.md
+  s_776bca7a3db24c::t_783801fc377b5f 10-13
+  s_776bca7a3db24c::t_f9b386bd0ac21a 14-16
+docs/decisions/0113-define-the-common-builderdependencies-descriptor-shape.md
+  s_776bca7a3db24c::t_3996d92d82c577 25-26
+docs/decisions/0077-use-go-native-sigstore-dsse-signer-for-windlass-provenance-signing.md
+  s_776bca7a3db24c::t_b771aa33df8cfb 34-35
+docs/decisions/0115-record-revision-specific-descriptor-expectations-in-signed-release-manifests.md
+  s_d6677d00576c13::t_219b303d1eb049 257-262
+  s_776bca7a3db24c::t_f5355e985bf907 298
+  s_776bca7a3db24c::t_b82f7acac94741 102,277-278,300-301,329-330,343-345
+  s_776bca7a3db24c::t_ccdb64c10a8096 42,50-61
+  s_776bca7a3db24c::t_0b50fd8a62ae29 250
+  s_776bca7a3db24c::t_42784d169cc560 63,99-101
+  s_776bca7a3db24c::t_6089c9de8dda6c 209-225,227-228
+  s_776bca7a3db24c::t_40b7d6c24f3a24 37,39-40
+  s_776bca7a3db24c::t_d87615e37efe6a 4
+  s_d6677d00576c13::t_4ffa8d703892d5 36,38,75-76,201-203,239,309,317-318,320-321
+  s_776bca7a3db24c::t_8b9fadfb0c2b90 175-177
+  s_776bca7a3db24c::t_d3b19fe872901c 229-231
+  s_d6677d00576c13::t_04674b9a77f060 207
+  s_d6677d00576c13::t_768e9ab7bafab5 240-242,247-248
+  s_776bca7a3db24c::t_502eb789eca5bf 7-11,15-17,22-27
+  s_d6677d00576c13::t_155f7a7ed65d83 1-3,5-6,28-35,41,47-49,62,64-68,70-74,77-81,83-89,95-97,103-111,131-133,137,143-145,150,153,157-159,164,169-171,183-184,198,204-206,208,232-234,236,249,251,254,265,267,282,284,286,295-297,299,302-307,310-316,319,322,324-325,327,331,337,342
+  s_776bca7a3db24c::t_f9b386bd0ac21a 12-14,18-21
+  s_776bca7a3db24c::t_627b600f1c5884 235
+  s_776bca7a3db24c::t_d45250876c0602 173-174
+  s_d6677d00576c13::t_b09615893f2e26 134-136
+  s_d6677d00576c13::t_8ecaf91c7e2c17 308
+  s_d6677d00576c13::t_f819bb726cb6c6 323,326,328,332-334,338,341
+  s_776bca7a3db24c::t_450796af5bba66 112-116,129-130
+  s_776bca7a3db24c::t_a8e2cf1352ecf5 146-149,151-152
+  s_776bca7a3db24c::t_39ff6e291d27a4 69
+  s_776bca7a3db24c::t_9f997044d5ec53 90-94
+  s_d6677d00576c13::t_f1bfe542ce2ef8 82
+  s_d6677d00576c13::t_a6a351d1814651 185-186,192-193
+  s_d6677d00576c13::t_21d746cb839064 196-197
+  s_d6677d00576c13::t_a6a5af0b1393eb 117-118,128
+  s_776bca7a3db24c::t_69d145792dcbdf 283
+  s_d6677d00576c13::t_cc7e7dfa9d122b 279-281
+  s_776bca7a3db24c::t_c89a3ea0162973 172
+  s_776bca7a3db24c::t_3607a0ddf5536c 43-46
+  s_d6677d00576c13::t_5a36533f987596 119-127,138-142,154-156,187-191,194-195,199-200,226,237-238,243-246,252-253,255-256,263-264,268-276,289-292,335-336,339-340
+  s_d6677d00576c13::t_c8d198fe0fcf1b 178-182
+  s_776bca7a3db24c::t_db210720aec1a6 266
+  s_d6677d00576c13::t_dca6b878cfabf5 285,287-288,293-294
+  s_776bca7a3db24c::t_9a597096f19318 160-163,165-168
+  s_84b78a549bfa2e::t_56cd9305a5874c 98
+docs/decisions/0031-use-sigstore-signed-in-toto-release-manifest.md
+  s_776bca7a3db24c::t_ea672ed892ed2b 13-14
+docs/decisions/0114-record-the-publish-stage-npm-cli-in-builderdependencies.md
+  s_776bca7a3db24c::t_f9b386bd0ac21a 47-50
+  s_776bca7a3db24c::t_c03aaa0d39c2a9 44-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0223852974cd46ddb260386939ac26edbd66de68",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_84b78a549bfa2e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_d6677d00576c13": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e104aabb3ffepRSrk8iWWJRdEC",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
