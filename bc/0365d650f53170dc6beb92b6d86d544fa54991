@@ -1,0 +1,28 @@
+internal/dependabot/input_trust_test.go
+  s_e57f90c8b83334::t_d9fa4c0b5bb5ad 1-19,23-25,32-39,43,47-54,58-63,67-68
+  s_d3be10ea987003::t_8217584fd18eb1 20-22,26-31,40-42,44-46,55-57,64-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bc0365d650f53170dc6beb92b6d86d544fa54991",
+  "prompts": {},
+  "sessions": {
+    "s_d3be10ea987003": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0160370affeoAS71KhRVEzAsE",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_e57f90c8b83334": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0160370affeoAS71KhRVEzAsE",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
