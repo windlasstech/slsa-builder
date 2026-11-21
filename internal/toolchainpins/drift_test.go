@@ -26,6 +26,9 @@ func TestCheckDrift(t *testing.T) {
 		"| Node.js version | Bundled npm version |\n| --- | --- |\n" + pairRow + "\n" + artifactTable
 	pin := fmt.Sprintf(`{"version":"11.20.0","tarball_url":"https://registry.npmjs.org/npm/-/npm-11.20.0.tgz","integrity":%q}`, integrity)
 	pair := fmt.Sprintf(`{"node_version":"24.20.0","npm_version":"11.18.0","artifacts":{"linux-x64":{"url":%q,"sha256":%q}}}`, artifactURL, artifactSHA)
+	descriptor := `{"name":"publish-cli","uri":"pkg:npm/npm@11.20.0","digest":{"sha512":"` + strings.Repeat("0", 128) + `"},"mediaType":"application/gzip","annotations":{"digest_authority":"builder-pinned-record"}}`
+	example := "### JS/TS npm `builderDependencies` schema\n\nThe exact current array is:\n\n```json\n[" + descriptor + "]\n```\n"
+	publish = example + "\n" + publish
 	tests := []struct {
 		name, publish, build, pin, pair string
 		pass                            bool
@@ -33,7 +36,7 @@ func TestCheckDrift(t *testing.T) {
 		{name: "matching disk records differ from embeds", pass: true},
 		{name: "prose after table", publish: publish + "The allowlist above is reviewed on every bump.\n", pass: true},
 		{name: "prettier padding", publish: strings.ReplaceAll(publish, " |", "       |"), pass: true},
-		{name: "plain cells", publish: strings.ReplaceAll(publish, "`", ""), pass: true},
+		{name: "plain cells", publish: strings.NewReplacer("`11.20.0`", "11.20.0", "`https://registry.npmjs.org/npm/-/npm-11.20.0.tgz`", "https://registry.npmjs.org/npm/-/npm-11.20.0.tgz", "`"+integrity+"`", integrity).Replace(publish), pass: true},
 		{name: "CRLF", publish: strings.ReplaceAll(publish, "\n", "\r\n"), pass: true},
 		{name: "version drift", publish: strings.Replace(publish, "`11.20.0`", "`11.20.1`", 1)},
 		{name: "URL drift", publish: strings.Replace(publish, "npm-11.20.0.tgz", "npm-11.20.1.tgz", 1)},
@@ -49,7 +52,7 @@ func TestCheckDrift(t *testing.T) {
 		{name: "missing build section", build: strings.Replace(build, "## Node.js and npm toolchain pair", "## Other", 1)},
 		{name: "missing publish table", publish: "## Publish-stage npm CLI allowlist\n"},
 		{name: "missing build tables", build: "## Node.js and npm toolchain pair\n"},
-		{name: "table in another section", publish: strings.Replace(publish, "\n\n", "\n\n## Other\n", 1)},
+		{name: "table in another section", publish: strings.Replace(publish, "## Publish-stage npm CLI allowlist\n", "## Publish-stage npm CLI allowlist\n\n## Other\n", 1)},
 		{name: "malformed row", publish: strings.Replace(publish, " | `sha512-", " `sha512-", 1)},
 		{name: "empty cell", build: strings.Replace(build, "`24.20.0`", "", 1)},
 		{name: "unbalanced code", build: strings.Replace(build, "`24.20.0`", "`24.20.0", 1)},
@@ -65,6 +68,20 @@ func TestCheckDrift(t *testing.T) {
 		{name: "invalid pair", pair: "{}"},
 		{name: "pair without artifacts", pair: `{"node_version":"24.20.0","npm_version":"11.18.0"}`},
 		{name: "duplicate JSON member", pair: `{"node_version":"24.20.0","node_version":"24.20.0","npm_version":"11.18.0"}`},
+		{name: "descriptor version drift", publish: strings.Replace(publish, "pkg:npm/npm@11.20.0", "pkg:npm/npm@11.20.1", 1)},
+		{name: "descriptor digest drift", publish: strings.Replace(publish, strings.Repeat("0", 128), strings.Repeat("1", 128), 1)},
+		{name: "missing example", publish: strings.TrimPrefix(publish, example)},
+		{name: "duplicate example", publish: example + publish},
+		{name: "duplicate designation", publish: strings.Replace(publish, "\n\n```json", "\nThe exact current array is:\n\n```json", 1)},
+		{name: "duplicate descriptor", publish: strings.Replace(publish, "["+descriptor+"]", "["+descriptor+","+descriptor+"]", 1)},
+		{name: "missing descriptor", publish: strings.Replace(publish, "["+descriptor+"]", "[]", 1)},
+		{name: "malformed example", publish: strings.Replace(publish, "["+descriptor+"]", "[{", 1)},
+		{name: "duplicate nested JSON", publish: strings.Replace(publish, `"sha512":`, `"sha512":"ignored","sha512":`, 1)},
+		{name: "wrong fence", publish: strings.Replace(publish, "```json", "```text", 1)},
+		{name: "unterminated example", publish: strings.Replace(publish, "]\n```", "]", 1)},
+		{name: "SRI and hex disagreement", pin: strings.Replace(pin, "sha512-A", "sha512-B", 1), publish: strings.Replace(publish, "sha512-A", "sha512-B", 1)},
+		{name: "negative example is not designated", publish: strings.Replace(publish, example, example+"\nInvalid example:\n```json\n[{\"name\":\"publish-cli\",\"uri\":\"wrong\"}]\n```\n", 1), pass: true},
+		{name: "oversized specification", publish: publish + strings.Repeat(" ", 16<<20)},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

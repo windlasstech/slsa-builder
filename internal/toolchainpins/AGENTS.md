@@ -17,12 +17,25 @@ unreadable inputs, and unequal values fail with `windlass.verify.error.toolchain
 `toolchain.pins.drift`), a canonical report, and exit 1. Success exits 0; missing flags exit 2. Do
 not duplicate pin literals in provisioning or publish-side validation code.
 
+The publish specification must also contain exactly one `JS/TS npm builderDependencies schema`
+subsection (with inline-code delimiters around `builderDependencies`). Its
+`The exact current array is:` designation selects the immediately following JSON fence, not the
+later negative example. The designated array is decoded with recursive duplicate-member rejection
+and must contain exactly one `publish-cli` descriptor. Its npm PURL version and sole `sha512` digest
+must equal the disk pin and allowlist, using deterministic SRI-to-lowercase-hex conversion. Missing,
+duplicate, or malformed examples fail as drift. Each specification read is bounded to 16 MiB.
+
 `ParseSigningAdapterModule` reads explicitly supplied `go.mod` and `go.sum` bytes for generation and
 drift tooling only. It accepts canonical exact candidate versions independently of the compiled
 signer pin, rejects signer replacements, and requires exactly one matching module-content `h1`
 checksum (never a `/go.mod` checksum). Strict base64 decoding must yield 32 bytes; `DirHash1` is
 their lowercase hexadecimal representation. Invalid or ambiguous inputs return `DriftError` with
 `windlass.verify.error.toolchain-pin-drift`.
+
+Other versions' content records and `/go.mod` records do not participate in matching-version
+duplicate detection. Malformed signer records and duplicate matching content records still fail.
+`FuzzParseSigningAdapterModule` checks required-version binding, canonical h1 encoding, hex
+equivalence, unique source-record binding, and classified failures in both CI fuzz matrices.
 
 Production issuance and verification use `provenance.SigningAdapterBuilderDependency()` and its
 compiled constants. They never read module manifests at runtime or panic during initialization.
