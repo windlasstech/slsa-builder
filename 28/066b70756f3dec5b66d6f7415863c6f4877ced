@@ -1,0 +1,31 @@
+docs/architecture/release-manifest.md
+  s_bbef9dc9a2436b::t_762f66f62231b7 49-65,72-73,79-85,91-99,102-105
+  s_89ac8877ae50f4::t_1a07b99856a4a5 66-71,74-78,86-90,100-101,534-540
+docs/architecture/verification-policy-and-fixtures.md
+  s_bbef9dc9a2436b::t_762f66f62231b7 164-166,169-173,180-192,196-200,204,2033-2039
+  s_89ac8877ae50f4::t_1a07b99856a4a5 167-168,174-179,193-195,201-203,2069
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "28066b70756f3dec5b66d6f7415863c6f4877ced",
+  "prompts": {},
+  "sessions": {
+    "s_89ac8877ae50f4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0160d1d9ffdp1FX6j0k63BoMU",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_bbef9dc9a2436b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0160d1d9ffdp1FX6j0k63BoMU",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
