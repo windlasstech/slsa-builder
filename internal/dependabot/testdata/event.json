@@ -1,1 +1,14 @@
-{"schema_version":1,"repository":"windlasstech/slsa-builder","number":123,"author":"dependabot[bot]","state":"open","base_ref":"main","base_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","head_repository":"windlasstech/slsa-builder","head_sha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","trusted_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","changed_paths":["go.mod","go.sum"],"lint_conclusion":"failure"}
+{
+  "schema_version": 1,
+  "repository": "windlasstech/slsa-builder",
+  "number": 123,
+  "author": "dependabot[bot]",
+  "state": "open",
+  "base_ref": "main",
+  "base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "head_repository": "windlasstech/slsa-builder",
+  "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "trusted_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "changed_paths": ["go.mod", "go.sum"],
+  "lint_conclusion": "failure"
+}
