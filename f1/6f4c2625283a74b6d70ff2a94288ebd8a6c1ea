@@ -1,0 +1,19 @@
+internal/provenance/provenance_test.go
+  s_ff622f4dbf9a58::t_8ae3dc757b8cdf 186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f16f4c2625283a74b6d70ff2a94288ebd8a6c1ea",
+  "prompts": {},
+  "sessions": {
+    "s_ff622f4dbf9a58": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0118da63ffeDYeBkLTYbawVHX",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
