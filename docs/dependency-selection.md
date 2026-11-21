@@ -119,6 +119,12 @@ uses `GITHUB_TOKEN` for authenticated reads only. Both modes use the same genera
 `plan.json`, `patch.diff`, and allowlisted full file contents under `files/` in a separate output
 directory. Existing outputs must match exactly; they are not overwritten with different plans.
 
+The generator also synchronizes `CHANGELOG.md` only within `[Unreleased]`. If the current signer
+version is already present there, it advances that reference to the candidate in place. Otherwise,
+the generator appends an old-to-new sigstore-go version-bump entry to the end of `### Changed`,
+creating that category after `Added` when necessary. A missing existing signer reference is not an
+error. Later release sections remain unchanged.
+
 ```bash
 go run ./cmd/slsa-builder-internal dependabot-companion \
   --mode dry-run --event "$LOCAL_EVENT" --snapshot "$LOCAL_SNAPSHOT" \
