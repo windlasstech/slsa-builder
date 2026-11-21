@@ -32,7 +32,7 @@ func NewCommittedTestRoot(t *testing.T, files map[string][]byte) (string, string
 			t.Fatal(err)
 		}
 	}
-	testGit(t, root, "add", "--", ".")
+	testGit(t, root, "add", "-f", "--", ".")
 	tree := testGit(t, root, "write-tree")
 	sha := testGit(t, root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit-tree", tree, "-m", "fixture")
 	testGit(t, root, "update-ref", "refs/heads/main", sha)
