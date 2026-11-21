@@ -68,9 +68,6 @@ func ParseSigstoreModuleTransition(base, head Modules) (Transition, string) {
 	if !bytes.Equal(modfile.Format(b.Syntax), modfile.Format(h.Syntax)) {
 		return Transition{}, "unsupported-module-directive"
 	}
-	if _, ok := changed[signerModule]; !ok {
-		return Transition{}, "signer-unchanged"
-	}
 	bs, ok := checksumRecords(base.Sum)
 	if !ok {
 		return Transition{}, "invalid-module-checksums"
@@ -85,16 +82,19 @@ func ParseSigstoreModuleTransition(base, head Modules) (Transition, string) {
 		}
 	}
 	for key, value := range bs {
-		if hs[key] != value && !changedChecksum(key, changed) {
+		if next, exists := hs[key]; next != value && (exists || !changedChecksum(key, changed, 0)) {
 			return Transition{}, "unsupported-transitive-change"
 		}
 	}
 	for key, value := range hs {
-		if bs[key] != value && !changedChecksum(key, changed) {
+		if previous, exists := bs[key]; previous != value && (exists || !changedChecksum(key, changed, 1)) {
 			return Transition{}, "unsupported-transitive-change"
 		}
 	}
-	versions := changed[signerModule]
+	versions, ok := changed[signerModule]
+	if !ok {
+		return Transition{}, "signer-unchanged"
+	}
 	oldKey, candidateKey := signerModule+" "+versions[0], signerModule+" "+versions[1]
 	old, err := toolchainpins.ParseSigningAdapterModule(base.Mod, []byte(oldKey+" "+bs[oldKey]+"\n"))
 	if err != nil {
@@ -132,9 +132,9 @@ func checksumRecords(data []byte) (map[string]string, bool) {
 	return records, true
 }
 
-func changedChecksum(key string, changed map[string][2]string) bool {
+func changedChecksum(key string, changed map[string][2]string, side int) bool {
 	module, version, _ := strings.Cut(key, " ")
 	versions, ok := changed[module]
 	version = strings.TrimSuffix(version, "/go.mod")
-	return ok && (version == versions[0] || version == versions[1])
+	return ok && version == versions[side]
 }
