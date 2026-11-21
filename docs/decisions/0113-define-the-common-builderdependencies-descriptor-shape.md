@@ -22,6 +22,8 @@ relations:
     target: ADR-0109
   - type: see-also
     target: ADR-0110
+  - type: see-also
+    target: ADR-0115
 ---
 
 # Define the Common `builderDependencies` Descriptor Shape with `name` as the Identity Key

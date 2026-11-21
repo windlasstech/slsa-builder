@@ -31,6 +31,8 @@ relations:
       "the clause that every producer's builderDependencies contains exactly one descriptor; the
       sigstore-go signing-adapter selection, URI, digest values, and validation remain in force,
       with the descriptor's member shape governed by ADR 0113"
+  - type: see-also
+    target: ADR-0115
 ---
 
 # Use a Go-Native Sigstore DSSE Signer for Windlass Provenance Signing

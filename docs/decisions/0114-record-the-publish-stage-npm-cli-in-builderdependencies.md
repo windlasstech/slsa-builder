@@ -41,6 +41,13 @@ relations:
     target: ADR-0099
   - type: see-also
     target: ADR-0104
+  - type: partially-superseded-by
+    target: ADR-0115
+    scope:
+      "the consumer expectation source for the publish-cli descriptor for producer revisions
+      represented by an authenticated signed release manifest; actual-used provisioning agreement,
+      descriptor shape and emission, annotation handling, and governed bump procedure remain in
+      force"
 ---
 
 # Record the Publish-Stage npm CLI in `builderDependencies`

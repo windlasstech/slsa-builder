@@ -7,6 +7,13 @@ decision-makers: Yunseo Kim
 relations:
   - type: see-also
     target: ADR-0068
+  - type: partially-superseded-by
+    target: ADR-0115
+    scope:
+      "the initial manifest represented-field limitation; authenticated revision-specific descriptor
+      expectations for represented producer workflow SHA/profile entries are admitted by the
+      governing schema; independent trust bootstrap, field-level intersection, and fail-closed
+      conflict handling remain in force"
 ---
 
 # Intersect Trusted Producer Policies
