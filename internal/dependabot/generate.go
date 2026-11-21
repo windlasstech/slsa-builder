@@ -195,7 +195,7 @@ func writeModules(root string, modules Modules) error {
 func trustedEnvironment() []string {
 	env := []string{"GIT_MASTER=1", "GIT_NO_REPLACE_OBJECTS=1", "GIT_NO_LAZY_FETCH=1", "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=/dev/null", "GIT_TERMINAL_PROMPT=0", "GOENV=off", "GOWORK=off", "GOTOOLCHAIN=local", "GOPROXY=off", "GOSUMDB=off", "GOVCS=*:off", "CGO_ENABLED=0", "GOFLAGS=-mod=readonly"}
 	env = append(env, "GIT_OPTIONAL_LOCKS=0")
-	for _, name := range []string{"HOME", "PATH", "TMPDIR", "GOCACHE", "GOMODCACHE", "GOPATH", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"} {
+	for _, name := range []string{"HOME", "PATH", "TMPDIR", "GOCACHE", "GOMODCACHE", "GOPATH"} {
 		if value := os.Getenv(name); value != "" {
 			env = append(env, name+"="+value)
 		}

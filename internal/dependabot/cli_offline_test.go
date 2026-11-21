@@ -51,17 +51,22 @@ func runOfflineChild(t *testing.T, cmd *exec.Cmd) ([]byte, error) {
 func TestOfflineChildGuardRejectsIgnoredNetworkFailure(t *testing.T) {
 	t.Parallel()
 	for _, scheme := range []string{"http", "https"} {
-		t.Run(scheme, func(t *testing.T) {
-			t.Parallel()
-			// Given a child that ignores network failures and inherited proxy bypasses.
-			cmd := exec.CommandContext(t.Context(), os.Args[0], "-test.run=^TestOfflineChildProbe$")
-			cmd.Env = append(os.Environ(), "COMPANION_OFFLINE_PROBE="+scheme, "NO_PROXY=*", "no_proxy=*")
-			// When the child requests a remote URL, then the parent fails despite exit zero.
-			_, err := runOfflineChild(t, cmd)
-			if !errors.Is(err, errChildNetwork) {
-				t.Fatalf("guard error=%v", err)
-			}
-		})
+		for _, environment := range []string{"isolated", "inherited-bypass"} {
+			t.Run(scheme+"/"+environment, func(t *testing.T) {
+				t.Parallel()
+				// Given a child that ignores network failures, with or without ambient configuration.
+				cmd := exec.CommandContext(t.Context(), os.Args[0], "-test.run=^TestOfflineChildProbe$")
+				if environment == "inherited-bypass" {
+					cmd.Env = append(os.Environ(), "NO_PROXY=*", "no_proxy=*")
+				}
+				cmd.Env = append(cmd.Env, "COMPANION_OFFLINE_PROBE="+scheme)
+				// When the child requests a remote URL, then the parent fails despite exit zero.
+				_, err := runOfflineChild(t, cmd)
+				if !errors.Is(err, errChildNetwork) {
+					t.Fatalf("guard error=%v", err)
+				}
+			})
+		}
 	}
 }
 
