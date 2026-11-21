@@ -111,6 +111,8 @@ jobs:
             target: FuzzDecodeBuilderDependencies
           - package: internal/workflowcheck
             target: FuzzDecodeWorkflow
+          - package: internal/toolchainpins
+            target: FuzzParseSigningAdapterModule
           - package: internal/dependabot
             target: FuzzDependabotEvent
           - package: internal/dependabot

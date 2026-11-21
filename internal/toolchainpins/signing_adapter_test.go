@@ -43,6 +43,11 @@ func TestParseSigningAdapterModule(t *testing.T) {
 		wantVersion, wantSum string
 	}{
 		{"exact module content", mod, sum, "v1.4.0", sigstoreSum},
+		{"older content before match", mod, strings.ReplaceAll(sum, "v1.4.0", "v1.3.0") + sum, "v1.4.0", sigstoreSum},
+		{"newer content after match", mod, sum + strings.ReplaceAll(sum, "v1.4.0", "v1.5.0"), "v1.4.0", sigstoreSum},
+		{"other version go.mod", mod, strings.ReplaceAll(sum, "v1.4.0", "v1.3.0/go.mod") + sum, "v1.4.0", sigstoreSum},
+		{"identical duplicate", mod, sum + sum, "", ""},
+		{"malformed matching after valid", mod, sum + sigstoreModule + " v1.4.0\n", "", ""},
 		{"require block", "module example.test/builder\nrequire (\n\t" + sigstoreModule + " v1.4.0\n)\n", sum, "v1.4.0", sigstoreSum},
 		{"go.mod sum does not override content", mod, sum + sigstoreModule + " v1.4.0/go.mod h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\n", "v1.4.0", sigstoreSum},
 		{"alternate exact version", strings.ReplaceAll(mod, "v1.4.0", "v1.3.0"), strings.ReplaceAll(sum, "v1.4.0", "v1.3.0"), "v1.3.0", sigstoreSum},
@@ -85,4 +90,43 @@ func TestParseSigningAdapterModule(t *testing.T) {
 			}
 		})
 	}
+}
+
+func FuzzParseSigningAdapterModule(f *testing.F) {
+	// Given a required candidate version and both valid and hostile checksum snapshots.
+	mod := "module example.test/builder\nrequire " + sigstoreModule + " v1.4.0\n"
+	sum := sigstoreModule + " v1.4.0 " + sigstoreSum + "\n"
+	for _, seed := range []string{sum, strings.ReplaceAll(sum, "v1.4.0", "v1.3.0") + sum,
+		sum + sum, sigstoreModule + " v1.4.0\n", strings.ReplaceAll(sum, "h1:", "h2:"),
+		strings.ReplaceAll(sum, "v1.4.0", "v1.4.0/go.mod"), strings.ReplaceAll(sum, sigstoreSum, "h1:!")} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, snapshot string) {
+		// When parsing arbitrary checksum records against the explicit requirement.
+		got, err := toolchainpins.ParseSigningAdapterModule([]byte(mod), []byte(snapshot))
+		// Then failure is classified, or the required version carries canonical equivalent digests.
+		if err != nil {
+			var drift *toolchainpins.DriftError
+			if !errors.As(err, &drift) || drift.DiagnosticID() != "windlass.verify.error.toolchain-pin-drift" {
+				t.Fatalf("unclassified error: %v", err)
+			}
+			return
+		}
+		encoded, ok := strings.CutPrefix(got.Sum, "h1:")
+		digest, decodeErr := base64.StdEncoding.Strict().DecodeString(encoded)
+		if !ok || decodeErr != nil || len(digest) != 32 || base64.StdEncoding.EncodeToString(digest) != encoded ||
+			got.Version != "v1.4.0" || got.DirHash1 != hex.EncodeToString(digest) {
+			t.Fatalf("invalid successful result: %#v", got)
+		}
+		matches := 0
+		for _, line := range strings.Split(snapshot, "\n") {
+			fields := strings.Fields(line)
+			if len(fields) == 3 && fields[0] == sigstoreModule && fields[1] == "v1.4.0" && fields[2] == got.Sum {
+				matches++
+			}
+		}
+		if matches != 1 {
+			t.Fatalf("successful checksum has %d matching source records", matches)
+		}
+	})
 }

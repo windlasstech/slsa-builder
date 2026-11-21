@@ -51,10 +51,10 @@ func ParseSigningAdapterModule(goMod, goSum []byte) (SigningAdapterModule, error
 		if len(fields) != 3 {
 			return SigningAdapterModule{}, &DriftError{message: "malformed signing adapter checksum record"}
 		}
-		if strings.HasSuffix(fields[1], "/go.mod") {
+		if strings.HasSuffix(fields[1], "/go.mod") || fields[1] != version {
 			continue
 		}
-		if fields[1] != version || sum != "" {
+		if sum != "" {
 			return SigningAdapterModule{}, &DriftError{message: "signing adapter content checksum must uniquely match the required version"}
 		}
 		sum = fields[2]
