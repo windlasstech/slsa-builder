@@ -63,8 +63,9 @@ rules for `externalParameters`, `resolvedDependencies` entries, `builder.version
 `builderDependencies`. Duplicate-member rejection still applies before semantic validation.
 
 Every SLSA provenance emitted by a producer profile must be wrapped in an in-toto Statement with the
-following common shape. The example omits profile-owned external interface groups whose enumeration
-belongs to the profile specification:
+following common envelope shape. This example is npm-specific: its `publish-cli` descriptor is
+required only by the npm profile, not by every producer. It omits profile-owned external interface
+groups whose enumeration belongs to the profile specification:
 
 ```json
 {

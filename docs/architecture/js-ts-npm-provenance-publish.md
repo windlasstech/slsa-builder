@@ -1353,7 +1353,8 @@ from the pin, even though its digest is well-formed:
 ## Go-native `sigstore-go` signing adapter
 
 The `provenance-sign` job uses `sigstore-go` v1.4.0 to sign the exact complete Statement bytes that
-Windlass assembled and validated:
+Windlass assembled and validated. ADR 0077 selects the signer; ADR 0113 governs the current
+module-derived version and descriptor values:
 
 | Signer input | Required value                                                                    |
 | ------------ | --------------------------------------------------------------------------------- |

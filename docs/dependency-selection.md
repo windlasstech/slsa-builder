@@ -103,6 +103,14 @@ Authenticated API reads must establish all of the following:
   valid publication date. Tagged commits supply the candidate `go.mod` and both versions' `LICENSE`
   bytes. GitHub must identify both licenses as Apache-2.0, their bytes must be identical, and the
   candidate's declared Go version must fit the trusted base toolchain.
+- Remote `plan` and `apply` must also authenticate candidate module content at the release tag's
+  peeled commit. Authenticated GitHub commit, tree, and blob objects must bind the complete module
+  file set and bytes to that commit, with object identities and tree membership verified. Apply Go
+  module-content hashing rules to those bytes and compare the resulting `h1` checksum with the
+  candidate's `go.sum` module-content record before deriving `dirHash1`. The separate `/go.mod`
+  checksum, a syntactically valid PR-supplied checksum, and release metadata alone are insufficient.
+  Missing, truncated, ambiguous, or unauthenticated objects, unsupported module layouts, and
+  checksum disagreement fail closed before generation or mutation. Candidate code is never executed.
 
 These checks supply release evidence; they are not a compatibility or security approval. A
 maintainer must still review release notes, API compatibility, maintenance state, and the transitive
@@ -118,6 +126,37 @@ Local `dry-run` retains its closed event/snapshot contract and does not access G
 uses `GITHUB_TOKEN` for authenticated reads only. Both modes use the same generator and write only
 `plan.json`, `patch.diff`, and allowlisted full file contents under `files/` in a separate output
 directory. Existing outputs must match exactly; they are not overwritten with different plans.
+
+Local dry-run remains offline and non-authoritative: its supplied release and checksum snapshots can
+exercise deterministic planning but cannot establish remote candidate-content authenticity or
+authorize apply. Remote modes must independently obtain the authenticated evidence above.
+
+### Bounded generation and complete file accounting
+
+Generation must enforce aggregate limits before buffering or copying the committed trusted tree, in
+addition to per-file limits. The input tree is limited to 10,000 regular files and 128 MiB of
+aggregate file contents, with a 16 MiB per-file ceiling. The same limits apply to the complete
+post-generation tree. Tree enumeration and generation have finite timeouts; exceeding any limit,
+duplicate paths, symlinks, unsupported entries, or incomplete enumeration aborts the plan without
+publishing partial outputs or mutating the PR. Only committed trusted-base bytes may seed the
+scratch tree, not dirty working-tree content.
+
+After generation, compare complete before/after path inventories and bytes, including untracked,
+ignored, and newly created files. Every addition, modification, deletion, or type change must be
+accounted for. Include each permitted new regular file and its full contents in the plan and patch;
+reject any change outside the exact generated-output allowlist. Reject deletions or type changes
+unless the output contract explicitly supports them. Never report success while silently omitting a
+new fixture. Temporary output must stay outside the compared tree or be removed before this
+comparison. These are implementation requirements, not a claim that the current helper enforces
+every bound or accounting check.
+
+Required regression cases include a tree just within each aggregate bound, a tree exceeding each
+bound despite individually small files, an allowlisted new fixture included in both plan and patch,
+an ignored new file outside the allowlist rejected, and an unavailable or mismatched candidate
+module object rejected before generation. Remote authentication tests must reject a well-formed but
+false `h1` value; local dry-run tests must prove no network access.
+
+### Plan outputs and workflow permissions
 
 The generator also synchronizes `CHANGELOG.md` only within `[Unreleased]`. If the current signer
 version is already present there, it advances that reference to the candidate in place. Otherwise,
@@ -136,7 +175,7 @@ go run ./cmd/slsa-builder-internal dependabot-companion \
 ```
 
 `.github/workflows/dependabot-companion.yml` automatically runs the read-only plan after eligible
-`Lint` completions. It checks out trusted `main`, never the PR head, and grants only
+`Lint` completions. The plan job checks out trusted `main`, never the PR head, and grants only
 `contents: read` and `pull-requests: read`. The plan job has no App secret. Both jobs use SHA-pinned
 actions, block-mode Harden Runner first, bounded job timeouts, disabled checkout credential
 persistence, and branch-scoped concurrency with a run-ID fallback and `cancel-in-progress: false`.

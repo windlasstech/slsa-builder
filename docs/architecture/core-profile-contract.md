@@ -387,10 +387,11 @@ npm error code E422
 
 ## Signing adapter boundary
 
-- The Go-native `sigstore-go` v1.4.0 signer defined by ADR 0077 is the Windlass signing adapter for
-  every production profile. The npm profile adopts it first, release-manifest signing (M01/M02)
-  reuses it, and future profiles use it by default as their contracts are admitted. `actions/attest`
-  is not a Windlass signing adapter.
+- The Go-native `sigstore-go` signer selected by ADR 0077, with current v1.4.0 values governed by
+  [ADR 0113](../decisions/0113-define-the-common-builderdependencies-descriptor-shape.md), is the
+  Windlass signing adapter for every production profile. The npm profile adopts it first,
+  release-manifest signing (M01/M02) reuses it, and future profiles use it by default as their
+  contracts are admitted. `actions/attest` is not a Windlass signing adapter.
 - The signing adapter is responsible for:
   - Receiving the profile's validated signing material.
   - Preserving the exact in-toto Statement semantics owned by the trusted core and profile.
