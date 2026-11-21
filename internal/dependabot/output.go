@@ -58,6 +58,7 @@ func publishOutputs(output string, files map[string][]byte) error {
 			return ErrInput
 		}
 		seen := 0
+		var emptyDirs []string
 		err = filepath.WalkDir(output, func(path string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
 				return walkErr
@@ -72,6 +73,7 @@ func publishOutputs(output string, files map[string][]byte) error {
 				}
 				for name := range files {
 					if strings.HasPrefix(name, filepath.ToSlash(rel)+"/") {
+						emptyDirs = append(emptyDirs, path)
 						return nil
 					}
 				}
@@ -99,6 +101,11 @@ func publishOutputs(output string, files map[string][]byte) error {
 			return err
 		}
 		if seen == 0 {
+			for i := len(emptyDirs) - 1; i >= 0; i-- {
+				if err := os.Remove(emptyDirs[i]); err != nil {
+					return err
+				}
+			}
 			return publishNewOutputs(output, files)
 		}
 		if seen != len(files) {

@@ -8,13 +8,16 @@ import (
 
 func TestOutputTrailingSlashAndExactRepublication(t *testing.T) {
 	t.Parallel()
-	for _, kind := range []string{"fresh", "empty", "exact", "incomplete", "extra", "mismatch", "symlink", "extra directory"} {
+	for _, kind := range []string{"fresh", "empty", "empty nested directories", "exact", "incomplete", "extra", "mismatch", "symlink", "extra directory"} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
 			// Given a separate output with an optional previous publication.
 			base := t.TempDir()
 			output := filepath.Join(base, "output")
 			files := map[string][]byte{"plan.json": []byte("plan"), "patch.diff": []byte("patch")}
+			if kind == "empty nested directories" {
+				files["files/nested/deeper/result"] = []byte("exact\x00bytes\n")
+			}
 			if kind == "symlink" {
 				if err := os.Symlink(t.TempDir(), output); err != nil {
 					t.Fatal(err)
@@ -23,7 +26,11 @@ func TestOutputTrailingSlashAndExactRepublication(t *testing.T) {
 				if err := os.Mkdir(output, 0700); err != nil {
 					t.Fatal(err)
 				}
-				if kind != "empty" {
+				if kind == "empty nested directories" {
+					if err := os.MkdirAll(filepath.Join(output, "files", "nested", "deeper"), 0700); err != nil {
+						t.Fatal(err)
+					}
+				} else if kind != "empty" {
 					for path, data := range files {
 						if kind == "incomplete" && path == "patch.diff" {
 							continue
@@ -49,9 +56,17 @@ func TestOutputTrailingSlashAndExactRepublication(t *testing.T) {
 			}
 			// When publishing with a trailing separator, then only exact or empty roots succeed.
 			err := publishOutputs(output+string(filepath.Separator), files)
-			valid := kind == "fresh" || kind == "empty" || kind == "exact"
+			valid := kind == "fresh" || kind == "empty" || kind == "empty nested directories" || kind == "exact"
 			if (err == nil) != valid {
 				t.Fatalf("valid=%v error=%v", valid, err)
+			}
+			if kind == "empty nested directories" {
+				for path, want := range files {
+					got, readErr := os.ReadFile(filepath.Join(output, path))
+					if readErr != nil || string(got) != string(want) {
+						t.Fatalf("published %s = %q, %v; want %q", path, got, readErr, want)
+					}
+				}
 			}
 		})
 	}
