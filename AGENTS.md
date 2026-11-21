@@ -23,7 +23,7 @@ spec'd but not yet implemented.
 │   ├── dependabot/              # companion dry-run/remote plan/gated App apply (see its AGENTS.md)
 │   └── npmprofile/              # npm profile domain (see internal/npmprofile/AGENTS.md)
 ├── testdata/                    # governed byte-exact fixture corpus (see testdata/AGENTS.md)
-├── docs/decisions/              # MADR ADRs 0000-0102 (see docs/decisions/AGENTS.md)
+├── docs/decisions/              # MADR ADRs 0000-0115 (see docs/decisions/AGENTS.md)
 ├── docs/architecture/           # behavior specs (see docs/architecture/AGENTS.md)
 ├── docs/dogfood/                # live M1 npm evidence + verification procedure
 ├── docs/testing-guide.md        # normative Go test/fuzz/fixture policy
@@ -42,7 +42,7 @@ spec'd but not yet implemented.
 
 | Task                     | Location                                                              | Notes                                                              |
 | ------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Why a decision was made  | `docs/decisions/`                                                     | MADR 4.0.0 ADRs, numbered `0000`–`0102`.                           |
+| Why a decision was made  | `docs/decisions/`                                                     | MADR 4.0.0 ADRs, numbered `0000`–`0115`.                           |
 | Exact behavior contracts | `docs/architecture/`                                                  | Specs per SDD; see `docs/architecture/AGENTS.md`.                  |
 | Trusted-core Go code     | `internal/`                                                           | Shared rules in `internal/AGENTS.md`; sub-packages have their own. |
 | CLI subcommands          | `cmd/slsa-builder-internal/main.go`                                   | 15 subcommands; adapter rules in `internal/command/AGENTS.md`.     |
