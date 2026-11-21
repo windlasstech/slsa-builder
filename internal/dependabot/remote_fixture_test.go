@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -24,7 +25,8 @@ type remoteFixture struct {
 	mutations atomic.Int64
 	posts     atomic.Int64
 	reads     atomic.Int64
-	commits   chan commitInput
+	commitMu  sync.Mutex
+	commit    commitInput
 	override  func(http.ResponseWriter, *http.Request) bool
 }
 
@@ -61,7 +63,9 @@ func newRemoteFixture(t *testing.T) *remoteFixture {
 	head := Modules{Mod: bytes.ReplaceAll(base.Mod, []byte("sigstore-go "+old.Version), []byte("sigstore-go v1.999.0")),
 		Sum: bytes.ReplaceAll(base.Sum, []byte("sigstore-go "+old.Version), []byte("sigstore-go v1.999.0"))}
 	root, sha := NewCommittedTestRoot(t, map[string][]byte{"go.mod": base.Mod, "go.sum": base.Sum})
-	f := &remoteFixture{responses: map[string]string{}, commits: make(chan commitInput, 1)}
+	f := &remoteFixture{responses: map[string]string{}}
+	sum := remoteModuleFixture(t, f.responses)
+	head.Sum = bytes.ReplaceAll(head.Sum, []byte(signerModule+" v1.999.0 "+old.Sum), []byte(signerModule+" v1.999.0 "+sum))
 	f.inputs = Inputs{TrustedRoot: root, TrustedSHA: sha, EventPath: filepath.Join(t.TempDir(), "event.json"), Output: filepath.Join(t.TempDir(), "output")}
 	f.event.Action = "completed"
 	f.event.Repository.FullName = companionRepository
@@ -120,7 +124,9 @@ func (f *remoteFixture) handler(t *testing.T) http.HandlerFunc {
 			}
 			if strings.HasPrefix(request.Query, "mutation") {
 				f.mutations.Add(1)
-				f.commits <- request.Variables.Input
+				f.commitMu.Lock()
+				f.commit = request.Variables.Input
+				f.commitMu.Unlock()
 				if f.override != nil && f.override(w, r) {
 					return
 				}
@@ -138,8 +144,7 @@ func (f *remoteFixture) handler(t *testing.T) http.HandlerFunc {
 			return
 		}
 		if strings.Contains(r.URL.Path, "/commits/"+strings.Repeat("d", 40)) {
-			input := <-f.commits
-			f.commits <- input
+			input := f.committed()
 			fmt.Fprintf(w, `{"sha":%q,"parents":[{"sha":%q}],"commit":{"message":%q,"verification":{"verified":true}}}`, strings.Repeat("d", 40), input.ExpectedHeadOID, input.Message.Headline+"\n\n"+input.Message.Body)
 			return
 		}
@@ -158,4 +163,10 @@ func (f *remoteFixture) handler(t *testing.T) http.HandlerFunc {
 		t.Errorf("unexpected API read: %s", r.URL)
 		http.NotFound(w, r)
 	}
+}
+
+func (f *remoteFixture) committed() commitInput {
+	f.commitMu.Lock()
+	defer f.commitMu.Unlock()
+	return f.commit
 }

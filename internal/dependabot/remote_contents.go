@@ -71,7 +71,7 @@ func (api *githubAPI) release(ctx context.Context, transition Transition) (Relea
 	if len(licenses[0]) == 0 || !bytes.Equal(licenses[0], licenses[1]) {
 		return Release{}, ErrInput
 	}
-	manifest, err := api.contents(ctx, remoteFile{"sigstore/sigstore-go", candidate.commit, "go.mod"})
+	manifest, err := api.verifyCandidateModule(ctx, candidate, transition.candidate.Sum)
 	if err != nil {
 		return Release{}, err
 	}
