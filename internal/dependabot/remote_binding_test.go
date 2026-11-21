@@ -1,6 +1,7 @@
 package dependabot
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,7 +13,17 @@ import (
 func TestRemotePlanBindsWorkflowPullRequest(t *testing.T) {
 	t.Parallel()
 	f := newRemoteFixture(t)
-	raw := strings.Replace(fixtureJSON(t, f.event), `"pull_requests":null`, `"pull_requests":[`+f.responses[repositoryAPI+"/pulls/123"]+`]`, 1)
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(fixtureJSON(t, f.event)), &payload); err != nil {
+		t.Fatal(err)
+	}
+	var run map[string]json.RawMessage
+	if err := json.Unmarshal(payload["workflow_run"], &run); err != nil {
+		t.Fatal(err)
+	}
+	run["pull_requests"] = json.RawMessage("[" + f.responses[repositoryAPI+"/pulls/123"] + "]")
+	payload["workflow_run"] = json.RawMessage(fixtureJSON(t, run))
+	raw := fixtureJSON(t, payload)
 	if err := os.WriteFile(f.inputs.EventPath, []byte(raw), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -48,6 +59,9 @@ func TestRemotePlanRejectsUnboundEvents(t *testing.T) {
 			t.Parallel()
 			f := newRemoteFixture(t)
 			raw := strings.Replace(fixtureJSON(t, f.event), test.old, test.replacement, 1)
+			if raw == fixtureJSON(t, f.event) {
+				t.Fatal("fixture mutation did not apply")
+			}
 			if err := os.WriteFile(f.inputs.EventPath, []byte(raw), 0600); err != nil {
 				t.Fatal(err)
 			}
