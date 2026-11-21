@@ -23,7 +23,7 @@ func buildRegistry() map[string]Definition {
 			Category:   category,
 			Phase:      PhaseVerification,
 			ExitCode:   ExitCodePass,
-			precedence: 8,
+			precedence: 10,
 		})
 	}
 
@@ -64,6 +64,9 @@ func buildRegistry() map[string]Definition {
 		"external-parameters-unexpected", "unexpected-external-parameters",
 		"unexpected-internal-parameters", "subject-cardinality-error", "subject-cardinality-invalid",
 		"subject-name-mismatch", "subject-digest-scope-invalid", "statement-assembly-mismatch")
+	setPrecedence(definitions, 7, "builder-dependencies-publish-cli-mismatch")
+	setPrecedence(definitions, 8, "builder-dependencies-signing-adapter-mismatch")
+	setPrecedence(definitions, 9, "builder-dependencies-descriptor-invalid")
 
 	set(definitions, PhasePreMutation, ExitCodePolicyFailure, false, 7,
 		"release-target-immutable", "handoff-schema-mismatch", "publisher-remote-digest-unproven",
