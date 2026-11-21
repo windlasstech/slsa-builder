@@ -20,10 +20,6 @@ func TestManualActionNeverGenerates(t *testing.T) {
 		{"missing checksum", "head/go.sum", "github.com/sigstore/sigstore-go v1.5.0 h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "", "invalid-module-checksums"},
 		{"malformed checksum", "head/go.sum", "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "h1:not-base64", "invalid-module-checksums"},
 		{"conflicting checksum", "head/go.sum", "github.com/sigstore/sigstore-go v1.5.0 h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "github.com/sigstore/sigstore-go v1.5.0 h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\ngithub.com/sigstore/sigstore-go v1.5.0 h1:DGdFdZLhYSc42yYN0+lL6yWh7v0z3S0i21v50lvSYKw=", "invalid-module-checksums"},
-		{"license", "release.json", `"license":"Apache-2.0"`, `"license":"GPL-3.0"`, "release-metadata-unconfirmed"},
-		{"toolchain", "release.json", `"go_version":"1.27.0"`, `"go_version":"1.28.0"`, "release-metadata-unconfirmed"},
-		{"date", "release.json", "2026-11-10", "not-a-date", "release-metadata-unconfirmed"},
-		{"tag", "release.json", `"version":"v1.5.0"`, `"version":"v1.6.0"`, "release-metadata-unconfirmed"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -43,6 +39,9 @@ func TestManualActionNeverGenerates(t *testing.T) {
 			}
 			old := strings.ReplaceAll(test.old, "v1.5.0", release.Version)
 			replacement := strings.ReplaceAll(test.replacement, "v1.5.0", release.Version)
+			if !strings.Contains(string(raw), old) {
+				t.Fatalf("fixture missing mutation target %q", old)
+			}
 			writeTestFile(t, path, []byte(strings.ReplaceAll(string(raw), old, replacement)))
 			calls := 0
 			planner := dependabot.Planner{Generate: func(context.Context, dependabot.Generation) ([]dependabot.Change, error) { calls++; return nil, nil }}
@@ -50,7 +49,65 @@ func TestManualActionNeverGenerates(t *testing.T) {
 			if err != nil || plan.Status != "manual-action-required" || plan.Reason != test.reason || calls != 0 || len(plan.Files) != 0 {
 				t.Fatalf("plan=%+v calls=%d err=%v", plan, calls, err)
 			}
+			requireEmptyPlanOutput(t, inputs.Output, plan)
 		})
+	}
+}
+
+func TestReleaseRejectionsNeverGenerate(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		change func(*dependabot.Release)
+	}{
+		{"license", func(r *dependabot.Release) { r.License = "GPL-3.0" }},
+		{"base license", func(r *dependabot.Release) { r.BaseLicense = "MIT" }},
+		{"toolchain", func(r *dependabot.Release) { r.GoVersion = "1.99.0" }},
+		{"invalid toolchain", func(r *dependabot.Release) { r.GoVersion = "invalid" }},
+		{"date", func(r *dependabot.Release) { r.ReleaseDate = "not-a-date" }},
+		{"tag", func(r *dependabot.Release) { r.Version += "-different" }},
+		{"module", func(r *dependabot.Release) { r.Module = "example.org/other" }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			inputs := planInputs(t)
+			path := filepath.Join(inputs.Snapshot, "release.json")
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var release dependabot.Release
+			if err := json.Unmarshal(raw, &release); err != nil {
+				t.Fatal(err)
+			}
+			test.change(&release)
+			raw, err = json.Marshal(release)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeTestFile(t, path, raw)
+			calls := 0
+			planner := dependabot.Planner{Generate: func(context.Context, dependabot.Generation) ([]dependabot.Change, error) { calls++; return nil, nil }}
+			plan, err := planner.DryRun(t.Context(), inputs)
+			if err != nil || plan.Status != "manual-action-required" || plan.Reason != "release-metadata-unconfirmed" || calls != 0 {
+				t.Fatalf("plan=%+v calls=%d err=%v, want release-metadata-unconfirmed without generation", plan, calls, err)
+			}
+			requireEmptyPlanOutput(t, inputs.Output, plan)
+		})
+	}
+}
+
+func requireEmptyPlanOutput(t *testing.T, output string, plan dependabot.Plan) {
+	t.Helper()
+	if len(plan.Files) != 0 || plan.CommitMessage != "" {
+		t.Fatalf("rejection generated files or commit: %+v", plan)
+	}
+	patch, err := os.ReadFile(filepath.Join(output, "patch.diff"))
+	if err != nil || len(patch) != 0 {
+		t.Fatalf("rejection patch=%q err=%v, want empty patch", patch, err)
+	}
+	if _, err := os.Stat(filepath.Join(output, "files")); !os.IsNotExist(err) {
+		t.Fatalf("rejection wrote files: %v", err)
 	}
 }
 
@@ -83,8 +140,11 @@ func TestSumOnlyWithUnchangedSignerSkips(t *testing.T) {
 	}
 	writeTestFile(t, inputs.EventPath, raw)
 	writeTestFile(t, filepath.Join(inputs.Snapshot, "event.json"), raw)
-	plan, err := (dependabot.Planner{}).DryRun(t.Context(), inputs)
-	if err != nil || plan.Status != "skip" || plan.Reason != "signer-unchanged" {
+	calls := 0
+	planner := dependabot.Planner{Generate: func(context.Context, dependabot.Generation) ([]dependabot.Change, error) { calls++; return nil, nil }}
+	plan, err := planner.DryRun(t.Context(), inputs)
+	if err != nil || plan.Status != "skip" || plan.Reason != "signer-unchanged" || calls != 0 {
 		t.Fatalf("plan=%+v err=%v", plan, err)
 	}
+	requireEmptyPlanOutput(t, inputs.Output, plan)
 }

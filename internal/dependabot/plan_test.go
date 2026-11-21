@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,14 +22,18 @@ func TestPlanRejectsBeforeGeneration(t *testing.T) {
 	for _, test := range []struct {
 		name   string
 		change func(*dependabot.Event)
+		reason string
 	}{
-		{"human", func(e *dependabot.Event) { e.Author = "human" }},
-		{"fork", func(e *dependabot.Event) { e.HeadRepository = "other/repo" }},
-		{"closed", func(e *dependabot.Event) { e.State = "closed" }},
-		{"base", func(e *dependabot.Event) { e.BaseRef = "feature" }},
-		{"repository", func(e *dependabot.Event) { e.Repository = "other/repo" }},
-		{"companion", func(e *dependabot.Event) { e.ChangedPaths = append(e.ChangedPaths, "CHANGELOG.md") }},
-		{"stale", func(e *dependabot.Event) { e.HeadSHA = "cccccccccccccccccccccccccccccccccccccccc" }},
+		{"human", func(e *dependabot.Event) { e.Author = "human" }, "not-dependabot"},
+		{"fork", func(e *dependabot.Event) { e.HeadRepository = "other/repo" }, "fork-pull-request"},
+		{"closed", func(e *dependabot.Event) { e.State = "closed" }, "pull-request-not-open"},
+		{"base", func(e *dependabot.Event) { e.BaseRef = "feature" }, "wrong-base"},
+		{"repository", func(e *dependabot.Event) { e.Repository = "other/repo" }, "wrong-repository"},
+		{"companion", func(e *dependabot.Event) { e.ChangedPaths = append(e.ChangedPaths, "CHANGELOG.md") }, "changed-paths-mismatch"},
+		{"stale", func(e *dependabot.Event) { e.HeadSHA = "cccccccccccccccccccccccccccccccccccccccc" }, "stale-head"},
+		{"trusted base", func(e *dependabot.Event) { e.BaseSHA = strings.Repeat("c", 40) }, "wrong-trusted-base"},
+		{"trusted sha", func(e *dependabot.Event) { e.TrustedSHA = strings.Repeat("c", 40) }, "wrong-trusted-base"},
+		{"number", func(e *dependabot.Event) { e.Number++ }, "stale-head"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -50,9 +55,10 @@ func TestPlanRejectsBeforeGeneration(t *testing.T) {
 			calls := 0
 			planner := dependabot.Planner{Generate: func(context.Context, dependabot.Generation) ([]dependabot.Change, error) { calls++; return nil, nil }}
 			plan, err := planner.DryRun(t.Context(), inputs)
-			if err != nil || plan.Status != "skip" || calls != 0 {
-				t.Fatalf("plan=%+v calls=%d err=%v", plan, calls, err)
+			if err != nil || plan.Status != "skip" || plan.Reason != test.reason || calls != 0 {
+				t.Fatalf("plan=%+v calls=%d err=%v, want skip/%s without generation", plan, calls, err, test.reason)
 			}
+			requireEmptyPlanOutput(t, inputs.Output, plan)
 		})
 	}
 }
@@ -146,5 +152,41 @@ func writeTestFile(t *testing.T, path string, data []byte) {
 	}
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestPlanGeneratorFailuresLeaveNoOutput(t *testing.T) {
+	t.Parallel()
+	generationErr := errors.New("generation failed")
+	for _, test := range []struct {
+		name    string
+		changes []dependabot.Change
+		err     error
+		message string
+	}{
+		{"generation error", nil, generationErr, "generation failed"},
+		{"empty generation", nil, nil, "companion generator produced no changes"},
+		{"outside allowlist", []dependabot.Change{{Path: "go.mod"}}, nil, "generator output outside closed allowlist"},
+		{"duplicate output", []dependabot.Change{{Path: "internal/provenance/builder_dependencies.go"}, {Path: "internal/provenance/builder_dependencies.go"}}, nil, "generator output outside closed allowlist"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			inputs := planInputs(t)
+			calls := 0
+			planner := dependabot.Planner{Generate: func(context.Context, dependabot.Generation) ([]dependabot.Change, error) {
+				calls++
+				return test.changes, test.err
+			}}
+			_, err := planner.DryRun(t.Context(), inputs)
+			if err == nil || err.Error() != test.message || calls != 1 {
+				t.Fatalf("error=%v calls=%d, want %q and one generation", err, calls, test.message)
+			}
+			if test.err != nil && !errors.Is(err, test.err) {
+				t.Fatalf("lost generator error: %v", err)
+			}
+			if _, err := os.Stat(inputs.Output); !os.IsNotExist(err) {
+				t.Fatalf("partial output: %v", err)
+			}
+		})
 	}
 }
