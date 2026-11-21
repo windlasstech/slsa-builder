@@ -174,6 +174,8 @@ func regenerate(ctx context.Context, scratch string, transition Transition) erro
 		{"npmprofile", "^(TestNPMProvenanceInput|TestNPMProvenanceInputSourceRefDispatchRetryGolden|TestFinalContractCorpus)$", []string{"UPDATE_P01_GOLDEN=1", "UPDATE_P02_GOLDEN=1", "UPDATE_CONTRACT_FIXTURES=1"}},
 	}
 	for _, job := range jobs {
+		// Execute only fixed base-built test binaries from the private temporary directory.
+		// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 		cmd := exec.CommandContext(ctx, filepath.Join(binaries, job.pkg+".test"), "-test.run", job.tests, "-test.parallel=1", "-test.timeout=2m")
 		cmd.Dir = filepath.Join(scratch, "internal", job.pkg)
 		cmd.Env = append(trustedEnvironment(), job.gates...)
