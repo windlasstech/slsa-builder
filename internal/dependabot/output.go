@@ -14,11 +14,19 @@ func outputBoundary(inputs Inputs) error {
 	if inputs.Output == "" || inputs.TrustedRoot == "" || inputs.Snapshot == "" || inputs.EventPath == "" {
 		return ErrInput
 	}
-	parent, err := filepath.EvalSymlinks(filepath.Dir(inputs.Output))
+	clean := filepath.Clean(inputs.Output)
+	if info, err := os.Lstat(clean); err == nil {
+		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return ErrInput
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	parent, err := filepath.EvalSymlinks(filepath.Dir(clean))
 	if err != nil {
 		return err
 	}
-	output, err := filepath.Abs(filepath.Join(parent, filepath.Base(inputs.Output)))
+	output, err := filepath.Abs(filepath.Join(parent, filepath.Base(clean)))
 	if err != nil {
 		return err
 	}
@@ -39,10 +47,12 @@ func outputBoundary(inputs Inputs) error {
 }
 
 func within(root, path string) bool {
-	return path == root || strings.HasPrefix(path, root+string(filepath.Separator))
+	rel, err := filepath.Rel(root, path)
+	return err == nil && (rel == "." || filepath.IsLocal(rel))
 }
 
 func publishOutputs(output string, files map[string][]byte) error {
+	output = filepath.Clean(output)
 	if info, err := os.Lstat(output); err == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return ErrInput
@@ -53,7 +63,19 @@ func publishOutputs(output string, files map[string][]byte) error {
 				return walkErr
 			}
 			if entry.IsDir() {
-				return nil
+				if path == output {
+					return nil
+				}
+				rel, err := filepath.Rel(output, path)
+				if err != nil {
+					return err
+				}
+				for name := range files {
+					if strings.HasPrefix(name, filepath.ToSlash(rel)+"/") {
+						return nil
+					}
+				}
+				return errors.New("existing output has unexpected directory")
 			}
 			rel, err := filepath.Rel(output, path)
 			if err != nil {
@@ -90,6 +112,7 @@ func publishOutputs(output string, files map[string][]byte) error {
 }
 
 func publishNewOutputs(output string, files map[string][]byte) error {
+	output = filepath.Clean(output)
 	stage, err := os.MkdirTemp(filepath.Dir(output), ".companion-output-")
 	if err != nil {
 		return err
@@ -104,6 +127,9 @@ func publishNewOutputs(output string, files map[string][]byte) error {
 			return err
 		}
 	}
+	if err := os.Remove(output); err != nil && !os.IsNotExist(err) {
+		return err
+	}
 	return os.Rename(stage, output)
 }
 
@@ -117,7 +143,20 @@ func unifiedPatch(change Change) []byte {
 	if newLines[len(newLines)-1] == "" {
 		newLines = newLines[:len(newLines)-1]
 	}
-	fmt.Fprintf(&result, "diff --git a/%s b/%s\n--- a/%s\n+++ b/%s\n@@ -1,%d +1,%d @@\n", change.Path, change.Path, change.Path, change.Path, len(old), len(newLines))
+	fmt.Fprintf(&result, "diff --git a/%s b/%s\n", change.Path, change.Path)
+	oldPath, oldStart := "a/"+change.Path, 1
+	if len(old) == 0 {
+		oldStart = 0
+	}
+	if change.Before == nil {
+		result.WriteString("new file mode 100644\n")
+		oldPath, oldStart = "/dev/null", 0
+	}
+	newStart := 1
+	if len(newLines) == 0 {
+		newStart = 0
+	}
+	fmt.Fprintf(&result, "--- %s\n+++ b/%s\n@@ -%d,%d +%d,%d @@\n", oldPath, change.Path, oldStart, len(old), newStart, len(newLines))
 	for _, group := range []struct {
 		prefix byte
 		lines  []string
