@@ -1,0 +1,66 @@
+internal/toolchainpins/drift_test.go
+  s_c8426bafa14a8d::t_cc2e2c82e1211e 39,55
+  s_c8426bafa14a8d::t_c6e67607c2bc5d 29-31,71-82,84
+  s_b6fcfd81845eac::t_d36df9d7561f1f 83
+internal/command/pin_check_test.go
+  s_32114d8975d02d::t_5ba06010b6c9e4 112
+internal/command/AGENTS.md
+  s_776bca7a3db24c::t_df5bba0fdb857c 13-25,27-29
+  s_c8426bafa14a8d::t_216107ef997486 26
+internal/toolchainpins/AGENTS.md
+  s_776bca7a3db24c::t_df5bba0fdb857c 21-26
+  s_c8426bafa14a8d::t_216107ef997486 20,27,35-38
+  s_84b78a549bfa2e::t_df6db933995258 39
+internal/toolchainpins/drift.go
+  s_c8426bafa14a8d::t_cc2e2c82e1211e 4-6,8,68,79-120,127,129-147
+  s_b6fcfd81845eac::t_d36df9d7561f1f 122-126
+  s_c8426bafa14a8d::t_b5529cdde7bda3 121,128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "478af54b3bb0a6b3b38046964fe580b770cea74e",
+  "prompts": {},
+  "sessions": {
+    "s_32114d8975d02d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0135619fffe0YmmMZSzTGm265",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_84b78a549bfa2e": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "k3"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_b6fcfd81845eac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e015397d9ffe6w0qVIkwlp1i0q",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_c8426bafa14a8d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e015397d9ffe6w0qVIkwlp1i0q",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
