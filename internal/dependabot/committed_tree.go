@@ -3,6 +3,7 @@ package dependabot
 import (
 	"bytes"
 	"context"
+	"io/fs"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -11,6 +12,50 @@ import (
 )
 
 type boundedGitOutput struct{ buffer bytes.Buffer }
+
+const maxTreeFiles = 10000
+const maxTreeBytes = 128 << 20
+
+type committedEntry struct {
+	path, object string
+	size         int
+}
+
+func parseCommittedTree(listed []byte) ([]committedEntry, error) {
+	if len(listed) == 0 || listed[len(listed)-1] != 0 {
+		return nil, ErrInput
+	}
+	var entries []committedEntry
+	seen := map[string]bool{}
+	total := 0
+	for raw := range strings.SplitSeq(string(listed[:len(listed)-1]), "\x00") {
+		metadata, path, ok := strings.Cut(raw, "\t")
+		fields := strings.Fields(metadata)
+		key := strings.ToLower(path)
+		if !ok || len(fields) != 4 || (fields[0] != "100644" && fields[0] != "100755") || fields[1] != "blob" || !shaPattern.MatchString(fields[2]) || path == "." || !fs.ValidPath(path) || !filepath.IsLocal(path) || strings.ContainsAny(path, "\\\x00\r\n\t:") || seen[key] {
+			return nil, ErrInput
+		}
+		size, err := strconv.Atoi(fields[3])
+		if err != nil || size < 0 || size > maxInput || len(entries) == maxTreeFiles || size > maxTreeBytes-total {
+			return nil, ErrInput
+		}
+		seen[key] = true
+		total += size
+		entries = append(entries, committedEntry{path: path, object: fields[2], size: size})
+	}
+	directories := map[string]string{}
+	for _, entry := range entries {
+		for parent := filepath.ToSlash(filepath.Dir(entry.path)); parent != "."; parent = filepath.ToSlash(filepath.Dir(parent)) {
+			key := strings.ToLower(parent)
+			previous, exists := directories[key]
+			if seen[key] || (exists && previous != parent) {
+				return nil, ErrInput
+			}
+			directories[key] = parent
+		}
+	}
+	return entries, nil
+}
 
 func (output *boundedGitOutput) Write(data []byte) (int, error) {
 	if len(data) > maxInput-output.buffer.Len() {
@@ -42,25 +87,20 @@ func readCommittedFiles(ctx context.Context, inputs Inputs, paths []string) (map
 	if err != nil {
 		return nil, err
 	}
+	entries, err := parseCommittedTree(listed)
+	if err != nil {
+		return nil, err
+	}
 	files := map[string][]byte{}
-	for _, entry := range bytes.Split(bytes.TrimSuffix(listed, []byte{0}), []byte{0}) {
-		metadata, path, ok := strings.Cut(string(entry), "\t")
-		fields := strings.Fields(metadata)
-		if !ok || len(fields) != 4 || (fields[0] != "100644" && fields[0] != "100755") || fields[1] != "blob" || !shaPattern.MatchString(fields[2]) || !filepath.IsLocal(path) {
-			return nil, ErrInput
-		}
-		size, err := strconv.Atoi(fields[3])
-		if err != nil || size < 0 || size > maxInput {
-			return nil, ErrInput
-		}
-		data, err := trustedGit(ctx, inputs.TrustedRoot, []string{"cat-file", "blob", fields[2]})
+	for _, entry := range entries {
+		data, err := trustedGit(ctx, inputs.TrustedRoot, []string{"cat-file", "blob", entry.object})
 		if err != nil {
 			return nil, err
 		}
-		if len(data) != size {
+		if len(data) != entry.size {
 			return nil, ErrInput
 		}
-		files[path] = data
+		files[entry.path] = data
 	}
 	for _, path := range paths {
 		if _, ok := files[path]; !ok {
