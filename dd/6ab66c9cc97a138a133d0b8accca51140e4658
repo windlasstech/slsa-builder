@@ -1,0 +1,22 @@
+docs/decisions/0114-record-the-publish-stage-npm-cli-in-builderdependencies.md
+  s_776bca7a3db24c::t_2048b82f4a097e 111-117
+  s_776bca7a3db24c::t_259736803f238f 124-127
+  s_776bca7a3db24c::t_2d9b322325e8e4 90-93
+  s_776bca7a3db24c::t_84b0608649e270 122-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dd6ab66c9cc97a138a133d0b8accca51140e4658",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
