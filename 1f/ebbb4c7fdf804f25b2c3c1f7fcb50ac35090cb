@@ -1,0 +1,26 @@
+internal/toolchainpins/signing_adapter_test.go
+  s_c8426bafa14a8d::t_c6e67607c2bc5d 46-50,94-131
+  s_c8426bafa14a8d::t_55de05cc6b0e42 132
+internal/toolchainpins/signing_adapter.go
+  s_c8426bafa14a8d::t_cc2e2c82e1211e 54,57
+.github/workflows/lint.yml
+  s_c8426bafa14a8d::t_216107ef997486 227-228
+.github/workflows/fuzz.yml
+  s_c8426bafa14a8d::t_216107ef997486 114-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1febbb4c7fdf804f25b2c3c1f7fcb50ac35090cb",
+  "prompts": {},
+  "sessions": {
+    "s_c8426bafa14a8d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e015397d9ffe6w0qVIkwlp1i0q",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
