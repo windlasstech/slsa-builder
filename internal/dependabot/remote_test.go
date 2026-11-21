@@ -26,7 +26,7 @@ func TestRemoteApplyOneMutation(t *testing.T) {
 	if err != nil || plan.Status != "planned" || f.mutations.Load() != 1 {
 		t.Fatalf("plan=%+v err=%v mutations=%d", plan, err, f.mutations.Load())
 	}
-	input := <-f.commits
+	input := f.committed()
 	if input.ExpectedHeadOID != f.event.Run.HeadSHA || input.Branch.RefName != f.event.Run.HeadBranch || input.Branch.Repository != companionRepository || len(input.FileChanges.Additions) != 1 || input.FileChanges.Additions[0].Contents != "bmV3Cg==" || !strings.Contains(input.Message.Headline, "[dependabot skip]") || input.Message.Body != "Signed-off-by: companion[bot] <42+companion[bot]@users.noreply.github.com>\n" {
 		t.Fatalf("wrong mutation: %+v", input)
 	}
@@ -66,7 +66,7 @@ func TestRemoteApplyRejectsBeforeMutation(t *testing.T) {
 
 func TestRemoteApplyAmbiguityNeverRetries(t *testing.T) {
 	t.Setenv("DEPENDABOT_COMPANION_APPLY_ENABLED", "true")
-	for _, failure := range []string{"mutation-error", "mutation-timeout", "readback-timeout", "missing-oid", "unverified", "wrong-parent", "wrong-content", "missing-commit", "wrong-head"} {
+	for _, failure := range []string{"mutation-error", "partial-errors", "mutation-timeout", "readback-timeout", "missing-oid", "unverified", "wrong-parent", "wrong-content", "missing-commit", "wrong-head"} {
 		t.Run(failure, func(t *testing.T) {
 			f := newRemoteFixture(t)
 			f.remote.api.client.Timeout = time.Second
@@ -79,13 +79,14 @@ func TestRemoteApplyAmbiguityNeverRetries(t *testing.T) {
 					<-r.Context().Done()
 				case failure == "mutation-error" && r.Method == "POST":
 					w.WriteHeader(502)
+				case failure == "partial-errors" && r.Method == "POST":
+					fmt.Fprintf(w, `{"data":{"createCommitOnBranch":{"commit":{"oid":%q}}},"errors":[{"message":"ambiguous"}]}`, strings.Repeat("d", 40))
 				case failure == "missing-oid" && r.Method == "POST":
 					fmt.Fprint(w, `{"data":{}}`)
 				case failure == "missing-commit" && strings.Contains(r.URL.Path, "/commits/"):
 					w.WriteHeader(404)
 				case (failure == "unverified" || failure == "wrong-parent") && strings.Contains(r.URL.Path, "/commits/"):
-					input := <-f.commits
-					f.commits <- input
+					input := f.committed()
 					parent := input.ExpectedHeadOID
 					if failure == "wrong-parent" {
 						parent = strings.Repeat("e", 40)

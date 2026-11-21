@@ -2,6 +2,7 @@ package dependabot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -61,7 +62,20 @@ func TestRemoteApplyRevalidatesBeforeMutation(t *testing.T) {
 				return true
 			}
 			_, err := f.remote.Apply(t.Context(), f.inputs, "companion")
-			if err == nil || f.mutations.Load() != 0 {
+			want := ErrInput.Error()
+			switch scenario {
+			case "closed":
+				want += ": pull-request-not-open"
+			case "base-moved":
+				want += ": wrong-trusted-base"
+			case "fork":
+				want += ": fork-pull-request"
+			case "plan-changed":
+				want += ": regenerated plan differs"
+			case "preimage-changed":
+				want += ": remote preimage differs"
+			}
+			if !errors.Is(err, ErrInput) || err.Error() != want || generated.Load() != 2 || f.mutations.Load() != 0 {
 				t.Fatalf("err=%v mutations=%d", err, f.mutations.Load())
 			}
 		})
@@ -110,5 +124,8 @@ func TestGitHubProductionTransport(t *testing.T) {
 	transport, ok := api.client.Transport.(*http.Transport)
 	if !ok || transport.Proxy != nil || transport.TLSClientConfig != nil || transport.DialTLSContext != nil || api.origin != "https://api.github.com" || api.client.Timeout <= 0 || api.client.CheckRedirect == nil {
 		t.Fatal("unsafe production transport")
+	}
+	if err := api.client.CheckRedirect(&http.Request{}, nil); !errors.Is(err, ErrGitHub) {
+		t.Fatalf("redirect callback=%v", err)
 	}
 }
