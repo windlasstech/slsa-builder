@@ -1,0 +1,30 @@
+internal/diagnostic/builder_dependencies_test.go
+  s_9f8efff4b23f1a::t_e825ca5bebcd89 13,16-19,22-24,26-28,31-33,36-44
+  s_478c2567c9e195::t_85c83cd5a88281 1-12,14-15,20-21,25,29-30,34-35,45-48
+internal/diagnostic/registry.go
+  s_478c2567c9e195::t_a498ed9b272fa5 26,67-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5b0599b0324aa050d75067e5a500827e464b7488",
+  "prompts": {},
+  "sessions": {
+    "s_478c2567c9e195": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e015f9da7ffeVtXjQMKBCVsxq4",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_9f8efff4b23f1a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e015f9da7ffeVtXjQMKBCVsxq4",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
