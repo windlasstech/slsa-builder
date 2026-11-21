@@ -1,0 +1,30 @@
+internal/dependabot/generate_limits_test.go
+  s_13b07a50cde85d::t_88059d13eb8bb2 13-76
+  s_24667cab777b2d::t_401147323c489d 1-12,77-79
+internal/dependabot/generate_drift_integration_test.go
+  s_24667cab777b2d::t_f807f18fe82068 100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59ddada22bb40ad7e10f55197858afbd83159068",
+  "prompts": {},
+  "sessions": {
+    "s_13b07a50cde85d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e01539618ffd1V4e9FIsz6X77n",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_24667cab777b2d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0153dbadffd1XbW3I3TTaHHoP",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
