@@ -1,0 +1,28 @@
+internal/dependabot/workflow_reviewed_test.go
+  s_f04ab73187e366::t_45dbaf0431df3a 1-14,16-26,28-35,37-71,73,75-88,91-97
+  s_11272eb6d4c876::t_29cb0cd921206f 15,27,36,72,74,89-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a954016e51b16097e011de802e57436e56bd5db7",
+  "prompts": {},
+  "sessions": {
+    "s_11272eb6d4c876": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0160cfe6ffeYzozEIo7nc5166",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_f04ab73187e366": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0160cfe6ffeYzozEIo7nc5166",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
