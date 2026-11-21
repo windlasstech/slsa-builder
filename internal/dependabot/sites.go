@@ -74,7 +74,8 @@ func editSite(path string, raw []byte, prepared prepared) ([]byte, error) {
 	}
 	replacer := strings.NewReplacer(old.Version, next.Version, old.DirHash1, next.DirHash1, strings.ToUpper(old.DirHash1), strings.ToUpper(next.DirHash1), strings.TrimPrefix(old.Sum, "h1:"), strings.TrimPrefix(next.Sum, "h1:"))
 	if path == "CHANGELOG.md" {
-		updated := strings.ReplaceAll(text, old.Version, next.Version)
+		reference := regexp.MustCompile(`(?m)(sigstore-go(?:` + "`" + `)?(?: from v[0-9]+\.[0-9]+\.[0-9]+ to | to |@|[ \t])(?:` + "`" + `)?)` + regexp.QuoteMeta(old.Version) + `\b`)
+		updated := reference.ReplaceAllString(text, "${1}"+next.Version)
 		if updated != text {
 			text = updated
 		} else {
