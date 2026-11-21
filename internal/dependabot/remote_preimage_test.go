@@ -2,6 +2,8 @@ package dependabot
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -34,10 +36,25 @@ func TestRemotePreimagesUseCandidateOnlyForRootModuleFiles(t *testing.T) {
 				fmt.Fprint(w, contentJSON(t, test.path, []byte(test.served)))
 			})
 			err := api.checkPreimages(t.Context(), plan)
-			if (err == nil) != test.accepted {
+			if (err == nil) != test.accepted || (!test.accepted && !errors.Is(err, ErrInput)) {
 				t.Fatalf("accepted=%t error=%v", test.accepted, err)
 			}
 		})
+	}
+}
+
+func TestRemotePreimageCancellationRetainsTransportClass(t *testing.T) {
+	t.Parallel()
+	api := testAPI(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = r
+		t.Error("cancelled request reached server")
+		w.WriteHeader(500)
+	})
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	err := api.checkPreimages(ctx, Plan{HeadSHA: strings.Repeat("b", 40), Files: []FileHash{{Path: "go.mod"}}})
+	if !errors.Is(err, ErrGitHub) || errors.Is(err, ErrInput) {
+		t.Fatalf("err=%v", err)
 	}
 }
 

@@ -13,7 +13,10 @@ func (api *githubAPI) checkPreimages(ctx context.Context, plan Plan) error {
 			expectedHash = file.SHA256
 		}
 		content, err := api.contents(ctx, remoteFile{companionRepository, plan.HeadSHA, file.Path})
-		if err != nil || hash(content) != expectedHash {
+		if err != nil {
+			return err
+		}
+		if hash(content) != expectedHash {
 			return fmt.Errorf("%w: remote preimage differs", ErrInput)
 		}
 	}
