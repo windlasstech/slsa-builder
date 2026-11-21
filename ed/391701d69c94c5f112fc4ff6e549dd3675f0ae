@@ -1,0 +1,21 @@
+internal/dependabot/testdata/event.json
+  s_776bca7a3db24c::t_7d3d20d4955d9c 1
+internal/dependabot/testdata/release.json
+  s_776bca7a3db24c::t_8de96a7987c5f3 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed391701d69c94c5f112fc4ff6e549dd3675f0ae",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
