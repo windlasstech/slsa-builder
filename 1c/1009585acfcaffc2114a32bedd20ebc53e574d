@@ -1,0 +1,29 @@
+internal/provenance/builder_dependencies_fuzz_test.go
+  s_41c2665cc67fe5::t_33d177c38a3041 36-51
+  s_63858fc2688e75::t_fde5435e30e7e4 52-66,71,73-85
+  s_41c2665cc67fe5::t_7593e5ef3b81a4 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1c1009585acfcaffc2114a32bedd20ebc53e574d",
+  "prompts": {},
+  "sessions": {
+    "s_41c2665cc67fe5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0118d8acffdla1CvqvwMRbiBs",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_63858fc2688e75": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0118d8acffdla1CvqvwMRbiBs",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
