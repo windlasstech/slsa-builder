@@ -1,0 +1,19 @@
+internal/command/dependabot_companion_test.go
+  s_253b4f43a64ef9::t_4bde45d6fe6961 5,23,25,39-54,57-84,86-88,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d4ee266d9f69dc31fde3394b4b062f74ba53788",
+  "prompts": {},
+  "sessions": {
+    "s_253b4f43a64ef9": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e015f9c29ffeFQZ1zIqcVfOXC6",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
