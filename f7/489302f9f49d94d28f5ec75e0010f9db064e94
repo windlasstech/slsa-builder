@@ -1,0 +1,19 @@
+internal/dependabot/committed_fixture_test.go
+  s_24667cab777b2d::t_f807f18fe82068 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7489302f9f49d94d28f5ec75e0010f9db064e94",
+  "prompts": {},
+  "sessions": {
+    "s_24667cab777b2d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0153dbadffd1XbW3I3TTaHHoP",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
