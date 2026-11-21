@@ -1,0 +1,44 @@
+internal/dependabot/github.go
+  s_4836e620b452e0::t_0a22b86b174c36 30,33-35,37,55-60,84,94-95
+  s_8e9d8fed777dac::t_b8350fa8caec87 87-89,99
+  s_8e9d8fed777dac::t_d2a1ccb671fc55 36,96-98
+  s_4836e620b452e0::t_87b5819326a853 86,90
+internal/dependabot/github_test.go
+  s_4836e620b452e0::t_97b333fdcb4034 4,14-18,20-23,37,42-44
+  s_4836e620b452e0::t_7af4f3c90e73a9 5,10,80,82,86-87
+  s_a22b7183f35651::t_f5037889c933e9 19
+  s_8e9d8fed777dac::t_b8350fa8caec87 24-36,38-41
+  s_4836e620b452e0::t_f824a999f70b95 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6fda2d2928ee34c459875657b2149bd54cc9dd9",
+  "prompts": {},
+  "sessions": {
+    "s_4836e620b452e0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e01475f0dffewqBTFbcIrsIR9u",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_8e9d8fed777dac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e01475f0dffewqBTFbcIrsIR9u",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_a22b7183f35651": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0135619fffe0YmmMZSzTGm265",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
