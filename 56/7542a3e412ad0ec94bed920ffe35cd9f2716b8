@@ -1,0 +1,28 @@
+internal/dependabot/workflow_endpoints_test.go
+  s_776bca7a3db24c::t_5fd5b53ec246b7 104-105
+  s_8d0c5fb4852894::t_b2d1179228c5e5 14,16-17,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "567542a3e412ad0ec94bed920ffe35cd9f2716b8",
+  "prompts": {},
+  "sessions": {
+    "s_776bca7a3db24c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e20877510ffetiQdeP2Q0IoNWc",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_8d0c5fb4852894": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e010f0198ffeofAkShI5ZCh6fi",
+        "model": "gpt-6-luna-fast"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
