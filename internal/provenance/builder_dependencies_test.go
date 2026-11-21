@@ -147,11 +147,6 @@ func decodeDependencyStatement(t *testing.T, dependencies string) (provenance.St
 	return decoded, err
 }
 
-func revisedBuilderJSON(t *testing.T, data []byte, path []string) []byte {
-	t.Helper()
-	return replaceDependencyJSON(t, data, path, json.RawMessage("["+signerDescriptorJSON+"]"))
-}
-
 // This edits test input bytes, not production values or historical fixture files.
 func replaceDependencyJSON(t *testing.T, data []byte, path []string, dependencies json.RawMessage) []byte {
 	t.Helper()

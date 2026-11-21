@@ -28,7 +28,6 @@ func TestStatementCanonicalJSON(t *testing.T) {
 			t.Fatalf("Statement.CanonicalJSON() error = %v", err)
 		}
 		want := bytes.TrimSpace(readFixture(t, "valid-statement.json"))
-		want = revisedBuilderJSON(t, want, []string{"predicate", "runDetails", "builder"})
 		if !bytes.Equal(got, want) {
 			t.Fatalf("Statement.CanonicalJSON() mismatch\n got: %s\nwant: %s", got, want)
 		}

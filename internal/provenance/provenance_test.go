@@ -43,7 +43,6 @@ func TestValidSLSAv1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read golden predicate: %v", err)
 	}
-	want = revisedBuilderJSON(t, want, []string{"runDetails", "builder"})
 	if !bytes.Equal(got, bytes.TrimSpace(want)) {
 		t.Fatalf("canonical predicate mismatch\n got: %s\nwant: %s", got, bytes.TrimSpace(want))
 	}
@@ -144,7 +143,6 @@ func TestCommonRejectionMatrix(t *testing.T) {
 
 func TestBuilderFields(t *testing.T) {
 	t.Parallel()
-	t.Run("profile admission", TestBuilderDependencyProfileAdmission)
 
 	tests := []struct {
 		name            string
@@ -183,7 +181,6 @@ func loadStatement(t *testing.T, name string) provenance.Statement {
 	if err != nil {
 		t.Fatalf("DecodeStatement(%q) error = %v", name, err)
 	}
-	useSigstoreGoDependency(t, &statement)
 	useGitHubInternalParameters(&statement)
 	if os.Getenv("UPDATE_PROVENANCE_FIXTURES") == "1" {
 		statement.Predicate.RunDetails.Builder.Version["npm"] = "11.0.0"
