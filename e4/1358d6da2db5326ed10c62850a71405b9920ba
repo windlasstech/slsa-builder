@@ -1,0 +1,23 @@
+docs/decisions/0062-intersect-trusted-producer-policies.md
+  s_bbef9dc9a2436b::t_33f59e59af35b1 13-14
+  s_bbef9dc9a2436b::t_e98f91d43368b8 15-17
+docs/decisions/0115-record-revision-specific-descriptor-expectations-in-signed-release-manifests.md
+  s_bbef9dc9a2436b::t_e98f91d43368b8 13-15
+  s_bbef9dc9a2436b::t_33f59e59af35b1 11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e41358d6da2db5326ed10c62850a71405b9920ba",
+  "prompts": {},
+  "sessions": {
+    "s_bbef9dc9a2436b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0160d1d9ffdp1FX6j0k63BoMU",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
