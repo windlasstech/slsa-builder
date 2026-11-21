@@ -3,7 +3,6 @@ package dependabot
 import (
 	"context"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -13,8 +12,8 @@ type releaseMetadata struct {
 	Tag        string `json:"tag_name"`
 	Target     string `json:"target_commitish"`
 	Published  string `json:"published_at"`
-	Draft      bool   `json:"draft"`
-	Prerelease bool   `json:"prerelease"`
+	Draft      *bool  `json:"draft"`
+	Prerelease *bool  `json:"prerelease"`
 }
 
 type gitTarget struct {
@@ -40,7 +39,7 @@ func (api *githubAPI) resolveRelease(ctx context.Context, version string) (resol
 		return resolvedRelease{}, err
 	}
 	date, err := time.Parse(time.RFC3339, metadata.Published)
-	if err != nil || metadata.Tag != version || metadata.Draft || metadata.Prerelease {
+	if err != nil || metadata.Tag != version || metadata.Draft == nil || metadata.Prerelease == nil || *metadata.Draft || *metadata.Prerelease {
 		return resolvedRelease{}, ErrInput
 	}
 	ref, err := api.tagRef(ctx, version)
@@ -56,10 +55,6 @@ func (api *githubAPI) resolveRelease(ctx context.Context, version string) (resol
 		seen[target.SHA] = true
 		switch target.Type {
 		case "commit":
-			// A branch-valued target_commitish is only a creation hint, not an immutable release binding.
-			if expected := strings.ToLower(metadata.Target); shaPattern.MatchString(expected) && expected != target.SHA {
-				return resolvedRelease{}, ErrInput
-			}
 			return resolvedRelease{metadata: metadata, ref: ref, commit: target.SHA, date: date}, nil
 		case "tag":
 			if depth >= 8 {

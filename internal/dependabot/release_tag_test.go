@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 )
 
 func TestRemoteReleaseRejectsMismatchedOrMovingTags(t *testing.T) {
 	t.Setenv("DEPENDABOT_COMPANION_APPLY_ENABLED", "true")
-	for _, scenario := range []string{"candidate target mismatch", "old target mismatch", "candidate moved", "old moved", "wrong ref", "wrong tag object", "tag cycle", "tag depth", "unsupported object"} {
+	for _, scenario := range []string{"candidate moved", "old moved", "wrong ref", "wrong tag object", "tag cycle", "tag depth", "unsupported object"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := newRemoteFixture(t)
 			reads := map[string]int{}
+			var mu sync.Mutex
 			f.override = func(w http.ResponseWriter, r *http.Request) bool {
+				mu.Lock()
+				defer mu.Unlock()
 				const prefix = "/repos/sigstore/sigstore-go/git/ref/tags/"
 				if strings.HasPrefix(r.URL.Path, prefix) {
 					reads[r.URL.Path]++
@@ -21,8 +25,6 @@ func TestRemoteReleaseRejectsMismatchedOrMovingTags(t *testing.T) {
 					version := strings.TrimPrefix(r.URL.Path, prefix)
 					sha, kind, ref := strings.Repeat("c", 40), "commit", "refs/tags/"+version
 					switch {
-					case scenario == "candidate target mismatch" && candidate, scenario == "old target mismatch" && !candidate:
-						sha = strings.Repeat("e", 40)
 					case scenario == "candidate moved" && candidate && reads[r.URL.Path] > 1, scenario == "old moved" && !candidate && reads[r.URL.Path] > 1:
 						sha = strings.Repeat("e", 40)
 					case scenario == "wrong ref":
@@ -62,11 +64,12 @@ func TestRemoteReleaseRejectsMismatchedOrMovingTags(t *testing.T) {
 
 func TestRemoteReleasePeelsTagsAndReadsExactCommits(t *testing.T) {
 	t.Parallel()
-	for _, target := range []string{"main", strings.Repeat("c", 40), ""} {
+	for _, target := range []string{"main", strings.Repeat("e", 40), ""} {
 		t.Run("target-"+target, func(t *testing.T) {
 			t.Parallel()
 			f := newRemoteFixture(t)
 			var tagReads, evidenceReads int
+			var mu sync.Mutex
 			licenseRefs := map[string]int{}
 			objects := map[string]gitTarget{
 				strings.Repeat("a", 40): {Type: "tag", SHA: strings.Repeat("b", 40)},
@@ -75,6 +78,8 @@ func TestRemoteReleasePeelsTagsAndReadsExactCommits(t *testing.T) {
 				strings.Repeat("2", 40): {Type: "commit", SHA: strings.Repeat("f", 40)},
 			}
 			f.override = func(w http.ResponseWriter, r *http.Request) bool {
+				mu.Lock()
+				defer mu.Unlock()
 				const upstream = "/repos/sigstore/sigstore-go"
 				if !strings.HasPrefix(r.URL.Path, upstream) {
 					return false
@@ -83,9 +88,6 @@ func TestRemoteReleasePeelsTagsAndReadsExactCommits(t *testing.T) {
 				case strings.Contains(r.URL.Path, "/releases/tags/"):
 					version := strings.TrimPrefix(r.URL.Path, upstream+"/releases/tags/")
 					commitish := target
-					if version != "v1.999.0" && shaPattern.MatchString(commitish) {
-						commitish = strings.Repeat("f", 40)
-					}
 					fmt.Fprintf(w, `{"tag_name":%q,"target_commitish":%q,"published_at":"2026-11-10T00:00:00Z","draft":false,"prerelease":false}`, version, commitish)
 					return true
 				case strings.Contains(r.URL.Path, "/git/ref/tags/"):
@@ -105,7 +107,7 @@ func TestRemoteReleasePeelsTagsAndReadsExactCommits(t *testing.T) {
 					}
 					fmt.Fprintf(w, `{"sha":%q,"object":{"type":%q,"sha":%q}}`, sha, object.Type, object.SHA)
 					return true
-				case strings.Contains(r.URL.Path, "/commits/"):
+				case strings.Contains(r.URL.Path, "/commits/") && !strings.Contains(r.URL.Path, "/git/commits/"):
 					t.Error("must not resolve mutable commitish for evidence")
 				case strings.Contains(r.URL.Path, "/license"), strings.Contains(r.URL.Path, "/contents/"):
 					evidenceReads++
@@ -119,7 +121,9 @@ func TestRemoteReleasePeelsTagsAndReadsExactCommits(t *testing.T) {
 				return false
 			}
 			plan, err := f.remote.Plan(t.Context(), f.inputs)
-			if err != nil || plan.Status != "planned" || tagReads != 4 || evidenceReads != 3 || licenseRefs[strings.Repeat("c", 40)] != 1 || licenseRefs[strings.Repeat("f", 40)] != 1 || f.posts.Load() != 0 {
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil || plan.Status != "planned" || tagReads != 4 || evidenceReads != 2 || licenseRefs[strings.Repeat("c", 40)] != 1 || licenseRefs[strings.Repeat("f", 40)] != 1 || f.posts.Load() != 0 {
 				t.Fatalf("plan=%s err=%v peeled=%d evidence=%d posts=%d licenses=%v", plan.Status, err, tagReads, evidenceReads, f.posts.Load(), licenseRefs)
 			}
 		})
