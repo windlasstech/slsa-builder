@@ -1,0 +1,30 @@
+internal/dependabot/remote_binding_test.go
+  s_4836e620b452e0::t_5002389bd2e5ff 4,16,20
+  s_8e9d8fed777dac::t_d2a1ccb671fc55 17-19,21-26,62-64
+internal/dependabot/remote_author_test.go
+  s_4836e620b452e0::t_5002389bd2e5ff 4,15,30,35-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b5552d249e5aad05db1c727076a483a85bebf40e",
+  "prompts": {},
+  "sessions": {
+    "s_4836e620b452e0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e01475f0dffewqBTFbcIrsIR9u",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_8e9d8fed777dac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e01475f0dffewqBTFbcIrsIR9u",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
