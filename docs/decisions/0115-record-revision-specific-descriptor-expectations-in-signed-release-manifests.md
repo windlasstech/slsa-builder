@@ -8,10 +8,11 @@ relations:
   - type: partially-supersedes
     target: ADR-0062
     scope:
-      "the initial manifest represented-field limitation; authenticated revision-specific descriptor
-      expectations for represented producer workflow SHA/profile entries are admitted by the
-      governing schema; independent trust bootstrap, field-level intersection, and fail-closed
-      conflict handling remain in force"
+      "prospective replacement of the initial manifest represented-field limitation selected by ADR
+      0115 for authenticated revision-specific descriptor expectations bound to producer workflow
+      SHA/profile entries; schema revision/version treatment and detailed specification work remain
+      pending before emission or acceptance; independent trust bootstrap, field-level intersection,
+      and fail-closed conflict handling remain in force"
   - type: partially-supersedes
     target: ADR-0114
     scope:
