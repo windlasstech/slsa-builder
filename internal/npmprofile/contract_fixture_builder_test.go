@@ -5,21 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"strings"
+	"fmt"
 	"testing"
 )
 
 func builderContractVariants(t *testing.T, spec contractFixtureSpec) []contractFixtureVariant {
 	t.Helper()
-	annotationValues := []string{""}
-	if spec.mutation == "builder-annotations" {
-		annotationValues = []string{"", "null", "false", "0", `"untrusted"`, `[]`, `["untrusted"]`, `{"digest_authority":"untrusted","other":true}`}
-	}
-	if spec.mutation == "builder-signer-annotations" {
-		annotationValues = []string{"", "null", "false", "0", `"untrusted"`, `[]`, `["untrusted"]`, `{"digest":{"dirHash1":"0000000000000000000000000000000000000000000000000000000000000000"},"digest_authority":"untrusted","name":"forged-signing-adapter","uri":"pkg:golang/example.com/forged@v0.0.0"}`}
-	}
 	var variants []contractFixtureVariant
-	for _, annotation := range annotationValues {
+	for index, edit := range builderContractEdits(spec.mutation) {
 		// Given the real producer's valid two-descriptor Statement.
 		variant := contractVariant(t, spec.manager, spec.scenario)
 		statement := decodeContractStatement(t, variant.Statement)
@@ -28,22 +21,16 @@ func builderContractVariants(t *testing.T, spec contractFixtureSpec) []contractF
 		if err := json.Unmarshal(original, &descriptors); err != nil {
 			t.Fatal(err)
 		}
-		// When applying one isolated descriptor mutation, keep all other evidence intact.
+		if len(builderContractEdits(spec.mutation)) > 1 {
+			variant.Name = fmt.Sprintf("%s-%d-%s", spec.mutation, index, edit.field)
+		}
+		if spec.mutation == "builder-annotations" || spec.mutation == "builder-signer-annotations" {
+			variant.Name = "annotations-" + edit.value
+		}
+		// When applying the stated mutation, keep unrelated evidence intact.
 		switch spec.mutation {
 		case "builder-reordered":
 			descriptors[0], descriptors[1] = descriptors[1], descriptors[0]
-		case "builder-annotations":
-			variant.Name = "annotations-" + annotation
-			delete(descriptors[1], "annotations")
-			if annotation != "" {
-				descriptors[1]["annotations"] = json.RawMessage(annotation)
-			}
-		case "builder-signer-annotations":
-			variant.Name = "annotations-" + annotation
-			delete(descriptors[0], "annotations")
-			if annotation != "" {
-				descriptors[0]["annotations"] = json.RawMessage(annotation)
-			}
 		case "builder-unknown":
 			descriptors = append(descriptors, map[string]json.RawMessage{"name": mustJSON("unknown"), "uri": mustJSON("pkg:npm/unknown@1.0.0"), "digest": mustJSON(map[string]string{"sha256": testSHA256})})
 		case "builder-common-shape":
@@ -58,17 +45,33 @@ func builderContractVariants(t *testing.T, spec contractFixtureSpec) []contractF
 			descriptors = descriptors[:1]
 		case "builder-duplicate":
 			descriptors = append(descriptors, descriptors[1])
-		case "builder-digest":
-			descriptors[1]["digest"] = mustJSON(map[string]string{"sha512": strings.Repeat("0", 128)})
-		case "builder-extra":
-			descriptors[1]["extra"] = json.RawMessage(`false`)
+		case "builder-signer-missing":
+			descriptors = descriptors[1:]
+		case "builder-signer-duplicate":
+			descriptors = append(descriptors, descriptors[0])
+		case "builder-publish-precedence", "builder-signer-precedence":
+			descriptors[0]["uri"] = mustJSON("pkg:golang/github.com/sigstore/sigstore-go@v0.0.0")
+			if spec.mutation == "builder-publish-precedence" {
+				descriptors[1]["uri"] = mustJSON("pkg:npm/npm@0.0.0")
+			}
+			descriptors = append(descriptors, map[string]json.RawMessage{"name": mustJSON(42)})
 		default:
-			t.Fatalf("unknown builder mutation %q", spec.mutation)
+			if edit.field == "" {
+				t.Fatalf("unknown builder mutation %q", spec.mutation)
+			}
+			delete(descriptors[edit.descriptor], edit.field)
+			if edit.value != "" {
+				descriptors[edit.descriptor][edit.field] = json.RawMessage(edit.value)
+			}
 		}
 		if bytes.Count(variant.Statement, original) != 1 {
 			t.Fatal("expected one builder dependency array")
 		}
 		variant.Statement = bytes.Replace(variant.Statement, original, mustJSON(descriptors), 1)
+		if spec.mutation == "builder-duplicate-json" {
+			variant.StatementJSON = string(variant.Statement)
+			variant.Statement = nil
+		}
 		// Then the catalog's primary ID is checked by TestFinalContractCorpus.
 		variants = append(variants, variant)
 	}

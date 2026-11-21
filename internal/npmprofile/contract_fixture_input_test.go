@@ -17,6 +17,7 @@ type contractFixtureVariant struct {
 	Name               string          `json:"name"`
 	Manager            Manager         `json:"package_manager"`
 	Statement          json.RawMessage `json:"statement"`
+	StatementJSON      string          `json:"statement_json,omitempty"`
 	EvidenceJSON       string          `json:"manifest_evidence_json"`
 	DiagnosticJSON     string          `json:"diagnostic_metadata_json,omitempty"`
 	RunnerMetadataJSON string          `json:"runner_metadata_json,omitempty"`

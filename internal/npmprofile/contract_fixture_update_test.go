@@ -1,7 +1,9 @@
 package npmprofile
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,6 +25,22 @@ func writeContractFixtures(t *testing.T, root string) {
 	}
 	for _, spec := range finalContractFixtures {
 		variants := contractVariants(t, spec)
+		var primaryID string
+		for _, variant := range variants {
+			err := runContractVariant(t, spec, variant)
+			if spec.category == "" {
+				if err != nil {
+					t.Fatalf("%s/%s: %v", spec.name, variant.Name, err)
+				}
+				continue
+			}
+			requireNPMDiagnostic(t, err, "windlass.verify.error."+spec.category)
+			var identified interface{ DiagnosticID() string }
+			if !errors.As(err, &identified) {
+				t.Fatalf("%s/%s: missing actual diagnostic: %v", spec.name, variant.Name, err)
+			}
+			primaryID = identified.DiagnosticID()
+		}
 		filename := "testdata/npm/provenance/contract-" + spec.name + ".json"
 		artifact := "testdata/npm/provenance/contract-artifact-" + spec.scenario + ".tgz"
 		input := contractFixtureInput(t, spec.manager, spec.scenario)
@@ -55,7 +73,7 @@ func writeContractFixtures(t *testing.T, root string) {
 		if spec.category != "" {
 			manifest.Type, manifest.ExpectedResult = "rejected", "fail"
 			manifest.ExpectedFailureCategory = testStringPointer(spec.category)
-			manifest.ExpectedPrimaryID = testStringPointer("windlass.verify.error." + spec.category)
+			manifest.ExpectedPrimaryID = testStringPointer(primaryID)
 		}
 		found := false
 		for position, existing := range index.Fixtures {
@@ -81,6 +99,13 @@ func writeContractFixtures(t *testing.T, root string) {
 
 func writeContractBytes(t *testing.T, filename string, data []byte) {
 	t.Helper()
+	existing, err := os.ReadFile(filename)
+	if err == nil && bytes.Equal(existing, data) {
+		return
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filename, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
