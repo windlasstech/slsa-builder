@@ -17,7 +17,7 @@ type BuilderDependency struct {
 	Annotations   json.RawMessage   `json:"annotations,omitempty"`
 	malformed     map[string]json.RawMessage
 	unexpected    map[string]json.RawMessage
-	invalidObject bool
+	invalidObject json.RawMessage
 }
 
 // HasUnexpectedFields reports effective members outside the descriptor envelope.
@@ -27,7 +27,7 @@ func (dependency BuilderDependency) HasUnexpectedFields() bool {
 
 // HasMalformedMembers reports semantic type defects, including non-object input.
 func (dependency BuilderDependency) HasMalformedMembers() bool {
-	return dependency.invalidObject || len(dependency.malformed) != 0
+	return len(dependency.invalidObject) != 0 || len(dependency.malformed) != 0
 }
 
 // UnmarshalJSON rejects duplicate keys but defers semantic type failures.
@@ -38,7 +38,7 @@ func (dependency *BuilderDependency) UnmarshalJSON(data []byte) error {
 	var members map[string]json.RawMessage
 	parsed := BuilderDependency{}
 	if err := json.Unmarshal(data, &members); err != nil || members == nil {
-		parsed.invalidObject = true
+		parsed.invalidObject = bytes.Clone(data)
 		*dependency = parsed
 		return nil
 	}
@@ -56,6 +56,16 @@ func (dependency *BuilderDependency) UnmarshalJSON(data []byte) error {
 			err = json.Unmarshal(raw, &parsed.URI)
 		case "digest":
 			err = json.Unmarshal(raw, &parsed.Digest)
+			if err == nil {
+				var values map[string]json.RawMessage
+				if err = json.Unmarshal(raw, &values); err == nil {
+					for _, value := range values {
+						if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+							parsed.malformed[name] = bytes.Clone(raw)
+						}
+					}
+				}
+			}
 		case "mediaType":
 			err = json.Unmarshal(raw, &parsed.MediaType)
 		case "annotations":
@@ -74,8 +84,8 @@ func (dependency *BuilderDependency) UnmarshalJSON(data []byte) error {
 // MarshalJSON omits unset optional members while retaining invalid evidence.
 // Producers must validate before signing; encoding must not launder a rejected input.
 func (dependency BuilderDependency) MarshalJSON() ([]byte, error) {
-	if dependency.invalidObject {
-		return []byte("null"), nil
+	if len(dependency.invalidObject) != 0 {
+		return bytes.Clone(dependency.invalidObject), nil
 	}
 	type wire BuilderDependency
 	encoded, err := json.Marshal(wire(dependency))
@@ -117,6 +127,7 @@ func cloneBuilderDependencies(dependencies []BuilderDependency) []BuilderDepende
 		cloned[index] = dependency
 		cloned[index].Digest = cloneStringMap(dependency.Digest)
 		cloned[index].Annotations = bytes.Clone(dependency.Annotations)
+		cloned[index].invalidObject = bytes.Clone(dependency.invalidObject)
 		cloned[index].malformed = cloneBuilderRawMembers(dependency.malformed)
 		cloned[index].unexpected = cloneBuilderRawMembers(dependency.unexpected)
 	}

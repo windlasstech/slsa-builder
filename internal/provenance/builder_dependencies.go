@@ -84,6 +84,20 @@ func validBuilderDependencyShape(dependency BuilderDependency) bool {
 		if algorithm == "" || value == "" {
 			return false
 		}
+		var size int
+		switch algorithm {
+		case "sha1":
+			size = 40
+		case "sha256":
+			size = 64
+		case "sha384":
+			size = 96
+		case "sha512":
+			size = 128
+		}
+		if size != 0 && len(value) != size {
+			return false
+		}
 		switch algorithm {
 		case "sha256", "sha384", "sha512", "sha1", "gitCommit", "dirHash1":
 			if !builderDigestHexPattern.MatchString(value) || len(value)%2 != 0 {

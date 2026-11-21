@@ -7,7 +7,7 @@ import (
 	"github.com/windlasstech/slsa-builder/internal/provenance"
 )
 
-const admittedDescriptorJSON = `{"name":"publish-cli","uri":"pkg:npm/npm@11.21.1","digest":{"sha512":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01234567"},"mediaType":"application/gzip","annotations":{"digest_authority":"builder-pinned-record"}}`
+const admittedDescriptorJSON = `{"name":"publish-cli","uri":"pkg:npm/npm@11.21.1","digest":{"sha512":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},"mediaType":"application/gzip","annotations":{"digest_authority":"builder-pinned-record"}}`
 
 func TestBuilderDependencyProfileAdmission(t *testing.T) {
 	t.Parallel()
