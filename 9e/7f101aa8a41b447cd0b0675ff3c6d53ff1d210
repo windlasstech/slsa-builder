@@ -1,0 +1,31 @@
+internal/dependabot/generate_changelog_test.go
+  s_24667cab777b2d::t_025db11e5020de 1-12,14-20,24,26-27,31-33
+  s_98a0c02de9bcb0::t_e0fb027ff584a5 13,21-23,25,28-30
+internal/dependabot/sites.go
+  s_24667cab777b2d::t_b730e814121887 77
+  s_24667cab777b2d::t_f807f18fe82068 78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9e7f101aa8a41b447cd0b0675ff3c6d53ff1d210",
+  "prompts": {},
+  "sessions": {
+    "s_24667cab777b2d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e0153dbadffd1XbW3I3TTaHHoP",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_98a0c02de9bcb0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0153dbadffd1XbW3I3TTaHHoP",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
