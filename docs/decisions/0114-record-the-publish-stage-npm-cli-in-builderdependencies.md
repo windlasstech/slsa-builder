@@ -87,8 +87,10 @@ so, in which field and with what content?
   carries the same integrity anchor the provisioning path verifies.
 - Preserve ADR 0109's single-home principle: no publish npm version in `builder.version`, no return
   to `externalParameters`, no duplicate builder identity records (ADR 0104).
-- Keep the ADR 0077 signing-adapter descriptor and its validation byte-for-byte unchanged; the
-  closed-set relaxation must admit profile-declared descriptors without weakening signer checks.
+- Preserve the ADR 0077 signer selection, URI form, underlying digest bytes, and digest-agreement
+  and validation obligations, with the descriptor's member shape and DigestSet encoding governed by
+  ADR 0113; the closed-set relaxation must admit profile-declared descriptors without weakening
+  signer checks.
 - Fail closed: a missing, extra, malformed, or pin-inconsistent publish-npm descriptor is a
   verification error, consistent with the repository's existing closed-shape stance.
 - Scope the change to the JS/TS npm profile; other present or future profiles are unaffected unless
@@ -106,19 +108,23 @@ so, in which field and with what content?
 
 ## Decision Outcome
 
-Chosen option: "Record a name-keyed ResourceDescriptor in `builderDependencies`", because it is the
-only standard field whose SLSA v1.2 definition matches the publish npm CLI's role, and the only
-standard placement that carries the digest alongside the version. The descriptor's shape follows ADR
-0113's common `builderDependencies` descriptor shape.
+Chosen option: "Record a name-keyed ResourceDescriptor in `builderDependencies`", because SLSA v1.2
+defines that field for dependencies used by the orchestrator outside the workload that do not affect
+the build but might affect provenance generation or security guarantees, matching the publish npm
+CLI's role. Both `builderDependencies` and `resolvedDependencies` use ResourceDescriptor and can
+carry a versioned URI with a digest; `resolvedDependencies` is rejected because it would misclassify
+the publish CLI as a build-time input, not because it cannot carry a digest. The descriptor's shape
+follows ADR 0113's common `builderDependencies` descriptor shape.
 
 ### Common contract change
 
 The shared `builderDependencies` rule changes from "exactly one signing-adapter descriptor" to:
-exactly one signing-adapter descriptor per ADR 0077 (unchanged in content and validation), plus zero
-or more profile-declared orchestrator-dependency descriptors. Each profile-declared descriptor must
-be defined by an accepted ADR for that profile, carry the unique `name` assigned by that ADR per ADR
-0113's common descriptor shape, and fail closed on unknown names, duplicates, or extra entries.
-Profile admission still must not substitute or alter the signing-adapter descriptor.
+exactly one signing-adapter descriptor per ADR 0077 as qualified by ADR 0113, preserving the signer
+selection, URI form, digest agreement with the governed module graph, and validation obligations,
+plus zero or more profile-declared orchestrator-dependency descriptors. Each profile-declared
+descriptor must be defined by an accepted ADR for that profile, carry the unique `name` assigned by
+that ADR per ADR 0113's common descriptor shape, and fail closed on unknown names, duplicates, or
+extra entries. Profile admission still must not substitute or alter the signing-adapter descriptor.
 
 ### npm profile descriptor
 
