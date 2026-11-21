@@ -46,6 +46,63 @@ concrete reusable workflow SHAs that consumers may trust. It is signed as a Sigs
 bundle so that verifiers can authenticate it without relying on GitHub UI state, release notes, or
 unsigned JSON files.
 
+## Prospective revision-specific descriptor expectations
+
+[ADR 0115](../decisions/0115-record-revision-specific-descriptor-expectations-in-signed-release-manifests.md)
+selects this prospective contract. Manifest issuance, schema revision/version treatment, detailed
+serialization and resolution specifications, and implementation remain pending. The closed schema
+version `1` below still rejects additional expectation fields. This section does not authorize
+emitting or accepting such fields under that schema. Adoption begins with the first implementing
+release and applies only to producer revisions represented by manifests issued from that release
+onward; it creates no backfill obligation for experimental artifacts.
+
+For each represented full workflow SHA and profile, the manifest must carry the applicable
+`signing-adapter` and npm-only `publish-cli` expectations. Generation must derive them
+deterministically from the governed tagged module graph and module-content checksum, or embedded
+publish pin, using the descriptor rules in ADRs 0077, 0113, and 0114. Inconsistent or ambiguous
+inputs abort before signing. The three-job signing boundary and actual-used producer checks remain
+unchanged. No new descriptor, profile, or `node-runtime` expectation is admitted by this mechanism.
+
+Consumers must authenticate manifest and provenance independently under configured trust roots, then
+select a unique entry for the authenticated full producer workflow SHA and profile. Every explicit
+constraint on the same field participates in ADR 0062's intersection; conflict fails closed. A
+descriptor from release B must fail against release A's authenticated expectations even if B's
+descriptor is independently genuine. A truthful A descriptor must remain verifiable with A's
+retained evidence after a later governed bump.
+
+Missing applicable evidence, an unauthenticated manifest, ambiguous SHA/profile binding, or
+unavailable verification material must fail closed, never skip comparison or imply acceptance. These
+cases use `windlass.verify.error.input-unavailable` (exit `2`) because no authoritative expectation
+was established. Preserve any underlying authentication diagnostic as additional evidence. An
+established descriptor mismatch instead uses the descriptor-specific mismatch diagnostic (exit `1`),
+as defined in
+[verification policy](verification-policy-and-fixtures.md#prospective-descriptor-expectation-evidence).
+Neither failure class permits verifier-local pin fallback, a revision-agnostic allowlist, or an
+offline network lookup.
+
+### Retention and offline availability
+
+For every release adopting this contract, the release process must retain and make available a
+complete downloadable verification set for its entire supported verification lifetime. That lifetime
+starts at issuance and lasts while verification of that release is supported; the first implementing
+release must publish its support horizon and retention location before issuance. While no end of
+verification support has been declared, required material must not be deleted. Ephemeral workflow
+artifacts alone do not satisfy this requirement.
+
+The set includes the exact plain manifest, its signed DSSE/Sigstore bundle, producer provenance
+bundles and all referenced offline evidence required by the profile, the artifact bytes being
+verified, and governed trust material required to authenticate both manifest and provenance. Trust
+material includes the applicable Fulcio and Rekor keys, certificate chains, SCT and transparency
+evidence, and pinned-root identity, digest, and freshness metadata required by ADR 0069. Retaining
+only a URL, the current dependency pin, or the latest trust root is insufficient.
+
+Before claiming offline support, prove verification from this retained set with network access
+denied, including verification of an earlier represented release after a later dependency bump. Loss
+or incompleteness of the set fails closed as unavailable evidence, not descriptor mismatch.
+Retention does not waive signature, signing-time, policy, or pinned-root freshness checks and does
+not introduce a new freshness registry or revocation system. A retained but policy-invalid root
+still fails its existing check; retention is not a guarantee of acceptance.
+
 ## Workflow entrypoint and public contract
 
 The production release manifest workflow entrypoint is:
@@ -474,12 +531,13 @@ identifier and must be rejected when a release manifest predicate is expected.
 
 ## Signed payload rules
 
-Release-manifest signing (M01/M02) reuses the Go-native `sigstore-go` v1.4.0 adapter selected by
-ADR 0077. The [common signing adapter contract](slsa-provenance-v1.md#signing-adapter-role) owns the
-current signer version and dependency-descriptor reference; the release manifest schema is
-unchanged. After validating the subject name, subject digest, predicate type, manifest predicate
-JSON, and release identity, the trusted Go core assembles the complete in-toto Statement. The
-manifest signing job passes those exact preassembled bytes to `sign.DSSEData` with payload type
+Release-manifest signing (M01/M02) reuses the Go-native `sigstore-go` v1.4.0 adapter selected by ADR
+0077, with current module-derived values governed by ADR 0113. The
+[common signing adapter contract](slsa-provenance-v1.md#signing-adapter-role) owns the current
+signer version and dependency-descriptor reference; the release manifest schema is unchanged. After
+validating the subject name, subject digest, predicate type, manifest predicate JSON, and release
+identity, the trusted Go core assembles the complete in-toto Statement. The manifest signing job
+passes those exact preassembled bytes to `sign.DSSEData` with payload type
 `application/vnd.in-toto+json`. The adapter must not reconstruct, normalize, or reserialize the
 Statement.
 

@@ -161,6 +161,47 @@ The documented verification path forbids `SIGSTORE_ROOT_FILE`, `SIGSTORE_REKOR_P
 If any such override can affect root selection, verification fails with
 `windlass.verify.error.legacy-trust-root-override`.
 
+## Prospective descriptor expectation evidence
+
+[ADR 0115](../decisions/0115-record-revision-specific-descriptor-expectations-in-signed-release-manifests.md)
+and the
+[prospective manifest contract](release-manifest.md#prospective-revision-specific-descriptor-expectations)
+require revision-specific expectations for represented `signing-adapter` and npm `publish-cli`
+descriptors from the first implementing release onward. Schema/version treatment, detailed
+serialization and resolution specifications, and implementation are pending. Neither the current
+closed manifest schema nor the expectation object below admits new descriptor fields yet.
+
+Authenticate the manifest and provenance independently and bind the selected expectation to the same
+full producer workflow SHA and profile before comparison. Intersect every admitted policy source
+that explicitly constrains the same field. Verifier-local versions and digests, the candidate
+descriptor itself, and a global list of historically valid pairs are not substitutes for
+authenticated revision-specific evidence. Current-version examples below describe producer emission
+and its local pre-sign checks, not universal expectations for other producer revisions.
+
+For this prospective consumer path, missing applicable expectations, an unauthenticated manifest,
+ambiguous revision/profile binding, or unavailable verification material must terminate verification
+with `windlass.verify.error.input-unavailable` and exit `2`. No acceptance decision is produced.
+Retain underlying authentication failures as additional diagnostics where available. Only after
+authoritative expectations are established may disagreement produce
+`windlass.verify.error.builder-dependencies-signing-adapter-mismatch` or
+`windlass.verify.error.builder-dependencies-publish-cli-mismatch` with exit `1`. Existing parse,
+signature, trust-root, and policy-conflict failures remain enforced; this distinction does not
+reclassify them as successful verification.
+
+Offline verification must use the complete retained manifest, bundle, provenance, artifact, profile
+evidence, and governed trust-material set for the release's entire supported verification lifetime,
+as required by
+[retention and offline availability](release-manifest.md#retention-and-offline-availability). It
+performs no network lookup and has no verifier-local fallback. Missing retained evidence fails
+closed; retained evidence still must pass existing freshness and authenticity checks.
+
+Required future fixtures cover two represented releases with different signer and publish-cli
+values: each truthful pair is accepted against its own manifest, cross-release substitutions are
+rejected as descriptor mismatch, and missing, unauthenticated, ambiguous, or unavailable evidence
+fails as `input-unavailable`. Policy conflicts remain rejected. The earlier release must verify from
+its complete retained offline set after a later bump, with network access denied. These are pending
+ADR 0115 fixtures, separate from the current descriptor-shape matrix below.
+
 ## Verifier policy and manifest expectation schemas
 
 This section implements ADRs 0037, 0062, and 0068. These are verifier-input schemas, not a new
@@ -1989,10 +2030,13 @@ Strict JSON and structural decode fixtures remain separate and retain their exis
 
 ### Builder dependency semantic fixtures
 
-ADR 0113's common shape and ADR 0114's npm descriptor have this accepted and rejected semantic
-fixture matrix. Each case starts from the exact designated two-descriptor JSON example in the npm
-specification, applies only the stated mutation, and is executed by hermetic semantic tests. Exact
-primary IDs are mandatory for rejected cases.
+ADR 0113's common shape and ADR 0114's npm descriptor require the following 27 semantic behaviors,
+including the legacy-digest rejection. This is the target execution matrix, not a claim that all
+rows already have catalog entries. Completion requires a named catalog fixture and hermetic semantic
+execution for every row. Each case starts from the exact designated two-descriptor JSON example in
+the npm specification and applies only the stated mutation. Exact primary IDs are mandatory for
+rejected cases. Annotation variants must change the input; the already-absent signer annotation is
+covered by the base valid fixture rather than a duplicate no-op variant.
 
 | Fixture name                                            | Result   | Required behavior or expected primary ID                                                                                                                                                                                                      |
 | ------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2022,6 +2066,7 @@ primary IDs are mandatory for rejected cases.
 | `npm-builder-dependencies-publish-precedence`           | rejected | Publish-cli, signer, and common failures coexist: primary is `windlass.verify.error.builder-dependencies-publish-cli-mismatch`; unknown extras remain unevaluated.                                                                            |
 | `npm-builder-dependencies-signer-precedence`            | rejected | Publish-cli passes while signer and common failures coexist: primary is `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.                                                                                                |
 | `npm-builder-dependencies-duplicate-json-member`        | rejected | A duplicate key, including one nested in publish-cli or signing-adapter annotations, retains `windlass.verify.error.duplicate-json-member` before every descriptor semantic diagnostic.                                                       |
+| `npm-builder-signing-adapter-legacy-digest`             | rejected | Legacy `h1` base64 instead of lowercase-hex `dirHash1`: `windlass.verify.error.builder-dependencies-signing-adapter-mismatch`.                                                                                                                |
 
 The annotation cases prove that publish-cli and signing-adapter annotations never authenticate
 content and that forged annotation claims cannot repair a wrong real descriptor identity, URI,
