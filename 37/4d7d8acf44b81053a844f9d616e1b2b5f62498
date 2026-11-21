@@ -1,0 +1,92 @@
+testdata/npm/provenance/contract-npm-builder-signing-adapter-wrong-version.json
+  s_13b07a50cde85d::t_126d6715669951 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-wrong-media-type.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+testdata/npm/provenance/contract-npm-builder-signing-adapter-malformed.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+internal/npmprofile/contract_fixture_input_test.go
+  s_746da24661a28d::t_90de97ae6b5bd9 20
+internal/npmprofile/contract_fixture_builder_test.go
+  s_746da24661a28d::t_8890a11a11b5c1 24-29
+  s_746da24661a28d::t_90de97ae6b5bd9 8,15,30,48-57,59-65,71-74
+internal/npmprofile/contract_fixture_builder_precedence_test.go
+  s_746da24661a28d::t_7951a88e7778f5 1-79
+testdata/npm/provenance/contract-npm-builder-signing-adapter-misnamed.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+testdata/npm/provenance/contract-npm-builder-dependencies-duplicate-json-member.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+testdata/npm/provenance/contract-npm-builder-dependencies-signer-precedence.json
+  s_13b07a50cde85d::t_126d6715669951 1
+testdata/npm/provenance/contract-npm-builder-dependencies-empty-members-unset-valid.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+internal/npmprofile/contract_fixture_builder_edits_test.go
+  s_746da24661a28d::t_8890a11a11b5c1 21,23
+  s_746da24661a28d::t_90de97ae6b5bd9 1-20,22,24-92
+internal/npmprofile/contract_fixture_update_test.go
+  s_98a0c02de9bcb0::t_e0fb027ff584a5 4,6,28-43,76,102-108
+testdata/npm/provenance/contract-npm-builder-signing-adapter-wrong-digest.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+internal/npmprofile/contract_fixture_builder_coverage_test.go
+  s_746da24661a28d::t_cbae9ba5ca1c17 31
+  s_98a0c02de9bcb0::t_e0fb027ff584a5 8-9,60,66-76,79-80
+  s_746da24661a28d::t_6043293b3b5ab7 1-7,10-30,32-59,61-65,77-78,81-82,91-94
+  s_746da24661a28d::t_aa4d1536d3b622 83-90
+testdata/npm/provenance/contract-npm-builder-signing-adapter-extra-effective-member.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-wrong-version.json
+  s_13b07a50cde85d::t_126d6715669951 1
+testdata/npm/provenance/contract-npm-builder-signing-adapter-duplicate.json
+  s_13b07a50cde85d::t_126d6715669951 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-misnamed.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-malformed.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-wrong-digest.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+testdata/fixtures/index.json
+  s_13b07a50cde85d::t_2415dfc2712543 2246-2455
+internal/npmprofile/contract_fixture_test.go
+  s_98a0c02de9bcb0::t_e0fb027ff584a5 14,83-84,95-100,147-159
+internal/npmprofile/contract_fixture_catalog_test.go
+  s_746da24661a28d::t_6043293b3b5ab7 23-37
+testdata/npm/provenance/contract-npm-builder-dependencies-publish-precedence.json
+  s_13b07a50cde85d::t_126d6715669951 1
+testdata/npm/provenance/contract-npm-builder-publish-cli-extra-effective-member.json
+  s_13b07a50cde85d::t_2415dfc2712543 1
+testdata/npm/provenance/contract-npm-builder-signing-adapter-missing.json
+  s_13b07a50cde85d::t_126d6715669951 1
+testdata/npm/provenance/contract-npm-builder-signing-adapter-annotations-ignored-valid.json
+  s_13b07a50cde85d::t_126d6715669951 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "374d7d8acf44b81053a844f9d616e1b2b5f62498",
+  "prompts": {},
+  "sessions": {
+    "s_13b07a50cde85d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e01539618ffd1V4e9FIsz6X77n",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_746da24661a28d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e01539618ffd1V4e9FIsz6X77n",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_98a0c02de9bcb0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e0153dbadffd1XbW3I3TTaHHoP",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
