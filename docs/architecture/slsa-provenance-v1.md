@@ -907,14 +907,19 @@ in-toto Statement, a reserialized DSSE envelope, extracted predicate JSON, or an
 representation.
 
 The [Sigstore bundle documentation](https://docs.sigstore.dev/about/bundle/#dsse) identifies the
-DSSE envelope inside the bundle, while the in-toto
-[Envelope](https://github.com/in-toto/attestation/blob/main/spec/v1/envelope.md) and
-[Bundle](https://github.com/in-toto/attestation/blob/main/spec/v1/bundle.md) documents supply
-separate container terminology. Windlass does not rely on resolving the ambiguous in-toto
-classification of the outer Sigstore bundle; this contract names the actual serialized object and
-its signed payload directly. One serialized JSON object can also be read as a one-record JSON Lines
-document. That syntactic fact does not establish in-toto Bundle semantic conformance and does not
-add a requirement to append a newline to the signer-emitted bytes.
+DSSE envelope inside the bundle. For the in-toto layer classification, Windlass follows the
+[in-toto Envelope specification's Alternative Envelope schemas](https://github.com/in-toto/attestation/blob/main/spec/v1/envelope.md#alternative-envelope-schemas)
+and treats the complete outer Sigstore Bundle as an alternative Envelope schema. The same in-toto
+section notes that the Sigstore Bundle is not ITE-5 compliant because it requires a single
+signature; Windlass acknowledges that limitation without reclassifying the outer bundle as a bare
+DSSE Envelope.
+
+Accordingly, Windlass interprets the `.intoto.jsonl` distribution file as an
+[in-toto Bundle](https://github.com/in-toto/attestation/blob/main/spec/v1/bundle.md#data-structure)
+whose sole JSON Lines record is the complete Sigstore Bundle Envelope. The nested `dsseEnvelope`
+carries the in-toto Statement shown above. This single-record interpretation does not permit
+reserializing or wrapping the bundle and does not add a requirement to append a newline to the
+signer-emitted bytes.
 
 > [!NOTE]
 >
