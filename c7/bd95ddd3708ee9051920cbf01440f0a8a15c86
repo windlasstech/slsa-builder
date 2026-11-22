@@ -1,0 +1,19 @@
+docs/architecture/github-release-asset-publisher.md
+  s_edb16270c2f0ae::t_45365f45f1beca 537-539
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7bd95ddd3708ee9051920cbf01440f0a8a15c86",
+  "prompts": {},
+  "sessions": {
+    "s_edb16270c2f0ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e258da4d4ffeyNGOGlVstyiIZE",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
