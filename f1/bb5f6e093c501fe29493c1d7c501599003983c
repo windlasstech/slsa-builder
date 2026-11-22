@@ -1,0 +1,38 @@
+docs/architecture/slsa-provenance-v1.md
+  s_edb16270c2f0ae::t_e68133d6105533 908-911,913-916,919-920,932-933
+  s_714a654452a202::t_ee35306820ca7a 934-936
+  s_5ab332dc8201dc::t_2598eebaf6f925 888-907,912,917,921-931
+  s_edb16270c2f0ae::t_96649c90840adb 918
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f1bb5f6e093c501fe29493c1d7c501599003983c",
+  "prompts": {},
+  "sessions": {
+    "s_5ab332dc8201dc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_dfb925d17ffeO3sB7xv6h4rdO7",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_714a654452a202": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_dfb8c2e76ffe4jiQpmHssEnyil",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    },
+    "s_edb16270c2f0ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e258da4d4ffeyNGOGlVstyiIZE",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
