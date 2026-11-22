@@ -534,7 +534,9 @@ The sidecar name is deterministic and derived from the primary asset name by app
 For example, `my-package-1.2.3.tar.gz.intoto.jsonl`. This convention is fixed and must be recorded
 in the profile and verification docs.
 
-> [!NOTE] **Informative, non-normative OSSF Scorecard v5.7.0 observation.** At commit
+> [!NOTE]
+>
+> **Informative, non-normative OSSF Scorecard v5.7.0 observation.** At commit
 > `d7552fb3cdc05e9f6426177d3328887304fce554`,
 > [`probes/releasesHaveProvenance/impl.go`](https://github.com/ossf/scorecard/blob/d7552fb3cdc05e9f6426177d3328887304fce554/probes/releasesHaveProvenance/impl.go)
 > recognizes `.intoto.jsonl` by case-sensitive filename suffix without downloading, parsing, or
