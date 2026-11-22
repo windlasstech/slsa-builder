@@ -885,10 +885,66 @@ Go-native signing adapter selected by ADR 0077. The bundle bytes are verifier in
 preserved byte-for-byte across job handoff, registry submission such as npm `--provenance-file`, and
 GitHub Release sidecar redistribution.
 
-The `.intoto.jsonl` filename suffix used by npm, release sidecars, and release manifest assets is a
-distribution naming convention. It does not mean that Windlass may replace the signed bundle with a
-raw in-toto Statement, a reserialized DSSE envelope, extracted predicate JSON, or any other
-normalized representation.
+The `.intoto.jsonl` artifact contains the exact complete serialized Sigstore bundle. Its nested
+`dsseEnvelope.payload` carries the exact complete in-toto Statement. The layers are:
+
+```text
+<artifact-name>.intoto.jsonl
+= complete serialized Sigstore bundle JSON
+  ├── mediaType = "application/vnd.dev.sigstore.bundle.v0.3+json"
+  ├── verificationMaterial
+  └── dsseEnvelope
+      ├── payloadType = "application/vnd.in-toto+json"
+      ├── payload     = base64(exact complete in-toto Statement JSON bytes)
+      └── signatures
+```
+
+Base64-decoding `dsseEnvelope.payload` yields the exact in-toto Statement bytes that Windlass
+assembled and signed. The `.intoto.jsonl` filename suffix used by npm, release sidecars, and release
+manifest assets is a distribution naming convention. It does not signal a bare in-toto Statement or
+bare DSSE envelope, and it does not mean that Windlass may replace the signed bundle with a raw
+in-toto Statement, a reserialized DSSE envelope, extracted predicate JSON, or any other normalized
+representation.
+
+> [!NOTE]
+>
+> **Informative in-toto taxonomy interpretation.** The
+> [Sigstore bundle documentation](https://docs.sigstore.dev/about/bundle/#dsse) identifies the DSSE
+> envelope inside the bundle. Windlass follows the
+> [in-toto Envelope v1.2.0 Alternative Envelope schemas](https://github.com/in-toto/attestation/blob/v1.2.0/spec/v1/envelope.md#alternative-envelope-schemas)
+> by treating the complete outer Sigstore Bundle as an alternative Envelope schema. The same in-toto
+> section notes that the Sigstore Bundle is not ITE-5 compliant because it requires a single
+> signature; Windlass acknowledges that limitation without reclassifying the outer bundle as a bare
+> DSSE Envelope.
+>
+> Under this interpretation, the `.intoto.jsonl` distribution file is an
+> [in-toto Bundle v1.2.0](https://github.com/in-toto/attestation/blob/v1.2.0/spec/v1/bundle.md#data-structure)
+> whose sole JSON Lines record is the complete Sigstore Bundle Envelope, while the nested
+> `dsseEnvelope` carries the in-toto Statement shown above. This records Windlass's interpretation
+> of the external taxonomy, not an additional output or verification contract. It does not authorize
+> reserializing or wrapping the bundle or appending a newline to the signer-emitted bytes.
+
+> [!NOTE]
+>
+> **Informative, non-normative ecosystem observations.** These source-revision-specific observations
+> show the same complete-Sigstore-bundle-under-`.intoto.jsonl` distribution practice in official
+> SLSA tools. They do not change the Windlass contract.
+>
+> - At `slsa-github-generator` commit `bb91a05077afa6601a3d7538c4cbbdbf0abe7ed9`, the pinned
+>   [`signing/sigstore/bundle.go`](https://github.com/slsa-framework/slsa-github-generator/blob/bb91a05077afa6601a3d7538c4cbbdbf0abe7ed9/signing/sigstore/bundle.go)
+>   and
+>   [`internal/builders/generic/attest.go`](https://github.com/slsa-framework/slsa-github-generator/blob/bb91a05077afa6601a3d7538c4cbbdbf0abe7ed9/internal/builders/generic/attest.go)
+>   paths serialize the complete Sigstore bundle for the `.intoto.jsonl` attestation file.
+> - At `slsa-framework/attester` v0.1.1, commit `1efd762678224d6e0708a2e2a9c9b464ff997329`, the
+>   pinned
+>   [`internal/cmd/sign.go`](https://github.com/slsa-framework/attester/blob/1efd762678224d6e0708a2e2a9c9b464ff997329/internal/cmd/sign.go)
+>   and
+>   [`attest/impl.go`](https://github.com/slsa-framework/attester/blob/1efd762678224d6e0708a2e2a9c9b464ff997329/attest/impl.go)
+>   paths show that default Sigstore signing serializes a complete Sigstore Bundle as one JSON
+>   record plus a newline. The CLI output path is caller-chosen; the project's own
+>   `attestations.intoto.jsonl` release provenance convention in the pinned
+>   [`README.md`](https://github.com/slsa-framework/attester/blob/1efd762678224d6e0708a2e2a9c9b464ff997329/README.md)
+>   demonstrates the complete-Sigstore-Bundle-under-`.intoto.jsonl` practice.
 
 Implementations must not alter signed bundle bytes after the signing adapter emits them. In
 particular, they must not:
