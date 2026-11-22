@@ -1659,10 +1659,11 @@ the allowlist pin fails closed with `windlass.verify.error.publish-npm-pin-misma
 - The `<bundle-path>` must point to the downloaded `<package-tarball-name>.intoto.jsonl` file whose
   SHA-256 digest matched the provenance-bundle handoff. The profile must submit that file unchanged.
 
-  > [!NOTE] **Informative npm registry mapping, non-normative and specific to npm CLI v11.21.0.**
-  > The local `<package-tarball-name>.intoto.jsonl` input and unchanged-byte requirement are
-  > established by the Windlass contract above. At npm/cli commit
-  > `e9f182ab8b45f7e2e87da4076e62376e99d7df54`,
+  > [!NOTE]
+  >
+  > **Informative npm registry mapping, non-normative and specific to npm CLI v11.21.0.** The local
+  > `<package-tarball-name>.intoto.jsonl` input and unchanged-byte requirement are established by
+  > the Windlass contract above. At npm/cli commit `e9f182ab8b45f7e2e87da4076e62376e99d7df54`,
   > [`workspaces/libnpmpublish/lib/publish.js` lines 163-180](https://github.com/npm/cli/blob/e9f182ab8b45f7e2e87da4076e62376e99d7df54/workspaces/libnpmpublish/lib/publish.js#L163-L180)
   > show how npm maps the verified Sigstore Bundle into the registry
   > `<package-name>-<version>.sigstore` attachment with the Sigstore bundle media type

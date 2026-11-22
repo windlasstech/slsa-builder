@@ -916,9 +916,11 @@ its signed payload directly. One serialized JSON object can also be read as a on
 document. That syntactic fact does not establish in-toto Bundle semantic conformance and does not
 add a requirement to append a newline to the signer-emitted bytes.
 
-> [!NOTE] **Informative, non-normative ecosystem observations.** These source-revision-specific
-> observations show the same complete-Sigstore-bundle-under-`.intoto.jsonl` distribution practice in
-> official SLSA tools. They do not change the Windlass contract.
+> [!NOTE]
+>
+> **Informative, non-normative ecosystem observations.** These source-revision-specific observations
+> show the same complete-Sigstore-bundle-under-`.intoto.jsonl` distribution practice in official
+> SLSA tools. They do not change the Windlass contract.
 >
 > - At `slsa-github-generator` commit `bb91a05077afa6601a3d7538c4cbbdbf0abe7ed9`, the pinned
 >   [`signing/sigstore/bundle.go`](https://github.com/slsa-framework/slsa-github-generator/blob/bb91a05077afa6601a3d7538c4cbbdbf0abe7ed9/signing/sigstore/bundle.go)
