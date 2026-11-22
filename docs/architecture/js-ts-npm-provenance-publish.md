@@ -1668,7 +1668,7 @@ the allowlist pin fails closed with `windlass.verify.error.publish-npm-pin-misma
   > show how npm maps the verified Sigstore Bundle into the registry
   > `<package-name>-<version>.sigstore` attachment with the Sigstore bundle media type
   > `application/vnd.dev.sigstore.bundle.v0.3+json`. This attachment is not a local JSONL sidecar
-  > and does not create the single-record in-toto Bundle distribution file defined in the
+  > and does not create the single-record `.intoto.jsonl` distribution file described in the
   > [common signed bundle file format](slsa-provenance-v1.md#signed-bundle-file-format).
 
 - The profile must not use npm's automatic provenance generation.

@@ -906,20 +906,23 @@ bare DSSE envelope, and it does not mean that Windlass may replace the signed bu
 in-toto Statement, a reserialized DSSE envelope, extracted predicate JSON, or any other normalized
 representation.
 
-The [Sigstore bundle documentation](https://docs.sigstore.dev/about/bundle/#dsse) identifies the
-DSSE envelope inside the bundle. For the in-toto layer classification, Windlass follows the
-[in-toto Envelope specification's Alternative Envelope schemas](https://github.com/in-toto/attestation/blob/main/spec/v1/envelope.md#alternative-envelope-schemas)
-and treats the complete outer Sigstore Bundle as an alternative Envelope schema. The same in-toto
-section notes that the Sigstore Bundle is not ITE-5 compliant because it requires a single
-signature; Windlass acknowledges that limitation without reclassifying the outer bundle as a bare
-DSSE Envelope.
-
-Accordingly, Windlass interprets the `.intoto.jsonl` distribution file as an
-[in-toto Bundle](https://github.com/in-toto/attestation/blob/main/spec/v1/bundle.md#data-structure)
-whose sole JSON Lines record is the complete Sigstore Bundle Envelope. The nested `dsseEnvelope`
-carries the in-toto Statement shown above. This single-record interpretation does not permit
-reserializing or wrapping the bundle and does not add a requirement to append a newline to the
-signer-emitted bytes.
+> [!NOTE]
+>
+> **Informative in-toto taxonomy interpretation.** The
+> [Sigstore bundle documentation](https://docs.sigstore.dev/about/bundle/#dsse) identifies the DSSE
+> envelope inside the bundle. Windlass follows the
+> [in-toto Envelope v1.2.0 Alternative Envelope schemas](https://github.com/in-toto/attestation/blob/v1.2.0/spec/v1/envelope.md#alternative-envelope-schemas)
+> by treating the complete outer Sigstore Bundle as an alternative Envelope schema. The same in-toto
+> section notes that the Sigstore Bundle is not ITE-5 compliant because it requires a single
+> signature; Windlass acknowledges that limitation without reclassifying the outer bundle as a bare
+> DSSE Envelope.
+>
+> Under this interpretation, the `.intoto.jsonl` distribution file is an
+> [in-toto Bundle v1.2.0](https://github.com/in-toto/attestation/blob/v1.2.0/spec/v1/bundle.md#data-structure)
+> whose sole JSON Lines record is the complete Sigstore Bundle Envelope, while the nested
+> `dsseEnvelope` carries the in-toto Statement shown above. This records Windlass's interpretation
+> of the external taxonomy, not an additional output or verification contract. It does not authorize
+> reserializing or wrapping the bundle or appending a newline to the signer-emitted bytes.
 
 > [!NOTE]
 >
