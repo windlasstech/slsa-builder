@@ -891,6 +891,7 @@ The `.intoto.jsonl` artifact contains the exact complete serialized Sigstore bun
 ```text
 <artifact-name>.intoto.jsonl
 = complete serialized Sigstore bundle JSON
+  ├── mediaType = "application/vnd.dev.sigstore.bundle.v0.3+json"
   ├── verificationMaterial
   └── dsseEnvelope
       ├── payloadType = "application/vnd.in-toto+json"
