@@ -1,0 +1,21 @@
+docs/architecture/slsa-provenance-v1.md
+  s_edb16270c2f0ae::t_10943c12e88b81 909-925
+docs/architecture/js-ts-npm-provenance-publish.md
+  s_edb16270c2f0ae::t_846424a66c3d4e 1671
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "281f57510210a77b39404615f94e5cadf30feeea",
+  "prompts": {},
+  "sessions": {
+    "s_edb16270c2f0ae": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_e258da4d4ffeyNGOGlVstyiIZE",
+        "model": "unknown"
+      },
+      "human_author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
