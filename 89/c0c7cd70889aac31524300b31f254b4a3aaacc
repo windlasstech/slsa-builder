@@ -1,0 +1,16 @@
+package.json
+  h_495200fbbeca45 3-4
+pnpm-lock.yaml
+  h_495200fbbeca45 174-175,180-181,315-316,342-343,347-348,582-583,594-595,745,747,770,772,774,777,781-782,788,798,1006,1012
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "89c0c7cd70889aac31524300b31f254b4a3aaacc",
+  "prompts": {},
+  "humans": {
+    "h_495200fbbeca45": {
+      "author": "Yunseo Kim <git@yunseo.kim>"
+    }
+  }
+}
