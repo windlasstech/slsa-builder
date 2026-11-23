@@ -1,18 +1,123 @@
 ---
-run_id: 41666974638
+run_id: 45241241152
 attempt: 1
 tag: refs/tags/v0.1.3
 commit: ae5bb155d447bbaeeab2c40f79434d4760440546
 operator: yunseo-kim
-date: 2026-11-03T15:44:18Z
+date: 2026-11-23T18:42:33Z
 ---
 
 # npm M1 dogfood evidence
 
+## Attempt 10 run identity
+
+The frontmatter and this section identify the latest attempt-10 run. Older attempt sections carry
+their own run identities.
+
+- Caller: `windlasstech/vers-js/.github/workflows/publish.yml`
+- Reusable workflow pin: `db22df1b2bd63c37bc56bf5b94dc83586ff53224` (carries the final npm
+  provenance contract per ADR 0103-0112 from PR #151, including the #143 GitHub workflow provenance
+  compatibility projection)
+- Invocation ref and revision: `refs/heads/main`, `c649acd981a08d70117fcf698d61b5bf889f05a7`
+- Built source ref and revision: `refs/tags/v0.1.3`, `ae5bb155d447bbaeeab2c40f79434d4760440546`
+- Tag object and peeled commit: `ede69038d5878dcc53e29396237537da0a7f7b75`,
+  `ae5bb155d447bbaeeab2c40f79434d4760440546`
+- Caller workflow blob SHA (supporting evidence): `5e3195bcac71924e2cff78be313929663fd92f06`
+- Run URL: <https://github.com/windlasstech/vers-js/actions/runs/45241241152>
+- Event: `workflow_dispatch` (fixed-pipeline retry from `main` with `source-ref: refs/tags/v0.1.3`,
+  per ADR 0079), attempt 1
+- Pre-run registry state: `npm view @windlass/vers-js@0.1.3 version` returned `E404` (version
+  absent) and the attestations endpoint returned HTTP 404 with `{"error":"Not found"}`, observed at
+  18:29:42Z and repeated at 18:40:43Z with no change
+
+## Outcome: publish committed — projection accepted, Windlass attestation absent (attempt 10, 12026-11-23)
+
+Run <https://github.com/windlasstech/vers-js/actions/runs/45241241152>. The caller-side
+`Verify release` job, trusted-core `Build npm package` job, and `Sign npm provenance` job all
+passed. The publish job passed pinned runtime and npm CLI provisioning and both handoff
+verifications, then ran `Publish with trusted-publisher convergence`. Preparation passed every Phase
+0 gate in `docs/dogfood/npm-m1-verification-procedure.md`, including the caller Sigstore parser
+review and the builder dependency consistency review; the full-verification input limitation was
+recorded as an acceptance limitation, not a blocker.
+
+**The ADR 0103-0112 projection resolved the attempt-9 E422 rejection.** npm accepted the publish
+with no error at all: the `npm publish --provenance-file` call exited 0 after 4.17 seconds at
+18:47:04Z, and no `E4xx` line appears anywhere in the log. The Windlass statement presented to npm
+carried every field the attempt-9 rejection had demanded, with the expected values:
+
+- `externalParameters.workflow`: `ref: refs/heads/main`,
+  `repository: https://github.com/windlasstech/vers-js`, `path: .github/workflows/publish.yml`
+- `externalParameters.source.ref`: `refs/tags/v0.1.3` (the built tag, per ADR 0079/0080)
+- `internalParameters.github`: `event_name: workflow_dispatch`, `repository_id: 1261293345`,
+  `repository_owner_id: 257660296`
+- `resolvedDependencies[0]` (`invocation-source`): URI
+  `git+https://github.com/windlasstech/vers-js@refs/heads/main` with no lockfile fragment, and
+  `digest.gitCommit: c649acd981a08d70117fcf698d61b5bf889f05a7` (the invocation head, not the peeled
+  tag commit)
+
+**The supplied provenance bundle never reached the registry attestation surface.** The post-mutation
+read-back made 13 observations over about three minutes. The version appeared with
+`integrity=match`, and the attestation surface became readable with exactly one attestation:
+predicateType `https://github.com/npm/attestation/tree/main/specs/publish/v0.1` (Sigstore bundle
+v0.2, in-toto Statement v0.1, predicate `{name, registry, version}`) — npm's own publish record, not
+a SLSA provenance statement. With the attestation surface present but no required Windlass SLSA v1
+attestation visible, the read-back classified the state as `foreign-conflict` and the run failed
+with `windlass.verify.error.registry-linkage-mismatch`. An independent external read at 18:53:45Z,
+more than six minutes after the publish, still showed the same single npm publish attestation.
+
+Canonical outcome report:
+
+```json
+{
+  "diagnostic_metadata": {
+    "publish": { "package_identity_preexisting": true, "package_version_preexisting": false },
+    "publish_npm_version": "11.21.1"
+  },
+  "diagnostics": [
+    {
+      "category": "registry-linkage-mismatch",
+      "check": "npm.publish.readback",
+      "id": "windlass.verify.error.registry-linkage-mismatch",
+      "message": "published registry evidence conflicts with the verified handoff",
+      "severity": "error"
+    }
+  ],
+  "exit_code": 1,
+  "primary_id": "windlass.verify.error.registry-linkage-mismatch",
+  "result": "fail",
+  "run_invocation": "https://github.com/windlasstech/vers-js/actions/runs/45241241152/attempts/1",
+  "schema_version": "1"
+}
+```
+
+Registry state after the run: `@windlass/vers-js@0.1.3` is committed with tag `latest`. Its
+`dist.integrity`
+`sha512-6J8scQ+1h3dZhOc2W9gAGN9tmwCnizXAg4/giLCfCHR8awTlaN8G9IggtgxP+5jUiX3JGnWtdB6r6JkZ3FlVrw==` is
+the Windlass handoff tarball's SHA-512
+(`e89f2c710fb587775984e7365bd80018df6d9b00a78b35c0838fe088b09f08747c6b04e568df06f48820b60c4ffb98d4897dc91a75ad741eabe89919dc5955af`,
+byte-identical to the attempt-8/9 tarballs), and the Windlass statement's subject binds that exact
+digest pair. Unlike 0.1.2, whose registry surface carried npm's auto-generated SLSA statement
+(npm/cli#9879), 0.1.3 carries **no SLSA provenance attestation at all**: under npm 11.21.1 OIDC
+trusted publishing the CLI accepted the `--provenance-file` bundle without rejection and then did
+not attach it, and this time it did not auto-generate its own SLSA statement either. The
+npm/cli#9879-family behavior persists in 11.21.1 despite the npm/cli#9882 fix, now as silent
+non-attachment of the supplied bundle.
+
+The caller-side `Publish GitHub Release` job was skipped, so no GitHub Release was created. The run
+completed in approximately 7 minutes 39 seconds. Per the safety rules this outcome is fail closed:
+the version is permanently committed, no same-version retry exists, and the Windlass attestation
+cannot be attached retroactively through this procedure. M1 acceptance is not achieved; the
+remediation path (upstream npm report and follow-up ADR) is an operator decision.
+
+Preserved evidence (local): full run log (`run-45241241152-1.log`, 831,665 bytes), the canonical
+outcome report, the handoff provenance bundle (`windlass-vers-js-0.1.3.tgz.intoto.jsonl`, 15,387
+bytes) and tarball artifacts, the decoded Windlass statement, pre- and post-publish registry reads,
+and the Phase 0 preparation notes.
+
 ## Attempt 9 run identity
 
-The frontmatter and this section identify the latest attempt-9 run. Older attempt sections carry
-their own run identities.
+The frontmatter and this section identify the attempt-9 run. Older attempt sections carry their own
+run identities.
 
 - Caller: `windlasstech/vers-js/.github/workflows/publish.yml`
 - Reusable workflow pin: `e7c55d9192e4493eb21d40d2b4dbf0bdfb1cbfc2` (carries the ADR 0101 stderr
