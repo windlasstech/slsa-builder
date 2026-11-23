@@ -358,10 +358,14 @@ the actual signing module and publish npm pin in `go.mod`, `go.sum`, and
 `internal/toolchainpins/publish-npm.json`, as required by ADR 0113 and ADR 0114. Agreement between a
 fixture and a specification alone is insufficient.
 
-Run the consistency review at the selected checkout and preserve the outputs.
+Run the consistency review at the selected checkout and preserve the outputs. The review requires a
+pristine checkout at the selected SHA; a moved or dirty checkout stops the review, because `go list`
+and the `go.sum` row read the working tree.
 
 ```bash
 cd "$PREPARATION_DIR"
+test "$(git -C "$BUILDER_CHECKOUT" rev-parse HEAD)" = "$BUILDER_SHA"
+test -z "$(git -C "$BUILDER_CHECKOUT" status --short)"
 SIGSTORE_PATH=github.com/sigstore/sigstore-go
 SIGSTORE_VERSION=$(go -C "$BUILDER_CHECKOUT" list -m -f '{{.Version}}' "$SIGSTORE_PATH")
 SIGSTORE_GO_LIST_H1=$(go -C "$BUILDER_CHECKOUT" list -m -f '{{.Sum}}' "$SIGSTORE_PATH")
@@ -617,8 +621,11 @@ internal classification and does not apply to an `E422` or any other failed publ
 
 Record the UTC publish-completion timestamp. Then read the packument and attestation endpoint
 together once immediately and every 15 seconds until 300 seconds have elapsed from the first
-request. Stop early only when both the exact version and a Windlass SLSA v1 candidate are visible.
-The attestation URL uses uppercase percent-encoding for `@` and `/`.
+request. This window mirrors the specification's internal five-minute read-back budget; the
+normative tightening from the earlier fifteen-minute budget landed with that specification change,
+not with this runbook. Stop early only when both the exact version and a Windlass SLSA v1 candidate
+are visible over a successful HTTP response. The attestation URL uses uppercase percent-encoding for
+`@` and `/`.
 
 ```bash
 cd "$PREPARATION_DIR"
@@ -639,6 +646,7 @@ while :; do
   if printf '%s' "$packument" \
       | jq -e '.version == "0.1.3" and (.["dist.integrity"] | type == "string")' \
         > /dev/null 2>&1 \
+    && [ "${attestation##*$'\nHTTP_STATUS:'}" = $'200\n' ] \
     && printf '%s' "$attestation_body" \
       | jq -e '[.attestations[]? | select(.predicateType == "https://slsa.dev/provenance/v1")] | length > 0' \
         > /dev/null 2>&1; then
